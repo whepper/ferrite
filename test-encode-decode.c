@@ -346,26 +346,9 @@ int main(int argc, char *argv[]) {
 	SHA1Reset(&encode_hash);
 	SHA1Reset(&decode_hash);
 
-	failures += test_encode_decode(infile,  2, 0, 0, 0, 64000, 0); // AAC-LC, without afterburner
-	for (i = 0; i < 2; i++)
-		failures += test_encode_decode(infile, 2, 1, 0, 0, 64000, i); // AAC-LC
-	for (i = 1; i <= 5; i++)
-		failures += test_encode_decode(infile, 2, 1, 0, i, 0, 0); // AAC-LC VBR
-	if (channels == 2) {
-		// HE-AACv2 only works for stereo; HE-AACv1 gets upconverted to stereo (which we don't match properly)
-		for (i = 0; i < 2; i++)
-			failures += test_encode_decode(infile, 5, 1, 0, 0, 64000, i); // HE-AAC
-		for (i = 1; i <= 5; i++)
-			failures += test_encode_decode(infile, 5, 1, 0, i, 0, 0); // HE-AAC VBR
-		for (i = 0; i < 2; i++)
-			failures += test_encode_decode(infile, 29, 1, 0, 0, 64000, i); // HE-AACv2
-		for (i = 1; i <= 5; i++)
-			failures += test_encode_decode(infile, 29, 1, 0, i, 0, 0); // HE-AACv2 VBR
-	}
-	if (channels == 1)
-		failures += test_encode_decode(infile, 23, 1, 0, 0, 64000, 0); // AAC-LD
-	failures += test_encode_decode(infile, 39, 1, 0, 0, 64000, 0); // AAC-ELD
-	failures += test_encode_decode(infile, 39, 1, 1, 0, 64000, 0); // AAC-ELD with SBR
+	/* Stripped: AAC-LC VBR-5 afterburner-on only. */
+	failures += test_encode_decode(infile, 2, 1, 0, 5, 0, 0); // AAC-LC VBR-5 RAW
+	failures += test_encode_decode(infile, 2, 1, 0, 5, 0, 1); // AAC-LC VBR-5 ADTS
 
 	free_encoder_input();
 	fprintf(stderr, "%d failures\n", failures);

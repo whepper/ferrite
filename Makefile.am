@@ -7,9 +7,7 @@ libfdk_aac_la_CPPFLAGS = \
     -I$(top_srcdir)/cpp/libArithCoding/include \
     -I$(top_srcdir)/cpp/libDRCdec/include \
     -I$(top_srcdir)/cpp/libSACdec/include \
-    -I$(top_srcdir)/cpp/libSACenc/include \
     -I$(top_srcdir)/cpp/libSBRdec/include \
-    -I$(top_srcdir)/cpp/libSBRenc/include \
     -I$(top_srcdir)/cpp/libMpegTPDec/include \
     -I$(top_srcdir)/cpp/libMpegTPEnc/include \
     -I$(top_srcdir)/cpp/libSYS/include \
@@ -156,9 +154,6 @@ AACENC_SRC = \
     cpp/libAACenc/src/grp_data.cpp \
     cpp/libAACenc/src/intensity.cpp \
     cpp/libAACenc/src/line_pe.cpp \
-    cpp/libAACenc/src/metadata_compressor.cpp \
-    cpp/libAACenc/src/metadata_main.cpp \
-    cpp/libAACenc/src/mps_main.cpp \
     cpp/libAACenc/src/ms_stereo.cpp \
     cpp/libAACenc/src/noisedet.cpp \
     cpp/libAACenc/src/pnsparam.cpp \
@@ -242,20 +237,7 @@ SACDEC_SRC = \
     cpp/libSACdec/src/sac_stp.cpp \
     cpp/libSACdec/src/sac_tsd.cpp
 
-SACENC_SRC = \
-    cpp/libSACenc/src/sacenc_bitstream.cpp \
-    cpp/libSACenc/src/sacenc_delay.cpp \
-    cpp/libSACenc/src/sacenc_dmx_tdom_enh.cpp \
-    cpp/libSACenc/src/sacenc_filter.cpp \
-    cpp/libSACenc/src/sacenc_framewindowing.cpp \
-    cpp/libSACenc/src/sacenc_huff_tab.cpp \
-    cpp/libSACenc/src/sacenc_lib.cpp \
-    cpp/libSACenc/src/sacenc_nlc_enc.cpp \
-    cpp/libSACenc/src/sacenc_onsetdetect.cpp \
-    cpp/libSACenc/src/sacenc_paramextract.cpp \
-    cpp/libSACenc/src/sacenc_staticgain.cpp \
-    cpp/libSACenc/src/sacenc_tree.cpp \
-    cpp/libSACenc/src/sacenc_vectorfunctions.cpp
+# Stripped: SACENC_SRC removed (AAC-LC only).
 
 SBRDEC_SRC = \
     cpp/libSBRdec/src/HFgen_preFlat.cpp \
@@ -278,26 +260,7 @@ SBRDEC_SRC = \
     cpp/libSBRdec/src/sbrdec_freq_sca.cpp \
     cpp/libSBRdec/src/sbrdecoder.cpp
 
-SBRENC_SRC = \
-    cpp/libSBRenc/src/bit_sbr.cpp \
-    cpp/libSBRenc/src/code_env.cpp \
-    cpp/libSBRenc/src/env_bit.cpp \
-    cpp/libSBRenc/src/env_est.cpp \
-    cpp/libSBRenc/src/fram_gen.cpp \
-    cpp/libSBRenc/src/invf_est.cpp \
-    cpp/libSBRenc/src/mh_det.cpp \
-    cpp/libSBRenc/src/nf_est.cpp \
-    cpp/libSBRenc/src/ps_bitenc.cpp \
-    cpp/libSBRenc/src/ps_encode.cpp \
-    cpp/libSBRenc/src/ps_main.cpp \
-    cpp/libSBRenc/src/resampler.cpp \
-    cpp/libSBRenc/src/sbr_encoder.cpp \
-    cpp/libSBRenc/src/sbr_misc.cpp \
-    cpp/libSBRenc/src/sbrenc_freq_sca.cpp \
-    cpp/libSBRenc/src/sbrenc_ram.cpp \
-    cpp/libSBRenc/src/sbrenc_rom.cpp \
-    cpp/libSBRenc/src/ton_corr.cpp \
-    cpp/libSBRenc/src/tran_det.cpp
+# Stripped: SACENC_SRC, SBRENC_SRC removed (AAC-LC only).
 
 SYS_SRC = \
     cpp/libSYS/src/genericStds.cpp \
@@ -308,8 +271,8 @@ libfdk_aac_la_SOURCES = \
     $(ARITHCODING_SRC) \
     $(DRCDEC_SRC) \
     $(MPEGTPDEC_SRC) $(MPEGTPENC_SRC) \
-    $(SACDEC_SRC) $(SACENC_SRC) \
-    $(SBRDEC_SRC) $(SBRENC_SRC) \
+    $(SACDEC_SRC) \
+    $(SBRDEC_SRC) \
     $(PCMUTILS_SRC) $(FDK_SRC) $(SYS_SRC)
 
 AACFASTENC_SRC = \
@@ -643,10 +606,6 @@ EXTRA_DIST = \
     $(top_srcdir)/cpp/libDRCdec/src/*.h \
     $(top_srcdir)/cpp/libSACdec/include/*.h \
     $(top_srcdir)/cpp/libSACdec/src/*.h \
-    $(top_srcdir)/cpp/libSACenc/include/*.h \
-    $(top_srcdir)/cpp/libSACenc/src/*.h \
-    $(top_srcdir)/cpp/libSBRenc/src/*.h \
-    $(top_srcdir)/cpp/libSBRenc/include/*.h \
     $(top_srcdir)/cpp/libSBRdec/src/*.h \
     $(top_srcdir)/cpp/libSBRdec/include/*.h \
     $(top_srcdir)/cpp/libSYS/include/*.h \

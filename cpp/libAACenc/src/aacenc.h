@@ -108,8 +108,6 @@ amm-info@iis.fraunhofer.de
 
 #include "tpenc_lib.h"
 
-#include "sbr_encoder.h"
-
 #define MIN_BUFSIZE_PER_EFF_CHAN 6144
 
 #ifdef __cplusplus

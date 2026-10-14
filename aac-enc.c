@@ -30,13 +30,7 @@
 #include "wavreader.h"
 
 void usage(const char* name) {
-	fprintf(stderr, "%s [-r bitrate] [-t aot] [-a afterburner] [-s sbr] [-v vbr] in.wav out.aac\n", name);
-	fprintf(stderr, "Supported AOTs:\n");
-	fprintf(stderr, "\t2\tAAC-LC\n");
-	fprintf(stderr, "\t5\tHE-AAC\n");
-	fprintf(stderr, "\t29\tHE-AAC v2\n");
-	fprintf(stderr, "\t23\tAAC-LD\n");
-	fprintf(stderr, "\t39\tAAC-ELD\n");
+	fprintf(stderr, "%s in.wav out.aac (stripped: AAC-LC VBR-5 afterburner-on, ADTS)\n", name);
 }
 
 int main(int argc, char *argv[]) {
@@ -51,27 +45,14 @@ int main(int argc, char *argv[]) {
 	int16_t* convert_buf;
 	int aot = 2;
 	int afterburner = 1;
-	int eld_sbr = 0;
-	int vbr = 0;
+	int vbr = 5;
 	HANDLE_AACENCODER handle;
 	CHANNEL_MODE mode;
 	AACENC_InfoStruct info = { 0 };
-	while ((ch = getopt(argc, argv, "r:t:a:s:v:")) != -1) {
+	while ((ch = getopt(argc, argv, "r:")) != -1) {
 		switch (ch) {
 		case 'r':
-			bitrate = atoi(optarg);
-			break;
-		case 't':
-			aot = atoi(optarg);
-			break;
-		case 'a':
-			afterburner = atoi(optarg);
-			break;
-		case 's':
-			eld_sbr = atoi(optarg);
-			break;
-		case 'v':
-			vbr = atoi(optarg);
+			bitrate = atoi(optarg); /* accepted but ignored in VBR-5 mode */
 			break;
 		case '?':
 		default:
@@ -118,16 +99,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Unable to open encoder\n");
 		return 1;
 	}
-	if (aacEncoder_SetParam(handle, AACENC_AOT, aot) != AACENC_OK) {
-		fprintf(stderr, "Unable to set the AOT\n");
-		return 1;
-	}
-	if (aot == 39 && eld_sbr) {
-		if (aacEncoder_SetParam(handle, AACENC_SBR_MODE, 1) != AACENC_OK) {
-			fprintf(stderr, "Unable to set SBR mode for ELD\n");
-			return 1;
-		}
-	}
 	if (aacEncoder_SetParam(handle, AACENC_SAMPLERATE, sample_rate) != AACENC_OK) {
 		fprintf(stderr, "Unable to set the sample rate\n");
 		return 1;
@@ -140,16 +111,14 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Unable to set the wav channel order\n");
 		return 1;
 	}
-	if (vbr) {
-		if (aacEncoder_SetParam(handle, AACENC_BITRATEMODE, vbr) != AACENC_OK) {
-			fprintf(stderr, "Unable to set the VBR bitrate mode\n");
-			return 1;
-		}
-	} else {
-		if (aacEncoder_SetParam(handle, AACENC_BITRATE, bitrate) != AACENC_OK) {
-			fprintf(stderr, "Unable to set the bitrate\n");
-			return 1;
-		}
+	/* Stripped: fixed AAC-LC VBR-5 afterburner-on. */
+	if (aacEncoder_SetParam(handle, AACENC_AOT, aot) != AACENC_OK) {
+		fprintf(stderr, "Unable to set the AOT (only AAC-LC supported)\n");
+		return 1;
+	}
+	if (aacEncoder_SetParam(handle, AACENC_BITRATEMODE, vbr) != AACENC_OK) {
+		fprintf(stderr, "Unable to set the VBR bitrate mode (only VBR-5 supported)\n");
+		return 1;
 	}
 	if (aacEncoder_SetParam(handle, AACENC_TRANSMUX, TT_MP4_ADTS) != AACENC_OK) {
 		fprintf(stderr, "Unable to set the ADTS transmux\n");

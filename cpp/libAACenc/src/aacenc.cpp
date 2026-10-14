@@ -713,7 +713,7 @@ AAC_ENCODER_ERROR FDKaacEnc_Initialize(
       goto bail;
   }
 
-  qcInit.invQuant = (config->useRequant) ? 2 : 0;
+  qcInit.invQuant = 2; /* Stripped: afterburner always on. */
 
   /* maxIterations should be set to the maximum number of requantization
    * iterations that are allowed before the crash recovery functionality is

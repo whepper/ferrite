@@ -11,11 +11,9 @@ cc_library {
         "libMpegTPDec/src/*.cpp",
         "libMpegTPEnc/src/*.cpp",
         "libSBRdec/src/*.cpp",
-        "libSBRenc/src/*.cpp",
         "libArithCoding/src/*.cpp",
         "libDRCdec/src/*.cpp",
         "libSACdec/src/*.cpp",
-        "libSACenc/src/*.cpp",
     ],
     cflags: [
         "-Werror",
@@ -46,11 +44,9 @@ cc_library {
         "libMpegTPDec/include",
         "libMpegTPEnc/include",
         "libSBRdec/include",
-        "libSBRenc/include",
         "libArithCoding/include",
         "libDRCdec/include",
         "libSACdec/include",
-        "libSACenc/include",
     ],
 
     target: {
