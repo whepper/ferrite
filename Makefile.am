@@ -163,10 +163,8 @@ MPEGTPDEC_SRC = \
     cpp/libMpegTPDec/src/tpdec_lib.cpp
 
 MPEGTPENC_SRC = \
-    cpp/libMpegTPEnc/src/tpenc_adif.cpp \
     cpp/libMpegTPEnc/src/tpenc_adts.cpp \
     cpp/libMpegTPEnc/src/tpenc_asc.cpp \
-    cpp/libMpegTPEnc/src/tpenc_latm.cpp \
     cpp/libMpegTPEnc/src/tpenc_lib.cpp
 
 PCMUTILS_SRC = \

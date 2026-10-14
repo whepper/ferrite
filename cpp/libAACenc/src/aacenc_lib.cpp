@@ -767,18 +767,12 @@ static AACENC_ERROR aacEncInit(HANDLE_AACENCODER hAacEncoder, ULONG InitFlags,
    * Initialize Transport - Module.
    */
   if ((InitFlags & AACENC_INIT_TRANSPORT)) {
-    UINT flags = 0;
-
     FDKaacEnc_MapConfig(
         &hAacEncoder->coderConfig, config,
         getSbrSignalingMode(hAacConfig->audioObjectType, config->userTpType,
                             config->userTpSignaling, hAacConfig->sbrRatio),
         hAacConfig);
 
-    /* create flags for transport encoder */
-    if (config->userTpAmxv != 0) {
-      flags |= TP_FLAG_LATM_AMV;
-    }
     /* Clear output buffer */
     FDKmemclear(hAacEncoder->outBuffer,
                 hAacEncoder->outBufferInBytes * sizeof(UCHAR));
@@ -786,7 +780,7 @@ static AACENC_ERROR aacEncInit(HANDLE_AACENCODER hAacEncoder, ULONG InitFlags,
     /* Initialize Bitstream encoder */
     if (transportEnc_Init(hAacEncoder->hTpEnc, hAacEncoder->outBuffer,
                           hAacEncoder->outBufferInBytes, config->userTpType,
-                          &hAacEncoder->coderConfig, flags) != 0) {
+                          &hAacEncoder->coderConfig, 0) != 0) {
       return AACENC_INIT_TP_ERROR;
     }
 

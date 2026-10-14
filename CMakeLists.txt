@@ -271,16 +271,12 @@ set(MPEGTPDEC_SRC
   libMpegTPDec/src/tpdec_latm.h)
 
 set(MPEGTPENC_SRC
-  libMpegTPEnc/src/tpenc_adif.cpp
   libMpegTPEnc/src/tpenc_adts.cpp
   libMpegTPEnc/src/tpenc_asc.cpp
-  libMpegTPEnc/src/tpenc_latm.cpp
   libMpegTPEnc/src/tpenc_lib.cpp
   libMpegTPEnc/src/tp_version.h
-  libMpegTPEnc/src/tpenc_adif.h
   libMpegTPEnc/src/tpenc_adts.h
-  libMpegTPEnc/src/tpenc_asc.h
-  libMpegTPEnc/src/tpenc_latm.h)
+  libMpegTPEnc/src/tpenc_asc.h)
 
 set(PCMUTILS_SRC
   libPCMutils/src/limiter.cpp
