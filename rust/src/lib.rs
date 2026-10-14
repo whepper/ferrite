@@ -98,6 +98,8 @@ amm-info@iis.fraunhofer.de
 
 #[cfg(feature = "aac_dec")]
 pub mod aac_dec;
+#[cfg(feature = "aac_enc")]
+pub mod aac_enc;
 #[cfg(feature = "aac_dec")]
 pub mod arith_coding;
 pub mod common;

@@ -26,6 +26,7 @@ rustversion = "1.0.20"
 [features]
 default = ["aac_dec"]
 aac_dec = []
+aac_enc = []
 obsolete_bindings_enabled = []
 
 # Cargo build profiles
