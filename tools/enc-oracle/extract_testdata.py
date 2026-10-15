@@ -66,10 +66,51 @@ def parse(path):
     cur_ms = None
     cur_cfg = None
     cur_frame_key = None
+    # M4-S1/S2/S3/S4/S5/S6/S7/S8 blocks (S1FRAME..STATIC, S2FRAME..S2END,
+    # S3FRAME..S3END, S4FRAME..S4END, S5FRAME..S5END, S6FRAME..S6END,
+    # S7FRAME..S7END, S8FRAME..S8END, plus
+    # the single-line S6INIT) are extracted by extract_s1.py /
+    # extract_s2.py / extract_s3.py / extract_s4.py / extract_s5.py /
+    # extract_s6.py / extract_s7.py / extract_s8.py; skip them here so M3 extraction stays green on
+    # S1/S2/S3/S4/S5/S6/S7/S8 dumps.
+    in_s1 = False
     i, n = 0, len(raw)
     while i < n:
         line = raw[i]
-        if line.startswith("#"):
+        if line.startswith("S1FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S2FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S3FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S4FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S5FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S6FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S7FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S8FRAME "):
+            in_s1 = True
+            i += 1
+        elif line.startswith("S6INIT "):
+            i += 1
+        elif in_s1:
+            if line.startswith("STATIC ") or line.startswith("S2END") \
+                    or line.startswith("S3END") or line.startswith("S4END") \
+                    or line.startswith("S5END") or line.startswith("S6END") \
+                    or line.startswith("S7END") or line.startswith("S8END"):
+                in_s1 = False
+            i += 1
+        elif line.startswith("#"):
             i += 1
         elif line.startswith("CFG "):
             p = line.split()

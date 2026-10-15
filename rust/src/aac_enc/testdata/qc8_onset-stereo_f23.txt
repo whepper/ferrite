@@ -1,0 +1,7 @@
+S8FRAME f=23
+S8SIDE ch=0 wshape=0 gmask=0 mdct=0
+S8SIDE ch=1 wshape=0 gmask=0 mdct=0
+S8ELEM bits=61 hex=2121450014500140
+S8RAW bits=64 hex=2121450014500147
+S8FINAL static=43 useddyn=18 totfill=0 align=0 total=64
+S8END

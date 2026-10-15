@@ -1,0 +1,8 @@
+S7FRAME f=24
+S7SPEC ch=0 bits=155 hex=a8c3d0999ebcfd9dada5723492cd0a2e69e79d40
+S7SCF ch=0 bits=15 hex=3cd0
+S7SECH ch=0 bits=58 hex=0f83e0f81dc24100
+S7SPEC ch=1 bits=155 hex=a8c3d0999ebcfd9dada5723492cd0a2e69e79d40
+S7SCF ch=1 bits=15 hex=3cd0
+S7SECH ch=1 bits=58 hex=0f83e0f81dc24100
+S7END

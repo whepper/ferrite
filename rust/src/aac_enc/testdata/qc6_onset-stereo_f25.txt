@@ -1,0 +1,8 @@
+S6FRAME f=25
+S6BITR avgTotal=4096 globHdr=56 padRest=48000
+S6GRANT granted=12021 maxdyn=12077 avail=12288 elgrant=12021 gpe=9929 gpecorr=9929 reslevel=0 resmax=0
+S6GSTATE 9829 456 1073741824 1 174 3132
+S6IT pass=0 iter=0 dec=-1 dyn0=670 dyn1=14 gain0=-47 gain1=0 maxq0=135 maxq1=0 eldyn=684 elstat=208 crash=-1
+S6FINAL static=208 useddyn=684 totfill=0 align=1 total=896 granted=12021 bitres=12288 crash=-1 npass=1
+S6GPOST 9929 684 1073741824 1 517 3005
+S6END

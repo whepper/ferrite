@@ -1,0 +1,5845 @@
+SCFUNIT bits
+CB scf=-70 d=-12 v=2621440
+CB scf=-70 d=-11 v=2359296
+CB scf=-70 d=-10 v=2359296
+CB scf=-70 d=-9 v=2097152
+CB scf=-70 d=-8 v=2097152
+CB scf=-70 d=-7 v=2097152
+CB scf=-70 d=-6 v=1835008
+CB scf=-70 d=-5 v=1572864
+CB scf=-70 d=-4 v=1572864
+CB scf=-70 d=-3 v=1310720
+CB scf=-70 d=-2 v=1048576
+CB scf=-70 d=-1 v=786432
+CB scf=-70 d=0 v=262144
+CB scf=-70 d=1 v=1048576
+CB scf=-70 d=2 v=1048576
+CB scf=-70 d=3 v=1310720
+CB scf=-70 d=4 v=1572864
+CB scf=-70 d=5 v=1572864
+CB scf=-70 d=6 v=1835008
+CB scf=-70 d=7 v=1835008
+CB scf=-70 d=8 v=2097152
+CB scf=-70 d=9 v=2097152
+CB scf=-70 d=10 v=2359296
+CB scf=-70 d=11 v=2359296
+CB scf=-70 d=12 v=2621440
+CB scf=-69 d=-12 v=2621440
+CB scf=-69 d=-11 v=2359296
+CB scf=-69 d=-10 v=2359296
+CB scf=-69 d=-9 v=2097152
+CB scf=-69 d=-8 v=2097152
+CB scf=-69 d=-7 v=2097152
+CB scf=-69 d=-6 v=1835008
+CB scf=-69 d=-5 v=1572864
+CB scf=-69 d=-4 v=1572864
+CB scf=-69 d=-3 v=1310720
+CB scf=-69 d=-2 v=1048576
+CB scf=-69 d=-1 v=786432
+CB scf=-69 d=0 v=262144
+CB scf=-69 d=1 v=1048576
+CB scf=-69 d=2 v=1048576
+CB scf=-69 d=3 v=1310720
+CB scf=-69 d=4 v=1572864
+CB scf=-69 d=5 v=1572864
+CB scf=-69 d=6 v=1835008
+CB scf=-69 d=7 v=1835008
+CB scf=-69 d=8 v=2097152
+CB scf=-69 d=9 v=2097152
+CB scf=-69 d=10 v=2359296
+CB scf=-69 d=11 v=2359296
+CB scf=-69 d=12 v=2621440
+CB scf=-68 d=-12 v=2621440
+CB scf=-68 d=-11 v=2359296
+CB scf=-68 d=-10 v=2359296
+CB scf=-68 d=-9 v=2097152
+CB scf=-68 d=-8 v=2097152
+CB scf=-68 d=-7 v=2097152
+CB scf=-68 d=-6 v=1835008
+CB scf=-68 d=-5 v=1572864
+CB scf=-68 d=-4 v=1572864
+CB scf=-68 d=-3 v=1310720
+CB scf=-68 d=-2 v=1048576
+CB scf=-68 d=-1 v=786432
+CB scf=-68 d=0 v=262144
+CB scf=-68 d=1 v=1048576
+CB scf=-68 d=2 v=1048576
+CB scf=-68 d=3 v=1310720
+CB scf=-68 d=4 v=1572864
+CB scf=-68 d=5 v=1572864
+CB scf=-68 d=6 v=1835008
+CB scf=-68 d=7 v=1835008
+CB scf=-68 d=8 v=2097152
+CB scf=-68 d=9 v=2097152
+CB scf=-68 d=10 v=2359296
+CB scf=-68 d=11 v=2359296
+CB scf=-68 d=12 v=2621440
+CB scf=-67 d=-12 v=2621440
+CB scf=-67 d=-11 v=2359296
+CB scf=-67 d=-10 v=2359296
+CB scf=-67 d=-9 v=2097152
+CB scf=-67 d=-8 v=2097152
+CB scf=-67 d=-7 v=2097152
+CB scf=-67 d=-6 v=1835008
+CB scf=-67 d=-5 v=1572864
+CB scf=-67 d=-4 v=1572864
+CB scf=-67 d=-3 v=1310720
+CB scf=-67 d=-2 v=1048576
+CB scf=-67 d=-1 v=786432
+CB scf=-67 d=0 v=262144
+CB scf=-67 d=1 v=1048576
+CB scf=-67 d=2 v=1048576
+CB scf=-67 d=3 v=1310720
+CB scf=-67 d=4 v=1572864
+CB scf=-67 d=5 v=1572864
+CB scf=-67 d=6 v=1835008
+CB scf=-67 d=7 v=1835008
+CB scf=-67 d=8 v=2097152
+CB scf=-67 d=9 v=2097152
+CB scf=-67 d=10 v=2359296
+CB scf=-67 d=11 v=2359296
+CB scf=-67 d=12 v=2621440
+CB scf=-66 d=-12 v=2621440
+CB scf=-66 d=-11 v=2359296
+CB scf=-66 d=-10 v=2359296
+CB scf=-66 d=-9 v=2097152
+CB scf=-66 d=-8 v=2097152
+CB scf=-66 d=-7 v=2097152
+CB scf=-66 d=-6 v=1835008
+CB scf=-66 d=-5 v=1572864
+CB scf=-66 d=-4 v=1572864
+CB scf=-66 d=-3 v=1310720
+CB scf=-66 d=-2 v=1048576
+CB scf=-66 d=-1 v=786432
+CB scf=-66 d=0 v=262144
+CB scf=-66 d=1 v=1048576
+CB scf=-66 d=2 v=1048576
+CB scf=-66 d=3 v=1310720
+CB scf=-66 d=4 v=1572864
+CB scf=-66 d=5 v=1572864
+CB scf=-66 d=6 v=1835008
+CB scf=-66 d=7 v=1835008
+CB scf=-66 d=8 v=2097152
+CB scf=-66 d=9 v=2097152
+CB scf=-66 d=10 v=2359296
+CB scf=-66 d=11 v=2359296
+CB scf=-66 d=12 v=2621440
+CB scf=-65 d=-12 v=2621440
+CB scf=-65 d=-11 v=2359296
+CB scf=-65 d=-10 v=2359296
+CB scf=-65 d=-9 v=2097152
+CB scf=-65 d=-8 v=2097152
+CB scf=-65 d=-7 v=2097152
+CB scf=-65 d=-6 v=1835008
+CB scf=-65 d=-5 v=1572864
+CB scf=-65 d=-4 v=1572864
+CB scf=-65 d=-3 v=1310720
+CB scf=-65 d=-2 v=1048576
+CB scf=-65 d=-1 v=786432
+CB scf=-65 d=0 v=262144
+CB scf=-65 d=1 v=1048576
+CB scf=-65 d=2 v=1048576
+CB scf=-65 d=3 v=1310720
+CB scf=-65 d=4 v=1572864
+CB scf=-65 d=5 v=1572864
+CB scf=-65 d=6 v=1835008
+CB scf=-65 d=7 v=1835008
+CB scf=-65 d=8 v=2097152
+CB scf=-65 d=9 v=2097152
+CB scf=-65 d=10 v=2359296
+CB scf=-65 d=11 v=2359296
+CB scf=-65 d=12 v=2621440
+CB scf=-64 d=-12 v=2621440
+CB scf=-64 d=-11 v=2359296
+CB scf=-64 d=-10 v=2359296
+CB scf=-64 d=-9 v=2097152
+CB scf=-64 d=-8 v=2097152
+CB scf=-64 d=-7 v=2097152
+CB scf=-64 d=-6 v=1835008
+CB scf=-64 d=-5 v=1572864
+CB scf=-64 d=-4 v=1572864
+CB scf=-64 d=-3 v=1310720
+CB scf=-64 d=-2 v=1048576
+CB scf=-64 d=-1 v=786432
+CB scf=-64 d=0 v=262144
+CB scf=-64 d=1 v=1048576
+CB scf=-64 d=2 v=1048576
+CB scf=-64 d=3 v=1310720
+CB scf=-64 d=4 v=1572864
+CB scf=-64 d=5 v=1572864
+CB scf=-64 d=6 v=1835008
+CB scf=-64 d=7 v=1835008
+CB scf=-64 d=8 v=2097152
+CB scf=-64 d=9 v=2097152
+CB scf=-64 d=10 v=2359296
+CB scf=-64 d=11 v=2359296
+CB scf=-64 d=12 v=2621440
+CB scf=-63 d=-12 v=2621440
+CB scf=-63 d=-11 v=2359296
+CB scf=-63 d=-10 v=2359296
+CB scf=-63 d=-9 v=2097152
+CB scf=-63 d=-8 v=2097152
+CB scf=-63 d=-7 v=2097152
+CB scf=-63 d=-6 v=1835008
+CB scf=-63 d=-5 v=1572864
+CB scf=-63 d=-4 v=1572864
+CB scf=-63 d=-3 v=1310720
+CB scf=-63 d=-2 v=1048576
+CB scf=-63 d=-1 v=786432
+CB scf=-63 d=0 v=262144
+CB scf=-63 d=1 v=1048576
+CB scf=-63 d=2 v=1048576
+CB scf=-63 d=3 v=1310720
+CB scf=-63 d=4 v=1572864
+CB scf=-63 d=5 v=1572864
+CB scf=-63 d=6 v=1835008
+CB scf=-63 d=7 v=1835008
+CB scf=-63 d=8 v=2097152
+CB scf=-63 d=9 v=2097152
+CB scf=-63 d=10 v=2359296
+CB scf=-63 d=11 v=2359296
+CB scf=-63 d=12 v=2621440
+CB scf=-62 d=-12 v=2621440
+CB scf=-62 d=-11 v=2359296
+CB scf=-62 d=-10 v=2359296
+CB scf=-62 d=-9 v=2097152
+CB scf=-62 d=-8 v=2097152
+CB scf=-62 d=-7 v=2097152
+CB scf=-62 d=-6 v=1835008
+CB scf=-62 d=-5 v=1572864
+CB scf=-62 d=-4 v=1572864
+CB scf=-62 d=-3 v=1310720
+CB scf=-62 d=-2 v=1048576
+CB scf=-62 d=-1 v=786432
+CB scf=-62 d=0 v=262144
+CB scf=-62 d=1 v=1048576
+CB scf=-62 d=2 v=1048576
+CB scf=-62 d=3 v=1310720
+CB scf=-62 d=4 v=1572864
+CB scf=-62 d=5 v=1572864
+CB scf=-62 d=6 v=1835008
+CB scf=-62 d=7 v=1835008
+CB scf=-62 d=8 v=2097152
+CB scf=-62 d=9 v=2097152
+CB scf=-62 d=10 v=2359296
+CB scf=-62 d=11 v=2359296
+CB scf=-62 d=12 v=2621440
+CB scf=-61 d=-12 v=2621440
+CB scf=-61 d=-11 v=2359296
+CB scf=-61 d=-10 v=2359296
+CB scf=-61 d=-9 v=2097152
+CB scf=-61 d=-8 v=2097152
+CB scf=-61 d=-7 v=2097152
+CB scf=-61 d=-6 v=1835008
+CB scf=-61 d=-5 v=1572864
+CB scf=-61 d=-4 v=1572864
+CB scf=-61 d=-3 v=1310720
+CB scf=-61 d=-2 v=1048576
+CB scf=-61 d=-1 v=786432
+CB scf=-61 d=0 v=262144
+CB scf=-61 d=1 v=1048576
+CB scf=-61 d=2 v=1048576
+CB scf=-61 d=3 v=1310720
+CB scf=-61 d=4 v=1572864
+CB scf=-61 d=5 v=1572864
+CB scf=-61 d=6 v=1835008
+CB scf=-61 d=7 v=1835008
+CB scf=-61 d=8 v=2097152
+CB scf=-61 d=9 v=2097152
+CB scf=-61 d=10 v=2359296
+CB scf=-61 d=11 v=2359296
+CB scf=-61 d=12 v=2621440
+CB scf=-60 d=-12 v=2621440
+CB scf=-60 d=-11 v=2359296
+CB scf=-60 d=-10 v=2359296
+CB scf=-60 d=-9 v=2097152
+CB scf=-60 d=-8 v=2097152
+CB scf=-60 d=-7 v=2097152
+CB scf=-60 d=-6 v=1835008
+CB scf=-60 d=-5 v=1572864
+CB scf=-60 d=-4 v=1572864
+CB scf=-60 d=-3 v=1310720
+CB scf=-60 d=-2 v=1048576
+CB scf=-60 d=-1 v=786432
+CB scf=-60 d=0 v=262144
+CB scf=-60 d=1 v=1048576
+CB scf=-60 d=2 v=1048576
+CB scf=-60 d=3 v=1310720
+CB scf=-60 d=4 v=1572864
+CB scf=-60 d=5 v=1572864
+CB scf=-60 d=6 v=1835008
+CB scf=-60 d=7 v=1835008
+CB scf=-60 d=8 v=2097152
+CB scf=-60 d=9 v=2097152
+CB scf=-60 d=10 v=2359296
+CB scf=-60 d=11 v=2359296
+CB scf=-60 d=12 v=2621440
+CB scf=-59 d=-12 v=2621440
+CB scf=-59 d=-11 v=2359296
+CB scf=-59 d=-10 v=2359296
+CB scf=-59 d=-9 v=2097152
+CB scf=-59 d=-8 v=2097152
+CB scf=-59 d=-7 v=2097152
+CB scf=-59 d=-6 v=1835008
+CB scf=-59 d=-5 v=1572864
+CB scf=-59 d=-4 v=1572864
+CB scf=-59 d=-3 v=1310720
+CB scf=-59 d=-2 v=1048576
+CB scf=-59 d=-1 v=786432
+CB scf=-59 d=0 v=262144
+CB scf=-59 d=1 v=1048576
+CB scf=-59 d=2 v=1048576
+CB scf=-59 d=3 v=1310720
+CB scf=-59 d=4 v=1572864
+CB scf=-59 d=5 v=1572864
+CB scf=-59 d=6 v=1835008
+CB scf=-59 d=7 v=1835008
+CB scf=-59 d=8 v=2097152
+CB scf=-59 d=9 v=2097152
+CB scf=-59 d=10 v=2359296
+CB scf=-59 d=11 v=2359296
+CB scf=-59 d=12 v=2621440
+CB scf=-58 d=-12 v=2621440
+CB scf=-58 d=-11 v=2359296
+CB scf=-58 d=-10 v=2359296
+CB scf=-58 d=-9 v=2097152
+CB scf=-58 d=-8 v=2097152
+CB scf=-58 d=-7 v=2097152
+CB scf=-58 d=-6 v=1835008
+CB scf=-58 d=-5 v=1572864
+CB scf=-58 d=-4 v=1572864
+CB scf=-58 d=-3 v=1310720
+CB scf=-58 d=-2 v=1048576
+CB scf=-58 d=-1 v=786432
+CB scf=-58 d=0 v=262144
+CB scf=-58 d=1 v=1048576
+CB scf=-58 d=2 v=1048576
+CB scf=-58 d=3 v=1310720
+CB scf=-58 d=4 v=1572864
+CB scf=-58 d=5 v=1572864
+CB scf=-58 d=6 v=1835008
+CB scf=-58 d=7 v=1835008
+CB scf=-58 d=8 v=2097152
+CB scf=-58 d=9 v=2097152
+CB scf=-58 d=10 v=2359296
+CB scf=-58 d=11 v=2359296
+CB scf=-58 d=12 v=2621440
+CB scf=-57 d=-12 v=2621440
+CB scf=-57 d=-11 v=2359296
+CB scf=-57 d=-10 v=2359296
+CB scf=-57 d=-9 v=2097152
+CB scf=-57 d=-8 v=2097152
+CB scf=-57 d=-7 v=2097152
+CB scf=-57 d=-6 v=1835008
+CB scf=-57 d=-5 v=1572864
+CB scf=-57 d=-4 v=1572864
+CB scf=-57 d=-3 v=1310720
+CB scf=-57 d=-2 v=1048576
+CB scf=-57 d=-1 v=786432
+CB scf=-57 d=0 v=262144
+CB scf=-57 d=1 v=1048576
+CB scf=-57 d=2 v=1048576
+CB scf=-57 d=3 v=1310720
+CB scf=-57 d=4 v=1572864
+CB scf=-57 d=5 v=1572864
+CB scf=-57 d=6 v=1835008
+CB scf=-57 d=7 v=1835008
+CB scf=-57 d=8 v=2097152
+CB scf=-57 d=9 v=2097152
+CB scf=-57 d=10 v=2359296
+CB scf=-57 d=11 v=2359296
+CB scf=-57 d=12 v=2621440
+CB scf=-56 d=-12 v=2621440
+CB scf=-56 d=-11 v=2359296
+CB scf=-56 d=-10 v=2359296
+CB scf=-56 d=-9 v=2097152
+CB scf=-56 d=-8 v=2097152
+CB scf=-56 d=-7 v=2097152
+CB scf=-56 d=-6 v=1835008
+CB scf=-56 d=-5 v=1572864
+CB scf=-56 d=-4 v=1572864
+CB scf=-56 d=-3 v=1310720
+CB scf=-56 d=-2 v=1048576
+CB scf=-56 d=-1 v=786432
+CB scf=-56 d=0 v=262144
+CB scf=-56 d=1 v=1048576
+CB scf=-56 d=2 v=1048576
+CB scf=-56 d=3 v=1310720
+CB scf=-56 d=4 v=1572864
+CB scf=-56 d=5 v=1572864
+CB scf=-56 d=6 v=1835008
+CB scf=-56 d=7 v=1835008
+CB scf=-56 d=8 v=2097152
+CB scf=-56 d=9 v=2097152
+CB scf=-56 d=10 v=2359296
+CB scf=-56 d=11 v=2359296
+CB scf=-56 d=12 v=2621440
+CB scf=-55 d=-12 v=2621440
+CB scf=-55 d=-11 v=2359296
+CB scf=-55 d=-10 v=2359296
+CB scf=-55 d=-9 v=2097152
+CB scf=-55 d=-8 v=2097152
+CB scf=-55 d=-7 v=2097152
+CB scf=-55 d=-6 v=1835008
+CB scf=-55 d=-5 v=1572864
+CB scf=-55 d=-4 v=1572864
+CB scf=-55 d=-3 v=1310720
+CB scf=-55 d=-2 v=1048576
+CB scf=-55 d=-1 v=786432
+CB scf=-55 d=0 v=262144
+CB scf=-55 d=1 v=1048576
+CB scf=-55 d=2 v=1048576
+CB scf=-55 d=3 v=1310720
+CB scf=-55 d=4 v=1572864
+CB scf=-55 d=5 v=1572864
+CB scf=-55 d=6 v=1835008
+CB scf=-55 d=7 v=1835008
+CB scf=-55 d=8 v=2097152
+CB scf=-55 d=9 v=2097152
+CB scf=-55 d=10 v=2359296
+CB scf=-55 d=11 v=2359296
+CB scf=-55 d=12 v=2621440
+CB scf=-54 d=-12 v=2621440
+CB scf=-54 d=-11 v=2359296
+CB scf=-54 d=-10 v=2359296
+CB scf=-54 d=-9 v=2097152
+CB scf=-54 d=-8 v=2097152
+CB scf=-54 d=-7 v=2097152
+CB scf=-54 d=-6 v=1835008
+CB scf=-54 d=-5 v=1572864
+CB scf=-54 d=-4 v=1572864
+CB scf=-54 d=-3 v=1310720
+CB scf=-54 d=-2 v=1048576
+CB scf=-54 d=-1 v=786432
+CB scf=-54 d=0 v=262144
+CB scf=-54 d=1 v=1048576
+CB scf=-54 d=2 v=1048576
+CB scf=-54 d=3 v=1310720
+CB scf=-54 d=4 v=1572864
+CB scf=-54 d=5 v=1572864
+CB scf=-54 d=6 v=1835008
+CB scf=-54 d=7 v=1835008
+CB scf=-54 d=8 v=2097152
+CB scf=-54 d=9 v=2097152
+CB scf=-54 d=10 v=2359296
+CB scf=-54 d=11 v=2359296
+CB scf=-54 d=12 v=2621440
+CB scf=-53 d=-12 v=2621440
+CB scf=-53 d=-11 v=2359296
+CB scf=-53 d=-10 v=2359296
+CB scf=-53 d=-9 v=2097152
+CB scf=-53 d=-8 v=2097152
+CB scf=-53 d=-7 v=2097152
+CB scf=-53 d=-6 v=1835008
+CB scf=-53 d=-5 v=1572864
+CB scf=-53 d=-4 v=1572864
+CB scf=-53 d=-3 v=1310720
+CB scf=-53 d=-2 v=1048576
+CB scf=-53 d=-1 v=786432
+CB scf=-53 d=0 v=262144
+CB scf=-53 d=1 v=1048576
+CB scf=-53 d=2 v=1048576
+CB scf=-53 d=3 v=1310720
+CB scf=-53 d=4 v=1572864
+CB scf=-53 d=5 v=1572864
+CB scf=-53 d=6 v=1835008
+CB scf=-53 d=7 v=1835008
+CB scf=-53 d=8 v=2097152
+CB scf=-53 d=9 v=2097152
+CB scf=-53 d=10 v=2359296
+CB scf=-53 d=11 v=2359296
+CB scf=-53 d=12 v=2621440
+CB scf=-52 d=-12 v=2621440
+CB scf=-52 d=-11 v=2359296
+CB scf=-52 d=-10 v=2359296
+CB scf=-52 d=-9 v=2097152
+CB scf=-52 d=-8 v=2097152
+CB scf=-52 d=-7 v=2097152
+CB scf=-52 d=-6 v=1835008
+CB scf=-52 d=-5 v=1572864
+CB scf=-52 d=-4 v=1572864
+CB scf=-52 d=-3 v=1310720
+CB scf=-52 d=-2 v=1048576
+CB scf=-52 d=-1 v=786432
+CB scf=-52 d=0 v=262144
+CB scf=-52 d=1 v=1048576
+CB scf=-52 d=2 v=1048576
+CB scf=-52 d=3 v=1310720
+CB scf=-52 d=4 v=1572864
+CB scf=-52 d=5 v=1572864
+CB scf=-52 d=6 v=1835008
+CB scf=-52 d=7 v=1835008
+CB scf=-52 d=8 v=2097152
+CB scf=-52 d=9 v=2097152
+CB scf=-52 d=10 v=2359296
+CB scf=-52 d=11 v=2359296
+CB scf=-52 d=12 v=2621440
+CB scf=-51 d=-12 v=2621440
+CB scf=-51 d=-11 v=2359296
+CB scf=-51 d=-10 v=2359296
+CB scf=-51 d=-9 v=2097152
+CB scf=-51 d=-8 v=2097152
+CB scf=-51 d=-7 v=2097152
+CB scf=-51 d=-6 v=1835008
+CB scf=-51 d=-5 v=1572864
+CB scf=-51 d=-4 v=1572864
+CB scf=-51 d=-3 v=1310720
+CB scf=-51 d=-2 v=1048576
+CB scf=-51 d=-1 v=786432
+CB scf=-51 d=0 v=262144
+CB scf=-51 d=1 v=1048576
+CB scf=-51 d=2 v=1048576
+CB scf=-51 d=3 v=1310720
+CB scf=-51 d=4 v=1572864
+CB scf=-51 d=5 v=1572864
+CB scf=-51 d=6 v=1835008
+CB scf=-51 d=7 v=1835008
+CB scf=-51 d=8 v=2097152
+CB scf=-51 d=9 v=2097152
+CB scf=-51 d=10 v=2359296
+CB scf=-51 d=11 v=2359296
+CB scf=-51 d=12 v=2621440
+CB scf=-50 d=-12 v=2621440
+CB scf=-50 d=-11 v=2359296
+CB scf=-50 d=-10 v=2359296
+CB scf=-50 d=-9 v=2097152
+CB scf=-50 d=-8 v=2097152
+CB scf=-50 d=-7 v=2097152
+CB scf=-50 d=-6 v=1835008
+CB scf=-50 d=-5 v=1572864
+CB scf=-50 d=-4 v=1572864
+CB scf=-50 d=-3 v=1310720
+CB scf=-50 d=-2 v=1048576
+CB scf=-50 d=-1 v=786432
+CB scf=-50 d=0 v=262144
+CB scf=-50 d=1 v=1048576
+CB scf=-50 d=2 v=1048576
+CB scf=-50 d=3 v=1310720
+CB scf=-50 d=4 v=1572864
+CB scf=-50 d=5 v=1572864
+CB scf=-50 d=6 v=1835008
+CB scf=-50 d=7 v=1835008
+CB scf=-50 d=8 v=2097152
+CB scf=-50 d=9 v=2097152
+CB scf=-50 d=10 v=2359296
+CB scf=-50 d=11 v=2359296
+CB scf=-50 d=12 v=2621440
+CB scf=-49 d=-12 v=2621440
+CB scf=-49 d=-11 v=2359296
+CB scf=-49 d=-10 v=2359296
+CB scf=-49 d=-9 v=2097152
+CB scf=-49 d=-8 v=2097152
+CB scf=-49 d=-7 v=2097152
+CB scf=-49 d=-6 v=1835008
+CB scf=-49 d=-5 v=1572864
+CB scf=-49 d=-4 v=1572864
+CB scf=-49 d=-3 v=1310720
+CB scf=-49 d=-2 v=1048576
+CB scf=-49 d=-1 v=786432
+CB scf=-49 d=0 v=262144
+CB scf=-49 d=1 v=1048576
+CB scf=-49 d=2 v=1048576
+CB scf=-49 d=3 v=1310720
+CB scf=-49 d=4 v=1572864
+CB scf=-49 d=5 v=1572864
+CB scf=-49 d=6 v=1835008
+CB scf=-49 d=7 v=1835008
+CB scf=-49 d=8 v=2097152
+CB scf=-49 d=9 v=2097152
+CB scf=-49 d=10 v=2359296
+CB scf=-49 d=11 v=2359296
+CB scf=-49 d=12 v=2621440
+CB scf=-48 d=-12 v=2621440
+CB scf=-48 d=-11 v=2359296
+CB scf=-48 d=-10 v=2359296
+CB scf=-48 d=-9 v=2097152
+CB scf=-48 d=-8 v=2097152
+CB scf=-48 d=-7 v=2097152
+CB scf=-48 d=-6 v=1835008
+CB scf=-48 d=-5 v=1572864
+CB scf=-48 d=-4 v=1572864
+CB scf=-48 d=-3 v=1310720
+CB scf=-48 d=-2 v=1048576
+CB scf=-48 d=-1 v=786432
+CB scf=-48 d=0 v=262144
+CB scf=-48 d=1 v=1048576
+CB scf=-48 d=2 v=1048576
+CB scf=-48 d=3 v=1310720
+CB scf=-48 d=4 v=1572864
+CB scf=-48 d=5 v=1572864
+CB scf=-48 d=6 v=1835008
+CB scf=-48 d=7 v=1835008
+CB scf=-48 d=8 v=2097152
+CB scf=-48 d=9 v=2097152
+CB scf=-48 d=10 v=2359296
+CB scf=-48 d=11 v=2359296
+CB scf=-48 d=12 v=2621440
+CB scf=-47 d=-12 v=2621440
+CB scf=-47 d=-11 v=2359296
+CB scf=-47 d=-10 v=2359296
+CB scf=-47 d=-9 v=2097152
+CB scf=-47 d=-8 v=2097152
+CB scf=-47 d=-7 v=2097152
+CB scf=-47 d=-6 v=1835008
+CB scf=-47 d=-5 v=1572864
+CB scf=-47 d=-4 v=1572864
+CB scf=-47 d=-3 v=1310720
+CB scf=-47 d=-2 v=1048576
+CB scf=-47 d=-1 v=786432
+CB scf=-47 d=0 v=262144
+CB scf=-47 d=1 v=1048576
+CB scf=-47 d=2 v=1048576
+CB scf=-47 d=3 v=1310720
+CB scf=-47 d=4 v=1572864
+CB scf=-47 d=5 v=1572864
+CB scf=-47 d=6 v=1835008
+CB scf=-47 d=7 v=1835008
+CB scf=-47 d=8 v=2097152
+CB scf=-47 d=9 v=2097152
+CB scf=-47 d=10 v=2359296
+CB scf=-47 d=11 v=2359296
+CB scf=-47 d=12 v=2621440
+CB scf=-46 d=-12 v=2621440
+CB scf=-46 d=-11 v=2359296
+CB scf=-46 d=-10 v=2359296
+CB scf=-46 d=-9 v=2097152
+CB scf=-46 d=-8 v=2097152
+CB scf=-46 d=-7 v=2097152
+CB scf=-46 d=-6 v=1835008
+CB scf=-46 d=-5 v=1572864
+CB scf=-46 d=-4 v=1572864
+CB scf=-46 d=-3 v=1310720
+CB scf=-46 d=-2 v=1048576
+CB scf=-46 d=-1 v=786432
+CB scf=-46 d=0 v=262144
+CB scf=-46 d=1 v=1048576
+CB scf=-46 d=2 v=1048576
+CB scf=-46 d=3 v=1310720
+CB scf=-46 d=4 v=1572864
+CB scf=-46 d=5 v=1572864
+CB scf=-46 d=6 v=1835008
+CB scf=-46 d=7 v=1835008
+CB scf=-46 d=8 v=2097152
+CB scf=-46 d=9 v=2097152
+CB scf=-46 d=10 v=2359296
+CB scf=-46 d=11 v=2359296
+CB scf=-46 d=12 v=2621440
+CB scf=-45 d=-12 v=2621440
+CB scf=-45 d=-11 v=2359296
+CB scf=-45 d=-10 v=2359296
+CB scf=-45 d=-9 v=2097152
+CB scf=-45 d=-8 v=2097152
+CB scf=-45 d=-7 v=2097152
+CB scf=-45 d=-6 v=1835008
+CB scf=-45 d=-5 v=1572864
+CB scf=-45 d=-4 v=1572864
+CB scf=-45 d=-3 v=1310720
+CB scf=-45 d=-2 v=1048576
+CB scf=-45 d=-1 v=786432
+CB scf=-45 d=0 v=262144
+CB scf=-45 d=1 v=1048576
+CB scf=-45 d=2 v=1048576
+CB scf=-45 d=3 v=1310720
+CB scf=-45 d=4 v=1572864
+CB scf=-45 d=5 v=1572864
+CB scf=-45 d=6 v=1835008
+CB scf=-45 d=7 v=1835008
+CB scf=-45 d=8 v=2097152
+CB scf=-45 d=9 v=2097152
+CB scf=-45 d=10 v=2359296
+CB scf=-45 d=11 v=2359296
+CB scf=-45 d=12 v=2621440
+CB scf=-44 d=-12 v=2621440
+CB scf=-44 d=-11 v=2359296
+CB scf=-44 d=-10 v=2359296
+CB scf=-44 d=-9 v=2097152
+CB scf=-44 d=-8 v=2097152
+CB scf=-44 d=-7 v=2097152
+CB scf=-44 d=-6 v=1835008
+CB scf=-44 d=-5 v=1572864
+CB scf=-44 d=-4 v=1572864
+CB scf=-44 d=-3 v=1310720
+CB scf=-44 d=-2 v=1048576
+CB scf=-44 d=-1 v=786432
+CB scf=-44 d=0 v=262144
+CB scf=-44 d=1 v=1048576
+CB scf=-44 d=2 v=1048576
+CB scf=-44 d=3 v=1310720
+CB scf=-44 d=4 v=1572864
+CB scf=-44 d=5 v=1572864
+CB scf=-44 d=6 v=1835008
+CB scf=-44 d=7 v=1835008
+CB scf=-44 d=8 v=2097152
+CB scf=-44 d=9 v=2097152
+CB scf=-44 d=10 v=2359296
+CB scf=-44 d=11 v=2359296
+CB scf=-44 d=12 v=2621440
+CB scf=-43 d=-12 v=2621440
+CB scf=-43 d=-11 v=2359296
+CB scf=-43 d=-10 v=2359296
+CB scf=-43 d=-9 v=2097152
+CB scf=-43 d=-8 v=2097152
+CB scf=-43 d=-7 v=2097152
+CB scf=-43 d=-6 v=1835008
+CB scf=-43 d=-5 v=1572864
+CB scf=-43 d=-4 v=1572864
+CB scf=-43 d=-3 v=1310720
+CB scf=-43 d=-2 v=1048576
+CB scf=-43 d=-1 v=786432
+CB scf=-43 d=0 v=262144
+CB scf=-43 d=1 v=1048576
+CB scf=-43 d=2 v=1048576
+CB scf=-43 d=3 v=1310720
+CB scf=-43 d=4 v=1572864
+CB scf=-43 d=5 v=1572864
+CB scf=-43 d=6 v=1835008
+CB scf=-43 d=7 v=1835008
+CB scf=-43 d=8 v=2097152
+CB scf=-43 d=9 v=2097152
+CB scf=-43 d=10 v=2359296
+CB scf=-43 d=11 v=2359296
+CB scf=-43 d=12 v=2621440
+CB scf=-42 d=-12 v=2621440
+CB scf=-42 d=-11 v=2359296
+CB scf=-42 d=-10 v=2359296
+CB scf=-42 d=-9 v=2097152
+CB scf=-42 d=-8 v=2097152
+CB scf=-42 d=-7 v=2097152
+CB scf=-42 d=-6 v=1835008
+CB scf=-42 d=-5 v=1572864
+CB scf=-42 d=-4 v=1572864
+CB scf=-42 d=-3 v=1310720
+CB scf=-42 d=-2 v=1048576
+CB scf=-42 d=-1 v=786432
+CB scf=-42 d=0 v=262144
+CB scf=-42 d=1 v=1048576
+CB scf=-42 d=2 v=1048576
+CB scf=-42 d=3 v=1310720
+CB scf=-42 d=4 v=1572864
+CB scf=-42 d=5 v=1572864
+CB scf=-42 d=6 v=1835008
+CB scf=-42 d=7 v=1835008
+CB scf=-42 d=8 v=2097152
+CB scf=-42 d=9 v=2097152
+CB scf=-42 d=10 v=2359296
+CB scf=-42 d=11 v=2359296
+CB scf=-42 d=12 v=2621440
+CB scf=-41 d=-12 v=2621440
+CB scf=-41 d=-11 v=2359296
+CB scf=-41 d=-10 v=2359296
+CB scf=-41 d=-9 v=2097152
+CB scf=-41 d=-8 v=2097152
+CB scf=-41 d=-7 v=2097152
+CB scf=-41 d=-6 v=1835008
+CB scf=-41 d=-5 v=1572864
+CB scf=-41 d=-4 v=1572864
+CB scf=-41 d=-3 v=1310720
+CB scf=-41 d=-2 v=1048576
+CB scf=-41 d=-1 v=786432
+CB scf=-41 d=0 v=262144
+CB scf=-41 d=1 v=1048576
+CB scf=-41 d=2 v=1048576
+CB scf=-41 d=3 v=1310720
+CB scf=-41 d=4 v=1572864
+CB scf=-41 d=5 v=1572864
+CB scf=-41 d=6 v=1835008
+CB scf=-41 d=7 v=1835008
+CB scf=-41 d=8 v=2097152
+CB scf=-41 d=9 v=2097152
+CB scf=-41 d=10 v=2359296
+CB scf=-41 d=11 v=2359296
+CB scf=-41 d=12 v=2621440
+CB scf=-40 d=-12 v=2621440
+CB scf=-40 d=-11 v=2359296
+CB scf=-40 d=-10 v=2359296
+CB scf=-40 d=-9 v=2097152
+CB scf=-40 d=-8 v=2097152
+CB scf=-40 d=-7 v=2097152
+CB scf=-40 d=-6 v=1835008
+CB scf=-40 d=-5 v=1572864
+CB scf=-40 d=-4 v=1572864
+CB scf=-40 d=-3 v=1310720
+CB scf=-40 d=-2 v=1048576
+CB scf=-40 d=-1 v=786432
+CB scf=-40 d=0 v=262144
+CB scf=-40 d=1 v=1048576
+CB scf=-40 d=2 v=1048576
+CB scf=-40 d=3 v=1310720
+CB scf=-40 d=4 v=1572864
+CB scf=-40 d=5 v=1572864
+CB scf=-40 d=6 v=1835008
+CB scf=-40 d=7 v=1835008
+CB scf=-40 d=8 v=2097152
+CB scf=-40 d=9 v=2097152
+CB scf=-40 d=10 v=2359296
+CB scf=-40 d=11 v=2359296
+CB scf=-40 d=12 v=2621440
+CB scf=-39 d=-12 v=2621440
+CB scf=-39 d=-11 v=2359296
+CB scf=-39 d=-10 v=2359296
+CB scf=-39 d=-9 v=2097152
+CB scf=-39 d=-8 v=2097152
+CB scf=-39 d=-7 v=2097152
+CB scf=-39 d=-6 v=1835008
+CB scf=-39 d=-5 v=1572864
+CB scf=-39 d=-4 v=1572864
+CB scf=-39 d=-3 v=1310720
+CB scf=-39 d=-2 v=1048576
+CB scf=-39 d=-1 v=786432
+CB scf=-39 d=0 v=262144
+CB scf=-39 d=1 v=1048576
+CB scf=-39 d=2 v=1048576
+CB scf=-39 d=3 v=1310720
+CB scf=-39 d=4 v=1572864
+CB scf=-39 d=5 v=1572864
+CB scf=-39 d=6 v=1835008
+CB scf=-39 d=7 v=1835008
+CB scf=-39 d=8 v=2097152
+CB scf=-39 d=9 v=2097152
+CB scf=-39 d=10 v=2359296
+CB scf=-39 d=11 v=2359296
+CB scf=-39 d=12 v=2621440
+CB scf=-38 d=-12 v=2621440
+CB scf=-38 d=-11 v=2359296
+CB scf=-38 d=-10 v=2359296
+CB scf=-38 d=-9 v=2097152
+CB scf=-38 d=-8 v=2097152
+CB scf=-38 d=-7 v=2097152
+CB scf=-38 d=-6 v=1835008
+CB scf=-38 d=-5 v=1572864
+CB scf=-38 d=-4 v=1572864
+CB scf=-38 d=-3 v=1310720
+CB scf=-38 d=-2 v=1048576
+CB scf=-38 d=-1 v=786432
+CB scf=-38 d=0 v=262144
+CB scf=-38 d=1 v=1048576
+CB scf=-38 d=2 v=1048576
+CB scf=-38 d=3 v=1310720
+CB scf=-38 d=4 v=1572864
+CB scf=-38 d=5 v=1572864
+CB scf=-38 d=6 v=1835008
+CB scf=-38 d=7 v=1835008
+CB scf=-38 d=8 v=2097152
+CB scf=-38 d=9 v=2097152
+CB scf=-38 d=10 v=2359296
+CB scf=-38 d=11 v=2359296
+CB scf=-38 d=12 v=2621440
+CB scf=-37 d=-12 v=2621440
+CB scf=-37 d=-11 v=2359296
+CB scf=-37 d=-10 v=2359296
+CB scf=-37 d=-9 v=2097152
+CB scf=-37 d=-8 v=2097152
+CB scf=-37 d=-7 v=2097152
+CB scf=-37 d=-6 v=1835008
+CB scf=-37 d=-5 v=1572864
+CB scf=-37 d=-4 v=1572864
+CB scf=-37 d=-3 v=1310720
+CB scf=-37 d=-2 v=1048576
+CB scf=-37 d=-1 v=786432
+CB scf=-37 d=0 v=262144
+CB scf=-37 d=1 v=1048576
+CB scf=-37 d=2 v=1048576
+CB scf=-37 d=3 v=1310720
+CB scf=-37 d=4 v=1572864
+CB scf=-37 d=5 v=1572864
+CB scf=-37 d=6 v=1835008
+CB scf=-37 d=7 v=1835008
+CB scf=-37 d=8 v=2097152
+CB scf=-37 d=9 v=2097152
+CB scf=-37 d=10 v=2359296
+CB scf=-37 d=11 v=2359296
+CB scf=-37 d=12 v=2621440
+CB scf=-36 d=-12 v=2621440
+CB scf=-36 d=-11 v=2359296
+CB scf=-36 d=-10 v=2359296
+CB scf=-36 d=-9 v=2097152
+CB scf=-36 d=-8 v=2097152
+CB scf=-36 d=-7 v=2097152
+CB scf=-36 d=-6 v=1835008
+CB scf=-36 d=-5 v=1572864
+CB scf=-36 d=-4 v=1572864
+CB scf=-36 d=-3 v=1310720
+CB scf=-36 d=-2 v=1048576
+CB scf=-36 d=-1 v=786432
+CB scf=-36 d=0 v=262144
+CB scf=-36 d=1 v=1048576
+CB scf=-36 d=2 v=1048576
+CB scf=-36 d=3 v=1310720
+CB scf=-36 d=4 v=1572864
+CB scf=-36 d=5 v=1572864
+CB scf=-36 d=6 v=1835008
+CB scf=-36 d=7 v=1835008
+CB scf=-36 d=8 v=2097152
+CB scf=-36 d=9 v=2097152
+CB scf=-36 d=10 v=2359296
+CB scf=-36 d=11 v=2359296
+CB scf=-36 d=12 v=2621440
+CB scf=-35 d=-12 v=2621440
+CB scf=-35 d=-11 v=2359296
+CB scf=-35 d=-10 v=2359296
+CB scf=-35 d=-9 v=2097152
+CB scf=-35 d=-8 v=2097152
+CB scf=-35 d=-7 v=2097152
+CB scf=-35 d=-6 v=1835008
+CB scf=-35 d=-5 v=1572864
+CB scf=-35 d=-4 v=1572864
+CB scf=-35 d=-3 v=1310720
+CB scf=-35 d=-2 v=1048576
+CB scf=-35 d=-1 v=786432
+CB scf=-35 d=0 v=262144
+CB scf=-35 d=1 v=1048576
+CB scf=-35 d=2 v=1048576
+CB scf=-35 d=3 v=1310720
+CB scf=-35 d=4 v=1572864
+CB scf=-35 d=5 v=1572864
+CB scf=-35 d=6 v=1835008
+CB scf=-35 d=7 v=1835008
+CB scf=-35 d=8 v=2097152
+CB scf=-35 d=9 v=2097152
+CB scf=-35 d=10 v=2359296
+CB scf=-35 d=11 v=2359296
+CB scf=-35 d=12 v=2621440
+CB scf=-34 d=-12 v=2621440
+CB scf=-34 d=-11 v=2359296
+CB scf=-34 d=-10 v=2359296
+CB scf=-34 d=-9 v=2097152
+CB scf=-34 d=-8 v=2097152
+CB scf=-34 d=-7 v=2097152
+CB scf=-34 d=-6 v=1835008
+CB scf=-34 d=-5 v=1572864
+CB scf=-34 d=-4 v=1572864
+CB scf=-34 d=-3 v=1310720
+CB scf=-34 d=-2 v=1048576
+CB scf=-34 d=-1 v=786432
+CB scf=-34 d=0 v=262144
+CB scf=-34 d=1 v=1048576
+CB scf=-34 d=2 v=1048576
+CB scf=-34 d=3 v=1310720
+CB scf=-34 d=4 v=1572864
+CB scf=-34 d=5 v=1572864
+CB scf=-34 d=6 v=1835008
+CB scf=-34 d=7 v=1835008
+CB scf=-34 d=8 v=2097152
+CB scf=-34 d=9 v=2097152
+CB scf=-34 d=10 v=2359296
+CB scf=-34 d=11 v=2359296
+CB scf=-34 d=12 v=2621440
+CB scf=-33 d=-12 v=2621440
+CB scf=-33 d=-11 v=2359296
+CB scf=-33 d=-10 v=2359296
+CB scf=-33 d=-9 v=2097152
+CB scf=-33 d=-8 v=2097152
+CB scf=-33 d=-7 v=2097152
+CB scf=-33 d=-6 v=1835008
+CB scf=-33 d=-5 v=1572864
+CB scf=-33 d=-4 v=1572864
+CB scf=-33 d=-3 v=1310720
+CB scf=-33 d=-2 v=1048576
+CB scf=-33 d=-1 v=786432
+CB scf=-33 d=0 v=262144
+CB scf=-33 d=1 v=1048576
+CB scf=-33 d=2 v=1048576
+CB scf=-33 d=3 v=1310720
+CB scf=-33 d=4 v=1572864
+CB scf=-33 d=5 v=1572864
+CB scf=-33 d=6 v=1835008
+CB scf=-33 d=7 v=1835008
+CB scf=-33 d=8 v=2097152
+CB scf=-33 d=9 v=2097152
+CB scf=-33 d=10 v=2359296
+CB scf=-33 d=11 v=2359296
+CB scf=-33 d=12 v=2621440
+CB scf=-32 d=-12 v=2621440
+CB scf=-32 d=-11 v=2359296
+CB scf=-32 d=-10 v=2359296
+CB scf=-32 d=-9 v=2097152
+CB scf=-32 d=-8 v=2097152
+CB scf=-32 d=-7 v=2097152
+CB scf=-32 d=-6 v=1835008
+CB scf=-32 d=-5 v=1572864
+CB scf=-32 d=-4 v=1572864
+CB scf=-32 d=-3 v=1310720
+CB scf=-32 d=-2 v=1048576
+CB scf=-32 d=-1 v=786432
+CB scf=-32 d=0 v=262144
+CB scf=-32 d=1 v=1048576
+CB scf=-32 d=2 v=1048576
+CB scf=-32 d=3 v=1310720
+CB scf=-32 d=4 v=1572864
+CB scf=-32 d=5 v=1572864
+CB scf=-32 d=6 v=1835008
+CB scf=-32 d=7 v=1835008
+CB scf=-32 d=8 v=2097152
+CB scf=-32 d=9 v=2097152
+CB scf=-32 d=10 v=2359296
+CB scf=-32 d=11 v=2359296
+CB scf=-32 d=12 v=2621440
+CB scf=-31 d=-12 v=2621440
+CB scf=-31 d=-11 v=2359296
+CB scf=-31 d=-10 v=2359296
+CB scf=-31 d=-9 v=2097152
+CB scf=-31 d=-8 v=2097152
+CB scf=-31 d=-7 v=2097152
+CB scf=-31 d=-6 v=1835008
+CB scf=-31 d=-5 v=1572864
+CB scf=-31 d=-4 v=1572864
+CB scf=-31 d=-3 v=1310720
+CB scf=-31 d=-2 v=1048576
+CB scf=-31 d=-1 v=786432
+CB scf=-31 d=0 v=262144
+CB scf=-31 d=1 v=1048576
+CB scf=-31 d=2 v=1048576
+CB scf=-31 d=3 v=1310720
+CB scf=-31 d=4 v=1572864
+CB scf=-31 d=5 v=1572864
+CB scf=-31 d=6 v=1835008
+CB scf=-31 d=7 v=1835008
+CB scf=-31 d=8 v=2097152
+CB scf=-31 d=9 v=2097152
+CB scf=-31 d=10 v=2359296
+CB scf=-31 d=11 v=2359296
+CB scf=-31 d=12 v=2621440
+CB scf=-30 d=-12 v=2621440
+CB scf=-30 d=-11 v=2359296
+CB scf=-30 d=-10 v=2359296
+CB scf=-30 d=-9 v=2097152
+CB scf=-30 d=-8 v=2097152
+CB scf=-30 d=-7 v=2097152
+CB scf=-30 d=-6 v=1835008
+CB scf=-30 d=-5 v=1572864
+CB scf=-30 d=-4 v=1572864
+CB scf=-30 d=-3 v=1310720
+CB scf=-30 d=-2 v=1048576
+CB scf=-30 d=-1 v=786432
+CB scf=-30 d=0 v=262144
+CB scf=-30 d=1 v=1048576
+CB scf=-30 d=2 v=1048576
+CB scf=-30 d=3 v=1310720
+CB scf=-30 d=4 v=1572864
+CB scf=-30 d=5 v=1572864
+CB scf=-30 d=6 v=1835008
+CB scf=-30 d=7 v=1835008
+CB scf=-30 d=8 v=2097152
+CB scf=-30 d=9 v=2097152
+CB scf=-30 d=10 v=2359296
+CB scf=-30 d=11 v=2359296
+CB scf=-30 d=12 v=2621440
+CB scf=-29 d=-12 v=2621440
+CB scf=-29 d=-11 v=2359296
+CB scf=-29 d=-10 v=2359296
+CB scf=-29 d=-9 v=2097152
+CB scf=-29 d=-8 v=2097152
+CB scf=-29 d=-7 v=2097152
+CB scf=-29 d=-6 v=1835008
+CB scf=-29 d=-5 v=1572864
+CB scf=-29 d=-4 v=1572864
+CB scf=-29 d=-3 v=1310720
+CB scf=-29 d=-2 v=1048576
+CB scf=-29 d=-1 v=786432
+CB scf=-29 d=0 v=262144
+CB scf=-29 d=1 v=1048576
+CB scf=-29 d=2 v=1048576
+CB scf=-29 d=3 v=1310720
+CB scf=-29 d=4 v=1572864
+CB scf=-29 d=5 v=1572864
+CB scf=-29 d=6 v=1835008
+CB scf=-29 d=7 v=1835008
+CB scf=-29 d=8 v=2097152
+CB scf=-29 d=9 v=2097152
+CB scf=-29 d=10 v=2359296
+CB scf=-29 d=11 v=2359296
+CB scf=-29 d=12 v=2621440
+CB scf=-28 d=-12 v=2621440
+CB scf=-28 d=-11 v=2359296
+CB scf=-28 d=-10 v=2359296
+CB scf=-28 d=-9 v=2097152
+CB scf=-28 d=-8 v=2097152
+CB scf=-28 d=-7 v=2097152
+CB scf=-28 d=-6 v=1835008
+CB scf=-28 d=-5 v=1572864
+CB scf=-28 d=-4 v=1572864
+CB scf=-28 d=-3 v=1310720
+CB scf=-28 d=-2 v=1048576
+CB scf=-28 d=-1 v=786432
+CB scf=-28 d=0 v=262144
+CB scf=-28 d=1 v=1048576
+CB scf=-28 d=2 v=1048576
+CB scf=-28 d=3 v=1310720
+CB scf=-28 d=4 v=1572864
+CB scf=-28 d=5 v=1572864
+CB scf=-28 d=6 v=1835008
+CB scf=-28 d=7 v=1835008
+CB scf=-28 d=8 v=2097152
+CB scf=-28 d=9 v=2097152
+CB scf=-28 d=10 v=2359296
+CB scf=-28 d=11 v=2359296
+CB scf=-28 d=12 v=2621440
+CB scf=-27 d=-12 v=2621440
+CB scf=-27 d=-11 v=2359296
+CB scf=-27 d=-10 v=2359296
+CB scf=-27 d=-9 v=2097152
+CB scf=-27 d=-8 v=2097152
+CB scf=-27 d=-7 v=2097152
+CB scf=-27 d=-6 v=1835008
+CB scf=-27 d=-5 v=1572864
+CB scf=-27 d=-4 v=1572864
+CB scf=-27 d=-3 v=1310720
+CB scf=-27 d=-2 v=1048576
+CB scf=-27 d=-1 v=786432
+CB scf=-27 d=0 v=262144
+CB scf=-27 d=1 v=1048576
+CB scf=-27 d=2 v=1048576
+CB scf=-27 d=3 v=1310720
+CB scf=-27 d=4 v=1572864
+CB scf=-27 d=5 v=1572864
+CB scf=-27 d=6 v=1835008
+CB scf=-27 d=7 v=1835008
+CB scf=-27 d=8 v=2097152
+CB scf=-27 d=9 v=2097152
+CB scf=-27 d=10 v=2359296
+CB scf=-27 d=11 v=2359296
+CB scf=-27 d=12 v=2621440
+CB scf=-26 d=-12 v=2621440
+CB scf=-26 d=-11 v=2359296
+CB scf=-26 d=-10 v=2359296
+CB scf=-26 d=-9 v=2097152
+CB scf=-26 d=-8 v=2097152
+CB scf=-26 d=-7 v=2097152
+CB scf=-26 d=-6 v=1835008
+CB scf=-26 d=-5 v=1572864
+CB scf=-26 d=-4 v=1572864
+CB scf=-26 d=-3 v=1310720
+CB scf=-26 d=-2 v=1048576
+CB scf=-26 d=-1 v=786432
+CB scf=-26 d=0 v=262144
+CB scf=-26 d=1 v=1048576
+CB scf=-26 d=2 v=1048576
+CB scf=-26 d=3 v=1310720
+CB scf=-26 d=4 v=1572864
+CB scf=-26 d=5 v=1572864
+CB scf=-26 d=6 v=1835008
+CB scf=-26 d=7 v=1835008
+CB scf=-26 d=8 v=2097152
+CB scf=-26 d=9 v=2097152
+CB scf=-26 d=10 v=2359296
+CB scf=-26 d=11 v=2359296
+CB scf=-26 d=12 v=2621440
+CB scf=-25 d=-12 v=2621440
+CB scf=-25 d=-11 v=2359296
+CB scf=-25 d=-10 v=2359296
+CB scf=-25 d=-9 v=2097152
+CB scf=-25 d=-8 v=2097152
+CB scf=-25 d=-7 v=2097152
+CB scf=-25 d=-6 v=1835008
+CB scf=-25 d=-5 v=1572864
+CB scf=-25 d=-4 v=1572864
+CB scf=-25 d=-3 v=1310720
+CB scf=-25 d=-2 v=1048576
+CB scf=-25 d=-1 v=786432
+CB scf=-25 d=0 v=262144
+CB scf=-25 d=1 v=1048576
+CB scf=-25 d=2 v=1048576
+CB scf=-25 d=3 v=1310720
+CB scf=-25 d=4 v=1572864
+CB scf=-25 d=5 v=1572864
+CB scf=-25 d=6 v=1835008
+CB scf=-25 d=7 v=1835008
+CB scf=-25 d=8 v=2097152
+CB scf=-25 d=9 v=2097152
+CB scf=-25 d=10 v=2359296
+CB scf=-25 d=11 v=2359296
+CB scf=-25 d=12 v=2621440
+CB scf=-24 d=-12 v=2621440
+CB scf=-24 d=-11 v=2359296
+CB scf=-24 d=-10 v=2359296
+CB scf=-24 d=-9 v=2097152
+CB scf=-24 d=-8 v=2097152
+CB scf=-24 d=-7 v=2097152
+CB scf=-24 d=-6 v=1835008
+CB scf=-24 d=-5 v=1572864
+CB scf=-24 d=-4 v=1572864
+CB scf=-24 d=-3 v=1310720
+CB scf=-24 d=-2 v=1048576
+CB scf=-24 d=-1 v=786432
+CB scf=-24 d=0 v=262144
+CB scf=-24 d=1 v=1048576
+CB scf=-24 d=2 v=1048576
+CB scf=-24 d=3 v=1310720
+CB scf=-24 d=4 v=1572864
+CB scf=-24 d=5 v=1572864
+CB scf=-24 d=6 v=1835008
+CB scf=-24 d=7 v=1835008
+CB scf=-24 d=8 v=2097152
+CB scf=-24 d=9 v=2097152
+CB scf=-24 d=10 v=2359296
+CB scf=-24 d=11 v=2359296
+CB scf=-24 d=12 v=2621440
+CB scf=-23 d=-12 v=2621440
+CB scf=-23 d=-11 v=2359296
+CB scf=-23 d=-10 v=2359296
+CB scf=-23 d=-9 v=2097152
+CB scf=-23 d=-8 v=2097152
+CB scf=-23 d=-7 v=2097152
+CB scf=-23 d=-6 v=1835008
+CB scf=-23 d=-5 v=1572864
+CB scf=-23 d=-4 v=1572864
+CB scf=-23 d=-3 v=1310720
+CB scf=-23 d=-2 v=1048576
+CB scf=-23 d=-1 v=786432
+CB scf=-23 d=0 v=262144
+CB scf=-23 d=1 v=1048576
+CB scf=-23 d=2 v=1048576
+CB scf=-23 d=3 v=1310720
+CB scf=-23 d=4 v=1572864
+CB scf=-23 d=5 v=1572864
+CB scf=-23 d=6 v=1835008
+CB scf=-23 d=7 v=1835008
+CB scf=-23 d=8 v=2097152
+CB scf=-23 d=9 v=2097152
+CB scf=-23 d=10 v=2359296
+CB scf=-23 d=11 v=2359296
+CB scf=-23 d=12 v=2621440
+CB scf=-22 d=-12 v=2621440
+CB scf=-22 d=-11 v=2359296
+CB scf=-22 d=-10 v=2359296
+CB scf=-22 d=-9 v=2097152
+CB scf=-22 d=-8 v=2097152
+CB scf=-22 d=-7 v=2097152
+CB scf=-22 d=-6 v=1835008
+CB scf=-22 d=-5 v=1572864
+CB scf=-22 d=-4 v=1572864
+CB scf=-22 d=-3 v=1310720
+CB scf=-22 d=-2 v=1048576
+CB scf=-22 d=-1 v=786432
+CB scf=-22 d=0 v=262144
+CB scf=-22 d=1 v=1048576
+CB scf=-22 d=2 v=1048576
+CB scf=-22 d=3 v=1310720
+CB scf=-22 d=4 v=1572864
+CB scf=-22 d=5 v=1572864
+CB scf=-22 d=6 v=1835008
+CB scf=-22 d=7 v=1835008
+CB scf=-22 d=8 v=2097152
+CB scf=-22 d=9 v=2097152
+CB scf=-22 d=10 v=2359296
+CB scf=-22 d=11 v=2359296
+CB scf=-22 d=12 v=2621440
+CB scf=-21 d=-12 v=2621440
+CB scf=-21 d=-11 v=2359296
+CB scf=-21 d=-10 v=2359296
+CB scf=-21 d=-9 v=2097152
+CB scf=-21 d=-8 v=2097152
+CB scf=-21 d=-7 v=2097152
+CB scf=-21 d=-6 v=1835008
+CB scf=-21 d=-5 v=1572864
+CB scf=-21 d=-4 v=1572864
+CB scf=-21 d=-3 v=1310720
+CB scf=-21 d=-2 v=1048576
+CB scf=-21 d=-1 v=786432
+CB scf=-21 d=0 v=262144
+CB scf=-21 d=1 v=1048576
+CB scf=-21 d=2 v=1048576
+CB scf=-21 d=3 v=1310720
+CB scf=-21 d=4 v=1572864
+CB scf=-21 d=5 v=1572864
+CB scf=-21 d=6 v=1835008
+CB scf=-21 d=7 v=1835008
+CB scf=-21 d=8 v=2097152
+CB scf=-21 d=9 v=2097152
+CB scf=-21 d=10 v=2359296
+CB scf=-21 d=11 v=2359296
+CB scf=-21 d=12 v=2621440
+CB scf=-20 d=-12 v=2621440
+CB scf=-20 d=-11 v=2359296
+CB scf=-20 d=-10 v=2359296
+CB scf=-20 d=-9 v=2097152
+CB scf=-20 d=-8 v=2097152
+CB scf=-20 d=-7 v=2097152
+CB scf=-20 d=-6 v=1835008
+CB scf=-20 d=-5 v=1572864
+CB scf=-20 d=-4 v=1572864
+CB scf=-20 d=-3 v=1310720
+CB scf=-20 d=-2 v=1048576
+CB scf=-20 d=-1 v=786432
+CB scf=-20 d=0 v=262144
+CB scf=-20 d=1 v=1048576
+CB scf=-20 d=2 v=1048576
+CB scf=-20 d=3 v=1310720
+CB scf=-20 d=4 v=1572864
+CB scf=-20 d=5 v=1572864
+CB scf=-20 d=6 v=1835008
+CB scf=-20 d=7 v=1835008
+CB scf=-20 d=8 v=2097152
+CB scf=-20 d=9 v=2097152
+CB scf=-20 d=10 v=2359296
+CB scf=-20 d=11 v=2359296
+CB scf=-20 d=12 v=2621440
+CB scf=-19 d=-12 v=2621440
+CB scf=-19 d=-11 v=2359296
+CB scf=-19 d=-10 v=2359296
+CB scf=-19 d=-9 v=2097152
+CB scf=-19 d=-8 v=2097152
+CB scf=-19 d=-7 v=2097152
+CB scf=-19 d=-6 v=1835008
+CB scf=-19 d=-5 v=1572864
+CB scf=-19 d=-4 v=1572864
+CB scf=-19 d=-3 v=1310720
+CB scf=-19 d=-2 v=1048576
+CB scf=-19 d=-1 v=786432
+CB scf=-19 d=0 v=262144
+CB scf=-19 d=1 v=1048576
+CB scf=-19 d=2 v=1048576
+CB scf=-19 d=3 v=1310720
+CB scf=-19 d=4 v=1572864
+CB scf=-19 d=5 v=1572864
+CB scf=-19 d=6 v=1835008
+CB scf=-19 d=7 v=1835008
+CB scf=-19 d=8 v=2097152
+CB scf=-19 d=9 v=2097152
+CB scf=-19 d=10 v=2359296
+CB scf=-19 d=11 v=2359296
+CB scf=-19 d=12 v=2621440
+CB scf=-18 d=-12 v=2621440
+CB scf=-18 d=-11 v=2359296
+CB scf=-18 d=-10 v=2359296
+CB scf=-18 d=-9 v=2097152
+CB scf=-18 d=-8 v=2097152
+CB scf=-18 d=-7 v=2097152
+CB scf=-18 d=-6 v=1835008
+CB scf=-18 d=-5 v=1572864
+CB scf=-18 d=-4 v=1572864
+CB scf=-18 d=-3 v=1310720
+CB scf=-18 d=-2 v=1048576
+CB scf=-18 d=-1 v=786432
+CB scf=-18 d=0 v=262144
+CB scf=-18 d=1 v=1048576
+CB scf=-18 d=2 v=1048576
+CB scf=-18 d=3 v=1310720
+CB scf=-18 d=4 v=1572864
+CB scf=-18 d=5 v=1572864
+CB scf=-18 d=6 v=1835008
+CB scf=-18 d=7 v=1835008
+CB scf=-18 d=8 v=2097152
+CB scf=-18 d=9 v=2097152
+CB scf=-18 d=10 v=2359296
+CB scf=-18 d=11 v=2359296
+CB scf=-18 d=12 v=2621440
+CB scf=-17 d=-12 v=2621440
+CB scf=-17 d=-11 v=2359296
+CB scf=-17 d=-10 v=2359296
+CB scf=-17 d=-9 v=2097152
+CB scf=-17 d=-8 v=2097152
+CB scf=-17 d=-7 v=2097152
+CB scf=-17 d=-6 v=1835008
+CB scf=-17 d=-5 v=1572864
+CB scf=-17 d=-4 v=1572864
+CB scf=-17 d=-3 v=1310720
+CB scf=-17 d=-2 v=1048576
+CB scf=-17 d=-1 v=786432
+CB scf=-17 d=0 v=262144
+CB scf=-17 d=1 v=1048576
+CB scf=-17 d=2 v=1048576
+CB scf=-17 d=3 v=1310720
+CB scf=-17 d=4 v=1572864
+CB scf=-17 d=5 v=1572864
+CB scf=-17 d=6 v=1835008
+CB scf=-17 d=7 v=1835008
+CB scf=-17 d=8 v=2097152
+CB scf=-17 d=9 v=2097152
+CB scf=-17 d=10 v=2359296
+CB scf=-17 d=11 v=2359296
+CB scf=-17 d=12 v=2621440
+CB scf=-16 d=-12 v=2621440
+CB scf=-16 d=-11 v=2359296
+CB scf=-16 d=-10 v=2359296
+CB scf=-16 d=-9 v=2097152
+CB scf=-16 d=-8 v=2097152
+CB scf=-16 d=-7 v=2097152
+CB scf=-16 d=-6 v=1835008
+CB scf=-16 d=-5 v=1572864
+CB scf=-16 d=-4 v=1572864
+CB scf=-16 d=-3 v=1310720
+CB scf=-16 d=-2 v=1048576
+CB scf=-16 d=-1 v=786432
+CB scf=-16 d=0 v=262144
+CB scf=-16 d=1 v=1048576
+CB scf=-16 d=2 v=1048576
+CB scf=-16 d=3 v=1310720
+CB scf=-16 d=4 v=1572864
+CB scf=-16 d=5 v=1572864
+CB scf=-16 d=6 v=1835008
+CB scf=-16 d=7 v=1835008
+CB scf=-16 d=8 v=2097152
+CB scf=-16 d=9 v=2097152
+CB scf=-16 d=10 v=2359296
+CB scf=-16 d=11 v=2359296
+CB scf=-16 d=12 v=2621440
+CB scf=-15 d=-12 v=2621440
+CB scf=-15 d=-11 v=2359296
+CB scf=-15 d=-10 v=2359296
+CB scf=-15 d=-9 v=2097152
+CB scf=-15 d=-8 v=2097152
+CB scf=-15 d=-7 v=2097152
+CB scf=-15 d=-6 v=1835008
+CB scf=-15 d=-5 v=1572864
+CB scf=-15 d=-4 v=1572864
+CB scf=-15 d=-3 v=1310720
+CB scf=-15 d=-2 v=1048576
+CB scf=-15 d=-1 v=786432
+CB scf=-15 d=0 v=262144
+CB scf=-15 d=1 v=1048576
+CB scf=-15 d=2 v=1048576
+CB scf=-15 d=3 v=1310720
+CB scf=-15 d=4 v=1572864
+CB scf=-15 d=5 v=1572864
+CB scf=-15 d=6 v=1835008
+CB scf=-15 d=7 v=1835008
+CB scf=-15 d=8 v=2097152
+CB scf=-15 d=9 v=2097152
+CB scf=-15 d=10 v=2359296
+CB scf=-15 d=11 v=2359296
+CB scf=-15 d=12 v=2621440
+CB scf=-14 d=-12 v=2621440
+CB scf=-14 d=-11 v=2359296
+CB scf=-14 d=-10 v=2359296
+CB scf=-14 d=-9 v=2097152
+CB scf=-14 d=-8 v=2097152
+CB scf=-14 d=-7 v=2097152
+CB scf=-14 d=-6 v=1835008
+CB scf=-14 d=-5 v=1572864
+CB scf=-14 d=-4 v=1572864
+CB scf=-14 d=-3 v=1310720
+CB scf=-14 d=-2 v=1048576
+CB scf=-14 d=-1 v=786432
+CB scf=-14 d=0 v=262144
+CB scf=-14 d=1 v=1048576
+CB scf=-14 d=2 v=1048576
+CB scf=-14 d=3 v=1310720
+CB scf=-14 d=4 v=1572864
+CB scf=-14 d=5 v=1572864
+CB scf=-14 d=6 v=1835008
+CB scf=-14 d=7 v=1835008
+CB scf=-14 d=8 v=2097152
+CB scf=-14 d=9 v=2097152
+CB scf=-14 d=10 v=2359296
+CB scf=-14 d=11 v=2359296
+CB scf=-14 d=12 v=2621440
+CB scf=-13 d=-12 v=2621440
+CB scf=-13 d=-11 v=2359296
+CB scf=-13 d=-10 v=2359296
+CB scf=-13 d=-9 v=2097152
+CB scf=-13 d=-8 v=2097152
+CB scf=-13 d=-7 v=2097152
+CB scf=-13 d=-6 v=1835008
+CB scf=-13 d=-5 v=1572864
+CB scf=-13 d=-4 v=1572864
+CB scf=-13 d=-3 v=1310720
+CB scf=-13 d=-2 v=1048576
+CB scf=-13 d=-1 v=786432
+CB scf=-13 d=0 v=262144
+CB scf=-13 d=1 v=1048576
+CB scf=-13 d=2 v=1048576
+CB scf=-13 d=3 v=1310720
+CB scf=-13 d=4 v=1572864
+CB scf=-13 d=5 v=1572864
+CB scf=-13 d=6 v=1835008
+CB scf=-13 d=7 v=1835008
+CB scf=-13 d=8 v=2097152
+CB scf=-13 d=9 v=2097152
+CB scf=-13 d=10 v=2359296
+CB scf=-13 d=11 v=2359296
+CB scf=-13 d=12 v=2621440
+CB scf=-12 d=-12 v=2621440
+CB scf=-12 d=-11 v=2359296
+CB scf=-12 d=-10 v=2359296
+CB scf=-12 d=-9 v=2097152
+CB scf=-12 d=-8 v=2097152
+CB scf=-12 d=-7 v=2097152
+CB scf=-12 d=-6 v=1835008
+CB scf=-12 d=-5 v=1572864
+CB scf=-12 d=-4 v=1572864
+CB scf=-12 d=-3 v=1310720
+CB scf=-12 d=-2 v=1048576
+CB scf=-12 d=-1 v=786432
+CB scf=-12 d=0 v=262144
+CB scf=-12 d=1 v=1048576
+CB scf=-12 d=2 v=1048576
+CB scf=-12 d=3 v=1310720
+CB scf=-12 d=4 v=1572864
+CB scf=-12 d=5 v=1572864
+CB scf=-12 d=6 v=1835008
+CB scf=-12 d=7 v=1835008
+CB scf=-12 d=8 v=2097152
+CB scf=-12 d=9 v=2097152
+CB scf=-12 d=10 v=2359296
+CB scf=-12 d=11 v=2359296
+CB scf=-12 d=12 v=2621440
+CB scf=-11 d=-12 v=2621440
+CB scf=-11 d=-11 v=2359296
+CB scf=-11 d=-10 v=2359296
+CB scf=-11 d=-9 v=2097152
+CB scf=-11 d=-8 v=2097152
+CB scf=-11 d=-7 v=2097152
+CB scf=-11 d=-6 v=1835008
+CB scf=-11 d=-5 v=1572864
+CB scf=-11 d=-4 v=1572864
+CB scf=-11 d=-3 v=1310720
+CB scf=-11 d=-2 v=1048576
+CB scf=-11 d=-1 v=786432
+CB scf=-11 d=0 v=262144
+CB scf=-11 d=1 v=1048576
+CB scf=-11 d=2 v=1048576
+CB scf=-11 d=3 v=1310720
+CB scf=-11 d=4 v=1572864
+CB scf=-11 d=5 v=1572864
+CB scf=-11 d=6 v=1835008
+CB scf=-11 d=7 v=1835008
+CB scf=-11 d=8 v=2097152
+CB scf=-11 d=9 v=2097152
+CB scf=-11 d=10 v=2359296
+CB scf=-11 d=11 v=2359296
+CB scf=-11 d=12 v=2621440
+CB scf=-10 d=-12 v=2621440
+CB scf=-10 d=-11 v=2359296
+CB scf=-10 d=-10 v=2359296
+CB scf=-10 d=-9 v=2097152
+CB scf=-10 d=-8 v=2097152
+CB scf=-10 d=-7 v=2097152
+CB scf=-10 d=-6 v=1835008
+CB scf=-10 d=-5 v=1572864
+CB scf=-10 d=-4 v=1572864
+CB scf=-10 d=-3 v=1310720
+CB scf=-10 d=-2 v=1048576
+CB scf=-10 d=-1 v=786432
+CB scf=-10 d=0 v=262144
+CB scf=-10 d=1 v=1048576
+CB scf=-10 d=2 v=1048576
+CB scf=-10 d=3 v=1310720
+CB scf=-10 d=4 v=1572864
+CB scf=-10 d=5 v=1572864
+CB scf=-10 d=6 v=1835008
+CB scf=-10 d=7 v=1835008
+CB scf=-10 d=8 v=2097152
+CB scf=-10 d=9 v=2097152
+CB scf=-10 d=10 v=2359296
+CB scf=-10 d=11 v=2359296
+CB scf=-10 d=12 v=2621440
+CB scf=-9 d=-12 v=2621440
+CB scf=-9 d=-11 v=2359296
+CB scf=-9 d=-10 v=2359296
+CB scf=-9 d=-9 v=2097152
+CB scf=-9 d=-8 v=2097152
+CB scf=-9 d=-7 v=2097152
+CB scf=-9 d=-6 v=1835008
+CB scf=-9 d=-5 v=1572864
+CB scf=-9 d=-4 v=1572864
+CB scf=-9 d=-3 v=1310720
+CB scf=-9 d=-2 v=1048576
+CB scf=-9 d=-1 v=786432
+CB scf=-9 d=0 v=262144
+CB scf=-9 d=1 v=1048576
+CB scf=-9 d=2 v=1048576
+CB scf=-9 d=3 v=1310720
+CB scf=-9 d=4 v=1572864
+CB scf=-9 d=5 v=1572864
+CB scf=-9 d=6 v=1835008
+CB scf=-9 d=7 v=1835008
+CB scf=-9 d=8 v=2097152
+CB scf=-9 d=9 v=2097152
+CB scf=-9 d=10 v=2359296
+CB scf=-9 d=11 v=2359296
+CB scf=-9 d=12 v=2621440
+CB scf=-8 d=-12 v=2621440
+CB scf=-8 d=-11 v=2359296
+CB scf=-8 d=-10 v=2359296
+CB scf=-8 d=-9 v=2097152
+CB scf=-8 d=-8 v=2097152
+CB scf=-8 d=-7 v=2097152
+CB scf=-8 d=-6 v=1835008
+CB scf=-8 d=-5 v=1572864
+CB scf=-8 d=-4 v=1572864
+CB scf=-8 d=-3 v=1310720
+CB scf=-8 d=-2 v=1048576
+CB scf=-8 d=-1 v=786432
+CB scf=-8 d=0 v=262144
+CB scf=-8 d=1 v=1048576
+CB scf=-8 d=2 v=1048576
+CB scf=-8 d=3 v=1310720
+CB scf=-8 d=4 v=1572864
+CB scf=-8 d=5 v=1572864
+CB scf=-8 d=6 v=1835008
+CB scf=-8 d=7 v=1835008
+CB scf=-8 d=8 v=2097152
+CB scf=-8 d=9 v=2097152
+CB scf=-8 d=10 v=2359296
+CB scf=-8 d=11 v=2359296
+CB scf=-8 d=12 v=2621440
+CB scf=-7 d=-12 v=2621440
+CB scf=-7 d=-11 v=2359296
+CB scf=-7 d=-10 v=2359296
+CB scf=-7 d=-9 v=2097152
+CB scf=-7 d=-8 v=2097152
+CB scf=-7 d=-7 v=2097152
+CB scf=-7 d=-6 v=1835008
+CB scf=-7 d=-5 v=1572864
+CB scf=-7 d=-4 v=1572864
+CB scf=-7 d=-3 v=1310720
+CB scf=-7 d=-2 v=1048576
+CB scf=-7 d=-1 v=786432
+CB scf=-7 d=0 v=262144
+CB scf=-7 d=1 v=1048576
+CB scf=-7 d=2 v=1048576
+CB scf=-7 d=3 v=1310720
+CB scf=-7 d=4 v=1572864
+CB scf=-7 d=5 v=1572864
+CB scf=-7 d=6 v=1835008
+CB scf=-7 d=7 v=1835008
+CB scf=-7 d=8 v=2097152
+CB scf=-7 d=9 v=2097152
+CB scf=-7 d=10 v=2359296
+CB scf=-7 d=11 v=2359296
+CB scf=-7 d=12 v=2621440
+CB scf=-6 d=-12 v=2621440
+CB scf=-6 d=-11 v=2359296
+CB scf=-6 d=-10 v=2359296
+CB scf=-6 d=-9 v=2097152
+CB scf=-6 d=-8 v=2097152
+CB scf=-6 d=-7 v=2097152
+CB scf=-6 d=-6 v=1835008
+CB scf=-6 d=-5 v=1572864
+CB scf=-6 d=-4 v=1572864
+CB scf=-6 d=-3 v=1310720
+CB scf=-6 d=-2 v=1048576
+CB scf=-6 d=-1 v=786432
+CB scf=-6 d=0 v=262144
+CB scf=-6 d=1 v=1048576
+CB scf=-6 d=2 v=1048576
+CB scf=-6 d=3 v=1310720
+CB scf=-6 d=4 v=1572864
+CB scf=-6 d=5 v=1572864
+CB scf=-6 d=6 v=1835008
+CB scf=-6 d=7 v=1835008
+CB scf=-6 d=8 v=2097152
+CB scf=-6 d=9 v=2097152
+CB scf=-6 d=10 v=2359296
+CB scf=-6 d=11 v=2359296
+CB scf=-6 d=12 v=2621440
+CB scf=-5 d=-12 v=2621440
+CB scf=-5 d=-11 v=2359296
+CB scf=-5 d=-10 v=2359296
+CB scf=-5 d=-9 v=2097152
+CB scf=-5 d=-8 v=2097152
+CB scf=-5 d=-7 v=2097152
+CB scf=-5 d=-6 v=1835008
+CB scf=-5 d=-5 v=1572864
+CB scf=-5 d=-4 v=1572864
+CB scf=-5 d=-3 v=1310720
+CB scf=-5 d=-2 v=1048576
+CB scf=-5 d=-1 v=786432
+CB scf=-5 d=0 v=262144
+CB scf=-5 d=1 v=1048576
+CB scf=-5 d=2 v=1048576
+CB scf=-5 d=3 v=1310720
+CB scf=-5 d=4 v=1572864
+CB scf=-5 d=5 v=1572864
+CB scf=-5 d=6 v=1835008
+CB scf=-5 d=7 v=1835008
+CB scf=-5 d=8 v=2097152
+CB scf=-5 d=9 v=2097152
+CB scf=-5 d=10 v=2359296
+CB scf=-5 d=11 v=2359296
+CB scf=-5 d=12 v=2621440
+CB scf=-4 d=-12 v=2621440
+CB scf=-4 d=-11 v=2359296
+CB scf=-4 d=-10 v=2359296
+CB scf=-4 d=-9 v=2097152
+CB scf=-4 d=-8 v=2097152
+CB scf=-4 d=-7 v=2097152
+CB scf=-4 d=-6 v=1835008
+CB scf=-4 d=-5 v=1572864
+CB scf=-4 d=-4 v=1572864
+CB scf=-4 d=-3 v=1310720
+CB scf=-4 d=-2 v=1048576
+CB scf=-4 d=-1 v=786432
+CB scf=-4 d=0 v=262144
+CB scf=-4 d=1 v=1048576
+CB scf=-4 d=2 v=1048576
+CB scf=-4 d=3 v=1310720
+CB scf=-4 d=4 v=1572864
+CB scf=-4 d=5 v=1572864
+CB scf=-4 d=6 v=1835008
+CB scf=-4 d=7 v=1835008
+CB scf=-4 d=8 v=2097152
+CB scf=-4 d=9 v=2097152
+CB scf=-4 d=10 v=2359296
+CB scf=-4 d=11 v=2359296
+CB scf=-4 d=12 v=2621440
+CB scf=-3 d=-12 v=2621440
+CB scf=-3 d=-11 v=2359296
+CB scf=-3 d=-10 v=2359296
+CB scf=-3 d=-9 v=2097152
+CB scf=-3 d=-8 v=2097152
+CB scf=-3 d=-7 v=2097152
+CB scf=-3 d=-6 v=1835008
+CB scf=-3 d=-5 v=1572864
+CB scf=-3 d=-4 v=1572864
+CB scf=-3 d=-3 v=1310720
+CB scf=-3 d=-2 v=1048576
+CB scf=-3 d=-1 v=786432
+CB scf=-3 d=0 v=262144
+CB scf=-3 d=1 v=1048576
+CB scf=-3 d=2 v=1048576
+CB scf=-3 d=3 v=1310720
+CB scf=-3 d=4 v=1572864
+CB scf=-3 d=5 v=1572864
+CB scf=-3 d=6 v=1835008
+CB scf=-3 d=7 v=1835008
+CB scf=-3 d=8 v=2097152
+CB scf=-3 d=9 v=2097152
+CB scf=-3 d=10 v=2359296
+CB scf=-3 d=11 v=2359296
+CB scf=-3 d=12 v=2621440
+CB scf=-2 d=-12 v=2621440
+CB scf=-2 d=-11 v=2359296
+CB scf=-2 d=-10 v=2359296
+CB scf=-2 d=-9 v=2097152
+CB scf=-2 d=-8 v=2097152
+CB scf=-2 d=-7 v=2097152
+CB scf=-2 d=-6 v=1835008
+CB scf=-2 d=-5 v=1572864
+CB scf=-2 d=-4 v=1572864
+CB scf=-2 d=-3 v=1310720
+CB scf=-2 d=-2 v=1048576
+CB scf=-2 d=-1 v=786432
+CB scf=-2 d=0 v=262144
+CB scf=-2 d=1 v=1048576
+CB scf=-2 d=2 v=1048576
+CB scf=-2 d=3 v=1310720
+CB scf=-2 d=4 v=1572864
+CB scf=-2 d=5 v=1572864
+CB scf=-2 d=6 v=1835008
+CB scf=-2 d=7 v=1835008
+CB scf=-2 d=8 v=2097152
+CB scf=-2 d=9 v=2097152
+CB scf=-2 d=10 v=2359296
+CB scf=-2 d=11 v=2359296
+CB scf=-2 d=12 v=2621440
+CB scf=-1 d=-12 v=2621440
+CB scf=-1 d=-11 v=2359296
+CB scf=-1 d=-10 v=2359296
+CB scf=-1 d=-9 v=2097152
+CB scf=-1 d=-8 v=2097152
+CB scf=-1 d=-7 v=2097152
+CB scf=-1 d=-6 v=1835008
+CB scf=-1 d=-5 v=1572864
+CB scf=-1 d=-4 v=1572864
+CB scf=-1 d=-3 v=1310720
+CB scf=-1 d=-2 v=1048576
+CB scf=-1 d=-1 v=786432
+CB scf=-1 d=0 v=262144
+CB scf=-1 d=1 v=1048576
+CB scf=-1 d=2 v=1048576
+CB scf=-1 d=3 v=1310720
+CB scf=-1 d=4 v=1572864
+CB scf=-1 d=5 v=1572864
+CB scf=-1 d=6 v=1835008
+CB scf=-1 d=7 v=1835008
+CB scf=-1 d=8 v=2097152
+CB scf=-1 d=9 v=2097152
+CB scf=-1 d=10 v=2359296
+CB scf=-1 d=11 v=2359296
+CB scf=-1 d=12 v=2621440
+CB scf=0 d=-12 v=2621440
+CB scf=0 d=-11 v=2359296
+CB scf=0 d=-10 v=2359296
+CB scf=0 d=-9 v=2097152
+CB scf=0 d=-8 v=2097152
+CB scf=0 d=-7 v=2097152
+CB scf=0 d=-6 v=1835008
+CB scf=0 d=-5 v=1572864
+CB scf=0 d=-4 v=1572864
+CB scf=0 d=-3 v=1310720
+CB scf=0 d=-2 v=1048576
+CB scf=0 d=-1 v=786432
+CB scf=0 d=0 v=262144
+CB scf=0 d=1 v=1048576
+CB scf=0 d=2 v=1048576
+CB scf=0 d=3 v=1310720
+CB scf=0 d=4 v=1572864
+CB scf=0 d=5 v=1572864
+CB scf=0 d=6 v=1835008
+CB scf=0 d=7 v=1835008
+CB scf=0 d=8 v=2097152
+CB scf=0 d=9 v=2097152
+CB scf=0 d=10 v=2359296
+CB scf=0 d=11 v=2359296
+CB scf=0 d=12 v=2621440
+CB scf=1 d=-12 v=2621440
+CB scf=1 d=-11 v=2359296
+CB scf=1 d=-10 v=2359296
+CB scf=1 d=-9 v=2097152
+CB scf=1 d=-8 v=2097152
+CB scf=1 d=-7 v=2097152
+CB scf=1 d=-6 v=1835008
+CB scf=1 d=-5 v=1572864
+CB scf=1 d=-4 v=1572864
+CB scf=1 d=-3 v=1310720
+CB scf=1 d=-2 v=1048576
+CB scf=1 d=-1 v=786432
+CB scf=1 d=0 v=262144
+CB scf=1 d=1 v=1048576
+CB scf=1 d=2 v=1048576
+CB scf=1 d=3 v=1310720
+CB scf=1 d=4 v=1572864
+CB scf=1 d=5 v=1572864
+CB scf=1 d=6 v=1835008
+CB scf=1 d=7 v=1835008
+CB scf=1 d=8 v=2097152
+CB scf=1 d=9 v=2097152
+CB scf=1 d=10 v=2359296
+CB scf=1 d=11 v=2359296
+CB scf=1 d=12 v=2621440
+CB scf=2 d=-12 v=2621440
+CB scf=2 d=-11 v=2359296
+CB scf=2 d=-10 v=2359296
+CB scf=2 d=-9 v=2097152
+CB scf=2 d=-8 v=2097152
+CB scf=2 d=-7 v=2097152
+CB scf=2 d=-6 v=1835008
+CB scf=2 d=-5 v=1572864
+CB scf=2 d=-4 v=1572864
+CB scf=2 d=-3 v=1310720
+CB scf=2 d=-2 v=1048576
+CB scf=2 d=-1 v=786432
+CB scf=2 d=0 v=262144
+CB scf=2 d=1 v=1048576
+CB scf=2 d=2 v=1048576
+CB scf=2 d=3 v=1310720
+CB scf=2 d=4 v=1572864
+CB scf=2 d=5 v=1572864
+CB scf=2 d=6 v=1835008
+CB scf=2 d=7 v=1835008
+CB scf=2 d=8 v=2097152
+CB scf=2 d=9 v=2097152
+CB scf=2 d=10 v=2359296
+CB scf=2 d=11 v=2359296
+CB scf=2 d=12 v=2621440
+CB scf=3 d=-12 v=2621440
+CB scf=3 d=-11 v=2359296
+CB scf=3 d=-10 v=2359296
+CB scf=3 d=-9 v=2097152
+CB scf=3 d=-8 v=2097152
+CB scf=3 d=-7 v=2097152
+CB scf=3 d=-6 v=1835008
+CB scf=3 d=-5 v=1572864
+CB scf=3 d=-4 v=1572864
+CB scf=3 d=-3 v=1310720
+CB scf=3 d=-2 v=1048576
+CB scf=3 d=-1 v=786432
+CB scf=3 d=0 v=262144
+CB scf=3 d=1 v=1048576
+CB scf=3 d=2 v=1048576
+CB scf=3 d=3 v=1310720
+CB scf=3 d=4 v=1572864
+CB scf=3 d=5 v=1572864
+CB scf=3 d=6 v=1835008
+CB scf=3 d=7 v=1835008
+CB scf=3 d=8 v=2097152
+CB scf=3 d=9 v=2097152
+CB scf=3 d=10 v=2359296
+CB scf=3 d=11 v=2359296
+CB scf=3 d=12 v=2621440
+CB scf=4 d=-12 v=2621440
+CB scf=4 d=-11 v=2359296
+CB scf=4 d=-10 v=2359296
+CB scf=4 d=-9 v=2097152
+CB scf=4 d=-8 v=2097152
+CB scf=4 d=-7 v=2097152
+CB scf=4 d=-6 v=1835008
+CB scf=4 d=-5 v=1572864
+CB scf=4 d=-4 v=1572864
+CB scf=4 d=-3 v=1310720
+CB scf=4 d=-2 v=1048576
+CB scf=4 d=-1 v=786432
+CB scf=4 d=0 v=262144
+CB scf=4 d=1 v=1048576
+CB scf=4 d=2 v=1048576
+CB scf=4 d=3 v=1310720
+CB scf=4 d=4 v=1572864
+CB scf=4 d=5 v=1572864
+CB scf=4 d=6 v=1835008
+CB scf=4 d=7 v=1835008
+CB scf=4 d=8 v=2097152
+CB scf=4 d=9 v=2097152
+CB scf=4 d=10 v=2359296
+CB scf=4 d=11 v=2359296
+CB scf=4 d=12 v=2621440
+CB scf=5 d=-12 v=2621440
+CB scf=5 d=-11 v=2359296
+CB scf=5 d=-10 v=2359296
+CB scf=5 d=-9 v=2097152
+CB scf=5 d=-8 v=2097152
+CB scf=5 d=-7 v=2097152
+CB scf=5 d=-6 v=1835008
+CB scf=5 d=-5 v=1572864
+CB scf=5 d=-4 v=1572864
+CB scf=5 d=-3 v=1310720
+CB scf=5 d=-2 v=1048576
+CB scf=5 d=-1 v=786432
+CB scf=5 d=0 v=262144
+CB scf=5 d=1 v=1048576
+CB scf=5 d=2 v=1048576
+CB scf=5 d=3 v=1310720
+CB scf=5 d=4 v=1572864
+CB scf=5 d=5 v=1572864
+CB scf=5 d=6 v=1835008
+CB scf=5 d=7 v=1835008
+CB scf=5 d=8 v=2097152
+CB scf=5 d=9 v=2097152
+CB scf=5 d=10 v=2359296
+CB scf=5 d=11 v=2359296
+CB scf=5 d=12 v=2621440
+CB scf=6 d=-12 v=2621440
+CB scf=6 d=-11 v=2359296
+CB scf=6 d=-10 v=2359296
+CB scf=6 d=-9 v=2097152
+CB scf=6 d=-8 v=2097152
+CB scf=6 d=-7 v=2097152
+CB scf=6 d=-6 v=1835008
+CB scf=6 d=-5 v=1572864
+CB scf=6 d=-4 v=1572864
+CB scf=6 d=-3 v=1310720
+CB scf=6 d=-2 v=1048576
+CB scf=6 d=-1 v=786432
+CB scf=6 d=0 v=262144
+CB scf=6 d=1 v=1048576
+CB scf=6 d=2 v=1048576
+CB scf=6 d=3 v=1310720
+CB scf=6 d=4 v=1572864
+CB scf=6 d=5 v=1572864
+CB scf=6 d=6 v=1835008
+CB scf=6 d=7 v=1835008
+CB scf=6 d=8 v=2097152
+CB scf=6 d=9 v=2097152
+CB scf=6 d=10 v=2359296
+CB scf=6 d=11 v=2359296
+CB scf=6 d=12 v=2621440
+CB scf=7 d=-12 v=2621440
+CB scf=7 d=-11 v=2359296
+CB scf=7 d=-10 v=2359296
+CB scf=7 d=-9 v=2097152
+CB scf=7 d=-8 v=2097152
+CB scf=7 d=-7 v=2097152
+CB scf=7 d=-6 v=1835008
+CB scf=7 d=-5 v=1572864
+CB scf=7 d=-4 v=1572864
+CB scf=7 d=-3 v=1310720
+CB scf=7 d=-2 v=1048576
+CB scf=7 d=-1 v=786432
+CB scf=7 d=0 v=262144
+CB scf=7 d=1 v=1048576
+CB scf=7 d=2 v=1048576
+CB scf=7 d=3 v=1310720
+CB scf=7 d=4 v=1572864
+CB scf=7 d=5 v=1572864
+CB scf=7 d=6 v=1835008
+CB scf=7 d=7 v=1835008
+CB scf=7 d=8 v=2097152
+CB scf=7 d=9 v=2097152
+CB scf=7 d=10 v=2359296
+CB scf=7 d=11 v=2359296
+CB scf=7 d=12 v=2621440
+CB scf=8 d=-12 v=2621440
+CB scf=8 d=-11 v=2359296
+CB scf=8 d=-10 v=2359296
+CB scf=8 d=-9 v=2097152
+CB scf=8 d=-8 v=2097152
+CB scf=8 d=-7 v=2097152
+CB scf=8 d=-6 v=1835008
+CB scf=8 d=-5 v=1572864
+CB scf=8 d=-4 v=1572864
+CB scf=8 d=-3 v=1310720
+CB scf=8 d=-2 v=1048576
+CB scf=8 d=-1 v=786432
+CB scf=8 d=0 v=262144
+CB scf=8 d=1 v=1048576
+CB scf=8 d=2 v=1048576
+CB scf=8 d=3 v=1310720
+CB scf=8 d=4 v=1572864
+CB scf=8 d=5 v=1572864
+CB scf=8 d=6 v=1835008
+CB scf=8 d=7 v=1835008
+CB scf=8 d=8 v=2097152
+CB scf=8 d=9 v=2097152
+CB scf=8 d=10 v=2359296
+CB scf=8 d=11 v=2359296
+CB scf=8 d=12 v=2621440
+CB scf=9 d=-12 v=2621440
+CB scf=9 d=-11 v=2359296
+CB scf=9 d=-10 v=2359296
+CB scf=9 d=-9 v=2097152
+CB scf=9 d=-8 v=2097152
+CB scf=9 d=-7 v=2097152
+CB scf=9 d=-6 v=1835008
+CB scf=9 d=-5 v=1572864
+CB scf=9 d=-4 v=1572864
+CB scf=9 d=-3 v=1310720
+CB scf=9 d=-2 v=1048576
+CB scf=9 d=-1 v=786432
+CB scf=9 d=0 v=262144
+CB scf=9 d=1 v=1048576
+CB scf=9 d=2 v=1048576
+CB scf=9 d=3 v=1310720
+CB scf=9 d=4 v=1572864
+CB scf=9 d=5 v=1572864
+CB scf=9 d=6 v=1835008
+CB scf=9 d=7 v=1835008
+CB scf=9 d=8 v=2097152
+CB scf=9 d=9 v=2097152
+CB scf=9 d=10 v=2359296
+CB scf=9 d=11 v=2359296
+CB scf=9 d=12 v=2621440
+CB scf=10 d=-12 v=2621440
+CB scf=10 d=-11 v=2359296
+CB scf=10 d=-10 v=2359296
+CB scf=10 d=-9 v=2097152
+CB scf=10 d=-8 v=2097152
+CB scf=10 d=-7 v=2097152
+CB scf=10 d=-6 v=1835008
+CB scf=10 d=-5 v=1572864
+CB scf=10 d=-4 v=1572864
+CB scf=10 d=-3 v=1310720
+CB scf=10 d=-2 v=1048576
+CB scf=10 d=-1 v=786432
+CB scf=10 d=0 v=262144
+CB scf=10 d=1 v=1048576
+CB scf=10 d=2 v=1048576
+CB scf=10 d=3 v=1310720
+CB scf=10 d=4 v=1572864
+CB scf=10 d=5 v=1572864
+CB scf=10 d=6 v=1835008
+CB scf=10 d=7 v=1835008
+CB scf=10 d=8 v=2097152
+CB scf=10 d=9 v=2097152
+CB scf=10 d=10 v=2359296
+CB scf=10 d=11 v=2359296
+CB scf=10 d=12 v=2621440
+CB scf=11 d=-12 v=2621440
+CB scf=11 d=-11 v=2359296
+CB scf=11 d=-10 v=2359296
+CB scf=11 d=-9 v=2097152
+CB scf=11 d=-8 v=2097152
+CB scf=11 d=-7 v=2097152
+CB scf=11 d=-6 v=1835008
+CB scf=11 d=-5 v=1572864
+CB scf=11 d=-4 v=1572864
+CB scf=11 d=-3 v=1310720
+CB scf=11 d=-2 v=1048576
+CB scf=11 d=-1 v=786432
+CB scf=11 d=0 v=262144
+CB scf=11 d=1 v=1048576
+CB scf=11 d=2 v=1048576
+CB scf=11 d=3 v=1310720
+CB scf=11 d=4 v=1572864
+CB scf=11 d=5 v=1572864
+CB scf=11 d=6 v=1835008
+CB scf=11 d=7 v=1835008
+CB scf=11 d=8 v=2097152
+CB scf=11 d=9 v=2097152
+CB scf=11 d=10 v=2359296
+CB scf=11 d=11 v=2359296
+CB scf=11 d=12 v=2621440
+CB scf=12 d=-12 v=2621440
+CB scf=12 d=-11 v=2359296
+CB scf=12 d=-10 v=2359296
+CB scf=12 d=-9 v=2097152
+CB scf=12 d=-8 v=2097152
+CB scf=12 d=-7 v=2097152
+CB scf=12 d=-6 v=1835008
+CB scf=12 d=-5 v=1572864
+CB scf=12 d=-4 v=1572864
+CB scf=12 d=-3 v=1310720
+CB scf=12 d=-2 v=1048576
+CB scf=12 d=-1 v=786432
+CB scf=12 d=0 v=262144
+CB scf=12 d=1 v=1048576
+CB scf=12 d=2 v=1048576
+CB scf=12 d=3 v=1310720
+CB scf=12 d=4 v=1572864
+CB scf=12 d=5 v=1572864
+CB scf=12 d=6 v=1835008
+CB scf=12 d=7 v=1835008
+CB scf=12 d=8 v=2097152
+CB scf=12 d=9 v=2097152
+CB scf=12 d=10 v=2359296
+CB scf=12 d=11 v=2359296
+CB scf=12 d=12 v=2621440
+CB scf=13 d=-12 v=2621440
+CB scf=13 d=-11 v=2359296
+CB scf=13 d=-10 v=2359296
+CB scf=13 d=-9 v=2097152
+CB scf=13 d=-8 v=2097152
+CB scf=13 d=-7 v=2097152
+CB scf=13 d=-6 v=1835008
+CB scf=13 d=-5 v=1572864
+CB scf=13 d=-4 v=1572864
+CB scf=13 d=-3 v=1310720
+CB scf=13 d=-2 v=1048576
+CB scf=13 d=-1 v=786432
+CB scf=13 d=0 v=262144
+CB scf=13 d=1 v=1048576
+CB scf=13 d=2 v=1048576
+CB scf=13 d=3 v=1310720
+CB scf=13 d=4 v=1572864
+CB scf=13 d=5 v=1572864
+CB scf=13 d=6 v=1835008
+CB scf=13 d=7 v=1835008
+CB scf=13 d=8 v=2097152
+CB scf=13 d=9 v=2097152
+CB scf=13 d=10 v=2359296
+CB scf=13 d=11 v=2359296
+CB scf=13 d=12 v=2621440
+CB scf=14 d=-12 v=2621440
+CB scf=14 d=-11 v=2359296
+CB scf=14 d=-10 v=2359296
+CB scf=14 d=-9 v=2097152
+CB scf=14 d=-8 v=2097152
+CB scf=14 d=-7 v=2097152
+CB scf=14 d=-6 v=1835008
+CB scf=14 d=-5 v=1572864
+CB scf=14 d=-4 v=1572864
+CB scf=14 d=-3 v=1310720
+CB scf=14 d=-2 v=1048576
+CB scf=14 d=-1 v=786432
+CB scf=14 d=0 v=262144
+CB scf=14 d=1 v=1048576
+CB scf=14 d=2 v=1048576
+CB scf=14 d=3 v=1310720
+CB scf=14 d=4 v=1572864
+CB scf=14 d=5 v=1572864
+CB scf=14 d=6 v=1835008
+CB scf=14 d=7 v=1835008
+CB scf=14 d=8 v=2097152
+CB scf=14 d=9 v=2097152
+CB scf=14 d=10 v=2359296
+CB scf=14 d=11 v=2359296
+CB scf=14 d=12 v=2621440
+CB scf=15 d=-12 v=2621440
+CB scf=15 d=-11 v=2359296
+CB scf=15 d=-10 v=2359296
+CB scf=15 d=-9 v=2097152
+CB scf=15 d=-8 v=2097152
+CB scf=15 d=-7 v=2097152
+CB scf=15 d=-6 v=1835008
+CB scf=15 d=-5 v=1572864
+CB scf=15 d=-4 v=1572864
+CB scf=15 d=-3 v=1310720
+CB scf=15 d=-2 v=1048576
+CB scf=15 d=-1 v=786432
+CB scf=15 d=0 v=262144
+CB scf=15 d=1 v=1048576
+CB scf=15 d=2 v=1048576
+CB scf=15 d=3 v=1310720
+CB scf=15 d=4 v=1572864
+CB scf=15 d=5 v=1572864
+CB scf=15 d=6 v=1835008
+CB scf=15 d=7 v=1835008
+CB scf=15 d=8 v=2097152
+CB scf=15 d=9 v=2097152
+CB scf=15 d=10 v=2359296
+CB scf=15 d=11 v=2359296
+CB scf=15 d=12 v=2621440
+CB scf=16 d=-12 v=2621440
+CB scf=16 d=-11 v=2359296
+CB scf=16 d=-10 v=2359296
+CB scf=16 d=-9 v=2097152
+CB scf=16 d=-8 v=2097152
+CB scf=16 d=-7 v=2097152
+CB scf=16 d=-6 v=1835008
+CB scf=16 d=-5 v=1572864
+CB scf=16 d=-4 v=1572864
+CB scf=16 d=-3 v=1310720
+CB scf=16 d=-2 v=1048576
+CB scf=16 d=-1 v=786432
+CB scf=16 d=0 v=262144
+CB scf=16 d=1 v=1048576
+CB scf=16 d=2 v=1048576
+CB scf=16 d=3 v=1310720
+CB scf=16 d=4 v=1572864
+CB scf=16 d=5 v=1572864
+CB scf=16 d=6 v=1835008
+CB scf=16 d=7 v=1835008
+CB scf=16 d=8 v=2097152
+CB scf=16 d=9 v=2097152
+CB scf=16 d=10 v=2359296
+CB scf=16 d=11 v=2359296
+CB scf=16 d=12 v=2621440
+CB scf=17 d=-12 v=2621440
+CB scf=17 d=-11 v=2359296
+CB scf=17 d=-10 v=2359296
+CB scf=17 d=-9 v=2097152
+CB scf=17 d=-8 v=2097152
+CB scf=17 d=-7 v=2097152
+CB scf=17 d=-6 v=1835008
+CB scf=17 d=-5 v=1572864
+CB scf=17 d=-4 v=1572864
+CB scf=17 d=-3 v=1310720
+CB scf=17 d=-2 v=1048576
+CB scf=17 d=-1 v=786432
+CB scf=17 d=0 v=262144
+CB scf=17 d=1 v=1048576
+CB scf=17 d=2 v=1048576
+CB scf=17 d=3 v=1310720
+CB scf=17 d=4 v=1572864
+CB scf=17 d=5 v=1572864
+CB scf=17 d=6 v=1835008
+CB scf=17 d=7 v=1835008
+CB scf=17 d=8 v=2097152
+CB scf=17 d=9 v=2097152
+CB scf=17 d=10 v=2359296
+CB scf=17 d=11 v=2359296
+CB scf=17 d=12 v=2621440
+CB scf=18 d=-12 v=2621440
+CB scf=18 d=-11 v=2359296
+CB scf=18 d=-10 v=2359296
+CB scf=18 d=-9 v=2097152
+CB scf=18 d=-8 v=2097152
+CB scf=18 d=-7 v=2097152
+CB scf=18 d=-6 v=1835008
+CB scf=18 d=-5 v=1572864
+CB scf=18 d=-4 v=1572864
+CB scf=18 d=-3 v=1310720
+CB scf=18 d=-2 v=1048576
+CB scf=18 d=-1 v=786432
+CB scf=18 d=0 v=262144
+CB scf=18 d=1 v=1048576
+CB scf=18 d=2 v=1048576
+CB scf=18 d=3 v=1310720
+CB scf=18 d=4 v=1572864
+CB scf=18 d=5 v=1572864
+CB scf=18 d=6 v=1835008
+CB scf=18 d=7 v=1835008
+CB scf=18 d=8 v=2097152
+CB scf=18 d=9 v=2097152
+CB scf=18 d=10 v=2359296
+CB scf=18 d=11 v=2359296
+CB scf=18 d=12 v=2621440
+CB scf=19 d=-12 v=2621440
+CB scf=19 d=-11 v=2359296
+CB scf=19 d=-10 v=2359296
+CB scf=19 d=-9 v=2097152
+CB scf=19 d=-8 v=2097152
+CB scf=19 d=-7 v=2097152
+CB scf=19 d=-6 v=1835008
+CB scf=19 d=-5 v=1572864
+CB scf=19 d=-4 v=1572864
+CB scf=19 d=-3 v=1310720
+CB scf=19 d=-2 v=1048576
+CB scf=19 d=-1 v=786432
+CB scf=19 d=0 v=262144
+CB scf=19 d=1 v=1048576
+CB scf=19 d=2 v=1048576
+CB scf=19 d=3 v=1310720
+CB scf=19 d=4 v=1572864
+CB scf=19 d=5 v=1572864
+CB scf=19 d=6 v=1835008
+CB scf=19 d=7 v=1835008
+CB scf=19 d=8 v=2097152
+CB scf=19 d=9 v=2097152
+CB scf=19 d=10 v=2359296
+CB scf=19 d=11 v=2359296
+CB scf=19 d=12 v=2621440
+CB scf=20 d=-12 v=2621440
+CB scf=20 d=-11 v=2359296
+CB scf=20 d=-10 v=2359296
+CB scf=20 d=-9 v=2097152
+CB scf=20 d=-8 v=2097152
+CB scf=20 d=-7 v=2097152
+CB scf=20 d=-6 v=1835008
+CB scf=20 d=-5 v=1572864
+CB scf=20 d=-4 v=1572864
+CB scf=20 d=-3 v=1310720
+CB scf=20 d=-2 v=1048576
+CB scf=20 d=-1 v=786432
+CB scf=20 d=0 v=262144
+CB scf=20 d=1 v=1048576
+CB scf=20 d=2 v=1048576
+CB scf=20 d=3 v=1310720
+CB scf=20 d=4 v=1572864
+CB scf=20 d=5 v=1572864
+CB scf=20 d=6 v=1835008
+CB scf=20 d=7 v=1835008
+CB scf=20 d=8 v=2097152
+CB scf=20 d=9 v=2097152
+CB scf=20 d=10 v=2359296
+CB scf=20 d=11 v=2359296
+CB scf=20 d=12 v=2621440
+CB scf=21 d=-12 v=2621440
+CB scf=21 d=-11 v=2359296
+CB scf=21 d=-10 v=2359296
+CB scf=21 d=-9 v=2097152
+CB scf=21 d=-8 v=2097152
+CB scf=21 d=-7 v=2097152
+CB scf=21 d=-6 v=1835008
+CB scf=21 d=-5 v=1572864
+CB scf=21 d=-4 v=1572864
+CB scf=21 d=-3 v=1310720
+CB scf=21 d=-2 v=1048576
+CB scf=21 d=-1 v=786432
+CB scf=21 d=0 v=262144
+CB scf=21 d=1 v=1048576
+CB scf=21 d=2 v=1048576
+CB scf=21 d=3 v=1310720
+CB scf=21 d=4 v=1572864
+CB scf=21 d=5 v=1572864
+CB scf=21 d=6 v=1835008
+CB scf=21 d=7 v=1835008
+CB scf=21 d=8 v=2097152
+CB scf=21 d=9 v=2097152
+CB scf=21 d=10 v=2359296
+CB scf=21 d=11 v=2359296
+CB scf=21 d=12 v=2621440
+CB scf=22 d=-12 v=2621440
+CB scf=22 d=-11 v=2359296
+CB scf=22 d=-10 v=2359296
+CB scf=22 d=-9 v=2097152
+CB scf=22 d=-8 v=2097152
+CB scf=22 d=-7 v=2097152
+CB scf=22 d=-6 v=1835008
+CB scf=22 d=-5 v=1572864
+CB scf=22 d=-4 v=1572864
+CB scf=22 d=-3 v=1310720
+CB scf=22 d=-2 v=1048576
+CB scf=22 d=-1 v=786432
+CB scf=22 d=0 v=262144
+CB scf=22 d=1 v=1048576
+CB scf=22 d=2 v=1048576
+CB scf=22 d=3 v=1310720
+CB scf=22 d=4 v=1572864
+CB scf=22 d=5 v=1572864
+CB scf=22 d=6 v=1835008
+CB scf=22 d=7 v=1835008
+CB scf=22 d=8 v=2097152
+CB scf=22 d=9 v=2097152
+CB scf=22 d=10 v=2359296
+CB scf=22 d=11 v=2359296
+CB scf=22 d=12 v=2621440
+CB scf=23 d=-12 v=2621440
+CB scf=23 d=-11 v=2359296
+CB scf=23 d=-10 v=2359296
+CB scf=23 d=-9 v=2097152
+CB scf=23 d=-8 v=2097152
+CB scf=23 d=-7 v=2097152
+CB scf=23 d=-6 v=1835008
+CB scf=23 d=-5 v=1572864
+CB scf=23 d=-4 v=1572864
+CB scf=23 d=-3 v=1310720
+CB scf=23 d=-2 v=1048576
+CB scf=23 d=-1 v=786432
+CB scf=23 d=0 v=262144
+CB scf=23 d=1 v=1048576
+CB scf=23 d=2 v=1048576
+CB scf=23 d=3 v=1310720
+CB scf=23 d=4 v=1572864
+CB scf=23 d=5 v=1572864
+CB scf=23 d=6 v=1835008
+CB scf=23 d=7 v=1835008
+CB scf=23 d=8 v=2097152
+CB scf=23 d=9 v=2097152
+CB scf=23 d=10 v=2359296
+CB scf=23 d=11 v=2359296
+CB scf=23 d=12 v=2621440
+CB scf=24 d=-12 v=2621440
+CB scf=24 d=-11 v=2359296
+CB scf=24 d=-10 v=2359296
+CB scf=24 d=-9 v=2097152
+CB scf=24 d=-8 v=2097152
+CB scf=24 d=-7 v=2097152
+CB scf=24 d=-6 v=1835008
+CB scf=24 d=-5 v=1572864
+CB scf=24 d=-4 v=1572864
+CB scf=24 d=-3 v=1310720
+CB scf=24 d=-2 v=1048576
+CB scf=24 d=-1 v=786432
+CB scf=24 d=0 v=262144
+CB scf=24 d=1 v=1048576
+CB scf=24 d=2 v=1048576
+CB scf=24 d=3 v=1310720
+CB scf=24 d=4 v=1572864
+CB scf=24 d=5 v=1572864
+CB scf=24 d=6 v=1835008
+CB scf=24 d=7 v=1835008
+CB scf=24 d=8 v=2097152
+CB scf=24 d=9 v=2097152
+CB scf=24 d=10 v=2359296
+CB scf=24 d=11 v=2359296
+CB scf=24 d=12 v=2621440
+CB scf=25 d=-12 v=2621440
+CB scf=25 d=-11 v=2359296
+CB scf=25 d=-10 v=2359296
+CB scf=25 d=-9 v=2097152
+CB scf=25 d=-8 v=2097152
+CB scf=25 d=-7 v=2097152
+CB scf=25 d=-6 v=1835008
+CB scf=25 d=-5 v=1572864
+CB scf=25 d=-4 v=1572864
+CB scf=25 d=-3 v=1310720
+CB scf=25 d=-2 v=1048576
+CB scf=25 d=-1 v=786432
+CB scf=25 d=0 v=262144
+CB scf=25 d=1 v=1048576
+CB scf=25 d=2 v=1048576
+CB scf=25 d=3 v=1310720
+CB scf=25 d=4 v=1572864
+CB scf=25 d=5 v=1572864
+CB scf=25 d=6 v=1835008
+CB scf=25 d=7 v=1835008
+CB scf=25 d=8 v=2097152
+CB scf=25 d=9 v=2097152
+CB scf=25 d=10 v=2359296
+CB scf=25 d=11 v=2359296
+CB scf=25 d=12 v=2621440
+CB scf=26 d=-12 v=2621440
+CB scf=26 d=-11 v=2359296
+CB scf=26 d=-10 v=2359296
+CB scf=26 d=-9 v=2097152
+CB scf=26 d=-8 v=2097152
+CB scf=26 d=-7 v=2097152
+CB scf=26 d=-6 v=1835008
+CB scf=26 d=-5 v=1572864
+CB scf=26 d=-4 v=1572864
+CB scf=26 d=-3 v=1310720
+CB scf=26 d=-2 v=1048576
+CB scf=26 d=-1 v=786432
+CB scf=26 d=0 v=262144
+CB scf=26 d=1 v=1048576
+CB scf=26 d=2 v=1048576
+CB scf=26 d=3 v=1310720
+CB scf=26 d=4 v=1572864
+CB scf=26 d=5 v=1572864
+CB scf=26 d=6 v=1835008
+CB scf=26 d=7 v=1835008
+CB scf=26 d=8 v=2097152
+CB scf=26 d=9 v=2097152
+CB scf=26 d=10 v=2359296
+CB scf=26 d=11 v=2359296
+CB scf=26 d=12 v=2621440
+CB scf=27 d=-12 v=2621440
+CB scf=27 d=-11 v=2359296
+CB scf=27 d=-10 v=2359296
+CB scf=27 d=-9 v=2097152
+CB scf=27 d=-8 v=2097152
+CB scf=27 d=-7 v=2097152
+CB scf=27 d=-6 v=1835008
+CB scf=27 d=-5 v=1572864
+CB scf=27 d=-4 v=1572864
+CB scf=27 d=-3 v=1310720
+CB scf=27 d=-2 v=1048576
+CB scf=27 d=-1 v=786432
+CB scf=27 d=0 v=262144
+CB scf=27 d=1 v=1048576
+CB scf=27 d=2 v=1048576
+CB scf=27 d=3 v=1310720
+CB scf=27 d=4 v=1572864
+CB scf=27 d=5 v=1572864
+CB scf=27 d=6 v=1835008
+CB scf=27 d=7 v=1835008
+CB scf=27 d=8 v=2097152
+CB scf=27 d=9 v=2097152
+CB scf=27 d=10 v=2359296
+CB scf=27 d=11 v=2359296
+CB scf=27 d=12 v=2621440
+CB scf=28 d=-12 v=2621440
+CB scf=28 d=-11 v=2359296
+CB scf=28 d=-10 v=2359296
+CB scf=28 d=-9 v=2097152
+CB scf=28 d=-8 v=2097152
+CB scf=28 d=-7 v=2097152
+CB scf=28 d=-6 v=1835008
+CB scf=28 d=-5 v=1572864
+CB scf=28 d=-4 v=1572864
+CB scf=28 d=-3 v=1310720
+CB scf=28 d=-2 v=1048576
+CB scf=28 d=-1 v=786432
+CB scf=28 d=0 v=262144
+CB scf=28 d=1 v=1048576
+CB scf=28 d=2 v=1048576
+CB scf=28 d=3 v=1310720
+CB scf=28 d=4 v=1572864
+CB scf=28 d=5 v=1572864
+CB scf=28 d=6 v=1835008
+CB scf=28 d=7 v=1835008
+CB scf=28 d=8 v=2097152
+CB scf=28 d=9 v=2097152
+CB scf=28 d=10 v=2359296
+CB scf=28 d=11 v=2359296
+CB scf=28 d=12 v=2621440
+CB scf=29 d=-12 v=2621440
+CB scf=29 d=-11 v=2359296
+CB scf=29 d=-10 v=2359296
+CB scf=29 d=-9 v=2097152
+CB scf=29 d=-8 v=2097152
+CB scf=29 d=-7 v=2097152
+CB scf=29 d=-6 v=1835008
+CB scf=29 d=-5 v=1572864
+CB scf=29 d=-4 v=1572864
+CB scf=29 d=-3 v=1310720
+CB scf=29 d=-2 v=1048576
+CB scf=29 d=-1 v=786432
+CB scf=29 d=0 v=262144
+CB scf=29 d=1 v=1048576
+CB scf=29 d=2 v=1048576
+CB scf=29 d=3 v=1310720
+CB scf=29 d=4 v=1572864
+CB scf=29 d=5 v=1572864
+CB scf=29 d=6 v=1835008
+CB scf=29 d=7 v=1835008
+CB scf=29 d=8 v=2097152
+CB scf=29 d=9 v=2097152
+CB scf=29 d=10 v=2359296
+CB scf=29 d=11 v=2359296
+CB scf=29 d=12 v=2621440
+CB scf=30 d=-12 v=2621440
+CB scf=30 d=-11 v=2359296
+CB scf=30 d=-10 v=2359296
+CB scf=30 d=-9 v=2097152
+CB scf=30 d=-8 v=2097152
+CB scf=30 d=-7 v=2097152
+CB scf=30 d=-6 v=1835008
+CB scf=30 d=-5 v=1572864
+CB scf=30 d=-4 v=1572864
+CB scf=30 d=-3 v=1310720
+CB scf=30 d=-2 v=1048576
+CB scf=30 d=-1 v=786432
+CB scf=30 d=0 v=262144
+CB scf=30 d=1 v=1048576
+CB scf=30 d=2 v=1048576
+CB scf=30 d=3 v=1310720
+CB scf=30 d=4 v=1572864
+CB scf=30 d=5 v=1572864
+CB scf=30 d=6 v=1835008
+CB scf=30 d=7 v=1835008
+CB scf=30 d=8 v=2097152
+CB scf=30 d=9 v=2097152
+CB scf=30 d=10 v=2359296
+CB scf=30 d=11 v=2359296
+CB scf=30 d=12 v=2621440
+CB scf=31 d=-12 v=2621440
+CB scf=31 d=-11 v=2359296
+CB scf=31 d=-10 v=2359296
+CB scf=31 d=-9 v=2097152
+CB scf=31 d=-8 v=2097152
+CB scf=31 d=-7 v=2097152
+CB scf=31 d=-6 v=1835008
+CB scf=31 d=-5 v=1572864
+CB scf=31 d=-4 v=1572864
+CB scf=31 d=-3 v=1310720
+CB scf=31 d=-2 v=1048576
+CB scf=31 d=-1 v=786432
+CB scf=31 d=0 v=262144
+CB scf=31 d=1 v=1048576
+CB scf=31 d=2 v=1048576
+CB scf=31 d=3 v=1310720
+CB scf=31 d=4 v=1572864
+CB scf=31 d=5 v=1572864
+CB scf=31 d=6 v=1835008
+CB scf=31 d=7 v=1835008
+CB scf=31 d=8 v=2097152
+CB scf=31 d=9 v=2097152
+CB scf=31 d=10 v=2359296
+CB scf=31 d=11 v=2359296
+CB scf=31 d=12 v=2621440
+CB scf=32 d=-12 v=2621440
+CB scf=32 d=-11 v=2359296
+CB scf=32 d=-10 v=2359296
+CB scf=32 d=-9 v=2097152
+CB scf=32 d=-8 v=2097152
+CB scf=32 d=-7 v=2097152
+CB scf=32 d=-6 v=1835008
+CB scf=32 d=-5 v=1572864
+CB scf=32 d=-4 v=1572864
+CB scf=32 d=-3 v=1310720
+CB scf=32 d=-2 v=1048576
+CB scf=32 d=-1 v=786432
+CB scf=32 d=0 v=262144
+CB scf=32 d=1 v=1048576
+CB scf=32 d=2 v=1048576
+CB scf=32 d=3 v=1310720
+CB scf=32 d=4 v=1572864
+CB scf=32 d=5 v=1572864
+CB scf=32 d=6 v=1835008
+CB scf=32 d=7 v=1835008
+CB scf=32 d=8 v=2097152
+CB scf=32 d=9 v=2097152
+CB scf=32 d=10 v=2359296
+CB scf=32 d=11 v=2359296
+CB scf=32 d=12 v=2621440
+CB scf=33 d=-12 v=2621440
+CB scf=33 d=-11 v=2359296
+CB scf=33 d=-10 v=2359296
+CB scf=33 d=-9 v=2097152
+CB scf=33 d=-8 v=2097152
+CB scf=33 d=-7 v=2097152
+CB scf=33 d=-6 v=1835008
+CB scf=33 d=-5 v=1572864
+CB scf=33 d=-4 v=1572864
+CB scf=33 d=-3 v=1310720
+CB scf=33 d=-2 v=1048576
+CB scf=33 d=-1 v=786432
+CB scf=33 d=0 v=262144
+CB scf=33 d=1 v=1048576
+CB scf=33 d=2 v=1048576
+CB scf=33 d=3 v=1310720
+CB scf=33 d=4 v=1572864
+CB scf=33 d=5 v=1572864
+CB scf=33 d=6 v=1835008
+CB scf=33 d=7 v=1835008
+CB scf=33 d=8 v=2097152
+CB scf=33 d=9 v=2097152
+CB scf=33 d=10 v=2359296
+CB scf=33 d=11 v=2359296
+CB scf=33 d=12 v=2621440
+CB scf=34 d=-12 v=2621440
+CB scf=34 d=-11 v=2359296
+CB scf=34 d=-10 v=2359296
+CB scf=34 d=-9 v=2097152
+CB scf=34 d=-8 v=2097152
+CB scf=34 d=-7 v=2097152
+CB scf=34 d=-6 v=1835008
+CB scf=34 d=-5 v=1572864
+CB scf=34 d=-4 v=1572864
+CB scf=34 d=-3 v=1310720
+CB scf=34 d=-2 v=1048576
+CB scf=34 d=-1 v=786432
+CB scf=34 d=0 v=262144
+CB scf=34 d=1 v=1048576
+CB scf=34 d=2 v=1048576
+CB scf=34 d=3 v=1310720
+CB scf=34 d=4 v=1572864
+CB scf=34 d=5 v=1572864
+CB scf=34 d=6 v=1835008
+CB scf=34 d=7 v=1835008
+CB scf=34 d=8 v=2097152
+CB scf=34 d=9 v=2097152
+CB scf=34 d=10 v=2359296
+CB scf=34 d=11 v=2359296
+CB scf=34 d=12 v=2621440
+CB scf=35 d=-12 v=2621440
+CB scf=35 d=-11 v=2359296
+CB scf=35 d=-10 v=2359296
+CB scf=35 d=-9 v=2097152
+CB scf=35 d=-8 v=2097152
+CB scf=35 d=-7 v=2097152
+CB scf=35 d=-6 v=1835008
+CB scf=35 d=-5 v=1572864
+CB scf=35 d=-4 v=1572864
+CB scf=35 d=-3 v=1310720
+CB scf=35 d=-2 v=1048576
+CB scf=35 d=-1 v=786432
+CB scf=35 d=0 v=262144
+CB scf=35 d=1 v=1048576
+CB scf=35 d=2 v=1048576
+CB scf=35 d=3 v=1310720
+CB scf=35 d=4 v=1572864
+CB scf=35 d=5 v=1572864
+CB scf=35 d=6 v=1835008
+CB scf=35 d=7 v=1835008
+CB scf=35 d=8 v=2097152
+CB scf=35 d=9 v=2097152
+CB scf=35 d=10 v=2359296
+CB scf=35 d=11 v=2359296
+CB scf=35 d=12 v=2621440
+CB scf=36 d=-12 v=2621440
+CB scf=36 d=-11 v=2359296
+CB scf=36 d=-10 v=2359296
+CB scf=36 d=-9 v=2097152
+CB scf=36 d=-8 v=2097152
+CB scf=36 d=-7 v=2097152
+CB scf=36 d=-6 v=1835008
+CB scf=36 d=-5 v=1572864
+CB scf=36 d=-4 v=1572864
+CB scf=36 d=-3 v=1310720
+CB scf=36 d=-2 v=1048576
+CB scf=36 d=-1 v=786432
+CB scf=36 d=0 v=262144
+CB scf=36 d=1 v=1048576
+CB scf=36 d=2 v=1048576
+CB scf=36 d=3 v=1310720
+CB scf=36 d=4 v=1572864
+CB scf=36 d=5 v=1572864
+CB scf=36 d=6 v=1835008
+CB scf=36 d=7 v=1835008
+CB scf=36 d=8 v=2097152
+CB scf=36 d=9 v=2097152
+CB scf=36 d=10 v=2359296
+CB scf=36 d=11 v=2359296
+CB scf=36 d=12 v=2621440
+CB scf=37 d=-12 v=2621440
+CB scf=37 d=-11 v=2359296
+CB scf=37 d=-10 v=2359296
+CB scf=37 d=-9 v=2097152
+CB scf=37 d=-8 v=2097152
+CB scf=37 d=-7 v=2097152
+CB scf=37 d=-6 v=1835008
+CB scf=37 d=-5 v=1572864
+CB scf=37 d=-4 v=1572864
+CB scf=37 d=-3 v=1310720
+CB scf=37 d=-2 v=1048576
+CB scf=37 d=-1 v=786432
+CB scf=37 d=0 v=262144
+CB scf=37 d=1 v=1048576
+CB scf=37 d=2 v=1048576
+CB scf=37 d=3 v=1310720
+CB scf=37 d=4 v=1572864
+CB scf=37 d=5 v=1572864
+CB scf=37 d=6 v=1835008
+CB scf=37 d=7 v=1835008
+CB scf=37 d=8 v=2097152
+CB scf=37 d=9 v=2097152
+CB scf=37 d=10 v=2359296
+CB scf=37 d=11 v=2359296
+CB scf=37 d=12 v=2621440
+CB scf=38 d=-12 v=2621440
+CB scf=38 d=-11 v=2359296
+CB scf=38 d=-10 v=2359296
+CB scf=38 d=-9 v=2097152
+CB scf=38 d=-8 v=2097152
+CB scf=38 d=-7 v=2097152
+CB scf=38 d=-6 v=1835008
+CB scf=38 d=-5 v=1572864
+CB scf=38 d=-4 v=1572864
+CB scf=38 d=-3 v=1310720
+CB scf=38 d=-2 v=1048576
+CB scf=38 d=-1 v=786432
+CB scf=38 d=0 v=262144
+CB scf=38 d=1 v=1048576
+CB scf=38 d=2 v=1048576
+CB scf=38 d=3 v=1310720
+CB scf=38 d=4 v=1572864
+CB scf=38 d=5 v=1572864
+CB scf=38 d=6 v=1835008
+CB scf=38 d=7 v=1835008
+CB scf=38 d=8 v=2097152
+CB scf=38 d=9 v=2097152
+CB scf=38 d=10 v=2359296
+CB scf=38 d=11 v=2359296
+CB scf=38 d=12 v=2621440
+CB scf=39 d=-12 v=2621440
+CB scf=39 d=-11 v=2359296
+CB scf=39 d=-10 v=2359296
+CB scf=39 d=-9 v=2097152
+CB scf=39 d=-8 v=2097152
+CB scf=39 d=-7 v=2097152
+CB scf=39 d=-6 v=1835008
+CB scf=39 d=-5 v=1572864
+CB scf=39 d=-4 v=1572864
+CB scf=39 d=-3 v=1310720
+CB scf=39 d=-2 v=1048576
+CB scf=39 d=-1 v=786432
+CB scf=39 d=0 v=262144
+CB scf=39 d=1 v=1048576
+CB scf=39 d=2 v=1048576
+CB scf=39 d=3 v=1310720
+CB scf=39 d=4 v=1572864
+CB scf=39 d=5 v=1572864
+CB scf=39 d=6 v=1835008
+CB scf=39 d=7 v=1835008
+CB scf=39 d=8 v=2097152
+CB scf=39 d=9 v=2097152
+CB scf=39 d=10 v=2359296
+CB scf=39 d=11 v=2359296
+CB scf=39 d=12 v=2621440
+CB scf=40 d=-12 v=2621440
+CB scf=40 d=-11 v=2359296
+CB scf=40 d=-10 v=2359296
+CB scf=40 d=-9 v=2097152
+CB scf=40 d=-8 v=2097152
+CB scf=40 d=-7 v=2097152
+CB scf=40 d=-6 v=1835008
+CB scf=40 d=-5 v=1572864
+CB scf=40 d=-4 v=1572864
+CB scf=40 d=-3 v=1310720
+CB scf=40 d=-2 v=1048576
+CB scf=40 d=-1 v=786432
+CB scf=40 d=0 v=262144
+CB scf=40 d=1 v=1048576
+CB scf=40 d=2 v=1048576
+CB scf=40 d=3 v=1310720
+CB scf=40 d=4 v=1572864
+CB scf=40 d=5 v=1572864
+CB scf=40 d=6 v=1835008
+CB scf=40 d=7 v=1835008
+CB scf=40 d=8 v=2097152
+CB scf=40 d=9 v=2097152
+CB scf=40 d=10 v=2359296
+CB scf=40 d=11 v=2359296
+CB scf=40 d=12 v=2621440
+CB scf=41 d=-12 v=2621440
+CB scf=41 d=-11 v=2359296
+CB scf=41 d=-10 v=2359296
+CB scf=41 d=-9 v=2097152
+CB scf=41 d=-8 v=2097152
+CB scf=41 d=-7 v=2097152
+CB scf=41 d=-6 v=1835008
+CB scf=41 d=-5 v=1572864
+CB scf=41 d=-4 v=1572864
+CB scf=41 d=-3 v=1310720
+CB scf=41 d=-2 v=1048576
+CB scf=41 d=-1 v=786432
+CB scf=41 d=0 v=262144
+CB scf=41 d=1 v=1048576
+CB scf=41 d=2 v=1048576
+CB scf=41 d=3 v=1310720
+CB scf=41 d=4 v=1572864
+CB scf=41 d=5 v=1572864
+CB scf=41 d=6 v=1835008
+CB scf=41 d=7 v=1835008
+CB scf=41 d=8 v=2097152
+CB scf=41 d=9 v=2097152
+CB scf=41 d=10 v=2359296
+CB scf=41 d=11 v=2359296
+CB scf=41 d=12 v=2621440
+CB scf=42 d=-12 v=2621440
+CB scf=42 d=-11 v=2359296
+CB scf=42 d=-10 v=2359296
+CB scf=42 d=-9 v=2097152
+CB scf=42 d=-8 v=2097152
+CB scf=42 d=-7 v=2097152
+CB scf=42 d=-6 v=1835008
+CB scf=42 d=-5 v=1572864
+CB scf=42 d=-4 v=1572864
+CB scf=42 d=-3 v=1310720
+CB scf=42 d=-2 v=1048576
+CB scf=42 d=-1 v=786432
+CB scf=42 d=0 v=262144
+CB scf=42 d=1 v=1048576
+CB scf=42 d=2 v=1048576
+CB scf=42 d=3 v=1310720
+CB scf=42 d=4 v=1572864
+CB scf=42 d=5 v=1572864
+CB scf=42 d=6 v=1835008
+CB scf=42 d=7 v=1835008
+CB scf=42 d=8 v=2097152
+CB scf=42 d=9 v=2097152
+CB scf=42 d=10 v=2359296
+CB scf=42 d=11 v=2359296
+CB scf=42 d=12 v=2621440
+CB scf=43 d=-12 v=2621440
+CB scf=43 d=-11 v=2359296
+CB scf=43 d=-10 v=2359296
+CB scf=43 d=-9 v=2097152
+CB scf=43 d=-8 v=2097152
+CB scf=43 d=-7 v=2097152
+CB scf=43 d=-6 v=1835008
+CB scf=43 d=-5 v=1572864
+CB scf=43 d=-4 v=1572864
+CB scf=43 d=-3 v=1310720
+CB scf=43 d=-2 v=1048576
+CB scf=43 d=-1 v=786432
+CB scf=43 d=0 v=262144
+CB scf=43 d=1 v=1048576
+CB scf=43 d=2 v=1048576
+CB scf=43 d=3 v=1310720
+CB scf=43 d=4 v=1572864
+CB scf=43 d=5 v=1572864
+CB scf=43 d=6 v=1835008
+CB scf=43 d=7 v=1835008
+CB scf=43 d=8 v=2097152
+CB scf=43 d=9 v=2097152
+CB scf=43 d=10 v=2359296
+CB scf=43 d=11 v=2359296
+CB scf=43 d=12 v=2621440
+CB scf=44 d=-12 v=2621440
+CB scf=44 d=-11 v=2359296
+CB scf=44 d=-10 v=2359296
+CB scf=44 d=-9 v=2097152
+CB scf=44 d=-8 v=2097152
+CB scf=44 d=-7 v=2097152
+CB scf=44 d=-6 v=1835008
+CB scf=44 d=-5 v=1572864
+CB scf=44 d=-4 v=1572864
+CB scf=44 d=-3 v=1310720
+CB scf=44 d=-2 v=1048576
+CB scf=44 d=-1 v=786432
+CB scf=44 d=0 v=262144
+CB scf=44 d=1 v=1048576
+CB scf=44 d=2 v=1048576
+CB scf=44 d=3 v=1310720
+CB scf=44 d=4 v=1572864
+CB scf=44 d=5 v=1572864
+CB scf=44 d=6 v=1835008
+CB scf=44 d=7 v=1835008
+CB scf=44 d=8 v=2097152
+CB scf=44 d=9 v=2097152
+CB scf=44 d=10 v=2359296
+CB scf=44 d=11 v=2359296
+CB scf=44 d=12 v=2621440
+CB scf=45 d=-12 v=2621440
+CB scf=45 d=-11 v=2359296
+CB scf=45 d=-10 v=2359296
+CB scf=45 d=-9 v=2097152
+CB scf=45 d=-8 v=2097152
+CB scf=45 d=-7 v=2097152
+CB scf=45 d=-6 v=1835008
+CB scf=45 d=-5 v=1572864
+CB scf=45 d=-4 v=1572864
+CB scf=45 d=-3 v=1310720
+CB scf=45 d=-2 v=1048576
+CB scf=45 d=-1 v=786432
+CB scf=45 d=0 v=262144
+CB scf=45 d=1 v=1048576
+CB scf=45 d=2 v=1048576
+CB scf=45 d=3 v=1310720
+CB scf=45 d=4 v=1572864
+CB scf=45 d=5 v=1572864
+CB scf=45 d=6 v=1835008
+CB scf=45 d=7 v=1835008
+CB scf=45 d=8 v=2097152
+CB scf=45 d=9 v=2097152
+CB scf=45 d=10 v=2359296
+CB scf=45 d=11 v=2359296
+CB scf=45 d=12 v=2621440
+CB scf=46 d=-12 v=2621440
+CB scf=46 d=-11 v=2359296
+CB scf=46 d=-10 v=2359296
+CB scf=46 d=-9 v=2097152
+CB scf=46 d=-8 v=2097152
+CB scf=46 d=-7 v=2097152
+CB scf=46 d=-6 v=1835008
+CB scf=46 d=-5 v=1572864
+CB scf=46 d=-4 v=1572864
+CB scf=46 d=-3 v=1310720
+CB scf=46 d=-2 v=1048576
+CB scf=46 d=-1 v=786432
+CB scf=46 d=0 v=262144
+CB scf=46 d=1 v=1048576
+CB scf=46 d=2 v=1048576
+CB scf=46 d=3 v=1310720
+CB scf=46 d=4 v=1572864
+CB scf=46 d=5 v=1572864
+CB scf=46 d=6 v=1835008
+CB scf=46 d=7 v=1835008
+CB scf=46 d=8 v=2097152
+CB scf=46 d=9 v=2097152
+CB scf=46 d=10 v=2359296
+CB scf=46 d=11 v=2359296
+CB scf=46 d=12 v=2621440
+CB scf=47 d=-12 v=2621440
+CB scf=47 d=-11 v=2359296
+CB scf=47 d=-10 v=2359296
+CB scf=47 d=-9 v=2097152
+CB scf=47 d=-8 v=2097152
+CB scf=47 d=-7 v=2097152
+CB scf=47 d=-6 v=1835008
+CB scf=47 d=-5 v=1572864
+CB scf=47 d=-4 v=1572864
+CB scf=47 d=-3 v=1310720
+CB scf=47 d=-2 v=1048576
+CB scf=47 d=-1 v=786432
+CB scf=47 d=0 v=262144
+CB scf=47 d=1 v=1048576
+CB scf=47 d=2 v=1048576
+CB scf=47 d=3 v=1310720
+CB scf=47 d=4 v=1572864
+CB scf=47 d=5 v=1572864
+CB scf=47 d=6 v=1835008
+CB scf=47 d=7 v=1835008
+CB scf=47 d=8 v=2097152
+CB scf=47 d=9 v=2097152
+CB scf=47 d=10 v=2359296
+CB scf=47 d=11 v=2359296
+CB scf=47 d=12 v=2621440
+CB scf=48 d=-12 v=2621440
+CB scf=48 d=-11 v=2359296
+CB scf=48 d=-10 v=2359296
+CB scf=48 d=-9 v=2097152
+CB scf=48 d=-8 v=2097152
+CB scf=48 d=-7 v=2097152
+CB scf=48 d=-6 v=1835008
+CB scf=48 d=-5 v=1572864
+CB scf=48 d=-4 v=1572864
+CB scf=48 d=-3 v=1310720
+CB scf=48 d=-2 v=1048576
+CB scf=48 d=-1 v=786432
+CB scf=48 d=0 v=262144
+CB scf=48 d=1 v=1048576
+CB scf=48 d=2 v=1048576
+CB scf=48 d=3 v=1310720
+CB scf=48 d=4 v=1572864
+CB scf=48 d=5 v=1572864
+CB scf=48 d=6 v=1835008
+CB scf=48 d=7 v=1835008
+CB scf=48 d=8 v=2097152
+CB scf=48 d=9 v=2097152
+CB scf=48 d=10 v=2359296
+CB scf=48 d=11 v=2359296
+CB scf=48 d=12 v=2621440
+CB scf=49 d=-12 v=2621440
+CB scf=49 d=-11 v=2359296
+CB scf=49 d=-10 v=2359296
+CB scf=49 d=-9 v=2097152
+CB scf=49 d=-8 v=2097152
+CB scf=49 d=-7 v=2097152
+CB scf=49 d=-6 v=1835008
+CB scf=49 d=-5 v=1572864
+CB scf=49 d=-4 v=1572864
+CB scf=49 d=-3 v=1310720
+CB scf=49 d=-2 v=1048576
+CB scf=49 d=-1 v=786432
+CB scf=49 d=0 v=262144
+CB scf=49 d=1 v=1048576
+CB scf=49 d=2 v=1048576
+CB scf=49 d=3 v=1310720
+CB scf=49 d=4 v=1572864
+CB scf=49 d=5 v=1572864
+CB scf=49 d=6 v=1835008
+CB scf=49 d=7 v=1835008
+CB scf=49 d=8 v=2097152
+CB scf=49 d=9 v=2097152
+CB scf=49 d=10 v=2359296
+CB scf=49 d=11 v=2359296
+CB scf=49 d=12 v=2621440
+CB scf=50 d=-12 v=2621440
+CB scf=50 d=-11 v=2359296
+CB scf=50 d=-10 v=2359296
+CB scf=50 d=-9 v=2097152
+CB scf=50 d=-8 v=2097152
+CB scf=50 d=-7 v=2097152
+CB scf=50 d=-6 v=1835008
+CB scf=50 d=-5 v=1572864
+CB scf=50 d=-4 v=1572864
+CB scf=50 d=-3 v=1310720
+CB scf=50 d=-2 v=1048576
+CB scf=50 d=-1 v=786432
+CB scf=50 d=0 v=262144
+CB scf=50 d=1 v=1048576
+CB scf=50 d=2 v=1048576
+CB scf=50 d=3 v=1310720
+CB scf=50 d=4 v=1572864
+CB scf=50 d=5 v=1572864
+CB scf=50 d=6 v=1835008
+CB scf=50 d=7 v=1835008
+CB scf=50 d=8 v=2097152
+CB scf=50 d=9 v=2097152
+CB scf=50 d=10 v=2359296
+CB scf=50 d=11 v=2359296
+CB scf=50 d=12 v=2621440
+CB scf=51 d=-12 v=2621440
+CB scf=51 d=-11 v=2359296
+CB scf=51 d=-10 v=2359296
+CB scf=51 d=-9 v=2097152
+CB scf=51 d=-8 v=2097152
+CB scf=51 d=-7 v=2097152
+CB scf=51 d=-6 v=1835008
+CB scf=51 d=-5 v=1572864
+CB scf=51 d=-4 v=1572864
+CB scf=51 d=-3 v=1310720
+CB scf=51 d=-2 v=1048576
+CB scf=51 d=-1 v=786432
+CB scf=51 d=0 v=262144
+CB scf=51 d=1 v=1048576
+CB scf=51 d=2 v=1048576
+CB scf=51 d=3 v=1310720
+CB scf=51 d=4 v=1572864
+CB scf=51 d=5 v=1572864
+CB scf=51 d=6 v=1835008
+CB scf=51 d=7 v=1835008
+CB scf=51 d=8 v=2097152
+CB scf=51 d=9 v=2097152
+CB scf=51 d=10 v=2359296
+CB scf=51 d=11 v=2359296
+CB scf=51 d=12 v=2621440
+CB scf=52 d=-12 v=2621440
+CB scf=52 d=-11 v=2359296
+CB scf=52 d=-10 v=2359296
+CB scf=52 d=-9 v=2097152
+CB scf=52 d=-8 v=2097152
+CB scf=52 d=-7 v=2097152
+CB scf=52 d=-6 v=1835008
+CB scf=52 d=-5 v=1572864
+CB scf=52 d=-4 v=1572864
+CB scf=52 d=-3 v=1310720
+CB scf=52 d=-2 v=1048576
+CB scf=52 d=-1 v=786432
+CB scf=52 d=0 v=262144
+CB scf=52 d=1 v=1048576
+CB scf=52 d=2 v=1048576
+CB scf=52 d=3 v=1310720
+CB scf=52 d=4 v=1572864
+CB scf=52 d=5 v=1572864
+CB scf=52 d=6 v=1835008
+CB scf=52 d=7 v=1835008
+CB scf=52 d=8 v=2097152
+CB scf=52 d=9 v=2097152
+CB scf=52 d=10 v=2359296
+CB scf=52 d=11 v=2359296
+CB scf=52 d=12 v=2621440
+CB scf=53 d=-12 v=2621440
+CB scf=53 d=-11 v=2359296
+CB scf=53 d=-10 v=2359296
+CB scf=53 d=-9 v=2097152
+CB scf=53 d=-8 v=2097152
+CB scf=53 d=-7 v=2097152
+CB scf=53 d=-6 v=1835008
+CB scf=53 d=-5 v=1572864
+CB scf=53 d=-4 v=1572864
+CB scf=53 d=-3 v=1310720
+CB scf=53 d=-2 v=1048576
+CB scf=53 d=-1 v=786432
+CB scf=53 d=0 v=262144
+CB scf=53 d=1 v=1048576
+CB scf=53 d=2 v=1048576
+CB scf=53 d=3 v=1310720
+CB scf=53 d=4 v=1572864
+CB scf=53 d=5 v=1572864
+CB scf=53 d=6 v=1835008
+CB scf=53 d=7 v=1835008
+CB scf=53 d=8 v=2097152
+CB scf=53 d=9 v=2097152
+CB scf=53 d=10 v=2359296
+CB scf=53 d=11 v=2359296
+CB scf=53 d=12 v=2621440
+CB scf=54 d=-12 v=2621440
+CB scf=54 d=-11 v=2359296
+CB scf=54 d=-10 v=2359296
+CB scf=54 d=-9 v=2097152
+CB scf=54 d=-8 v=2097152
+CB scf=54 d=-7 v=2097152
+CB scf=54 d=-6 v=1835008
+CB scf=54 d=-5 v=1572864
+CB scf=54 d=-4 v=1572864
+CB scf=54 d=-3 v=1310720
+CB scf=54 d=-2 v=1048576
+CB scf=54 d=-1 v=786432
+CB scf=54 d=0 v=262144
+CB scf=54 d=1 v=1048576
+CB scf=54 d=2 v=1048576
+CB scf=54 d=3 v=1310720
+CB scf=54 d=4 v=1572864
+CB scf=54 d=5 v=1572864
+CB scf=54 d=6 v=1835008
+CB scf=54 d=7 v=1835008
+CB scf=54 d=8 v=2097152
+CB scf=54 d=9 v=2097152
+CB scf=54 d=10 v=2359296
+CB scf=54 d=11 v=2359296
+CB scf=54 d=12 v=2621440
+CB scf=55 d=-12 v=2621440
+CB scf=55 d=-11 v=2359296
+CB scf=55 d=-10 v=2359296
+CB scf=55 d=-9 v=2097152
+CB scf=55 d=-8 v=2097152
+CB scf=55 d=-7 v=2097152
+CB scf=55 d=-6 v=1835008
+CB scf=55 d=-5 v=1572864
+CB scf=55 d=-4 v=1572864
+CB scf=55 d=-3 v=1310720
+CB scf=55 d=-2 v=1048576
+CB scf=55 d=-1 v=786432
+CB scf=55 d=0 v=262144
+CB scf=55 d=1 v=1048576
+CB scf=55 d=2 v=1048576
+CB scf=55 d=3 v=1310720
+CB scf=55 d=4 v=1572864
+CB scf=55 d=5 v=1572864
+CB scf=55 d=6 v=1835008
+CB scf=55 d=7 v=1835008
+CB scf=55 d=8 v=2097152
+CB scf=55 d=9 v=2097152
+CB scf=55 d=10 v=2359296
+CB scf=55 d=11 v=2359296
+CB scf=55 d=12 v=2621440
+CB scf=56 d=-12 v=2621440
+CB scf=56 d=-11 v=2359296
+CB scf=56 d=-10 v=2359296
+CB scf=56 d=-9 v=2097152
+CB scf=56 d=-8 v=2097152
+CB scf=56 d=-7 v=2097152
+CB scf=56 d=-6 v=1835008
+CB scf=56 d=-5 v=1572864
+CB scf=56 d=-4 v=1572864
+CB scf=56 d=-3 v=1310720
+CB scf=56 d=-2 v=1048576
+CB scf=56 d=-1 v=786432
+CB scf=56 d=0 v=262144
+CB scf=56 d=1 v=1048576
+CB scf=56 d=2 v=1048576
+CB scf=56 d=3 v=1310720
+CB scf=56 d=4 v=1572864
+CB scf=56 d=5 v=1572864
+CB scf=56 d=6 v=1835008
+CB scf=56 d=7 v=1835008
+CB scf=56 d=8 v=2097152
+CB scf=56 d=9 v=2097152
+CB scf=56 d=10 v=2359296
+CB scf=56 d=11 v=2359296
+CB scf=56 d=12 v=2621440
+CB scf=57 d=-12 v=2621440
+CB scf=57 d=-11 v=2359296
+CB scf=57 d=-10 v=2359296
+CB scf=57 d=-9 v=2097152
+CB scf=57 d=-8 v=2097152
+CB scf=57 d=-7 v=2097152
+CB scf=57 d=-6 v=1835008
+CB scf=57 d=-5 v=1572864
+CB scf=57 d=-4 v=1572864
+CB scf=57 d=-3 v=1310720
+CB scf=57 d=-2 v=1048576
+CB scf=57 d=-1 v=786432
+CB scf=57 d=0 v=262144
+CB scf=57 d=1 v=1048576
+CB scf=57 d=2 v=1048576
+CB scf=57 d=3 v=1310720
+CB scf=57 d=4 v=1572864
+CB scf=57 d=5 v=1572864
+CB scf=57 d=6 v=1835008
+CB scf=57 d=7 v=1835008
+CB scf=57 d=8 v=2097152
+CB scf=57 d=9 v=2097152
+CB scf=57 d=10 v=2359296
+CB scf=57 d=11 v=2359296
+CB scf=57 d=12 v=2621440
+CB scf=58 d=-12 v=2621440
+CB scf=58 d=-11 v=2359296
+CB scf=58 d=-10 v=2359296
+CB scf=58 d=-9 v=2097152
+CB scf=58 d=-8 v=2097152
+CB scf=58 d=-7 v=2097152
+CB scf=58 d=-6 v=1835008
+CB scf=58 d=-5 v=1572864
+CB scf=58 d=-4 v=1572864
+CB scf=58 d=-3 v=1310720
+CB scf=58 d=-2 v=1048576
+CB scf=58 d=-1 v=786432
+CB scf=58 d=0 v=262144
+CB scf=58 d=1 v=1048576
+CB scf=58 d=2 v=1048576
+CB scf=58 d=3 v=1310720
+CB scf=58 d=4 v=1572864
+CB scf=58 d=5 v=1572864
+CB scf=58 d=6 v=1835008
+CB scf=58 d=7 v=1835008
+CB scf=58 d=8 v=2097152
+CB scf=58 d=9 v=2097152
+CB scf=58 d=10 v=2359296
+CB scf=58 d=11 v=2359296
+CB scf=58 d=12 v=2621440
+CB scf=59 d=-12 v=2621440
+CB scf=59 d=-11 v=2359296
+CB scf=59 d=-10 v=2359296
+CB scf=59 d=-9 v=2097152
+CB scf=59 d=-8 v=2097152
+CB scf=59 d=-7 v=2097152
+CB scf=59 d=-6 v=1835008
+CB scf=59 d=-5 v=1572864
+CB scf=59 d=-4 v=1572864
+CB scf=59 d=-3 v=1310720
+CB scf=59 d=-2 v=1048576
+CB scf=59 d=-1 v=786432
+CB scf=59 d=0 v=262144
+CB scf=59 d=1 v=1048576
+CB scf=59 d=2 v=1048576
+CB scf=59 d=3 v=1310720
+CB scf=59 d=4 v=1572864
+CB scf=59 d=5 v=1572864
+CB scf=59 d=6 v=1835008
+CB scf=59 d=7 v=1835008
+CB scf=59 d=8 v=2097152
+CB scf=59 d=9 v=2097152
+CB scf=59 d=10 v=2359296
+CB scf=59 d=11 v=2359296
+CB scf=59 d=12 v=2621440
+CB scf=60 d=-12 v=2621440
+CB scf=60 d=-11 v=2359296
+CB scf=60 d=-10 v=2359296
+CB scf=60 d=-9 v=2097152
+CB scf=60 d=-8 v=2097152
+CB scf=60 d=-7 v=2097152
+CB scf=60 d=-6 v=1835008
+CB scf=60 d=-5 v=1572864
+CB scf=60 d=-4 v=1572864
+CB scf=60 d=-3 v=1310720
+CB scf=60 d=-2 v=1048576
+CB scf=60 d=-1 v=786432
+CB scf=60 d=0 v=262144
+CB scf=60 d=1 v=1048576
+CB scf=60 d=2 v=1048576
+CB scf=60 d=3 v=1310720
+CB scf=60 d=4 v=1572864
+CB scf=60 d=5 v=1572864
+CB scf=60 d=6 v=1835008
+CB scf=60 d=7 v=1835008
+CB scf=60 d=8 v=2097152
+CB scf=60 d=9 v=2097152
+CB scf=60 d=10 v=2359296
+CB scf=60 d=11 v=2359296
+CB scf=60 d=12 v=2621440
+CB scf=61 d=-12 v=2621440
+CB scf=61 d=-11 v=2359296
+CB scf=61 d=-10 v=2359296
+CB scf=61 d=-9 v=2097152
+CB scf=61 d=-8 v=2097152
+CB scf=61 d=-7 v=2097152
+CB scf=61 d=-6 v=1835008
+CB scf=61 d=-5 v=1572864
+CB scf=61 d=-4 v=1572864
+CB scf=61 d=-3 v=1310720
+CB scf=61 d=-2 v=1048576
+CB scf=61 d=-1 v=786432
+CB scf=61 d=0 v=262144
+CB scf=61 d=1 v=1048576
+CB scf=61 d=2 v=1048576
+CB scf=61 d=3 v=1310720
+CB scf=61 d=4 v=1572864
+CB scf=61 d=5 v=1572864
+CB scf=61 d=6 v=1835008
+CB scf=61 d=7 v=1835008
+CB scf=61 d=8 v=2097152
+CB scf=61 d=9 v=2097152
+CB scf=61 d=10 v=2359296
+CB scf=61 d=11 v=2359296
+CB scf=61 d=12 v=2621440
+CB scf=62 d=-12 v=2621440
+CB scf=62 d=-11 v=2359296
+CB scf=62 d=-10 v=2359296
+CB scf=62 d=-9 v=2097152
+CB scf=62 d=-8 v=2097152
+CB scf=62 d=-7 v=2097152
+CB scf=62 d=-6 v=1835008
+CB scf=62 d=-5 v=1572864
+CB scf=62 d=-4 v=1572864
+CB scf=62 d=-3 v=1310720
+CB scf=62 d=-2 v=1048576
+CB scf=62 d=-1 v=786432
+CB scf=62 d=0 v=262144
+CB scf=62 d=1 v=1048576
+CB scf=62 d=2 v=1048576
+CB scf=62 d=3 v=1310720
+CB scf=62 d=4 v=1572864
+CB scf=62 d=5 v=1572864
+CB scf=62 d=6 v=1835008
+CB scf=62 d=7 v=1835008
+CB scf=62 d=8 v=2097152
+CB scf=62 d=9 v=2097152
+CB scf=62 d=10 v=2359296
+CB scf=62 d=11 v=2359296
+CB scf=62 d=12 v=2621440
+CB scf=63 d=-12 v=2621440
+CB scf=63 d=-11 v=2359296
+CB scf=63 d=-10 v=2359296
+CB scf=63 d=-9 v=2097152
+CB scf=63 d=-8 v=2097152
+CB scf=63 d=-7 v=2097152
+CB scf=63 d=-6 v=1835008
+CB scf=63 d=-5 v=1572864
+CB scf=63 d=-4 v=1572864
+CB scf=63 d=-3 v=1310720
+CB scf=63 d=-2 v=1048576
+CB scf=63 d=-1 v=786432
+CB scf=63 d=0 v=262144
+CB scf=63 d=1 v=1048576
+CB scf=63 d=2 v=1048576
+CB scf=63 d=3 v=1310720
+CB scf=63 d=4 v=1572864
+CB scf=63 d=5 v=1572864
+CB scf=63 d=6 v=1835008
+CB scf=63 d=7 v=1835008
+CB scf=63 d=8 v=2097152
+CB scf=63 d=9 v=2097152
+CB scf=63 d=10 v=2359296
+CB scf=63 d=11 v=2359296
+CB scf=63 d=12 v=2621440
+CB scf=64 d=-12 v=2621440
+CB scf=64 d=-11 v=2359296
+CB scf=64 d=-10 v=2359296
+CB scf=64 d=-9 v=2097152
+CB scf=64 d=-8 v=2097152
+CB scf=64 d=-7 v=2097152
+CB scf=64 d=-6 v=1835008
+CB scf=64 d=-5 v=1572864
+CB scf=64 d=-4 v=1572864
+CB scf=64 d=-3 v=1310720
+CB scf=64 d=-2 v=1048576
+CB scf=64 d=-1 v=786432
+CB scf=64 d=0 v=262144
+CB scf=64 d=1 v=1048576
+CB scf=64 d=2 v=1048576
+CB scf=64 d=3 v=1310720
+CB scf=64 d=4 v=1572864
+CB scf=64 d=5 v=1572864
+CB scf=64 d=6 v=1835008
+CB scf=64 d=7 v=1835008
+CB scf=64 d=8 v=2097152
+CB scf=64 d=9 v=2097152
+CB scf=64 d=10 v=2359296
+CB scf=64 d=11 v=2359296
+CB scf=64 d=12 v=2621440
+CB scf=65 d=-12 v=2621440
+CB scf=65 d=-11 v=2359296
+CB scf=65 d=-10 v=2359296
+CB scf=65 d=-9 v=2097152
+CB scf=65 d=-8 v=2097152
+CB scf=65 d=-7 v=2097152
+CB scf=65 d=-6 v=1835008
+CB scf=65 d=-5 v=1572864
+CB scf=65 d=-4 v=1572864
+CB scf=65 d=-3 v=1310720
+CB scf=65 d=-2 v=1048576
+CB scf=65 d=-1 v=786432
+CB scf=65 d=0 v=262144
+CB scf=65 d=1 v=1048576
+CB scf=65 d=2 v=1048576
+CB scf=65 d=3 v=1310720
+CB scf=65 d=4 v=1572864
+CB scf=65 d=5 v=1572864
+CB scf=65 d=6 v=1835008
+CB scf=65 d=7 v=1835008
+CB scf=65 d=8 v=2097152
+CB scf=65 d=9 v=2097152
+CB scf=65 d=10 v=2359296
+CB scf=65 d=11 v=2359296
+CB scf=65 d=12 v=2621440
+CB scf=66 d=-12 v=2621440
+CB scf=66 d=-11 v=2359296
+CB scf=66 d=-10 v=2359296
+CB scf=66 d=-9 v=2097152
+CB scf=66 d=-8 v=2097152
+CB scf=66 d=-7 v=2097152
+CB scf=66 d=-6 v=1835008
+CB scf=66 d=-5 v=1572864
+CB scf=66 d=-4 v=1572864
+CB scf=66 d=-3 v=1310720
+CB scf=66 d=-2 v=1048576
+CB scf=66 d=-1 v=786432
+CB scf=66 d=0 v=262144
+CB scf=66 d=1 v=1048576
+CB scf=66 d=2 v=1048576
+CB scf=66 d=3 v=1310720
+CB scf=66 d=4 v=1572864
+CB scf=66 d=5 v=1572864
+CB scf=66 d=6 v=1835008
+CB scf=66 d=7 v=1835008
+CB scf=66 d=8 v=2097152
+CB scf=66 d=9 v=2097152
+CB scf=66 d=10 v=2359296
+CB scf=66 d=11 v=2359296
+CB scf=66 d=12 v=2621440
+CB scf=67 d=-12 v=2621440
+CB scf=67 d=-11 v=2359296
+CB scf=67 d=-10 v=2359296
+CB scf=67 d=-9 v=2097152
+CB scf=67 d=-8 v=2097152
+CB scf=67 d=-7 v=2097152
+CB scf=67 d=-6 v=1835008
+CB scf=67 d=-5 v=1572864
+CB scf=67 d=-4 v=1572864
+CB scf=67 d=-3 v=1310720
+CB scf=67 d=-2 v=1048576
+CB scf=67 d=-1 v=786432
+CB scf=67 d=0 v=262144
+CB scf=67 d=1 v=1048576
+CB scf=67 d=2 v=1048576
+CB scf=67 d=3 v=1310720
+CB scf=67 d=4 v=1572864
+CB scf=67 d=5 v=1572864
+CB scf=67 d=6 v=1835008
+CB scf=67 d=7 v=1835008
+CB scf=67 d=8 v=2097152
+CB scf=67 d=9 v=2097152
+CB scf=67 d=10 v=2359296
+CB scf=67 d=11 v=2359296
+CB scf=67 d=12 v=2621440
+CB scf=68 d=-12 v=2621440
+CB scf=68 d=-11 v=2359296
+CB scf=68 d=-10 v=2359296
+CB scf=68 d=-9 v=2097152
+CB scf=68 d=-8 v=2097152
+CB scf=68 d=-7 v=2097152
+CB scf=68 d=-6 v=1835008
+CB scf=68 d=-5 v=1572864
+CB scf=68 d=-4 v=1572864
+CB scf=68 d=-3 v=1310720
+CB scf=68 d=-2 v=1048576
+CB scf=68 d=-1 v=786432
+CB scf=68 d=0 v=262144
+CB scf=68 d=1 v=1048576
+CB scf=68 d=2 v=1048576
+CB scf=68 d=3 v=1310720
+CB scf=68 d=4 v=1572864
+CB scf=68 d=5 v=1572864
+CB scf=68 d=6 v=1835008
+CB scf=68 d=7 v=1835008
+CB scf=68 d=8 v=2097152
+CB scf=68 d=9 v=2097152
+CB scf=68 d=10 v=2359296
+CB scf=68 d=11 v=2359296
+CB scf=68 d=12 v=2621440
+CB scf=69 d=-12 v=2621440
+CB scf=69 d=-11 v=2359296
+CB scf=69 d=-10 v=2359296
+CB scf=69 d=-9 v=2097152
+CB scf=69 d=-8 v=2097152
+CB scf=69 d=-7 v=2097152
+CB scf=69 d=-6 v=1835008
+CB scf=69 d=-5 v=1572864
+CB scf=69 d=-4 v=1572864
+CB scf=69 d=-3 v=1310720
+CB scf=69 d=-2 v=1048576
+CB scf=69 d=-1 v=786432
+CB scf=69 d=0 v=262144
+CB scf=69 d=1 v=1048576
+CB scf=69 d=2 v=1048576
+CB scf=69 d=3 v=1310720
+CB scf=69 d=4 v=1572864
+CB scf=69 d=5 v=1572864
+CB scf=69 d=6 v=1835008
+CB scf=69 d=7 v=1835008
+CB scf=69 d=8 v=2097152
+CB scf=69 d=9 v=2097152
+CB scf=69 d=10 v=2359296
+CB scf=69 d=11 v=2359296
+CB scf=69 d=12 v=2621440
+CB scf=70 d=-12 v=2621440
+CB scf=70 d=-11 v=2359296
+CB scf=70 d=-10 v=2359296
+CB scf=70 d=-9 v=2097152
+CB scf=70 d=-8 v=2097152
+CB scf=70 d=-7 v=2097152
+CB scf=70 d=-6 v=1835008
+CB scf=70 d=-5 v=1572864
+CB scf=70 d=-4 v=1572864
+CB scf=70 d=-3 v=1310720
+CB scf=70 d=-2 v=1048576
+CB scf=70 d=-1 v=786432
+CB scf=70 d=0 v=262144
+CB scf=70 d=1 v=1048576
+CB scf=70 d=2 v=1048576
+CB scf=70 d=3 v=1310720
+CB scf=70 d=4 v=1572864
+CB scf=70 d=5 v=1572864
+CB scf=70 d=6 v=1835008
+CB scf=70 d=7 v=1835008
+CB scf=70 d=8 v=2097152
+CB scf=70 d=9 v=2097152
+CB scf=70 d=10 v=2359296
+CB scf=70 d=11 v=2359296
+CB scf=70 d=12 v=2621440
+SCFUNIT specpe
+SP scf=-70 cp=-500000000 nl=0 v=0
+SP scf=-70 cp=-500000000 nl=43874821 v=-159583
+SP scf=-70 cp=-500000000 nl=51160268 v=-186081
+SP scf=-70 cp=-500000000 nl=111416461 v=-405246
+SP scf=-70 cp=-500000000 nl=1073741824 v=-3905422
+SP scf=-70 cp=-232370909 nl=0 v=0
+SP scf=-70 cp=-232370909 nl=43874821 v=2975168
+SP scf=-70 cp=-232370909 nl=51160268 v=3469197
+SP scf=-70 cp=-232370909 nl=111416461 v=7555193
+SP scf=-70 cp=-232370909 nl=1073741824 v=72810852
+SP scf=-70 cp=-197662475 nl=0 v=0
+SP scf=-70 cp=-197662475 nl=43874821 v=3471553
+SP scf=-70 cp=-197662475 nl=51160268 v=4048007
+SP scf=-70 cp=-197662475 nl=111416461 v=8815721
+SP scf=-70 cp=-197662475 nl=1073741824 v=84958803
+SP scf=-70 cp=-197000000 nl=0 v=0
+SP scf=-70 cp=-197000000 nl=43874821 v=3481027
+SP scf=-70 cp=-197000000 nl=51160268 v=4059054
+SP scf=-70 cp=-197000000 nl=111416461 v=8839781
+SP scf=-70 cp=-197000000 nl=1073741824 v=85190670
+SP scf=-70 cp=0 nl=0 v=0
+SP scf=-70 cp=0 nl=43874821 v=6298436
+SP scf=-70 cp=0 nl=51160268 v=7344295
+SP scf=-70 cp=0 nl=111416461 v=15994354
+SP scf=-70 cp=0 nl=1073741824 v=154140669
+SP scf=-69 cp=-500000000 nl=0 v=0
+SP scf=-69 cp=-500000000 nl=43874821 v=-209912
+SP scf=-69 cp=-500000000 nl=51160268 v=-244768
+SP scf=-69 cp=-500000000 nl=111416461 v=-533053
+SP scf=-69 cp=-500000000 nl=1073741824 v=-5137132
+SP scf=-69 cp=-232370909 nl=0 v=0
+SP scf=-69 cp=-232370909 nl=43874821 v=2885190
+SP scf=-69 cp=-232370909 nl=51160268 v=3364279
+SP scf=-69 cp=-232370909 nl=111416461 v=7326702
+SP scf=-69 cp=-232370909 nl=1073741824 v=70608842
+SP scf=-69 cp=-197662475 nl=0 v=0
+SP scf=-69 cp=-197662475 nl=43874821 v=3381575
+SP scf=-69 cp=-197662475 nl=51160268 v=3943088
+SP scf=-69 cp=-197662475 nl=111416461 v=8587230
+SP scf=-69 cp=-197662475 nl=1073741824 v=82756794
+SP scf=-69 cp=-197000000 nl=0 v=0
+SP scf=-69 cp=-197000000 nl=43874821 v=3391049
+SP scf=-69 cp=-197000000 nl=51160268 v=3954136
+SP scf=-69 cp=-197000000 nl=111416461 v=8611289
+SP scf=-69 cp=-197000000 nl=1073741824 v=82988660
+SP scf=-69 cp=0 nl=0 v=0
+SP scf=-69 cp=0 nl=43874821 v=6208458
+SP scf=-69 cp=0 nl=51160268 v=7239377
+SP scf=-69 cp=0 nl=111416461 v=15765863
+SP scf=-69 cp=0 nl=1073741824 v=151938659
+SP scf=-68 cp=-500000000 nl=0 v=0
+SP scf=-68 cp=-500000000 nl=43874821 v=-260242
+SP scf=-68 cp=-500000000 nl=51160268 v=-303455
+SP scf=-68 cp=-500000000 nl=111416461 v=-660861
+SP scf=-68 cp=-500000000 nl=1073741824 v=-6368842
+SP scf=-68 cp=-232370909 nl=0 v=0
+SP scf=-68 cp=-232370909 nl=43874821 v=2795213
+SP scf=-68 cp=-232370909 nl=51160268 v=3259360
+SP scf=-68 cp=-232370909 nl=111416461 v=7098211
+SP scf=-68 cp=-232370909 nl=1073741824 v=68406833
+SP scf=-68 cp=-197662475 nl=0 v=0
+SP scf=-68 cp=-197662475 nl=43874821 v=3291598
+SP scf=-68 cp=-197662475 nl=51160268 v=3838170
+SP scf=-68 cp=-197662475 nl=111416461 v=8358739
+SP scf=-68 cp=-197662475 nl=1073741824 v=80554784
+SP scf=-68 cp=-197000000 nl=0 v=0
+SP scf=-68 cp=-197000000 nl=43874821 v=3301072
+SP scf=-68 cp=-197000000 nl=51160268 v=3849218
+SP scf=-68 cp=-197000000 nl=111416461 v=8382799
+SP scf=-68 cp=-197000000 nl=1073741824 v=80786651
+SP scf=-68 cp=0 nl=0 v=0
+SP scf=-68 cp=0 nl=43874821 v=6118480
+SP scf=-68 cp=0 nl=51160268 v=7134458
+SP scf=-68 cp=0 nl=111416461 v=15537373
+SP scf=-68 cp=0 nl=1073741824 v=149736650
+SP scf=-67 cp=-500000000 nl=0 v=0
+SP scf=-67 cp=-500000000 nl=43874821 v=-310572
+SP scf=-67 cp=-500000000 nl=51160268 v=-362142
+SP scf=-67 cp=-500000000 nl=111416461 v=-788669
+SP scf=-67 cp=-500000000 nl=1073741824 v=-7600552
+SP scf=-67 cp=-232370909 nl=0 v=0
+SP scf=-67 cp=-232370909 nl=43874821 v=2705235
+SP scf=-67 cp=-232370909 nl=51160268 v=3154442
+SP scf=-67 cp=-232370909 nl=111416461 v=6869720
+SP scf=-67 cp=-232370909 nl=1073741824 v=66204823
+SP scf=-67 cp=-197662475 nl=0 v=0
+SP scf=-67 cp=-197662475 nl=43874821 v=3201620
+SP scf=-67 cp=-197662475 nl=51160268 v=3733251
+SP scf=-67 cp=-197662475 nl=111416461 v=8130249
+SP scf=-67 cp=-197662475 nl=1073741824 v=78352775
+SP scf=-67 cp=-197000000 nl=0 v=0
+SP scf=-67 cp=-197000000 nl=43874821 v=3211094
+SP scf=-67 cp=-197000000 nl=51160268 v=3744299
+SP scf=-67 cp=-197000000 nl=111416461 v=8154308
+SP scf=-67 cp=-197000000 nl=1073741824 v=78584641
+SP scf=-67 cp=0 nl=0 v=0
+SP scf=-67 cp=0 nl=43874821 v=6028502
+SP scf=-67 cp=0 nl=51160268 v=7029540
+SP scf=-67 cp=0 nl=111416461 v=15308882
+SP scf=-67 cp=0 nl=1073741824 v=147534640
+SP scf=-66 cp=-500000000 nl=0 v=0
+SP scf=-66 cp=-500000000 nl=43874821 v=-360902
+SP scf=-66 cp=-500000000 nl=51160268 v=-420829
+SP scf=-66 cp=-500000000 nl=111416461 v=-916478
+SP scf=-66 cp=-500000000 nl=1073741824 v=-8832262
+SP scf=-66 cp=-232370909 nl=0 v=0
+SP scf=-66 cp=-232370909 nl=43874821 v=2615258
+SP scf=-66 cp=-232370909 nl=51160268 v=3049523
+SP scf=-66 cp=-232370909 nl=111416461 v=6641230
+SP scf=-66 cp=-232370909 nl=1073741824 v=64002814
+SP scf=-66 cp=-197662475 nl=0 v=0
+SP scf=-66 cp=-197662475 nl=43874821 v=3111642
+SP scf=-66 cp=-197662475 nl=51160268 v=3628333
+SP scf=-66 cp=-197662475 nl=111416461 v=7901758
+SP scf=-66 cp=-197662475 nl=1073741824 v=76150765
+SP scf=-66 cp=-197000000 nl=0 v=0
+SP scf=-66 cp=-197000000 nl=43874821 v=3121117
+SP scf=-66 cp=-197000000 nl=51160268 v=3639381
+SP scf=-66 cp=-197000000 nl=111416461 v=7925817
+SP scf=-66 cp=-197000000 nl=1073741824 v=76382632
+SP scf=-66 cp=0 nl=0 v=0
+SP scf=-66 cp=0 nl=43874821 v=5938524
+SP scf=-66 cp=0 nl=51160268 v=6924621
+SP scf=-66 cp=0 nl=111416461 v=15080391
+SP scf=-66 cp=0 nl=1073741824 v=145332631
+SP scf=-65 cp=-500000000 nl=0 v=0
+SP scf=-65 cp=-500000000 nl=43874821 v=-411231
+SP scf=-65 cp=-500000000 nl=51160268 v=-479516
+SP scf=-65 cp=-500000000 nl=111416461 v=-1044286
+SP scf=-65 cp=-500000000 nl=1073741824 v=-10063972
+SP scf=-65 cp=-232370909 nl=0 v=0
+SP scf=-65 cp=-232370909 nl=43874821 v=2525280
+SP scf=-65 cp=-232370909 nl=51160268 v=2944604
+SP scf=-65 cp=-232370909 nl=111416461 v=6412739
+SP scf=-65 cp=-232370909 nl=1073741824 v=61800804
+SP scf=-65 cp=-197662475 nl=0 v=0
+SP scf=-65 cp=-197662475 nl=43874821 v=3021664
+SP scf=-65 cp=-197662475 nl=51160268 v=3523414
+SP scf=-65 cp=-197662475 nl=111416461 v=7673267
+SP scf=-65 cp=-197662475 nl=1073741824 v=73948756
+SP scf=-65 cp=-197000000 nl=0 v=0
+SP scf=-65 cp=-197000000 nl=43874821 v=3031139
+SP scf=-65 cp=-197000000 nl=51160268 v=3534462
+SP scf=-65 cp=-197000000 nl=111416461 v=7697327
+SP scf=-65 cp=-197000000 nl=1073741824 v=74180622
+SP scf=-65 cp=0 nl=0 v=0
+SP scf=-65 cp=0 nl=43874821 v=5848547
+SP scf=-65 cp=0 nl=51160268 v=6819702
+SP scf=-65 cp=0 nl=111416461 v=14851900
+SP scf=-65 cp=0 nl=1073741824 v=143130621
+SP scf=-64 cp=-500000000 nl=0 v=0
+SP scf=-64 cp=-500000000 nl=43874821 v=-461561
+SP scf=-64 cp=-500000000 nl=51160268 v=-538203
+SP scf=-64 cp=-500000000 nl=111416461 v=-1172094
+SP scf=-64 cp=-500000000 nl=1073741824 v=-11295683
+SP scf=-64 cp=-232370909 nl=0 v=0
+SP scf=-64 cp=-232370909 nl=43874821 v=2435302
+SP scf=-64 cp=-232370909 nl=51160268 v=2839686
+SP scf=-64 cp=-232370909 nl=111416461 v=6184248
+SP scf=-64 cp=-232370909 nl=1073741824 v=59598794
+SP scf=-64 cp=-197662475 nl=0 v=0
+SP scf=-64 cp=-197662475 nl=43874821 v=2931687
+SP scf=-64 cp=-197662475 nl=51160268 v=3418496
+SP scf=-64 cp=-197662475 nl=111416461 v=7444777
+SP scf=-64 cp=-197662475 nl=1073741824 v=71746746
+SP scf=-64 cp=-197000000 nl=0 v=0
+SP scf=-64 cp=-197000000 nl=43874821 v=2941161
+SP scf=-64 cp=-197000000 nl=51160268 v=3429544
+SP scf=-64 cp=-197000000 nl=111416461 v=7468836
+SP scf=-64 cp=-197000000 nl=1073741824 v=71978613
+SP scf=-64 cp=0 nl=0 v=0
+SP scf=-64 cp=0 nl=43874821 v=5758569
+SP scf=-64 cp=0 nl=51160268 v=6714784
+SP scf=-64 cp=0 nl=111416461 v=14623409
+SP scf=-64 cp=0 nl=1073741824 v=140928612
+SP scf=-63 cp=-500000000 nl=0 v=0
+SP scf=-63 cp=-500000000 nl=43874821 v=-511890
+SP scf=-63 cp=-500000000 nl=51160268 v=-596890
+SP scf=-63 cp=-500000000 nl=111416461 v=-1299901
+SP scf=-63 cp=-500000000 nl=1073741824 v=-12527393
+SP scf=-63 cp=-232370909 nl=0 v=0
+SP scf=-63 cp=-232370909 nl=43874821 v=2345324
+SP scf=-63 cp=-232370909 nl=51160268 v=2734767
+SP scf=-63 cp=-232370909 nl=111416461 v=5955758
+SP scf=-63 cp=-232370909 nl=1073741824 v=57396785
+SP scf=-63 cp=-197662475 nl=0 v=0
+SP scf=-63 cp=-197662475 nl=43874821 v=2841709
+SP scf=-63 cp=-197662475 nl=51160268 v=3313578
+SP scf=-63 cp=-197662475 nl=111416461 v=7216285
+SP scf=-63 cp=-197662475 nl=1073741824 v=69544737
+SP scf=-63 cp=-197000000 nl=0 v=0
+SP scf=-63 cp=-197000000 nl=43874821 v=2851183
+SP scf=-63 cp=-197000000 nl=51160268 v=3324625
+SP scf=-63 cp=-197000000 nl=111416461 v=7240345
+SP scf=-63 cp=-197000000 nl=1073741824 v=69776603
+SP scf=-63 cp=0 nl=0 v=0
+SP scf=-63 cp=0 nl=43874821 v=5668592
+SP scf=-63 cp=0 nl=51160268 v=6609866
+SP scf=-63 cp=0 nl=111416461 v=14394919
+SP scf=-63 cp=0 nl=1073741824 v=138726602
+SP scf=-62 cp=-500000000 nl=0 v=0
+SP scf=-62 cp=-500000000 nl=43874821 v=-562220
+SP scf=-62 cp=-500000000 nl=51160268 v=-655577
+SP scf=-62 cp=-500000000 nl=111416461 v=-1427709
+SP scf=-62 cp=-500000000 nl=1073741824 v=-13759103
+SP scf=-62 cp=-232370909 nl=0 v=0
+SP scf=-62 cp=-232370909 nl=43874821 v=2255347
+SP scf=-62 cp=-232370909 nl=51160268 v=2629849
+SP scf=-62 cp=-232370909 nl=111416461 v=5727266
+SP scf=-62 cp=-232370909 nl=1073741824 v=55194775
+SP scf=-62 cp=-197662475 nl=0 v=0
+SP scf=-62 cp=-197662475 nl=43874821 v=2751732
+SP scf=-62 cp=-197662475 nl=51160268 v=3208659
+SP scf=-62 cp=-197662475 nl=111416461 v=6987795
+SP scf=-62 cp=-197662475 nl=1073741824 v=67342727
+SP scf=-62 cp=-197000000 nl=0 v=0
+SP scf=-62 cp=-197000000 nl=43874821 v=2761206
+SP scf=-62 cp=-197000000 nl=51160268 v=3219706
+SP scf=-62 cp=-197000000 nl=111416461 v=7011855
+SP scf=-62 cp=-197000000 nl=1073741824 v=67574594
+SP scf=-62 cp=0 nl=0 v=0
+SP scf=-62 cp=0 nl=43874821 v=5578614
+SP scf=-62 cp=0 nl=51160268 v=6504947
+SP scf=-62 cp=0 nl=111416461 v=14166428
+SP scf=-62 cp=0 nl=1073741824 v=136524592
+SP scf=-61 cp=-500000000 nl=0 v=0
+SP scf=-61 cp=-500000000 nl=43874821 v=-612549
+SP scf=-61 cp=-500000000 nl=51160268 v=-714264
+SP scf=-61 cp=-500000000 nl=111416461 v=-1555517
+SP scf=-61 cp=-500000000 nl=1073741824 v=-14990812
+SP scf=-61 cp=-232370909 nl=0 v=0
+SP scf=-61 cp=-232370909 nl=43874821 v=2165369
+SP scf=-61 cp=-232370909 nl=51160268 v=2524930
+SP scf=-61 cp=-232370909 nl=111416461 v=5498776
+SP scf=-61 cp=-232370909 nl=1073741824 v=52992766
+SP scf=-61 cp=-197662475 nl=0 v=0
+SP scf=-61 cp=-197662475 nl=43874821 v=2661754
+SP scf=-61 cp=-197662475 nl=51160268 v=3103740
+SP scf=-61 cp=-197662475 nl=111416461 v=6759304
+SP scf=-61 cp=-197662475 nl=1073741824 v=65140717
+SP scf=-61 cp=-197000000 nl=0 v=0
+SP scf=-61 cp=-197000000 nl=43874821 v=2671228
+SP scf=-61 cp=-197000000 nl=51160268 v=3114788
+SP scf=-61 cp=-197000000 nl=111416461 v=6783363
+SP scf=-61 cp=-197000000 nl=1073741824 v=65372584
+SP scf=-61 cp=0 nl=0 v=0
+SP scf=-61 cp=0 nl=43874821 v=5488636
+SP scf=-61 cp=0 nl=51160268 v=6400029
+SP scf=-61 cp=0 nl=111416461 v=13937937
+SP scf=-61 cp=0 nl=1073741824 v=134322583
+SP scf=-60 cp=-500000000 nl=0 v=0
+SP scf=-60 cp=-500000000 nl=43874821 v=-662879
+SP scf=-60 cp=-500000000 nl=51160268 v=-772951
+SP scf=-60 cp=-500000000 nl=111416461 v=-1683325
+SP scf=-60 cp=-500000000 nl=1073741824 v=-16222523
+SP scf=-60 cp=-232370909 nl=0 v=0
+SP scf=-60 cp=-232370909 nl=43874821 v=2075392
+SP scf=-60 cp=-232370909 nl=51160268 v=2420011
+SP scf=-60 cp=-232370909 nl=111416461 v=5270285
+SP scf=-60 cp=-232370909 nl=1073741824 v=50790756
+SP scf=-60 cp=-197662475 nl=0 v=0
+SP scf=-60 cp=-197662475 nl=43874821 v=2571776
+SP scf=-60 cp=-197662475 nl=51160268 v=2998822
+SP scf=-60 cp=-197662475 nl=111416461 v=6530813
+SP scf=-60 cp=-197662475 nl=1073741824 v=62938708
+SP scf=-60 cp=-197000000 nl=0 v=0
+SP scf=-60 cp=-197000000 nl=43874821 v=2581251
+SP scf=-60 cp=-197000000 nl=51160268 v=3009869
+SP scf=-60 cp=-197000000 nl=111416461 v=6554873
+SP scf=-60 cp=-197000000 nl=1073741824 v=63170574
+SP scf=-60 cp=0 nl=0 v=0
+SP scf=-60 cp=0 nl=43874821 v=5398658
+SP scf=-60 cp=0 nl=51160268 v=6295110
+SP scf=-60 cp=0 nl=111416461 v=13709446
+SP scf=-60 cp=0 nl=1073741824 v=132120573
+SP scf=-59 cp=-500000000 nl=0 v=0
+SP scf=-59 cp=-500000000 nl=43874821 v=-713209
+SP scf=-59 cp=-500000000 nl=51160268 v=-831638
+SP scf=-59 cp=-500000000 nl=111416461 v=-1811134
+SP scf=-59 cp=-500000000 nl=1073741824 v=-17454233
+SP scf=-59 cp=-232370909 nl=0 v=0
+SP scf=-59 cp=-232370909 nl=43874821 v=1985414
+SP scf=-59 cp=-232370909 nl=51160268 v=2315093
+SP scf=-59 cp=-232370909 nl=111416461 v=5041794
+SP scf=-59 cp=-232370909 nl=1073741824 v=48588747
+SP scf=-59 cp=-197662475 nl=0 v=0
+SP scf=-59 cp=-197662475 nl=43874821 v=2481798
+SP scf=-59 cp=-197662475 nl=51160268 v=2893903
+SP scf=-59 cp=-197662475 nl=111416461 v=6302323
+SP scf=-59 cp=-197662475 nl=1073741824 v=60736698
+SP scf=-59 cp=-197000000 nl=0 v=0
+SP scf=-59 cp=-197000000 nl=43874821 v=2491273
+SP scf=-59 cp=-197000000 nl=51160268 v=2904951
+SP scf=-59 cp=-197000000 nl=111416461 v=6326382
+SP scf=-59 cp=-197000000 nl=1073741824 v=60968565
+SP scf=-59 cp=0 nl=0 v=0
+SP scf=-59 cp=0 nl=43874821 v=5308681
+SP scf=-59 cp=0 nl=51160268 v=6190192
+SP scf=-59 cp=0 nl=111416461 v=13480956
+SP scf=-59 cp=0 nl=1073741824 v=129918564
+SP scf=-58 cp=-500000000 nl=0 v=0
+SP scf=-58 cp=-500000000 nl=43874821 v=-763539
+SP scf=-58 cp=-500000000 nl=51160268 v=-890325
+SP scf=-58 cp=-500000000 nl=111416461 v=-1938942
+SP scf=-58 cp=-500000000 nl=1073741824 v=-18685943
+SP scf=-58 cp=-232370909 nl=0 v=0
+SP scf=-58 cp=-232370909 nl=43874821 v=1895436
+SP scf=-58 cp=-232370909 nl=51160268 v=2210175
+SP scf=-58 cp=-232370909 nl=111416461 v=4813304
+SP scf=-58 cp=-232370909 nl=1073741824 v=46386737
+SP scf=-58 cp=-197662475 nl=0 v=0
+SP scf=-58 cp=-197662475 nl=43874821 v=2391821
+SP scf=-58 cp=-197662475 nl=51160268 v=2788985
+SP scf=-58 cp=-197662475 nl=111416461 v=6073831
+SP scf=-58 cp=-197662475 nl=1073741824 v=58534689
+SP scf=-58 cp=-197000000 nl=0 v=0
+SP scf=-58 cp=-197000000 nl=43874821 v=2401296
+SP scf=-58 cp=-197000000 nl=51160268 v=2800032
+SP scf=-58 cp=-197000000 nl=111416461 v=6097891
+SP scf=-58 cp=-197000000 nl=1073741824 v=58766555
+SP scf=-58 cp=0 nl=0 v=0
+SP scf=-58 cp=0 nl=43874821 v=5218703
+SP scf=-58 cp=0 nl=51160268 v=6085273
+SP scf=-58 cp=0 nl=111416461 v=13252464
+SP scf=-58 cp=0 nl=1073741824 v=127716554
+SP scf=-57 cp=-500000000 nl=0 v=0
+SP scf=-57 cp=-500000000 nl=43874821 v=-813868
+SP scf=-57 cp=-500000000 nl=51160268 v=-949011
+SP scf=-57 cp=-500000000 nl=111416461 v=-2066749
+SP scf=-57 cp=-500000000 nl=1073741824 v=-19917653
+SP scf=-57 cp=-232370909 nl=0 v=0
+SP scf=-57 cp=-232370909 nl=43874821 v=1805458
+SP scf=-57 cp=-232370909 nl=51160268 v=2105256
+SP scf=-57 cp=-232370909 nl=111416461 v=4584813
+SP scf=-57 cp=-232370909 nl=1073741824 v=44184727
+SP scf=-57 cp=-197662475 nl=0 v=0
+SP scf=-57 cp=-197662475 nl=43874821 v=2301843
+SP scf=-57 cp=-197662475 nl=51160268 v=2684066
+SP scf=-57 cp=-197662475 nl=111416461 v=5845341
+SP scf=-57 cp=-197662475 nl=1073741824 v=56332679
+SP scf=-57 cp=-197000000 nl=0 v=0
+SP scf=-57 cp=-197000000 nl=43874821 v=2311318
+SP scf=-57 cp=-197000000 nl=51160268 v=2695114
+SP scf=-57 cp=-197000000 nl=111416461 v=5869401
+SP scf=-57 cp=-197000000 nl=1073741824 v=56564546
+SP scf=-57 cp=0 nl=0 v=0
+SP scf=-57 cp=0 nl=43874821 v=5128726
+SP scf=-57 cp=0 nl=51160268 v=5980355
+SP scf=-57 cp=0 nl=111416461 v=13023974
+SP scf=-57 cp=0 nl=1073741824 v=125514545
+SP scf=-56 cp=-500000000 nl=0 v=0
+SP scf=-56 cp=-500000000 nl=43874821 v=-864198
+SP scf=-56 cp=-500000000 nl=51160268 v=-1007699
+SP scf=-56 cp=-500000000 nl=111416461 v=-2194557
+SP scf=-56 cp=-500000000 nl=1073741824 v=-21149363
+SP scf=-56 cp=-232370909 nl=0 v=0
+SP scf=-56 cp=-232370909 nl=43874821 v=1715480
+SP scf=-56 cp=-232370909 nl=51160268 v=2000338
+SP scf=-56 cp=-232370909 nl=111416461 v=4356322
+SP scf=-56 cp=-232370909 nl=1073741824 v=41982718
+SP scf=-56 cp=-197662475 nl=0 v=0
+SP scf=-56 cp=-197662475 nl=43874821 v=2211866
+SP scf=-56 cp=-197662475 nl=51160268 v=2579147
+SP scf=-56 cp=-197662475 nl=111416461 v=5616850
+SP scf=-56 cp=-197662475 nl=1073741824 v=54130670
+SP scf=-56 cp=-197000000 nl=0 v=0
+SP scf=-56 cp=-197000000 nl=43874821 v=2221340
+SP scf=-56 cp=-197000000 nl=51160268 v=2590195
+SP scf=-56 cp=-197000000 nl=111416461 v=5640910
+SP scf=-56 cp=-197000000 nl=1073741824 v=54362536
+SP scf=-56 cp=0 nl=0 v=0
+SP scf=-56 cp=0 nl=43874821 v=5038748
+SP scf=-56 cp=0 nl=51160268 v=5875436
+SP scf=-56 cp=0 nl=111416461 v=12795483
+SP scf=-56 cp=0 nl=1073741824 v=123312535
+SP scf=-55 cp=-500000000 nl=0 v=0
+SP scf=-55 cp=-500000000 nl=43874821 v=-914527
+SP scf=-55 cp=-500000000 nl=51160268 v=-1066385
+SP scf=-55 cp=-500000000 nl=111416461 v=-2322365
+SP scf=-55 cp=-500000000 nl=1073741824 v=-22381074
+SP scf=-55 cp=-232370909 nl=0 v=0
+SP scf=-55 cp=-232370909 nl=43874821 v=1625503
+SP scf=-55 cp=-232370909 nl=51160268 v=1895419
+SP scf=-55 cp=-232370909 nl=111416461 v=4127831
+SP scf=-55 cp=-232370909 nl=1073741824 v=39780708
+SP scf=-55 cp=-197662475 nl=0 v=0
+SP scf=-55 cp=-197662475 nl=43874821 v=2121888
+SP scf=-55 cp=-197662475 nl=51160268 v=2474229
+SP scf=-55 cp=-197662475 nl=111416461 v=5388359
+SP scf=-55 cp=-197662475 nl=1073741824 v=51928660
+SP scf=-55 cp=-197000000 nl=0 v=0
+SP scf=-55 cp=-197000000 nl=43874821 v=2131362
+SP scf=-55 cp=-197000000 nl=51160268 v=2485277
+SP scf=-55 cp=-197000000 nl=111416461 v=5412419
+SP scf=-55 cp=-197000000 nl=1073741824 v=52160527
+SP scf=-55 cp=0 nl=0 v=0
+SP scf=-55 cp=0 nl=43874821 v=4948771
+SP scf=-55 cp=0 nl=51160268 v=5770517
+SP scf=-55 cp=0 nl=111416461 v=12566992
+SP scf=-55 cp=0 nl=1073741824 v=121110525
+SP scf=-54 cp=-500000000 nl=0 v=0
+SP scf=-54 cp=-500000000 nl=43874821 v=-964857
+SP scf=-54 cp=-500000000 nl=51160268 v=-1125072
+SP scf=-54 cp=-500000000 nl=111416461 v=-2450173
+SP scf=-54 cp=-500000000 nl=1073741824 v=-23612784
+SP scf=-54 cp=-232370909 nl=0 v=0
+SP scf=-54 cp=-232370909 nl=43874821 v=1535525
+SP scf=-54 cp=-232370909 nl=51160268 v=1790501
+SP scf=-54 cp=-232370909 nl=111416461 v=3899340
+SP scf=-54 cp=-232370909 nl=1073741824 v=37578699
+SP scf=-54 cp=-197662475 nl=0 v=0
+SP scf=-54 cp=-197662475 nl=43874821 v=2031910
+SP scf=-54 cp=-197662475 nl=51160268 v=2369310
+SP scf=-54 cp=-197662475 nl=111416461 v=5159869
+SP scf=-54 cp=-197662475 nl=1073741824 v=49726650
+SP scf=-54 cp=-197000000 nl=0 v=0
+SP scf=-54 cp=-197000000 nl=43874821 v=2041385
+SP scf=-54 cp=-197000000 nl=51160268 v=2380359
+SP scf=-54 cp=-197000000 nl=111416461 v=5183928
+SP scf=-54 cp=-197000000 nl=1073741824 v=49958517
+SP scf=-54 cp=0 nl=0 v=0
+SP scf=-54 cp=0 nl=43874821 v=4858793
+SP scf=-54 cp=0 nl=51160268 v=5665599
+SP scf=-54 cp=0 nl=111416461 v=12338502
+SP scf=-54 cp=0 nl=1073741824 v=118908516
+SP scf=-53 cp=-500000000 nl=0 v=0
+SP scf=-53 cp=-500000000 nl=43874821 v=-1015187
+SP scf=-53 cp=-500000000 nl=51160268 v=-1183759
+SP scf=-53 cp=-500000000 nl=111416461 v=-2577981
+SP scf=-53 cp=-500000000 nl=1073741824 v=-24844493
+SP scf=-53 cp=-232370909 nl=0 v=0
+SP scf=-53 cp=-232370909 nl=43874821 v=1445548
+SP scf=-53 cp=-232370909 nl=51160268 v=1685582
+SP scf=-53 cp=-232370909 nl=111416461 v=3670850
+SP scf=-53 cp=-232370909 nl=1073741824 v=35376689
+SP scf=-53 cp=-197662475 nl=0 v=0
+SP scf=-53 cp=-197662475 nl=43874821 v=1941932
+SP scf=-53 cp=-197662475 nl=51160268 v=2264392
+SP scf=-53 cp=-197662475 nl=111416461 v=4931378
+SP scf=-53 cp=-197662475 nl=1073741824 v=47524641
+SP scf=-53 cp=-197000000 nl=0 v=0
+SP scf=-53 cp=-197000000 nl=43874821 v=1951407
+SP scf=-53 cp=-197000000 nl=51160268 v=2275440
+SP scf=-53 cp=-197000000 nl=111416461 v=4955437
+SP scf=-53 cp=-197000000 nl=1073741824 v=47756507
+SP scf=-53 cp=0 nl=0 v=0
+SP scf=-53 cp=0 nl=43874821 v=4768815
+SP scf=-53 cp=0 nl=51160268 v=5560680
+SP scf=-53 cp=0 nl=111416461 v=12110010
+SP scf=-53 cp=0 nl=1073741824 v=116706506
+SP scf=-52 cp=-500000000 nl=0 v=0
+SP scf=-52 cp=-500000000 nl=43874821 v=-1065517
+SP scf=-52 cp=-500000000 nl=51160268 v=-1242446
+SP scf=-52 cp=-500000000 nl=111416461 v=-2705790
+SP scf=-52 cp=-500000000 nl=1073741824 v=-26076203
+SP scf=-52 cp=-232370909 nl=0 v=0
+SP scf=-52 cp=-232370909 nl=43874821 v=1355570
+SP scf=-52 cp=-232370909 nl=51160268 v=1580664
+SP scf=-52 cp=-232370909 nl=111416461 v=3442359
+SP scf=-52 cp=-232370909 nl=1073741824 v=33174680
+SP scf=-52 cp=-197662475 nl=0 v=0
+SP scf=-52 cp=-197662475 nl=43874821 v=1851955
+SP scf=-52 cp=-197662475 nl=51160268 v=2159474
+SP scf=-52 cp=-197662475 nl=111416461 v=4702887
+SP scf=-52 cp=-197662475 nl=1073741824 v=45322631
+SP scf=-52 cp=-197000000 nl=0 v=0
+SP scf=-52 cp=-197000000 nl=43874821 v=1861430
+SP scf=-52 cp=-197000000 nl=51160268 v=2170521
+SP scf=-52 cp=-197000000 nl=111416461 v=4726946
+SP scf=-52 cp=-197000000 nl=1073741824 v=45554498
+SP scf=-52 cp=0 nl=0 v=0
+SP scf=-52 cp=0 nl=43874821 v=4678837
+SP scf=-52 cp=0 nl=51160268 v=5455762
+SP scf=-52 cp=0 nl=111416461 v=11881520
+SP scf=-52 cp=0 nl=1073741824 v=114504497
+SP scf=-51 cp=-500000000 nl=0 v=0
+SP scf=-51 cp=-500000000 nl=43874821 v=-1115846
+SP scf=-51 cp=-500000000 nl=51160268 v=-1301133
+SP scf=-51 cp=-500000000 nl=111416461 v=-2833598
+SP scf=-51 cp=-500000000 nl=1073741824 v=-27307914
+SP scf=-51 cp=-232370909 nl=0 v=0
+SP scf=-51 cp=-232370909 nl=43874821 v=1265592
+SP scf=-51 cp=-232370909 nl=51160268 v=1475745
+SP scf=-51 cp=-232370909 nl=111416461 v=3213868
+SP scf=-51 cp=-232370909 nl=1073741824 v=30972670
+SP scf=-51 cp=-197662475 nl=0 v=0
+SP scf=-51 cp=-197662475 nl=43874821 v=1761977
+SP scf=-51 cp=-197662475 nl=51160268 v=2054555
+SP scf=-51 cp=-197662475 nl=111416461 v=4474396
+SP scf=-51 cp=-197662475 nl=1073741824 v=43120622
+SP scf=-51 cp=-197000000 nl=0 v=0
+SP scf=-51 cp=-197000000 nl=43874821 v=1771452
+SP scf=-51 cp=-197000000 nl=51160268 v=2065603
+SP scf=-51 cp=-197000000 nl=111416461 v=4498456
+SP scf=-51 cp=-197000000 nl=1073741824 v=43352488
+SP scf=-51 cp=0 nl=0 v=0
+SP scf=-51 cp=0 nl=43874821 v=4588860
+SP scf=-51 cp=0 nl=51160268 v=5350844
+SP scf=-51 cp=0 nl=111416461 v=11653030
+SP scf=-51 cp=0 nl=1073741824 v=112302487
+SP scf=-50 cp=-500000000 nl=0 v=0
+SP scf=-50 cp=-500000000 nl=43874821 v=-1166176
+SP scf=-50 cp=-500000000 nl=51160268 v=-1359820
+SP scf=-50 cp=-500000000 nl=111416461 v=-2961405
+SP scf=-50 cp=-500000000 nl=1073741824 v=-28539624
+SP scf=-50 cp=-232370909 nl=0 v=0
+SP scf=-50 cp=-232370909 nl=43874821 v=1175614
+SP scf=-50 cp=-232370909 nl=51160268 v=1370826
+SP scf=-50 cp=-232370909 nl=111416461 v=2985377
+SP scf=-50 cp=-232370909 nl=1073741824 v=28770661
+SP scf=-50 cp=-197662475 nl=0 v=0
+SP scf=-50 cp=-197662475 nl=43874821 v=1672000
+SP scf=-50 cp=-197662475 nl=51160268 v=1949637
+SP scf=-50 cp=-197662475 nl=111416461 v=4245905
+SP scf=-50 cp=-197662475 nl=1073741824 v=40918612
+SP scf=-50 cp=-197000000 nl=0 v=0
+SP scf=-50 cp=-197000000 nl=43874821 v=1681474
+SP scf=-50 cp=-197000000 nl=51160268 v=1960684
+SP scf=-50 cp=-197000000 nl=111416461 v=4269965
+SP scf=-50 cp=-197000000 nl=1073741824 v=41150479
+SP scf=-50 cp=0 nl=0 v=0
+SP scf=-50 cp=0 nl=43874821 v=4498882
+SP scf=-50 cp=0 nl=51160268 v=5245925
+SP scf=-50 cp=0 nl=111416461 v=11424538
+SP scf=-50 cp=0 nl=1073741824 v=110100478
+SP scf=-49 cp=-500000000 nl=0 v=0
+SP scf=-49 cp=-500000000 nl=43874821 v=-1216505
+SP scf=-49 cp=-500000000 nl=51160268 v=-1418507
+SP scf=-49 cp=-500000000 nl=111416461 v=-3089213
+SP scf=-49 cp=-500000000 nl=1073741824 v=-29771334
+SP scf=-49 cp=-232370909 nl=0 v=0
+SP scf=-49 cp=-232370909 nl=43874821 v=1085637
+SP scf=-49 cp=-232370909 nl=51160268 v=1265908
+SP scf=-49 cp=-232370909 nl=111416461 v=2756886
+SP scf=-49 cp=-232370909 nl=1073741824 v=26568651
+SP scf=-49 cp=-197662475 nl=0 v=0
+SP scf=-49 cp=-197662475 nl=43874821 v=1582022
+SP scf=-49 cp=-197662475 nl=51160268 v=1844718
+SP scf=-49 cp=-197662475 nl=111416461 v=4017414
+SP scf=-49 cp=-197662475 nl=1073741824 v=38716603
+SP scf=-49 cp=-197000000 nl=0 v=0
+SP scf=-49 cp=-197000000 nl=43874821 v=1591496
+SP scf=-49 cp=-197000000 nl=51160268 v=1855766
+SP scf=-49 cp=-197000000 nl=111416461 v=4041474
+SP scf=-49 cp=-197000000 nl=1073741824 v=38948469
+SP scf=-49 cp=0 nl=0 v=0
+SP scf=-49 cp=0 nl=43874821 v=4408905
+SP scf=-49 cp=0 nl=51160268 v=5141007
+SP scf=-49 cp=0 nl=111416461 v=11196048
+SP scf=-49 cp=0 nl=1073741824 v=107898468
+SP scf=-48 cp=-500000000 nl=0 v=0
+SP scf=-48 cp=-500000000 nl=43874821 v=-1266835
+SP scf=-48 cp=-500000000 nl=51160268 v=-1477194
+SP scf=-48 cp=-500000000 nl=111416461 v=-3217021
+SP scf=-48 cp=-500000000 nl=1073741824 v=-31003044
+SP scf=-48 cp=-232370909 nl=0 v=0
+SP scf=-48 cp=-232370909 nl=43874821 v=995659
+SP scf=-48 cp=-232370909 nl=51160268 v=1160989
+SP scf=-48 cp=-232370909 nl=111416461 v=2528396
+SP scf=-48 cp=-232370909 nl=1073741824 v=24366641
+SP scf=-48 cp=-197662475 nl=0 v=0
+SP scf=-48 cp=-197662475 nl=43874821 v=1492045
+SP scf=-48 cp=-197662475 nl=51160268 v=1739800
+SP scf=-48 cp=-197662475 nl=111416461 v=3788924
+SP scf=-48 cp=-197662475 nl=1073741824 v=36514593
+SP scf=-48 cp=-197000000 nl=0 v=0
+SP scf=-48 cp=-197000000 nl=43874821 v=1501518
+SP scf=-48 cp=-197000000 nl=51160268 v=1750847
+SP scf=-48 cp=-197000000 nl=111416461 v=3812983
+SP scf=-48 cp=-197000000 nl=1073741824 v=36746460
+SP scf=-48 cp=0 nl=0 v=0
+SP scf=-48 cp=0 nl=43874821 v=4318927
+SP scf=-48 cp=0 nl=51160268 v=5036088
+SP scf=-48 cp=0 nl=111416461 v=10967557
+SP scf=-48 cp=0 nl=1073741824 v=105696459
+SP scf=-47 cp=-500000000 nl=0 v=0
+SP scf=-47 cp=-500000000 nl=43874821 v=-1317165
+SP scf=-47 cp=-500000000 nl=51160268 v=-1535881
+SP scf=-47 cp=-500000000 nl=111416461 v=-3344829
+SP scf=-47 cp=-500000000 nl=1073741824 v=-32234754
+SP scf=-47 cp=-232370909 nl=0 v=0
+SP scf=-47 cp=-232370909 nl=43874821 v=905682
+SP scf=-47 cp=-232370909 nl=51160268 v=1056071
+SP scf=-47 cp=-232370909 nl=111416461 v=2299905
+SP scf=-47 cp=-232370909 nl=1073741824 v=22164632
+SP scf=-47 cp=-197662475 nl=0 v=0
+SP scf=-47 cp=-197662475 nl=43874821 v=1402067
+SP scf=-47 cp=-197662475 nl=51160268 v=1634881
+SP scf=-47 cp=-197662475 nl=111416461 v=3560433
+SP scf=-47 cp=-197662475 nl=1073741824 v=34312584
+SP scf=-47 cp=-197000000 nl=0 v=0
+SP scf=-47 cp=-197000000 nl=43874821 v=1411541
+SP scf=-47 cp=-197000000 nl=51160268 v=1645928
+SP scf=-47 cp=-197000000 nl=111416461 v=3584492
+SP scf=-47 cp=-197000000 nl=1073741824 v=34544450
+SP scf=-47 cp=0 nl=0 v=0
+SP scf=-47 cp=0 nl=43874821 v=4228949
+SP scf=-47 cp=0 nl=51160268 v=4931170
+SP scf=-47 cp=0 nl=111416461 v=10739066
+SP scf=-47 cp=0 nl=1073741824 v=103494449
+SP scf=-46 cp=-500000000 nl=0 v=0
+SP scf=-46 cp=-500000000 nl=43874821 v=-1367495
+SP scf=-46 cp=-500000000 nl=51160268 v=-1594568
+SP scf=-46 cp=-500000000 nl=111416461 v=-3472637
+SP scf=-46 cp=-500000000 nl=1073741824 v=-33466464
+SP scf=-46 cp=-232370909 nl=0 v=0
+SP scf=-46 cp=-232370909 nl=43874821 v=815704
+SP scf=-46 cp=-232370909 nl=51160268 v=951152
+SP scf=-46 cp=-232370909 nl=111416461 v=2071414
+SP scf=-46 cp=-232370909 nl=1073741824 v=19962622
+SP scf=-46 cp=-197662475 nl=0 v=0
+SP scf=-46 cp=-197662475 nl=43874821 v=1312089
+SP scf=-46 cp=-197662475 nl=51160268 v=1529962
+SP scf=-46 cp=-197662475 nl=111416461 v=3331942
+SP scf=-46 cp=-197662475 nl=1073741824 v=32110574
+SP scf=-46 cp=-197000000 nl=0 v=0
+SP scf=-46 cp=-197000000 nl=43874821 v=1321563
+SP scf=-46 cp=-197000000 nl=51160268 v=1541010
+SP scf=-46 cp=-197000000 nl=111416461 v=3356002
+SP scf=-46 cp=-197000000 nl=1073741824 v=32342441
+SP scf=-46 cp=0 nl=0 v=0
+SP scf=-46 cp=0 nl=43874821 v=4138971
+SP scf=-46 cp=0 nl=51160268 v=4826251
+SP scf=-46 cp=0 nl=111416461 v=10510576
+SP scf=-46 cp=0 nl=1073741824 v=101292439
+SP scf=-45 cp=-500000000 nl=0 v=0
+SP scf=-45 cp=-500000000 nl=43874821 v=-1417824
+SP scf=-45 cp=-500000000 nl=51160268 v=-1653255
+SP scf=-45 cp=-500000000 nl=111416461 v=-3600446
+SP scf=-45 cp=-500000000 nl=1073741824 v=-34698174
+SP scf=-45 cp=-232370909 nl=0 v=0
+SP scf=-45 cp=-232370909 nl=43874821 v=725727
+SP scf=-45 cp=-232370909 nl=51160268 v=846234
+SP scf=-45 cp=-232370909 nl=111416461 v=1842923
+SP scf=-45 cp=-232370909 nl=1073741824 v=17760613
+SP scf=-45 cp=-197662475 nl=0 v=0
+SP scf=-45 cp=-197662475 nl=43874821 v=1222111
+SP scf=-45 cp=-197662475 nl=51160268 v=1425044
+SP scf=-45 cp=-197662475 nl=111416461 v=3103452
+SP scf=-45 cp=-197662475 nl=1073741824 v=29908564
+SP scf=-45 cp=-197000000 nl=0 v=0
+SP scf=-45 cp=-197000000 nl=43874821 v=1231586
+SP scf=-45 cp=-197000000 nl=51160268 v=1436091
+SP scf=-45 cp=-197000000 nl=111416461 v=3127511
+SP scf=-45 cp=-197000000 nl=1073741824 v=30140431
+SP scf=-45 cp=0 nl=0 v=0
+SP scf=-45 cp=0 nl=43874821 v=4048994
+SP scf=-45 cp=0 nl=51160268 v=4721332
+SP scf=-45 cp=0 nl=111416461 v=10282084
+SP scf=-45 cp=0 nl=1073741824 v=99090430
+SP scf=-44 cp=-500000000 nl=0 v=0
+SP scf=-44 cp=-500000000 nl=43874821 v=-1468154
+SP scf=-44 cp=-500000000 nl=51160268 v=-1711941
+SP scf=-44 cp=-500000000 nl=111416461 v=-3728253
+SP scf=-44 cp=-500000000 nl=1073741824 v=-35929884
+SP scf=-44 cp=-232370909 nl=0 v=0
+SP scf=-44 cp=-232370909 nl=43874821 v=672794
+SP scf=-44 cp=-232370909 nl=51160268 v=784513
+SP scf=-44 cp=-232370909 nl=111416461 v=1708506
+SP scf=-44 cp=-232370909 nl=1073741824 v=16465214
+SP scf=-44 cp=-197662475 nl=0 v=0
+SP scf=-44 cp=-197662475 nl=43874821 v=1132134
+SP scf=-44 cp=-197662475 nl=51160268 v=1320125
+SP scf=-44 cp=-197662475 nl=111416461 v=2874960
+SP scf=-44 cp=-197662475 nl=1073741824 v=27706555
+SP scf=-44 cp=-197000000 nl=0 v=0
+SP scf=-44 cp=-197000000 nl=43874821 v=1141608
+SP scf=-44 cp=-197000000 nl=51160268 v=1331173
+SP scf=-44 cp=-197000000 nl=111416461 v=2899020
+SP scf=-44 cp=-197000000 nl=1073741824 v=27938421
+SP scf=-44 cp=0 nl=0 v=0
+SP scf=-44 cp=0 nl=43874821 v=3959016
+SP scf=-44 cp=0 nl=51160268 v=4616414
+SP scf=-44 cp=0 nl=111416461 v=10053594
+SP scf=-44 cp=0 nl=1073741824 v=96888420
+SP scf=-43 cp=-500000000 nl=0 v=0
+SP scf=-43 cp=-500000000 nl=43874821 v=-1518483
+SP scf=-43 cp=-500000000 nl=51160268 v=-1770629
+SP scf=-43 cp=-500000000 nl=111416461 v=-3856061
+SP scf=-43 cp=-500000000 nl=1073741824 v=-37161594
+SP scf=-43 cp=-232370909 nl=0 v=0
+SP scf=-43 cp=-232370909 nl=43874821 v=622465
+SP scf=-43 cp=-232370909 nl=51160268 v=725825
+SP scf=-43 cp=-232370909 nl=111416461 v=1580699
+SP scf=-43 cp=-232370909 nl=1073741824 v=15233504
+SP scf=-43 cp=-197662475 nl=0 v=0
+SP scf=-43 cp=-197662475 nl=43874821 v=1042156
+SP scf=-43 cp=-197662475 nl=51160268 v=1215207
+SP scf=-43 cp=-197662475 nl=111416461 v=2646470
+SP scf=-43 cp=-197662475 nl=1073741824 v=25504545
+SP scf=-43 cp=-197000000 nl=0 v=0
+SP scf=-43 cp=-197000000 nl=43874821 v=1051630
+SP scf=-43 cp=-197000000 nl=51160268 v=1226255
+SP scf=-43 cp=-197000000 nl=111416461 v=2670530
+SP scf=-43 cp=-197000000 nl=1073741824 v=25736412
+SP scf=-43 cp=0 nl=0 v=0
+SP scf=-43 cp=0 nl=43874821 v=3869039
+SP scf=-43 cp=0 nl=51160268 v=4511495
+SP scf=-43 cp=0 nl=111416461 v=9825103
+SP scf=-43 cp=0 nl=1073741824 v=94686411
+SP scf=-42 cp=-500000000 nl=0 v=0
+SP scf=-42 cp=-500000000 nl=43874821 v=-1568813
+SP scf=-42 cp=-500000000 nl=51160268 v=-1829315
+SP scf=-42 cp=-500000000 nl=111416461 v=-3983869
+SP scf=-42 cp=-500000000 nl=1073741824 v=-38393304
+SP scf=-42 cp=-232370909 nl=0 v=0
+SP scf=-42 cp=-232370909 nl=43874821 v=572135
+SP scf=-42 cp=-232370909 nl=51160268 v=667139
+SP scf=-42 cp=-232370909 nl=111416461 v=1452891
+SP scf=-42 cp=-232370909 nl=1073741824 v=14001793
+SP scf=-42 cp=-197662475 nl=0 v=0
+SP scf=-42 cp=-197662475 nl=43874821 v=952179
+SP scf=-42 cp=-197662475 nl=51160268 v=1110288
+SP scf=-42 cp=-197662475 nl=111416461 v=2417979
+SP scf=-42 cp=-197662475 nl=1073741824 v=23302536
+SP scf=-42 cp=-197000000 nl=0 v=0
+SP scf=-42 cp=-197000000 nl=43874821 v=961652
+SP scf=-42 cp=-197000000 nl=51160268 v=1121336
+SP scf=-42 cp=-197000000 nl=111416461 v=2442038
+SP scf=-42 cp=-197000000 nl=1073741824 v=23534402
+SP scf=-42 cp=0 nl=0 v=0
+SP scf=-42 cp=0 nl=43874821 v=3779061
+SP scf=-42 cp=0 nl=51160268 v=4406577
+SP scf=-42 cp=0 nl=111416461 v=9596612
+SP scf=-42 cp=0 nl=1073741824 v=92484401
+SP scf=-41 cp=-500000000 nl=0 v=0
+SP scf=-41 cp=-500000000 nl=43874821 v=-1619142
+SP scf=-41 cp=-500000000 nl=51160268 v=-1888003
+SP scf=-41 cp=-500000000 nl=111416461 v=-4111677
+SP scf=-41 cp=-500000000 nl=1073741824 v=-39625015
+SP scf=-41 cp=-232370909 nl=0 v=0
+SP scf=-41 cp=-232370909 nl=43874821 v=521805
+SP scf=-41 cp=-232370909 nl=51160268 v=608451
+SP scf=-41 cp=-232370909 nl=111416461 v=1325083
+SP scf=-41 cp=-232370909 nl=1073741824 v=12770083
+SP scf=-41 cp=-197662475 nl=0 v=0
+SP scf=-41 cp=-197662475 nl=43874821 v=862201
+SP scf=-41 cp=-197662475 nl=51160268 v=1005370
+SP scf=-41 cp=-197662475 nl=111416461 v=2189488
+SP scf=-41 cp=-197662475 nl=1073741824 v=21100526
+SP scf=-41 cp=-197000000 nl=0 v=0
+SP scf=-41 cp=-197000000 nl=43874821 v=871675
+SP scf=-41 cp=-197000000 nl=51160268 v=1016418
+SP scf=-41 cp=-197000000 nl=111416461 v=2213548
+SP scf=-41 cp=-197000000 nl=1073741824 v=21332393
+SP scf=-41 cp=0 nl=0 v=0
+SP scf=-41 cp=0 nl=43874821 v=3689083
+SP scf=-41 cp=0 nl=51160268 v=4301658
+SP scf=-41 cp=0 nl=111416461 v=9368121
+SP scf=-41 cp=0 nl=1073741824 v=90282392
+SP scf=-40 cp=-500000000 nl=0 v=0
+SP scf=-40 cp=-500000000 nl=43874821 v=-1669472
+SP scf=-40 cp=-500000000 nl=51160268 v=-1946689
+SP scf=-40 cp=-500000000 nl=111416461 v=-4239485
+SP scf=-40 cp=-500000000 nl=1073741824 v=-40856725
+SP scf=-40 cp=-232370909 nl=0 v=0
+SP scf=-40 cp=-232370909 nl=43874821 v=471475
+SP scf=-40 cp=-232370909 nl=51160268 v=549765
+SP scf=-40 cp=-232370909 nl=111416461 v=1197275
+SP scf=-40 cp=-232370909 nl=1073741824 v=11538373
+SP scf=-40 cp=-197662475 nl=0 v=0
+SP scf=-40 cp=-197662475 nl=43874821 v=772223
+SP scf=-40 cp=-197662475 nl=51160268 v=900451
+SP scf=-40 cp=-197662475 nl=111416461 v=1960998
+SP scf=-40 cp=-197662475 nl=1073741824 v=18898517
+SP scf=-40 cp=-197000000 nl=0 v=0
+SP scf=-40 cp=-197000000 nl=43874821 v=781697
+SP scf=-40 cp=-197000000 nl=51160268 v=911499
+SP scf=-40 cp=-197000000 nl=111416461 v=1985057
+SP scf=-40 cp=-197000000 nl=1073741824 v=19130383
+SP scf=-40 cp=0 nl=0 v=0
+SP scf=-40 cp=0 nl=43874821 v=3599105
+SP scf=-40 cp=0 nl=51160268 v=4196740
+SP scf=-40 cp=0 nl=111416461 v=9139631
+SP scf=-40 cp=0 nl=1073741824 v=88080382
+SP scf=-39 cp=-500000000 nl=0 v=0
+SP scf=-39 cp=-500000000 nl=43874821 v=-1719802
+SP scf=-39 cp=-500000000 nl=51160268 v=-2005377
+SP scf=-39 cp=-500000000 nl=111416461 v=-4367293
+SP scf=-39 cp=-500000000 nl=1073741824 v=-42088435
+SP scf=-39 cp=-232370909 nl=0 v=0
+SP scf=-39 cp=-232370909 nl=43874821 v=421146
+SP scf=-39 cp=-232370909 nl=51160268 v=491077
+SP scf=-39 cp=-232370909 nl=111416461 v=1069466
+SP scf=-39 cp=-232370909 nl=1073741824 v=10306663
+SP scf=-39 cp=-197662475 nl=0 v=0
+SP scf=-39 cp=-197662475 nl=43874821 v=698802
+SP scf=-39 cp=-197662475 nl=51160268 v=814839
+SP scf=-39 cp=-197662475 nl=111416461 v=1774552
+SP scf=-39 cp=-197662475 nl=1073741824 v=17101708
+SP scf=-39 cp=-197000000 nl=0 v=0
+SP scf=-39 cp=-197000000 nl=43874821 v=704102
+SP scf=-39 cp=-197000000 nl=51160268 v=821019
+SP scf=-39 cp=-197000000 nl=111416461 v=1788010
+SP scf=-39 cp=-197000000 nl=1073741824 v=17231404
+SP scf=-39 cp=0 nl=0 v=0
+SP scf=-39 cp=0 nl=43874821 v=3509128
+SP scf=-39 cp=0 nl=51160268 v=4091821
+SP scf=-39 cp=0 nl=111416461 v=8911140
+SP scf=-39 cp=0 nl=1073741824 v=85878372
+SP scf=-38 cp=-500000000 nl=0 v=0
+SP scf=-38 cp=-500000000 nl=43874821 v=-1770132
+SP scf=-38 cp=-500000000 nl=51160268 v=-2064063
+SP scf=-38 cp=-500000000 nl=111416461 v=-4495101
+SP scf=-38 cp=-500000000 nl=1073741824 v=-43320145
+SP scf=-38 cp=-232370909 nl=0 v=0
+SP scf=-38 cp=-232370909 nl=43874821 v=370816
+SP scf=-38 cp=-232370909 nl=51160268 v=432391
+SP scf=-38 cp=-232370909 nl=111416461 v=941658
+SP scf=-38 cp=-232370909 nl=1073741824 v=9074953
+SP scf=-38 cp=-197662475 nl=0 v=0
+SP scf=-38 cp=-197662475 nl=43874821 v=648473
+SP scf=-38 cp=-197662475 nl=51160268 v=756152
+SP scf=-38 cp=-197662475 nl=111416461 v=1646745
+SP scf=-38 cp=-197662475 nl=1073741824 v=15869998
+SP scf=-38 cp=-197000000 nl=0 v=0
+SP scf=-38 cp=-197000000 nl=43874821 v=653772
+SP scf=-38 cp=-197000000 nl=51160268 v=762332
+SP scf=-38 cp=-197000000 nl=111416461 v=1660202
+SP scf=-38 cp=-197000000 nl=1073741824 v=15999694
+SP scf=-38 cp=0 nl=0 v=0
+SP scf=-38 cp=0 nl=43874821 v=3419150
+SP scf=-38 cp=0 nl=51160268 v=3986903
+SP scf=-38 cp=0 nl=111416461 v=8682649
+SP scf=-38 cp=0 nl=1073741824 v=83676363
+SP scf=-37 cp=-500000000 nl=0 v=0
+SP scf=-37 cp=-500000000 nl=43874821 v=-1820461
+SP scf=-37 cp=-500000000 nl=51160268 v=-2122750
+SP scf=-37 cp=-500000000 nl=111416461 v=-4622909
+SP scf=-37 cp=-500000000 nl=1073741824 v=-44551855
+SP scf=-37 cp=-232370909 nl=0 v=0
+SP scf=-37 cp=-232370909 nl=43874821 v=320487
+SP scf=-37 cp=-232370909 nl=51160268 v=373704
+SP scf=-37 cp=-232370909 nl=111416461 v=813851
+SP scf=-37 cp=-232370909 nl=1073741824 v=7843242
+SP scf=-37 cp=-197662475 nl=0 v=0
+SP scf=-37 cp=-197662475 nl=43874821 v=598143
+SP scf=-37 cp=-197662475 nl=51160268 v=697465
+SP scf=-37 cp=-197662475 nl=111416461 v=1518936
+SP scf=-37 cp=-197662475 nl=1073741824 v=14638288
+SP scf=-37 cp=-197000000 nl=0 v=0
+SP scf=-37 cp=-197000000 nl=43874821 v=603443
+SP scf=-37 cp=-197000000 nl=51160268 v=703645
+SP scf=-37 cp=-197000000 nl=111416461 v=1532394
+SP scf=-37 cp=-197000000 nl=1073741824 v=14767984
+SP scf=-37 cp=0 nl=0 v=0
+SP scf=-37 cp=0 nl=43874821 v=3329173
+SP scf=-37 cp=0 nl=51160268 v=3881985
+SP scf=-37 cp=0 nl=111416461 v=8454158
+SP scf=-37 cp=0 nl=1073741824 v=81474353
+SP scf=-36 cp=-500000000 nl=0 v=0
+SP scf=-36 cp=-500000000 nl=43874821 v=-1870791
+SP scf=-36 cp=-500000000 nl=51160268 v=-2181437
+SP scf=-36 cp=-500000000 nl=111416461 v=-4750717
+SP scf=-36 cp=-500000000 nl=1073741824 v=-45783565
+SP scf=-36 cp=-232370909 nl=0 v=0
+SP scf=-36 cp=-232370909 nl=43874821 v=270157
+SP scf=-36 cp=-232370909 nl=51160268 v=315017
+SP scf=-36 cp=-232370909 nl=111416461 v=686043
+SP scf=-36 cp=-232370909 nl=1073741824 v=6611533
+SP scf=-36 cp=-197662475 nl=0 v=0
+SP scf=-36 cp=-197662475 nl=43874821 v=547814
+SP scf=-36 cp=-197662475 nl=51160268 v=638779
+SP scf=-36 cp=-197662475 nl=111416461 v=1391128
+SP scf=-36 cp=-197662475 nl=1073741824 v=13406578
+SP scf=-36 cp=-197000000 nl=0 v=0
+SP scf=-36 cp=-197000000 nl=43874821 v=553113
+SP scf=-36 cp=-197000000 nl=51160268 v=644958
+SP scf=-36 cp=-197000000 nl=111416461 v=1404586
+SP scf=-36 cp=-197000000 nl=1073741824 v=13536274
+SP scf=-36 cp=0 nl=0 v=0
+SP scf=-36 cp=0 nl=43874821 v=3239195
+SP scf=-36 cp=0 nl=51160268 v=3777066
+SP scf=-36 cp=0 nl=111416461 v=8225667
+SP scf=-36 cp=0 nl=1073741824 v=79272344
+SP scf=-35 cp=-500000000 nl=0 v=0
+SP scf=-35 cp=-500000000 nl=43874821 v=-1921121
+SP scf=-35 cp=-500000000 nl=51160268 v=-2240124
+SP scf=-35 cp=-500000000 nl=111416461 v=-4878525
+SP scf=-35 cp=-500000000 nl=1073741824 v=-47015275
+SP scf=-35 cp=-232370909 nl=0 v=0
+SP scf=-35 cp=-232370909 nl=43874821 v=219827
+SP scf=-35 cp=-232370909 nl=51160268 v=256330
+SP scf=-35 cp=-232370909 nl=111416461 v=558235
+SP scf=-35 cp=-232370909 nl=1073741824 v=5379823
+SP scf=-35 cp=-197662475 nl=0 v=0
+SP scf=-35 cp=-197662475 nl=43874821 v=497484
+SP scf=-35 cp=-197662475 nl=51160268 v=580092
+SP scf=-35 cp=-197662475 nl=111416461 v=1263320
+SP scf=-35 cp=-197662475 nl=1073741824 v=12174868
+SP scf=-35 cp=-197000000 nl=0 v=0
+SP scf=-35 cp=-197000000 nl=43874821 v=502784
+SP scf=-35 cp=-197000000 nl=51160268 v=586271
+SP scf=-35 cp=-197000000 nl=111416461 v=1276778
+SP scf=-35 cp=-197000000 nl=1073741824 v=12304564
+SP scf=-35 cp=0 nl=0 v=0
+SP scf=-35 cp=0 nl=43874821 v=3149218
+SP scf=-35 cp=0 nl=51160268 v=3672147
+SP scf=-35 cp=0 nl=111416461 v=7997177
+SP scf=-35 cp=0 nl=1073741824 v=77070334
+SP scf=-34 cp=-500000000 nl=0 v=0
+SP scf=-34 cp=-500000000 nl=43874821 v=-1971450
+SP scf=-34 cp=-500000000 nl=51160268 v=-2298811
+SP scf=-34 cp=-500000000 nl=111416461 v=-5006333
+SP scf=-34 cp=-500000000 nl=1073741824 v=-48246985
+SP scf=-34 cp=-232370909 nl=0 v=0
+SP scf=-34 cp=-232370909 nl=43874821 v=169497
+SP scf=-34 cp=-232370909 nl=51160268 v=197643
+SP scf=-34 cp=-232370909 nl=111416461 v=430427
+SP scf=-34 cp=-232370909 nl=1073741824 v=4148113
+SP scf=-34 cp=-197662475 nl=0 v=0
+SP scf=-34 cp=-197662475 nl=43874821 v=447155
+SP scf=-34 cp=-197662475 nl=51160268 v=521405
+SP scf=-34 cp=-197662475 nl=111416461 v=1135512
+SP scf=-34 cp=-197662475 nl=1073741824 v=10943158
+SP scf=-34 cp=-197000000 nl=0 v=0
+SP scf=-34 cp=-197000000 nl=43874821 v=452454
+SP scf=-34 cp=-197000000 nl=51160268 v=527585
+SP scf=-34 cp=-197000000 nl=111416461 v=1148970
+SP scf=-34 cp=-197000000 nl=1073741824 v=11072854
+SP scf=-34 cp=0 nl=0 v=0
+SP scf=-34 cp=0 nl=43874821 v=3059240
+SP scf=-34 cp=0 nl=51160268 v=3567229
+SP scf=-34 cp=0 nl=111416461 v=7768686
+SP scf=-34 cp=0 nl=1073741824 v=74868325
+SP scf=-33 cp=-500000000 nl=0 v=0
+SP scf=-33 cp=-500000000 nl=43874821 v=-2021780
+SP scf=-33 cp=-500000000 nl=51160268 v=-2357498
+SP scf=-33 cp=-500000000 nl=111416461 v=-5134141
+SP scf=-33 cp=-500000000 nl=1073741824 v=-49478695
+SP scf=-33 cp=-232370909 nl=0 v=0
+SP scf=-33 cp=-232370909 nl=43874821 v=119168
+SP scf=-33 cp=-232370909 nl=51160268 v=138956
+SP scf=-33 cp=-232370909 nl=111416461 v=302619
+SP scf=-33 cp=-232370909 nl=1073741824 v=2916402
+SP scf=-33 cp=-197662475 nl=0 v=0
+SP scf=-33 cp=-197662475 nl=43874821 v=396825
+SP scf=-33 cp=-197662475 nl=51160268 v=462718
+SP scf=-33 cp=-197662475 nl=111416461 v=1007704
+SP scf=-33 cp=-197662475 nl=1073741824 v=9711448
+SP scf=-33 cp=-197000000 nl=0 v=0
+SP scf=-33 cp=-197000000 nl=43874821 v=402124
+SP scf=-33 cp=-197000000 nl=51160268 v=468897
+SP scf=-33 cp=-197000000 nl=111416461 v=1021162
+SP scf=-33 cp=-197000000 nl=1073741824 v=9841144
+SP scf=-33 cp=0 nl=0 v=0
+SP scf=-33 cp=0 nl=43874821 v=2969262
+SP scf=-33 cp=0 nl=51160268 v=3462310
+SP scf=-33 cp=0 nl=111416461 v=7540195
+SP scf=-33 cp=0 nl=1073741824 v=72666315
+SP scf=-32 cp=-500000000 nl=0 v=0
+SP scf=-32 cp=-500000000 nl=43874821 v=-2072110
+SP scf=-32 cp=-500000000 nl=51160268 v=-2416185
+SP scf=-32 cp=-500000000 nl=111416461 v=-5261949
+SP scf=-32 cp=-500000000 nl=1073741824 v=-50710406
+SP scf=-32 cp=-232370909 nl=0 v=0
+SP scf=-32 cp=-232370909 nl=43874821 v=68838
+SP scf=-32 cp=-232370909 nl=51160268 v=80269
+SP scf=-32 cp=-232370909 nl=111416461 v=174810
+SP scf=-32 cp=-232370909 nl=1073741824 v=1684692
+SP scf=-32 cp=-197662475 nl=0 v=0
+SP scf=-32 cp=-197662475 nl=43874821 v=346495
+SP scf=-32 cp=-197662475 nl=51160268 v=404031
+SP scf=-32 cp=-197662475 nl=111416461 v=879897
+SP scf=-32 cp=-197662475 nl=1073741824 v=8479738
+SP scf=-32 cp=-197000000 nl=0 v=0
+SP scf=-32 cp=-197000000 nl=43874821 v=351794
+SP scf=-32 cp=-197000000 nl=51160268 v=410211
+SP scf=-32 cp=-197000000 nl=111416461 v=893354
+SP scf=-32 cp=-197000000 nl=1073741824 v=8609434
+SP scf=-32 cp=0 nl=0 v=0
+SP scf=-32 cp=0 nl=43874821 v=2879284
+SP scf=-32 cp=0 nl=51160268 v=3357392
+SP scf=-32 cp=0 nl=111416461 v=7311704
+SP scf=-32 cp=0 nl=1073741824 v=70464306
+SP scf=-31 cp=-500000000 nl=0 v=0
+SP scf=-31 cp=-500000000 nl=43874821 v=-2122440
+SP scf=-31 cp=-500000000 nl=51160268 v=-2474872
+SP scf=-31 cp=-500000000 nl=111416461 v=-5389757
+SP scf=-31 cp=-500000000 nl=1073741824 v=-51942116
+SP scf=-31 cp=-232370909 nl=0 v=0
+SP scf=-31 cp=-232370909 nl=43874821 v=18509
+SP scf=-31 cp=-232370909 nl=51160268 v=21583
+SP scf=-31 cp=-232370909 nl=111416461 v=47003
+SP scf=-31 cp=-232370909 nl=1073741824 v=452982
+SP scf=-31 cp=-197662475 nl=0 v=0
+SP scf=-31 cp=-197662475 nl=43874821 v=296165
+SP scf=-31 cp=-197662475 nl=51160268 v=345344
+SP scf=-31 cp=-197662475 nl=111416461 v=752089
+SP scf=-31 cp=-197662475 nl=1073741824 v=7248028
+SP scf=-31 cp=-197000000 nl=0 v=0
+SP scf=-31 cp=-197000000 nl=43874821 v=301465
+SP scf=-31 cp=-197000000 nl=51160268 v=351523
+SP scf=-31 cp=-197000000 nl=111416461 v=765546
+SP scf=-31 cp=-197000000 nl=1073741824 v=7377724
+SP scf=-31 cp=0 nl=0 v=0
+SP scf=-31 cp=0 nl=43874821 v=2789306
+SP scf=-31 cp=0 nl=51160268 v=3252473
+SP scf=-31 cp=0 nl=111416461 v=7083213
+SP scf=-31 cp=0 nl=1073741824 v=68262296
+SP scf=-30 cp=-500000000 nl=0 v=0
+SP scf=-30 cp=-500000000 nl=43874821 v=-2172769
+SP scf=-30 cp=-500000000 nl=51160268 v=-2533559
+SP scf=-30 cp=-500000000 nl=111416461 v=-5517565
+SP scf=-30 cp=-500000000 nl=1073741824 v=-53173826
+SP scf=-30 cp=-232370909 nl=0 v=0
+SP scf=-30 cp=-232370909 nl=43874821 v=-31821
+SP scf=-30 cp=-232370909 nl=51160268 v=-37105
+SP scf=-30 cp=-232370909 nl=111416461 v=-80805
+SP scf=-30 cp=-232370909 nl=1073741824 v=-778728
+SP scf=-30 cp=-197662475 nl=0 v=0
+SP scf=-30 cp=-197662475 nl=43874821 v=245835
+SP scf=-30 cp=-197662475 nl=51160268 v=286657
+SP scf=-30 cp=-197662475 nl=111416461 v=624280
+SP scf=-30 cp=-197662475 nl=1073741824 v=6016317
+SP scf=-30 cp=-197000000 nl=0 v=0
+SP scf=-30 cp=-197000000 nl=43874821 v=251135
+SP scf=-30 cp=-197000000 nl=51160268 v=292837
+SP scf=-30 cp=-197000000 nl=111416461 v=637738
+SP scf=-30 cp=-197000000 nl=1073741824 v=6146013
+SP scf=-30 cp=0 nl=0 v=0
+SP scf=-30 cp=0 nl=43874821 v=2699329
+SP scf=-30 cp=0 nl=51160268 v=3147554
+SP scf=-30 cp=0 nl=111416461 v=6854723
+SP scf=-30 cp=0 nl=1073741824 v=66060286
+SP scf=-29 cp=-500000000 nl=0 v=0
+SP scf=-29 cp=-500000000 nl=43874821 v=-2223099
+SP scf=-29 cp=-500000000 nl=51160268 v=-2592246
+SP scf=-29 cp=-500000000 nl=111416461 v=-5645373
+SP scf=-29 cp=-500000000 nl=1073741824 v=-54405535
+SP scf=-29 cp=-232370909 nl=0 v=0
+SP scf=-29 cp=-232370909 nl=43874821 v=-82150
+SP scf=-29 cp=-232370909 nl=51160268 v=-95791
+SP scf=-29 cp=-232370909 nl=111416461 v=-208613
+SP scf=-29 cp=-232370909 nl=1073741824 v=-2010438
+SP scf=-29 cp=-197662475 nl=0 v=0
+SP scf=-29 cp=-197662475 nl=43874821 v=195506
+SP scf=-29 cp=-197662475 nl=51160268 v=227970
+SP scf=-29 cp=-197662475 nl=111416461 v=496472
+SP scf=-29 cp=-197662475 nl=1073741824 v=4784607
+SP scf=-29 cp=-197000000 nl=0 v=0
+SP scf=-29 cp=-197000000 nl=43874821 v=200806
+SP scf=-29 cp=-197000000 nl=51160268 v=234149
+SP scf=-29 cp=-197000000 nl=111416461 v=509931
+SP scf=-29 cp=-197000000 nl=1073741824 v=4914303
+SP scf=-29 cp=0 nl=0 v=0
+SP scf=-29 cp=0 nl=43874821 v=2609351
+SP scf=-29 cp=0 nl=51160268 v=3042636
+SP scf=-29 cp=0 nl=111416461 v=6626232
+SP scf=-29 cp=0 nl=1073741824 v=63858277
+SP scf=-28 cp=-500000000 nl=0 v=0
+SP scf=-28 cp=-500000000 nl=43874821 v=-2273428
+SP scf=-28 cp=-500000000 nl=51160268 v=-2650933
+SP scf=-28 cp=-500000000 nl=111416461 v=-5773181
+SP scf=-28 cp=-500000000 nl=1073741824 v=-55637246
+SP scf=-28 cp=-232370909 nl=0 v=0
+SP scf=-28 cp=-232370909 nl=43874821 v=-132480
+SP scf=-28 cp=-232370909 nl=51160268 v=-154479
+SP scf=-28 cp=-232370909 nl=111416461 v=-336421
+SP scf=-28 cp=-232370909 nl=1073741824 v=-3242148
+SP scf=-28 cp=-197662475 nl=0 v=0
+SP scf=-28 cp=-197662475 nl=43874821 v=145176
+SP scf=-28 cp=-197662475 nl=51160268 v=169283
+SP scf=-28 cp=-197662475 nl=111416461 v=368664
+SP scf=-28 cp=-197662475 nl=1073741824 v=3552897
+SP scf=-28 cp=-197000000 nl=0 v=0
+SP scf=-28 cp=-197000000 nl=43874821 v=150476
+SP scf=-28 cp=-197000000 nl=51160268 v=175463
+SP scf=-28 cp=-197000000 nl=111416461 v=382122
+SP scf=-28 cp=-197000000 nl=1073741824 v=3682593
+SP scf=-28 cp=0 nl=0 v=0
+SP scf=-28 cp=0 nl=43874821 v=2519374
+SP scf=-28 cp=0 nl=51160268 v=2937717
+SP scf=-28 cp=0 nl=111416461 v=6397741
+SP scf=-28 cp=0 nl=1073741824 v=61656267
+SP scf=-27 cp=-500000000 nl=0 v=0
+SP scf=-27 cp=-500000000 nl=43874821 v=-2323758
+SP scf=-27 cp=-500000000 nl=51160268 v=-2709620
+SP scf=-27 cp=-500000000 nl=111416461 v=-5900989
+SP scf=-27 cp=-500000000 nl=1073741824 v=-56868956
+SP scf=-27 cp=-232370909 nl=0 v=0
+SP scf=-27 cp=-232370909 nl=43874821 v=-182810
+SP scf=-27 cp=-232370909 nl=51160268 v=-213165
+SP scf=-27 cp=-232370909 nl=111416461 v=-464229
+SP scf=-27 cp=-232370909 nl=1073741824 v=-4473858
+SP scf=-27 cp=-197662475 nl=0 v=0
+SP scf=-27 cp=-197662475 nl=43874821 v=94847
+SP scf=-27 cp=-197662475 nl=51160268 v=110596
+SP scf=-27 cp=-197662475 nl=111416461 v=240856
+SP scf=-27 cp=-197662475 nl=1073741824 v=2321187
+SP scf=-27 cp=-197000000 nl=0 v=0
+SP scf=-27 cp=-197000000 nl=43874821 v=100146
+SP scf=-27 cp=-197000000 nl=51160268 v=116776
+SP scf=-27 cp=-197000000 nl=111416461 v=254314
+SP scf=-27 cp=-197000000 nl=1073741824 v=2450884
+SP scf=-27 cp=0 nl=0 v=0
+SP scf=-27 cp=0 nl=43874821 v=2429396
+SP scf=-27 cp=0 nl=51160268 v=2832799
+SP scf=-27 cp=0 nl=111416461 v=6169251
+SP scf=-27 cp=0 nl=1073741824 v=59454258
+SP scf=-26 cp=-500000000 nl=0 v=0
+SP scf=-26 cp=-500000000 nl=43874821 v=-2374088
+SP scf=-26 cp=-500000000 nl=51160268 v=-2768307
+SP scf=-26 cp=-500000000 nl=111416461 v=-6028797
+SP scf=-26 cp=-500000000 nl=1073741824 v=-58100666
+SP scf=-26 cp=-232370909 nl=0 v=0
+SP scf=-26 cp=-232370909 nl=43874821 v=-233140
+SP scf=-26 cp=-232370909 nl=51160268 v=-271852
+SP scf=-26 cp=-232370909 nl=111416461 v=-592037
+SP scf=-26 cp=-232370909 nl=1073741824 v=-5705568
+SP scf=-26 cp=-197662475 nl=0 v=0
+SP scf=-26 cp=-197662475 nl=43874821 v=44517
+SP scf=-26 cp=-197662475 nl=51160268 v=51909
+SP scf=-26 cp=-197662475 nl=111416461 v=113049
+SP scf=-26 cp=-197662475 nl=1073741824 v=1089477
+SP scf=-26 cp=-197000000 nl=0 v=0
+SP scf=-26 cp=-197000000 nl=43874821 v=49816
+SP scf=-26 cp=-197000000 nl=51160268 v=58089
+SP scf=-26 cp=-197000000 nl=111416461 v=126506
+SP scf=-26 cp=-197000000 nl=1073741824 v=1219173
+SP scf=-26 cp=0 nl=0 v=0
+SP scf=-26 cp=0 nl=43874821 v=2339418
+SP scf=-26 cp=0 nl=51160268 v=2727881
+SP scf=-26 cp=0 nl=111416461 v=5940759
+SP scf=-26 cp=0 nl=1073741824 v=57252248
+SP scf=-25 cp=-500000000 nl=0 v=0
+SP scf=-25 cp=-500000000 nl=43874821 v=-2424418
+SP scf=-25 cp=-500000000 nl=51160268 v=-2826993
+SP scf=-25 cp=-500000000 nl=111416461 v=-6156605
+SP scf=-25 cp=-500000000 nl=1073741824 v=-59332376
+SP scf=-25 cp=-232370909 nl=0 v=0
+SP scf=-25 cp=-232370909 nl=43874821 v=-283469
+SP scf=-25 cp=-232370909 nl=51160268 v=-330539
+SP scf=-25 cp=-232370909 nl=111416461 v=-719845
+SP scf=-25 cp=-232370909 nl=1073741824 v=-6937278
+SP scf=-25 cp=-197662475 nl=0 v=0
+SP scf=-25 cp=-197662475 nl=43874821 v=-5813
+SP scf=-25 cp=-197662475 nl=51160268 v=-6778
+SP scf=-25 cp=-197662475 nl=111416461 v=-14759
+SP scf=-25 cp=-197662475 nl=1073741824 v=-142233
+SP scf=-25 cp=-197000000 nl=0 v=0
+SP scf=-25 cp=-197000000 nl=43874821 v=-513
+SP scf=-25 cp=-197000000 nl=51160268 v=-598
+SP scf=-25 cp=-197000000 nl=111416461 v=-1302
+SP scf=-25 cp=-197000000 nl=1073741824 v=-12537
+SP scf=-25 cp=0 nl=0 v=0
+SP scf=-25 cp=0 nl=43874821 v=2249440
+SP scf=-25 cp=0 nl=51160268 v=2622962
+SP scf=-25 cp=0 nl=111416461 v=5712269
+SP scf=-25 cp=0 nl=1073741824 v=55050239
+SP scf=-24 cp=-500000000 nl=0 v=0
+SP scf=-24 cp=-500000000 nl=43874821 v=-2474747
+SP scf=-24 cp=-500000000 nl=51160268 v=-2885680
+SP scf=-24 cp=-500000000 nl=111416461 v=-6284413
+SP scf=-24 cp=-500000000 nl=1073741824 v=-60564086
+SP scf=-24 cp=-232370909 nl=0 v=0
+SP scf=-24 cp=-232370909 nl=43874821 v=-333799
+SP scf=-24 cp=-232370909 nl=51160268 v=-389226
+SP scf=-24 cp=-232370909 nl=111416461 v=-847653
+SP scf=-24 cp=-232370909 nl=1073741824 v=-8168988
+SP scf=-24 cp=-197662475 nl=0 v=0
+SP scf=-24 cp=-197662475 nl=43874821 v=-56143
+SP scf=-24 cp=-197662475 nl=51160268 v=-65464
+SP scf=-24 cp=-197662475 nl=111416461 v=-142567
+SP scf=-24 cp=-197662475 nl=1073741824 v=-1373943
+SP scf=-24 cp=-197000000 nl=0 v=0
+SP scf=-24 cp=-197000000 nl=43874821 v=-50843
+SP scf=-24 cp=-197000000 nl=51160268 v=-59285
+SP scf=-24 cp=-197000000 nl=111416461 v=-129110
+SP scf=-24 cp=-197000000 nl=1073741824 v=-1244247
+SP scf=-24 cp=0 nl=0 v=0
+SP scf=-24 cp=0 nl=43874821 v=2159463
+SP scf=-24 cp=0 nl=51160268 v=2518044
+SP scf=-24 cp=0 nl=111416461 v=5483778
+SP scf=-24 cp=0 nl=1073741824 v=52848229
+SP scf=-23 cp=-500000000 nl=0 v=0
+SP scf=-23 cp=-500000000 nl=43874821 v=-2525077
+SP scf=-23 cp=-500000000 nl=51160268 v=-2944367
+SP scf=-23 cp=-500000000 nl=111416461 v=-6412221
+SP scf=-23 cp=-500000000 nl=1073741824 v=-61795796
+SP scf=-23 cp=-232370909 nl=0 v=0
+SP scf=-23 cp=-232370909 nl=43874821 v=-384128
+SP scf=-23 cp=-232370909 nl=51160268 v=-447913
+SP scf=-23 cp=-232370909 nl=111416461 v=-975461
+SP scf=-23 cp=-232370909 nl=1073741824 v=-9400699
+SP scf=-23 cp=-197662475 nl=0 v=0
+SP scf=-23 cp=-197662475 nl=43874821 v=-106472
+SP scf=-23 cp=-197662475 nl=51160268 v=-124152
+SP scf=-23 cp=-197662475 nl=111416461 v=-270375
+SP scf=-23 cp=-197662475 nl=1073741824 v=-2605653
+SP scf=-23 cp=-197000000 nl=0 v=0
+SP scf=-23 cp=-197000000 nl=43874821 v=-101172
+SP scf=-23 cp=-197000000 nl=51160268 v=-117972
+SP scf=-23 cp=-197000000 nl=111416461 v=-256917
+SP scf=-23 cp=-197000000 nl=1073741824 v=-2475957
+SP scf=-23 cp=0 nl=0 v=0
+SP scf=-23 cp=0 nl=43874821 v=2069485
+SP scf=-23 cp=0 nl=51160268 v=2413125
+SP scf=-23 cp=0 nl=111416461 v=5255287
+SP scf=-23 cp=0 nl=1073741824 v=50646219
+SP scf=-22 cp=-500000000 nl=0 v=0
+SP scf=-22 cp=-500000000 nl=43874821 v=-2575406
+SP scf=-22 cp=-500000000 nl=51160268 v=-3003054
+SP scf=-22 cp=-500000000 nl=111416461 v=-6540029
+SP scf=-22 cp=-500000000 nl=1073741824 v=-63027507
+SP scf=-22 cp=-232370909 nl=0 v=0
+SP scf=-22 cp=-232370909 nl=43874821 v=-434458
+SP scf=-22 cp=-232370909 nl=51160268 v=-506600
+SP scf=-22 cp=-232370909 nl=111416461 v=-1103269
+SP scf=-22 cp=-232370909 nl=1073741824 v=-10632409
+SP scf=-22 cp=-197662475 nl=0 v=0
+SP scf=-22 cp=-197662475 nl=43874821 v=-156802
+SP scf=-22 cp=-197662475 nl=51160268 v=-182838
+SP scf=-22 cp=-197662475 nl=111416461 v=-398184
+SP scf=-22 cp=-197662475 nl=1073741824 v=-3837363
+SP scf=-22 cp=-197000000 nl=0 v=0
+SP scf=-22 cp=-197000000 nl=43874821 v=-151502
+SP scf=-22 cp=-197000000 nl=51160268 v=-176659
+SP scf=-22 cp=-197000000 nl=111416461 v=-384725
+SP scf=-22 cp=-197000000 nl=1073741824 v=-3707667
+SP scf=-22 cp=0 nl=0 v=0
+SP scf=-22 cp=0 nl=43874821 v=1979508
+SP scf=-22 cp=0 nl=51160268 v=2308207
+SP scf=-22 cp=0 nl=111416461 v=5026797
+SP scf=-22 cp=0 nl=1073741824 v=48444210
+SP scf=-21 cp=-500000000 nl=0 v=0
+SP scf=-21 cp=-500000000 nl=43874821 v=-2625736
+SP scf=-21 cp=-500000000 nl=51160268 v=-3061741
+SP scf=-21 cp=-500000000 nl=111416461 v=-6667837
+SP scf=-21 cp=-500000000 nl=1073741824 v=-64259216
+SP scf=-21 cp=-232370909 nl=0 v=0
+SP scf=-21 cp=-232370909 nl=43874821 v=-484788
+SP scf=-21 cp=-232370909 nl=51160268 v=-565287
+SP scf=-21 cp=-232370909 nl=111416461 v=-1231077
+SP scf=-21 cp=-232370909 nl=1073741824 v=-11864119
+SP scf=-21 cp=-197662475 nl=0 v=0
+SP scf=-21 cp=-197662475 nl=43874821 v=-207131
+SP scf=-21 cp=-197662475 nl=51160268 v=-241526
+SP scf=-21 cp=-197662475 nl=111416461 v=-525992
+SP scf=-21 cp=-197662475 nl=1073741824 v=-5069074
+SP scf=-21 cp=-197000000 nl=0 v=0
+SP scf=-21 cp=-197000000 nl=43874821 v=-201831
+SP scf=-21 cp=-197000000 nl=51160268 v=-235346
+SP scf=-21 cp=-197000000 nl=111416461 v=-512533
+SP scf=-21 cp=-197000000 nl=1073741824 v=-4939378
+SP scf=-21 cp=0 nl=0 v=0
+SP scf=-21 cp=0 nl=43874821 v=1889530
+SP scf=-21 cp=0 nl=51160268 v=2203288
+SP scf=-21 cp=0 nl=111416461 v=4798306
+SP scf=-21 cp=0 nl=1073741824 v=46242200
+SP scf=-20 cp=-500000000 nl=0 v=0
+SP scf=-20 cp=-500000000 nl=43874821 v=-2676065
+SP scf=-20 cp=-500000000 nl=51160268 v=-3120428
+SP scf=-20 cp=-500000000 nl=111416461 v=-6795645
+SP scf=-20 cp=-500000000 nl=1073741824 v=-65490926
+SP scf=-20 cp=-232370909 nl=0 v=0
+SP scf=-20 cp=-232370909 nl=43874821 v=-535118
+SP scf=-20 cp=-232370909 nl=51160268 v=-623974
+SP scf=-20 cp=-232370909 nl=111416461 v=-1358885
+SP scf=-20 cp=-232370909 nl=1073741824 v=-13095828
+SP scf=-20 cp=-197662475 nl=0 v=0
+SP scf=-20 cp=-197662475 nl=43874821 v=-257461
+SP scf=-20 cp=-197662475 nl=51160268 v=-300212
+SP scf=-20 cp=-197662475 nl=111416461 v=-653800
+SP scf=-20 cp=-197662475 nl=1073741824 v=-6300784
+SP scf=-20 cp=-197000000 nl=0 v=0
+SP scf=-20 cp=-197000000 nl=43874821 v=-252161
+SP scf=-20 cp=-197000000 nl=51160268 v=-294033
+SP scf=-20 cp=-197000000 nl=111416461 v=-640342
+SP scf=-20 cp=-197000000 nl=1073741824 v=-6171088
+SP scf=-20 cp=0 nl=0 v=0
+SP scf=-20 cp=0 nl=43874821 v=1799552
+SP scf=-20 cp=0 nl=51160268 v=2098369
+SP scf=-20 cp=0 nl=111416461 v=4569815
+SP scf=-20 cp=0 nl=1073741824 v=44040191
+SP scf=-19 cp=-500000000 nl=0 v=0
+SP scf=-19 cp=-500000000 nl=43874821 v=-2726395
+SP scf=-19 cp=-500000000 nl=51160268 v=-3179115
+SP scf=-19 cp=-500000000 nl=111416461 v=-6923453
+SP scf=-19 cp=-500000000 nl=1073741824 v=-66722636
+SP scf=-19 cp=-232370909 nl=0 v=0
+SP scf=-19 cp=-232370909 nl=43874821 v=-585447
+SP scf=-19 cp=-232370909 nl=51160268 v=-682661
+SP scf=-19 cp=-232370909 nl=111416461 v=-1486693
+SP scf=-19 cp=-232370909 nl=1073741824 v=-14327539
+SP scf=-19 cp=-197662475 nl=0 v=0
+SP scf=-19 cp=-197662475 nl=43874821 v=-307790
+SP scf=-19 cp=-197662475 nl=51160268 v=-358900
+SP scf=-19 cp=-197662475 nl=111416461 v=-781607
+SP scf=-19 cp=-197662475 nl=1073741824 v=-7532494
+SP scf=-19 cp=-197000000 nl=0 v=0
+SP scf=-19 cp=-197000000 nl=43874821 v=-302491
+SP scf=-19 cp=-197000000 nl=51160268 v=-352720
+SP scf=-19 cp=-197000000 nl=111416461 v=-768150
+SP scf=-19 cp=-197000000 nl=1073741824 v=-7402797
+SP scf=-19 cp=0 nl=0 v=0
+SP scf=-19 cp=0 nl=43874821 v=1709574
+SP scf=-19 cp=0 nl=51160268 v=1993451
+SP scf=-19 cp=0 nl=111416461 v=4341324
+SP scf=-19 cp=0 nl=1073741824 v=41838181
+SP scf=-18 cp=-500000000 nl=0 v=0
+SP scf=-18 cp=-500000000 nl=43874821 v=-2776725
+SP scf=-18 cp=-500000000 nl=51160268 v=-3237802
+SP scf=-18 cp=-500000000 nl=111416461 v=-7051261
+SP scf=-18 cp=-500000000 nl=1073741824 v=-67954347
+SP scf=-18 cp=-232370909 nl=0 v=0
+SP scf=-18 cp=-232370909 nl=43874821 v=-635777
+SP scf=-18 cp=-232370909 nl=51160268 v=-741348
+SP scf=-18 cp=-232370909 nl=111416461 v=-1614501
+SP scf=-18 cp=-232370909 nl=1073741824 v=-15559249
+SP scf=-18 cp=-197662475 nl=0 v=0
+SP scf=-18 cp=-197662475 nl=43874821 v=-358120
+SP scf=-18 cp=-197662475 nl=51160268 v=-417586
+SP scf=-18 cp=-197662475 nl=111416461 v=-909415
+SP scf=-18 cp=-197662475 nl=1073741824 v=-8764203
+SP scf=-18 cp=-197000000 nl=0 v=0
+SP scf=-18 cp=-197000000 nl=43874821 v=-352821
+SP scf=-18 cp=-197000000 nl=51160268 v=-411407
+SP scf=-18 cp=-197000000 nl=111416461 v=-895958
+SP scf=-18 cp=-197000000 nl=1073741824 v=-8634507
+SP scf=-18 cp=0 nl=0 v=0
+SP scf=-18 cp=0 nl=43874821 v=1619597
+SP scf=-18 cp=0 nl=51160268 v=1888532
+SP scf=-18 cp=0 nl=111416461 v=4112833
+SP scf=-18 cp=0 nl=1073741824 v=39636172
+SP scf=-17 cp=-500000000 nl=0 v=0
+SP scf=-17 cp=-500000000 nl=43874821 v=-2827055
+SP scf=-17 cp=-500000000 nl=51160268 v=-3296489
+SP scf=-17 cp=-500000000 nl=111416461 v=-7179069
+SP scf=-17 cp=-500000000 nl=1073741824 v=-69186057
+SP scf=-17 cp=-232370909 nl=0 v=0
+SP scf=-17 cp=-232370909 nl=43874821 v=-686106
+SP scf=-17 cp=-232370909 nl=51160268 v=-800035
+SP scf=-17 cp=-232370909 nl=111416461 v=-1742309
+SP scf=-17 cp=-232370909 nl=1073741824 v=-16790959
+SP scf=-17 cp=-197662475 nl=0 v=0
+SP scf=-17 cp=-197662475 nl=43874821 v=-408450
+SP scf=-17 cp=-197662475 nl=51160268 v=-476273
+SP scf=-17 cp=-197662475 nl=111416461 v=-1037223
+SP scf=-17 cp=-197662475 nl=1073741824 v=-9995914
+SP scf=-17 cp=-197000000 nl=0 v=0
+SP scf=-17 cp=-197000000 nl=43874821 v=-403150
+SP scf=-17 cp=-197000000 nl=51160268 v=-470094
+SP scf=-17 cp=-197000000 nl=111416461 v=-1023766
+SP scf=-17 cp=-197000000 nl=1073741824 v=-9866218
+SP scf=-17 cp=0 nl=0 v=0
+SP scf=-17 cp=0 nl=43874821 v=1529619
+SP scf=-17 cp=0 nl=51160268 v=1783614
+SP scf=-17 cp=0 nl=111416461 v=3884343
+SP scf=-17 cp=0 nl=1073741824 v=37434162
+SP scf=-16 cp=-500000000 nl=0 v=0
+SP scf=-16 cp=-500000000 nl=43874821 v=-2877384
+SP scf=-16 cp=-500000000 nl=51160268 v=-3355176
+SP scf=-16 cp=-500000000 nl=111416461 v=-7306877
+SP scf=-16 cp=-500000000 nl=1073741824 v=-70417767
+SP scf=-16 cp=-232370909 nl=0 v=0
+SP scf=-16 cp=-232370909 nl=43874821 v=-736436
+SP scf=-16 cp=-232370909 nl=51160268 v=-858722
+SP scf=-16 cp=-232370909 nl=111416461 v=-1870117
+SP scf=-16 cp=-232370909 nl=1073741824 v=-18022669
+SP scf=-16 cp=-197662475 nl=0 v=0
+SP scf=-16 cp=-197662475 nl=43874821 v=-458780
+SP scf=-16 cp=-197662475 nl=51160268 v=-534960
+SP scf=-16 cp=-197662475 nl=111416461 v=-1165031
+SP scf=-16 cp=-197662475 nl=1073741824 v=-11227624
+SP scf=-16 cp=-197000000 nl=0 v=0
+SP scf=-16 cp=-197000000 nl=43874821 v=-453480
+SP scf=-16 cp=-197000000 nl=51160268 v=-528780
+SP scf=-16 cp=-197000000 nl=111416461 v=-1151573
+SP scf=-16 cp=-197000000 nl=1073741824 v=-11097928
+SP scf=-16 cp=0 nl=0 v=0
+SP scf=-16 cp=0 nl=43874821 v=1439642
+SP scf=-16 cp=0 nl=51160268 v=1678695
+SP scf=-16 cp=0 nl=111416461 v=3655852
+SP scf=-16 cp=0 nl=1073741824 v=35232153
+SP scf=-15 cp=-500000000 nl=0 v=0
+SP scf=-15 cp=-500000000 nl=43874821 v=-2927714
+SP scf=-15 cp=-500000000 nl=51160268 v=-3413863
+SP scf=-15 cp=-500000000 nl=111416461 v=-7434685
+SP scf=-15 cp=-500000000 nl=1073741824 v=-71649477
+SP scf=-15 cp=-232370909 nl=0 v=0
+SP scf=-15 cp=-232370909 nl=43874821 v=-786765
+SP scf=-15 cp=-232370909 nl=51160268 v=-917409
+SP scf=-15 cp=-232370909 nl=111416461 v=-1997925
+SP scf=-15 cp=-232370909 nl=1073741824 v=-19254379
+SP scf=-15 cp=-197662475 nl=0 v=0
+SP scf=-15 cp=-197662475 nl=43874821 v=-509109
+SP scf=-15 cp=-197662475 nl=51160268 v=-593647
+SP scf=-15 cp=-197662475 nl=111416461 v=-1292840
+SP scf=-15 cp=-197662475 nl=1073741824 v=-12459334
+SP scf=-15 cp=-197000000 nl=0 v=0
+SP scf=-15 cp=-197000000 nl=43874821 v=-503809
+SP scf=-15 cp=-197000000 nl=51160268 v=-587468
+SP scf=-15 cp=-197000000 nl=111416461 v=-1279381
+SP scf=-15 cp=-197000000 nl=1073741824 v=-12329638
+SP scf=-15 cp=0 nl=0 v=0
+SP scf=-15 cp=0 nl=43874821 v=1349664
+SP scf=-15 cp=0 nl=51160268 v=1573777
+SP scf=-15 cp=0 nl=111416461 v=3427361
+SP scf=-15 cp=0 nl=1073741824 v=33030143
+SP scf=-14 cp=-500000000 nl=0 v=0
+SP scf=-14 cp=-500000000 nl=43874821 v=-2978043
+SP scf=-14 cp=-500000000 nl=51160268 v=-3472550
+SP scf=-14 cp=-500000000 nl=111416461 v=-7562493
+SP scf=-14 cp=-500000000 nl=1073741824 v=-72881187
+SP scf=-14 cp=-232370909 nl=0 v=0
+SP scf=-14 cp=-232370909 nl=43874821 v=-837095
+SP scf=-14 cp=-232370909 nl=51160268 v=-976096
+SP scf=-14 cp=-232370909 nl=111416461 v=-2125733
+SP scf=-14 cp=-232370909 nl=1073741824 v=-20486090
+SP scf=-14 cp=-197662475 nl=0 v=0
+SP scf=-14 cp=-197662475 nl=43874821 v=-559439
+SP scf=-14 cp=-197662475 nl=51160268 v=-652334
+SP scf=-14 cp=-197662475 nl=111416461 v=-1420648
+SP scf=-14 cp=-197662475 nl=1073741824 v=-13691044
+SP scf=-14 cp=-197000000 nl=0 v=0
+SP scf=-14 cp=-197000000 nl=43874821 v=-554139
+SP scf=-14 cp=-197000000 nl=51160268 v=-646154
+SP scf=-14 cp=-197000000 nl=111416461 v=-1407189
+SP scf=-14 cp=-197000000 nl=1073741824 v=-13561348
+SP scf=-14 cp=0 nl=0 v=0
+SP scf=-14 cp=0 nl=43874821 v=1259687
+SP scf=-14 cp=0 nl=51160268 v=1468858
+SP scf=-14 cp=0 nl=111416461 v=3198870
+SP scf=-14 cp=0 nl=1073741824 v=30828133
+SP scf=-13 cp=-500000000 nl=0 v=0
+SP scf=-13 cp=-500000000 nl=43874821 v=-3028373
+SP scf=-13 cp=-500000000 nl=51160268 v=-3531237
+SP scf=-13 cp=-500000000 nl=111416461 v=-7690300
+SP scf=-13 cp=-500000000 nl=1073741824 v=-74112897
+SP scf=-13 cp=-232370909 nl=0 v=0
+SP scf=-13 cp=-232370909 nl=43874821 v=-887425
+SP scf=-13 cp=-232370909 nl=51160268 v=-1034782
+SP scf=-13 cp=-232370909 nl=111416461 v=-2253541
+SP scf=-13 cp=-232370909 nl=1073741824 v=-21717800
+SP scf=-13 cp=-197662475 nl=0 v=0
+SP scf=-13 cp=-197662475 nl=43874821 v=-609768
+SP scf=-13 cp=-197662475 nl=51160268 v=-711021
+SP scf=-13 cp=-197662475 nl=111416461 v=-1548455
+SP scf=-13 cp=-197662475 nl=1073741824 v=-14922754
+SP scf=-13 cp=-197000000 nl=0 v=0
+SP scf=-13 cp=-197000000 nl=43874821 v=-604469
+SP scf=-13 cp=-197000000 nl=51160268 v=-704842
+SP scf=-13 cp=-197000000 nl=111416461 v=-1534998
+SP scf=-13 cp=-197000000 nl=1073741824 v=-14793058
+SP scf=-13 cp=0 nl=0 v=0
+SP scf=-13 cp=0 nl=43874821 v=1169709
+SP scf=-13 cp=0 nl=51160268 v=1363940
+SP scf=-13 cp=0 nl=111416461 v=2970379
+SP scf=-13 cp=0 nl=1073741824 v=28626124
+SP scf=-12 cp=-500000000 nl=0 v=0
+SP scf=-12 cp=-500000000 nl=43874821 v=-3078703
+SP scf=-12 cp=-500000000 nl=51160268 v=-3589924
+SP scf=-12 cp=-500000000 nl=111416461 v=-7818109
+SP scf=-12 cp=-500000000 nl=1073741824 v=-75344607
+SP scf=-12 cp=-232370909 nl=0 v=0
+SP scf=-12 cp=-232370909 nl=43874821 v=-937755
+SP scf=-12 cp=-232370909 nl=51160268 v=-1093470
+SP scf=-12 cp=-232370909 nl=111416461 v=-2381349
+SP scf=-12 cp=-232370909 nl=1073741824 v=-22949509
+SP scf=-12 cp=-197662475 nl=0 v=0
+SP scf=-12 cp=-197662475 nl=43874821 v=-660098
+SP scf=-12 cp=-197662475 nl=51160268 v=-769708
+SP scf=-12 cp=-197662475 nl=111416461 v=-1676263
+SP scf=-12 cp=-197662475 nl=1073741824 v=-16154464
+SP scf=-12 cp=-197000000 nl=0 v=0
+SP scf=-12 cp=-197000000 nl=43874821 v=-654799
+SP scf=-12 cp=-197000000 nl=51160268 v=-763528
+SP scf=-12 cp=-197000000 nl=111416461 v=-1662806
+SP scf=-12 cp=-197000000 nl=1073741824 v=-16024768
+SP scf=-12 cp=0 nl=0 v=0
+SP scf=-12 cp=0 nl=43874821 v=1079731
+SP scf=-12 cp=0 nl=51160268 v=1259022
+SP scf=-12 cp=0 nl=111416461 v=2741888
+SP scf=-12 cp=0 nl=1073741824 v=26424114
+SP scf=-11 cp=-500000000 nl=0 v=0
+SP scf=-11 cp=-500000000 nl=43874821 v=-3129033
+SP scf=-11 cp=-500000000 nl=51160268 v=-3648610
+SP scf=-11 cp=-500000000 nl=111416461 v=-7945917
+SP scf=-11 cp=-500000000 nl=1073741824 v=-76576317
+SP scf=-11 cp=-232370909 nl=0 v=0
+SP scf=-11 cp=-232370909 nl=43874821 v=-988084
+SP scf=-11 cp=-232370909 nl=51160268 v=-1152156
+SP scf=-11 cp=-232370909 nl=111416461 v=-2509157
+SP scf=-11 cp=-232370909 nl=1073741824 v=-24181219
+SP scf=-11 cp=-197662475 nl=0 v=0
+SP scf=-11 cp=-197662475 nl=43874821 v=-710428
+SP scf=-11 cp=-197662475 nl=51160268 v=-828395
+SP scf=-11 cp=-197662475 nl=111416461 v=-1804071
+SP scf=-11 cp=-197662475 nl=1073741824 v=-17386175
+SP scf=-11 cp=-197000000 nl=0 v=0
+SP scf=-11 cp=-197000000 nl=43874821 v=-705128
+SP scf=-11 cp=-197000000 nl=51160268 v=-822216
+SP scf=-11 cp=-197000000 nl=111416461 v=-1790614
+SP scf=-11 cp=-197000000 nl=1073741824 v=-17256478
+SP scf=-11 cp=0 nl=0 v=0
+SP scf=-11 cp=0 nl=43874821 v=989753
+SP scf=-11 cp=0 nl=51160268 v=1154103
+SP scf=-11 cp=0 nl=111416461 v=2513398
+SP scf=-11 cp=0 nl=1073741824 v=24222105
+SP scf=-10 cp=-500000000 nl=0 v=0
+SP scf=-10 cp=-500000000 nl=43874821 v=-3179362
+SP scf=-10 cp=-500000000 nl=51160268 v=-3707298
+SP scf=-10 cp=-500000000 nl=111416461 v=-8073725
+SP scf=-10 cp=-500000000 nl=1073741824 v=-77808027
+SP scf=-10 cp=-232370909 nl=0 v=0
+SP scf=-10 cp=-232370909 nl=43874821 v=-1038414
+SP scf=-10 cp=-232370909 nl=51160268 v=-1210844
+SP scf=-10 cp=-232370909 nl=111416461 v=-2636965
+SP scf=-10 cp=-232370909 nl=1073741824 v=-25412930
+SP scf=-10 cp=-197662475 nl=0 v=0
+SP scf=-10 cp=-197662475 nl=43874821 v=-760758
+SP scf=-10 cp=-197662475 nl=51160268 v=-887082
+SP scf=-10 cp=-197662475 nl=111416461 v=-1931879
+SP scf=-10 cp=-197662475 nl=1073741824 v=-18617884
+SP scf=-10 cp=-197000000 nl=0 v=0
+SP scf=-10 cp=-197000000 nl=43874821 v=-755458
+SP scf=-10 cp=-197000000 nl=51160268 v=-880902
+SP scf=-10 cp=-197000000 nl=111416461 v=-1918421
+SP scf=-10 cp=-197000000 nl=1073741824 v=-18488188
+SP scf=-10 cp=0 nl=0 v=0
+SP scf=-10 cp=0 nl=43874821 v=899776
+SP scf=-10 cp=0 nl=51160268 v=1049184
+SP scf=-10 cp=0 nl=111416461 v=2284907
+SP scf=-10 cp=0 nl=1073741824 v=22020095
+SP scf=-9 cp=-500000000 nl=0 v=0
+SP scf=-9 cp=-500000000 nl=43874821 v=-3229692
+SP scf=-9 cp=-500000000 nl=51160268 v=-3765984
+SP scf=-9 cp=-500000000 nl=111416461 v=-8201533
+SP scf=-9 cp=-500000000 nl=1073741824 v=-79039738
+SP scf=-9 cp=-232370909 nl=0 v=0
+SP scf=-9 cp=-232370909 nl=43874821 v=-1088744
+SP scf=-9 cp=-232370909 nl=51160268 v=-1269530
+SP scf=-9 cp=-232370909 nl=111416461 v=-2764773
+SP scf=-9 cp=-232370909 nl=1073741824 v=-26644640
+SP scf=-9 cp=-197662475 nl=0 v=0
+SP scf=-9 cp=-197662475 nl=43874821 v=-811087
+SP scf=-9 cp=-197662475 nl=51160268 v=-945769
+SP scf=-9 cp=-197662475 nl=111416461 v=-2059687
+SP scf=-9 cp=-197662475 nl=1073741824 v=-19849594
+SP scf=-9 cp=-197000000 nl=0 v=0
+SP scf=-9 cp=-197000000 nl=43874821 v=-805788
+SP scf=-9 cp=-197000000 nl=51160268 v=-939589
+SP scf=-9 cp=-197000000 nl=111416461 v=-2046229
+SP scf=-9 cp=-197000000 nl=1073741824 v=-19719898
+SP scf=-9 cp=0 nl=0 v=0
+SP scf=-9 cp=0 nl=43874821 v=809798
+SP scf=-9 cp=0 nl=51160268 v=944266
+SP scf=-9 cp=0 nl=111416461 v=2056416
+SP scf=-9 cp=0 nl=1073741824 v=19818086
+SP scf=-8 cp=-500000000 nl=0 v=0
+SP scf=-8 cp=-500000000 nl=43874821 v=-3280021
+SP scf=-8 cp=-500000000 nl=51160268 v=-3824672
+SP scf=-8 cp=-500000000 nl=111416461 v=-8329341
+SP scf=-8 cp=-500000000 nl=1073741824 v=-80271448
+SP scf=-8 cp=-232370909 nl=0 v=0
+SP scf=-8 cp=-232370909 nl=43874821 v=-1139073
+SP scf=-8 cp=-232370909 nl=51160268 v=-1328218
+SP scf=-8 cp=-232370909 nl=111416461 v=-2892581
+SP scf=-8 cp=-232370909 nl=1073741824 v=-27876350
+SP scf=-8 cp=-197662475 nl=0 v=0
+SP scf=-8 cp=-197662475 nl=43874821 v=-861417
+SP scf=-8 cp=-197662475 nl=51160268 v=-1004456
+SP scf=-8 cp=-197662475 nl=111416461 v=-2187496
+SP scf=-8 cp=-197662475 nl=1073741824 v=-21081304
+SP scf=-8 cp=-197000000 nl=0 v=0
+SP scf=-8 cp=-197000000 nl=43874821 v=-856117
+SP scf=-8 cp=-197000000 nl=51160268 v=-998276
+SP scf=-8 cp=-197000000 nl=111416461 v=-2174037
+SP scf=-8 cp=-197000000 nl=1073741824 v=-20951608
+SP scf=-8 cp=0 nl=0 v=0
+SP scf=-8 cp=0 nl=43874821 v=719821
+SP scf=-8 cp=0 nl=51160268 v=839347
+SP scf=-8 cp=0 nl=111416461 v=1827926
+SP scf=-8 cp=0 nl=1073741824 v=17616076
+SP scf=-7 cp=-500000000 nl=0 v=0
+SP scf=-7 cp=-500000000 nl=43874821 v=-3330351
+SP scf=-7 cp=-500000000 nl=51160268 v=-3883358
+SP scf=-7 cp=-500000000 nl=111416461 v=-8457148
+SP scf=-7 cp=-500000000 nl=1073741824 v=-81503158
+SP scf=-7 cp=-232370909 nl=0 v=0
+SP scf=-7 cp=-232370909 nl=43874821 v=-1189403
+SP scf=-7 cp=-232370909 nl=51160268 v=-1386904
+SP scf=-7 cp=-232370909 nl=111416461 v=-3020389
+SP scf=-7 cp=-232370909 nl=1073741824 v=-29108060
+SP scf=-7 cp=-197662475 nl=0 v=0
+SP scf=-7 cp=-197662475 nl=43874821 v=-911746
+SP scf=-7 cp=-197662475 nl=51160268 v=-1063142
+SP scf=-7 cp=-197662475 nl=111416461 v=-2315303
+SP scf=-7 cp=-197662475 nl=1073741824 v=-22313015
+SP scf=-7 cp=-197000000 nl=0 v=0
+SP scf=-7 cp=-197000000 nl=43874821 v=-906447
+SP scf=-7 cp=-197000000 nl=51160268 v=-1056963
+SP scf=-7 cp=-197000000 nl=111416461 v=-2301845
+SP scf=-7 cp=-197000000 nl=1073741824 v=-22183319
+SP scf=-7 cp=0 nl=0 v=0
+SP scf=-7 cp=0 nl=43874821 v=669491
+SP scf=-7 cp=0 nl=51160268 v=780660
+SP scf=-7 cp=0 nl=111416461 v=1700117
+SP scf=-7 cp=0 nl=1073741824 v=16384366
+SP scf=-6 cp=-500000000 nl=0 v=0
+SP scf=-6 cp=-500000000 nl=43874821 v=-3380681
+SP scf=-6 cp=-500000000 nl=51160268 v=-3942046
+SP scf=-6 cp=-500000000 nl=111416461 v=-8584956
+SP scf=-6 cp=-500000000 nl=1073741824 v=-82734868
+SP scf=-6 cp=-232370909 nl=0 v=0
+SP scf=-6 cp=-232370909 nl=43874821 v=-1239733
+SP scf=-6 cp=-232370909 nl=51160268 v=-1445591
+SP scf=-6 cp=-232370909 nl=111416461 v=-3148197
+SP scf=-6 cp=-232370909 nl=1073741824 v=-30339770
+SP scf=-6 cp=-197662475 nl=0 v=0
+SP scf=-6 cp=-197662475 nl=43874821 v=-962076
+SP scf=-6 cp=-197662475 nl=51160268 v=-1121830
+SP scf=-6 cp=-197662475 nl=111416461 v=-2443111
+SP scf=-6 cp=-197662475 nl=1073741824 v=-23544725
+SP scf=-6 cp=-197000000 nl=0 v=0
+SP scf=-6 cp=-197000000 nl=43874821 v=-956777
+SP scf=-6 cp=-197000000 nl=51160268 v=-1115650
+SP scf=-6 cp=-197000000 nl=111416461 v=-2429654
+SP scf=-6 cp=-197000000 nl=1073741824 v=-23415029
+SP scf=-6 cp=0 nl=0 v=0
+SP scf=-6 cp=0 nl=43874821 v=619161
+SP scf=-6 cp=0 nl=51160268 v=721973
+SP scf=-6 cp=0 nl=111416461 v=1572309
+SP scf=-6 cp=0 nl=1073741824 v=15152656
+SP scf=-5 cp=-500000000 nl=0 v=0
+SP scf=-5 cp=-500000000 nl=43874821 v=-3431011
+SP scf=-5 cp=-500000000 nl=51160268 v=-4000732
+SP scf=-5 cp=-500000000 nl=111416461 v=-8712765
+SP scf=-5 cp=-500000000 nl=1073741824 v=-83966578
+SP scf=-5 cp=-232370909 nl=0 v=0
+SP scf=-5 cp=-232370909 nl=43874821 v=-1290063
+SP scf=-5 cp=-232370909 nl=51160268 v=-1504278
+SP scf=-5 cp=-232370909 nl=111416461 v=-3276005
+SP scf=-5 cp=-232370909 nl=1073741824 v=-31571480
+SP scf=-5 cp=-197662475 nl=0 v=0
+SP scf=-5 cp=-197662475 nl=43874821 v=-1012406
+SP scf=-5 cp=-197662475 nl=51160268 v=-1180516
+SP scf=-5 cp=-197662475 nl=111416461 v=-2570919
+SP scf=-5 cp=-197662475 nl=1073741824 v=-24776435
+SP scf=-5 cp=-197000000 nl=0 v=0
+SP scf=-5 cp=-197000000 nl=43874821 v=-1007107
+SP scf=-5 cp=-197000000 nl=51160268 v=-1174337
+SP scf=-5 cp=-197000000 nl=111416461 v=-2557462
+SP scf=-5 cp=-197000000 nl=1073741824 v=-24646739
+SP scf=-5 cp=0 nl=0 v=0
+SP scf=-5 cp=0 nl=43874821 v=568831
+SP scf=-5 cp=0 nl=51160268 v=663287
+SP scf=-5 cp=0 nl=111416461 v=1444501
+SP scf=-5 cp=0 nl=1073741824 v=13920945
+SP scf=-4 cp=-500000000 nl=0 v=0
+SP scf=-4 cp=-500000000 nl=43874821 v=-3481340
+SP scf=-4 cp=-500000000 nl=51160268 v=-4059419
+SP scf=-4 cp=-500000000 nl=111416461 v=-8840573
+SP scf=-4 cp=-500000000 nl=1073741824 v=-85198288
+SP scf=-4 cp=-232370909 nl=0 v=0
+SP scf=-4 cp=-232370909 nl=43874821 v=-1340392
+SP scf=-4 cp=-232370909 nl=51160268 v=-1562965
+SP scf=-4 cp=-232370909 nl=111416461 v=-3403813
+SP scf=-4 cp=-232370909 nl=1073741824 v=-32803190
+SP scf=-4 cp=-197662475 nl=0 v=0
+SP scf=-4 cp=-197662475 nl=43874821 v=-1062736
+SP scf=-4 cp=-197662475 nl=51160268 v=-1239203
+SP scf=-4 cp=-197662475 nl=111416461 v=-2698727
+SP scf=-4 cp=-197662475 nl=1073741824 v=-26008145
+SP scf=-4 cp=-197000000 nl=0 v=0
+SP scf=-4 cp=-197000000 nl=43874821 v=-1057436
+SP scf=-4 cp=-197000000 nl=51160268 v=-1233024
+SP scf=-4 cp=-197000000 nl=111416461 v=-2685269
+SP scf=-4 cp=-197000000 nl=1073741824 v=-25878449
+SP scf=-4 cp=0 nl=0 v=0
+SP scf=-4 cp=0 nl=43874821 v=518502
+SP scf=-4 cp=0 nl=51160268 v=604599
+SP scf=-4 cp=0 nl=111416461 v=1316693
+SP scf=-4 cp=0 nl=1073741824 v=12689235
+SP scf=-3 cp=-500000000 nl=0 v=0
+SP scf=-3 cp=-500000000 nl=43874821 v=-3531670
+SP scf=-3 cp=-500000000 nl=51160268 v=-4118106
+SP scf=-3 cp=-500000000 nl=111416461 v=-8968381
+SP scf=-3 cp=-500000000 nl=1073741824 v=-86429998
+SP scf=-3 cp=-232370909 nl=0 v=0
+SP scf=-3 cp=-232370909 nl=43874821 v=-1390722
+SP scf=-3 cp=-232370909 nl=51160268 v=-1621652
+SP scf=-3 cp=-232370909 nl=111416461 v=-3531621
+SP scf=-3 cp=-232370909 nl=1073741824 v=-34034900
+SP scf=-3 cp=-197662475 nl=0 v=0
+SP scf=-3 cp=-197662475 nl=43874821 v=-1113065
+SP scf=-3 cp=-197662475 nl=51160268 v=-1297890
+SP scf=-3 cp=-197662475 nl=111416461 v=-2826535
+SP scf=-3 cp=-197662475 nl=1073741824 v=-27239855
+SP scf=-3 cp=-197000000 nl=0 v=0
+SP scf=-3 cp=-197000000 nl=43874821 v=-1107766
+SP scf=-3 cp=-197000000 nl=51160268 v=-1291710
+SP scf=-3 cp=-197000000 nl=111416461 v=-2813077
+SP scf=-3 cp=-197000000 nl=1073741824 v=-27110159
+SP scf=-3 cp=0 nl=0 v=0
+SP scf=-3 cp=0 nl=43874821 v=468172
+SP scf=-3 cp=0 nl=51160268 v=545913
+SP scf=-3 cp=0 nl=111416461 v=1188886
+SP scf=-3 cp=0 nl=1073741824 v=11457525
+SP scf=-2 cp=-500000000 nl=0 v=0
+SP scf=-2 cp=-500000000 nl=43874821 v=-3581999
+SP scf=-2 cp=-500000000 nl=51160268 v=-4176793
+SP scf=-2 cp=-500000000 nl=111416461 v=-9096189
+SP scf=-2 cp=-500000000 nl=1073741824 v=-87661708
+SP scf=-2 cp=-232370909 nl=0 v=0
+SP scf=-2 cp=-232370909 nl=43874821 v=-1441051
+SP scf=-2 cp=-232370909 nl=51160268 v=-1680339
+SP scf=-2 cp=-232370909 nl=111416461 v=-3659429
+SP scf=-2 cp=-232370909 nl=1073741824 v=-35266610
+SP scf=-2 cp=-197662475 nl=0 v=0
+SP scf=-2 cp=-197662475 nl=43874821 v=-1163395
+SP scf=-2 cp=-197662475 nl=51160268 v=-1356577
+SP scf=-2 cp=-197662475 nl=111416461 v=-2954343
+SP scf=-2 cp=-197662475 nl=1073741824 v=-28471565
+SP scf=-2 cp=-197000000 nl=0 v=0
+SP scf=-2 cp=-197000000 nl=43874821 v=-1158095
+SP scf=-2 cp=-197000000 nl=51160268 v=-1350398
+SP scf=-2 cp=-197000000 nl=111416461 v=-2940885
+SP scf=-2 cp=-197000000 nl=1073741824 v=-28341869
+SP scf=-2 cp=0 nl=0 v=0
+SP scf=-2 cp=0 nl=43874821 v=417843
+SP scf=-2 cp=0 nl=51160268 v=487225
+SP scf=-2 cp=0 nl=111416461 v=1061078
+SP scf=-2 cp=0 nl=1073741824 v=10225815
+SP scf=-1 cp=-500000000 nl=0 v=0
+SP scf=-1 cp=-500000000 nl=43874821 v=-3632329
+SP scf=-1 cp=-500000000 nl=51160268 v=-4235480
+SP scf=-1 cp=-500000000 nl=111416461 v=-9223996
+SP scf=-1 cp=-500000000 nl=1073741824 v=-88893418
+SP scf=-1 cp=-232370909 nl=0 v=0
+SP scf=-1 cp=-232370909 nl=43874821 v=-1491381
+SP scf=-1 cp=-232370909 nl=51160268 v=-1739026
+SP scf=-1 cp=-232370909 nl=111416461 v=-3787237
+SP scf=-1 cp=-232370909 nl=1073741824 v=-36498320
+SP scf=-1 cp=-197662475 nl=0 v=0
+SP scf=-1 cp=-197662475 nl=43874821 v=-1213724
+SP scf=-1 cp=-197662475 nl=51160268 v=-1415264
+SP scf=-1 cp=-197662475 nl=111416461 v=-3082151
+SP scf=-1 cp=-197662475 nl=1073741824 v=-29703275
+SP scf=-1 cp=-197000000 nl=0 v=0
+SP scf=-1 cp=-197000000 nl=43874821 v=-1208425
+SP scf=-1 cp=-197000000 nl=51160268 v=-1409084
+SP scf=-1 cp=-197000000 nl=111416461 v=-3068693
+SP scf=-1 cp=-197000000 nl=1073741824 v=-29573579
+SP scf=-1 cp=0 nl=0 v=0
+SP scf=-1 cp=0 nl=43874821 v=367513
+SP scf=-1 cp=0 nl=51160268 v=428539
+SP scf=-1 cp=0 nl=111416461 v=933270
+SP scf=-1 cp=0 nl=1073741824 v=8994105
+SP scf=0 cp=-500000000 nl=0 v=0
+SP scf=0 cp=-500000000 nl=43874821 v=-3682658
+SP scf=0 cp=-500000000 nl=51160268 v=-4294167
+SP scf=0 cp=-500000000 nl=111416461 v=-9351804
+SP scf=0 cp=-500000000 nl=1073741824 v=-90125128
+SP scf=0 cp=-232370909 nl=0 v=0
+SP scf=0 cp=-232370909 nl=43874821 v=-1541711
+SP scf=0 cp=-232370909 nl=51160268 v=-1797712
+SP scf=0 cp=-232370909 nl=111416461 v=-3915044
+SP scf=0 cp=-232370909 nl=1073741824 v=-37730031
+SP scf=0 cp=-197662475 nl=0 v=0
+SP scf=0 cp=-197662475 nl=43874821 v=-1264054
+SP scf=0 cp=-197662475 nl=51160268 v=-1473951
+SP scf=0 cp=-197662475 nl=111416461 v=-3209959
+SP scf=0 cp=-197662475 nl=1073741824 v=-30934985
+SP scf=0 cp=-197000000 nl=0 v=0
+SP scf=0 cp=-197000000 nl=43874821 v=-1258754
+SP scf=0 cp=-197000000 nl=51160268 v=-1467772
+SP scf=0 cp=-197000000 nl=111416461 v=-3196501
+SP scf=0 cp=-197000000 nl=1073741824 v=-30805289
+SP scf=0 cp=0 nl=0 v=0
+SP scf=0 cp=0 nl=43874821 v=317183
+SP scf=0 cp=0 nl=51160268 v=369851
+SP scf=0 cp=0 nl=111416461 v=805461
+SP scf=0 cp=0 nl=1073741824 v=7762395
+SP scf=1 cp=-500000000 nl=0 v=0
+SP scf=1 cp=-500000000 nl=43874821 v=-3732988
+SP scf=1 cp=-500000000 nl=51160268 v=-4352854
+SP scf=1 cp=-500000000 nl=111416461 v=-9479612
+SP scf=1 cp=-500000000 nl=1073741824 v=-91356839
+SP scf=1 cp=-232370909 nl=0 v=0
+SP scf=1 cp=-232370909 nl=43874821 v=-1592041
+SP scf=1 cp=-232370909 nl=51160268 v=-1856400
+SP scf=1 cp=-232370909 nl=111416461 v=-4042853
+SP scf=1 cp=-232370909 nl=1073741824 v=-38961741
+SP scf=1 cp=-197662475 nl=0 v=0
+SP scf=1 cp=-197662475 nl=43874821 v=-1314384
+SP scf=1 cp=-197662475 nl=51160268 v=-1532638
+SP scf=1 cp=-197662475 nl=111416461 v=-3337767
+SP scf=1 cp=-197662475 nl=1073741824 v=-32166695
+SP scf=1 cp=-197000000 nl=0 v=0
+SP scf=1 cp=-197000000 nl=43874821 v=-1309084
+SP scf=1 cp=-197000000 nl=51160268 v=-1526458
+SP scf=1 cp=-197000000 nl=111416461 v=-3324310
+SP scf=1 cp=-197000000 nl=1073741824 v=-32036999
+SP scf=1 cp=0 nl=0 v=0
+SP scf=1 cp=0 nl=43874821 v=266853
+SP scf=1 cp=0 nl=51160268 v=311165
+SP scf=1 cp=0 nl=111416461 v=677653
+SP scf=1 cp=0 nl=1073741824 v=6530685
+SP scf=2 cp=-500000000 nl=0 v=0
+SP scf=2 cp=-500000000 nl=43874821 v=-3783318
+SP scf=2 cp=-500000000 nl=51160268 v=-4411541
+SP scf=2 cp=-500000000 nl=111416461 v=-9607421
+SP scf=2 cp=-500000000 nl=1073741824 v=-92588549
+SP scf=2 cp=-232370909 nl=0 v=0
+SP scf=2 cp=-232370909 nl=43874821 v=-1642370
+SP scf=2 cp=-232370909 nl=51160268 v=-1915086
+SP scf=2 cp=-232370909 nl=111416461 v=-4170661
+SP scf=2 cp=-232370909 nl=1073741824 v=-40193451
+SP scf=2 cp=-197662475 nl=0 v=0
+SP scf=2 cp=-197662475 nl=43874821 v=-1364713
+SP scf=2 cp=-197662475 nl=51160268 v=-1591325
+SP scf=2 cp=-197662475 nl=111416461 v=-3465575
+SP scf=2 cp=-197662475 nl=1073741824 v=-33398406
+SP scf=2 cp=-197000000 nl=0 v=0
+SP scf=2 cp=-197000000 nl=43874821 v=-1359414
+SP scf=2 cp=-197000000 nl=51160268 v=-1585146
+SP scf=2 cp=-197000000 nl=111416461 v=-3452117
+SP scf=2 cp=-197000000 nl=1073741824 v=-33268710
+SP scf=2 cp=0 nl=0 v=0
+SP scf=2 cp=0 nl=43874821 v=216523
+SP scf=2 cp=0 nl=51160268 v=252478
+SP scf=2 cp=0 nl=111416461 v=549845
+SP scf=2 cp=0 nl=1073741824 v=5298975
+SP scf=3 cp=-500000000 nl=0 v=0
+SP scf=3 cp=-500000000 nl=43874821 v=-3833648
+SP scf=3 cp=-500000000 nl=51160268 v=-4470228
+SP scf=3 cp=-500000000 nl=111416461 v=-9735229
+SP scf=3 cp=-500000000 nl=1073741824 v=-93820258
+SP scf=3 cp=-232370909 nl=0 v=0
+SP scf=3 cp=-232370909 nl=43874821 v=-1692700
+SP scf=3 cp=-232370909 nl=51160268 v=-1973774
+SP scf=3 cp=-232370909 nl=111416461 v=-4298469
+SP scf=3 cp=-232370909 nl=1073741824 v=-41425161
+SP scf=3 cp=-197662475 nl=0 v=0
+SP scf=3 cp=-197662475 nl=43874821 v=-1415043
+SP scf=3 cp=-197662475 nl=51160268 v=-1650012
+SP scf=3 cp=-197662475 nl=111416461 v=-3593383
+SP scf=3 cp=-197662475 nl=1073741824 v=-34630116
+SP scf=3 cp=-197000000 nl=0 v=0
+SP scf=3 cp=-197000000 nl=43874821 v=-1409744
+SP scf=3 cp=-197000000 nl=51160268 v=-1643832
+SP scf=3 cp=-197000000 nl=111416461 v=-3579925
+SP scf=3 cp=-197000000 nl=1073741824 v=-34500420
+SP scf=3 cp=0 nl=0 v=0
+SP scf=3 cp=0 nl=43874821 v=166194
+SP scf=3 cp=0 nl=51160268 v=193791
+SP scf=3 cp=0 nl=111416461 v=422038
+SP scf=3 cp=0 nl=1073741824 v=4067265
+SP scf=4 cp=-500000000 nl=0 v=0
+SP scf=4 cp=-500000000 nl=43874821 v=-3883978
+SP scf=4 cp=-500000000 nl=51160268 v=-4528914
+SP scf=4 cp=-500000000 nl=111416461 v=-9863037
+SP scf=4 cp=-500000000 nl=1073741824 v=-95051968
+SP scf=4 cp=-232370909 nl=0 v=0
+SP scf=4 cp=-232370909 nl=43874821 v=-1743029
+SP scf=4 cp=-232370909 nl=51160268 v=-2032460
+SP scf=4 cp=-232370909 nl=111416461 v=-4426277
+SP scf=4 cp=-232370909 nl=1073741824 v=-42656871
+SP scf=4 cp=-197662475 nl=0 v=0
+SP scf=4 cp=-197662475 nl=43874821 v=-1465373
+SP scf=4 cp=-197662475 nl=51160268 v=-1708699
+SP scf=4 cp=-197662475 nl=111416461 v=-3721191
+SP scf=4 cp=-197662475 nl=1073741824 v=-35861826
+SP scf=4 cp=-197000000 nl=0 v=0
+SP scf=4 cp=-197000000 nl=43874821 v=-1460073
+SP scf=4 cp=-197000000 nl=51160268 v=-1702519
+SP scf=4 cp=-197000000 nl=111416461 v=-3707733
+SP scf=4 cp=-197000000 nl=1073741824 v=-35732130
+SP scf=4 cp=0 nl=0 v=0
+SP scf=4 cp=0 nl=43874821 v=115864
+SP scf=4 cp=0 nl=51160268 v=135104
+SP scf=4 cp=0 nl=111416461 v=294230
+SP scf=4 cp=0 nl=1073741824 v=2835555
+SP scf=5 cp=-500000000 nl=0 v=0
+SP scf=5 cp=-500000000 nl=43874821 v=-3934307
+SP scf=5 cp=-500000000 nl=51160268 v=-4587602
+SP scf=5 cp=-500000000 nl=111416461 v=-9990845
+SP scf=5 cp=-500000000 nl=1073741824 v=-96283679
+SP scf=5 cp=-232370909 nl=0 v=0
+SP scf=5 cp=-232370909 nl=43874821 v=-1793359
+SP scf=5 cp=-232370909 nl=51160268 v=-2091148
+SP scf=5 cp=-232370909 nl=111416461 v=-4554085
+SP scf=5 cp=-232370909 nl=1073741824 v=-43888581
+SP scf=5 cp=-197662475 nl=0 v=0
+SP scf=5 cp=-197662475 nl=43874821 v=-1515703
+SP scf=5 cp=-197662475 nl=51160268 v=-1767386
+SP scf=5 cp=-197662475 nl=111416461 v=-3848999
+SP scf=5 cp=-197662475 nl=1073741824 v=-37093536
+SP scf=5 cp=-197000000 nl=0 v=0
+SP scf=5 cp=-197000000 nl=43874821 v=-1510403
+SP scf=5 cp=-197000000 nl=51160268 v=-1761206
+SP scf=5 cp=-197000000 nl=111416461 v=-3835541
+SP scf=5 cp=-197000000 nl=1073741824 v=-36963839
+SP scf=5 cp=0 nl=0 v=0
+SP scf=5 cp=0 nl=43874821 v=65535
+SP scf=5 cp=0 nl=51160268 v=76417
+SP scf=5 cp=0 nl=111416461 v=166422
+SP scf=5 cp=0 nl=1073741824 v=1603844
+SP scf=6 cp=-500000000 nl=0 v=0
+SP scf=6 cp=-500000000 nl=43874821 v=-3984637
+SP scf=6 cp=-500000000 nl=51160268 v=-4646288
+SP scf=6 cp=-500000000 nl=111416461 v=-10118652
+SP scf=6 cp=-500000000 nl=1073741824 v=-97515389
+SP scf=6 cp=-232370909 nl=0 v=0
+SP scf=6 cp=-232370909 nl=43874821 v=-1843688
+SP scf=6 cp=-232370909 nl=51160268 v=-2149834
+SP scf=6 cp=-232370909 nl=111416461 v=-4681893
+SP scf=6 cp=-232370909 nl=1073741824 v=-45120291
+SP scf=6 cp=-197662475 nl=0 v=0
+SP scf=6 cp=-197662475 nl=43874821 v=-1566032
+SP scf=6 cp=-197662475 nl=51160268 v=-1826073
+SP scf=6 cp=-197662475 nl=111416461 v=-3976807
+SP scf=6 cp=-197662475 nl=1073741824 v=-38325246
+SP scf=6 cp=-197000000 nl=0 v=0
+SP scf=6 cp=-197000000 nl=43874821 v=-1560732
+SP scf=6 cp=-197000000 nl=51160268 v=-1819893
+SP scf=6 cp=-197000000 nl=111416461 v=-3963349
+SP scf=6 cp=-197000000 nl=1073741824 v=-38195550
+SP scf=6 cp=0 nl=0 v=0
+SP scf=6 cp=0 nl=43874821 v=15205
+SP scf=6 cp=0 nl=51160268 v=17730
+SP scf=6 cp=0 nl=111416461 v=38614
+SP scf=6 cp=0 nl=1073741824 v=372134
+SP scf=7 cp=-500000000 nl=0 v=0
+SP scf=7 cp=-500000000 nl=43874821 v=-4034966
+SP scf=7 cp=-500000000 nl=51160268 v=-4704976
+SP scf=7 cp=-500000000 nl=111416461 v=-10246460
+SP scf=7 cp=-500000000 nl=1073741824 v=-98747099
+SP scf=7 cp=-232370909 nl=0 v=0
+SP scf=7 cp=-232370909 nl=43874821 v=-1894018
+SP scf=7 cp=-232370909 nl=51160268 v=-2208521
+SP scf=7 cp=-232370909 nl=111416461 v=-4809700
+SP scf=7 cp=-232370909 nl=1073741824 v=-46352001
+SP scf=7 cp=-197662475 nl=0 v=0
+SP scf=7 cp=-197662475 nl=43874821 v=-1616362
+SP scf=7 cp=-197662475 nl=51160268 v=-1884760
+SP scf=7 cp=-197662475 nl=111416461 v=-4104615
+SP scf=7 cp=-197662475 nl=1073741824 v=-39556956
+SP scf=7 cp=-197000000 nl=0 v=0
+SP scf=7 cp=-197000000 nl=43874821 v=-1611062
+SP scf=7 cp=-197000000 nl=51160268 v=-1878580
+SP scf=7 cp=-197000000 nl=111416461 v=-4091157
+SP scf=7 cp=-197000000 nl=1073741824 v=-39427260
+SP scf=7 cp=0 nl=0 v=0
+SP scf=7 cp=0 nl=43874821 v=-35124
+SP scf=7 cp=0 nl=51160268 v=-40957
+SP scf=7 cp=0 nl=111416461 v=-89194
+SP scf=7 cp=0 nl=1073741824 v=-859576
+SP scf=8 cp=-500000000 nl=0 v=0
+SP scf=8 cp=-500000000 nl=43874821 v=-4085296
+SP scf=8 cp=-500000000 nl=51160268 v=-4763662
+SP scf=8 cp=-500000000 nl=111416461 v=-10374268
+SP scf=8 cp=-500000000 nl=1073741824 v=-99978809
+SP scf=8 cp=-232370909 nl=0 v=0
+SP scf=8 cp=-232370909 nl=43874821 v=-1944348
+SP scf=8 cp=-232370909 nl=51160268 v=-2267208
+SP scf=8 cp=-232370909 nl=111416461 v=-4937509
+SP scf=8 cp=-232370909 nl=1073741824 v=-47583711
+SP scf=8 cp=-197662475 nl=0 v=0
+SP scf=8 cp=-197662475 nl=43874821 v=-1666691
+SP scf=8 cp=-197662475 nl=51160268 v=-1943447
+SP scf=8 cp=-197662475 nl=111416461 v=-4232423
+SP scf=8 cp=-197662475 nl=1073741824 v=-40788666
+SP scf=8 cp=-197000000 nl=0 v=0
+SP scf=8 cp=-197000000 nl=43874821 v=-1661392
+SP scf=8 cp=-197000000 nl=51160268 v=-1937267
+SP scf=8 cp=-197000000 nl=111416461 v=-4218966
+SP scf=8 cp=-197000000 nl=1073741824 v=-40658970
+SP scf=8 cp=0 nl=0 v=0
+SP scf=8 cp=0 nl=43874821 v=-85454
+SP scf=8 cp=0 nl=51160268 v=-99643
+SP scf=8 cp=0 nl=111416461 v=-217003
+SP scf=8 cp=0 nl=1073741824 v=-2091285
+SP scf=9 cp=-500000000 nl=0 v=0
+SP scf=9 cp=-500000000 nl=43874821 v=-4135626
+SP scf=9 cp=-500000000 nl=51160268 v=-4822349
+SP scf=9 cp=-500000000 nl=111416461 v=-10502077
+SP scf=9 cp=-500000000 nl=1073741824 v=-101210519
+SP scf=9 cp=-232370909 nl=0 v=0
+SP scf=9 cp=-232370909 nl=43874821 v=-1994678
+SP scf=9 cp=-232370909 nl=51160268 v=-2325895
+SP scf=9 cp=-232370909 nl=111416461 v=-5065317
+SP scf=9 cp=-232370909 nl=1073741824 v=-48815422
+SP scf=9 cp=-197662475 nl=0 v=0
+SP scf=9 cp=-197662475 nl=43874821 v=-1717021
+SP scf=9 cp=-197662475 nl=51160268 v=-2002133
+SP scf=9 cp=-197662475 nl=111416461 v=-4360231
+SP scf=9 cp=-197662475 nl=1073741824 v=-42020376
+SP scf=9 cp=-197000000 nl=0 v=0
+SP scf=9 cp=-197000000 nl=43874821 v=-1711722
+SP scf=9 cp=-197000000 nl=51160268 v=-1995954
+SP scf=9 cp=-197000000 nl=111416461 v=-4346773
+SP scf=9 cp=-197000000 nl=1073741824 v=-41890680
+SP scf=9 cp=0 nl=0 v=0
+SP scf=9 cp=0 nl=43874821 v=-135784
+SP scf=9 cp=0 nl=51160268 v=-158331
+SP scf=9 cp=0 nl=111416461 v=-344810
+SP scf=9 cp=0 nl=1073741824 v=-3322996
+SP scf=10 cp=-500000000 nl=0 v=0
+SP scf=10 cp=-500000000 nl=43874821 v=-4185956
+SP scf=10 cp=-500000000 nl=51160268 v=-4881036
+SP scf=10 cp=-500000000 nl=111416461 v=-10629885
+SP scf=10 cp=-500000000 nl=1073741824 v=-102442230
+SP scf=10 cp=-232370909 nl=0 v=0
+SP scf=10 cp=-232370909 nl=43874821 v=-2045007
+SP scf=10 cp=-232370909 nl=51160268 v=-2384582
+SP scf=10 cp=-232370909 nl=111416461 v=-5193125
+SP scf=10 cp=-232370909 nl=1073741824 v=-50047132
+SP scf=10 cp=-197662475 nl=0 v=0
+SP scf=10 cp=-197662475 nl=43874821 v=-1767351
+SP scf=10 cp=-197662475 nl=51160268 v=-2060821
+SP scf=10 cp=-197662475 nl=111416461 v=-4488039
+SP scf=10 cp=-197662475 nl=1073741824 v=-43252086
+SP scf=10 cp=-197000000 nl=0 v=0
+SP scf=10 cp=-197000000 nl=43874821 v=-1762051
+SP scf=10 cp=-197000000 nl=51160268 v=-2054641
+SP scf=10 cp=-197000000 nl=111416461 v=-4474581
+SP scf=10 cp=-197000000 nl=1073741824 v=-43122390
+SP scf=10 cp=0 nl=0 v=0
+SP scf=10 cp=0 nl=43874821 v=-186114
+SP scf=10 cp=0 nl=51160268 v=-217017
+SP scf=10 cp=0 nl=111416461 v=-472618
+SP scf=10 cp=0 nl=1073741824 v=-4554706
+SP scf=11 cp=-500000000 nl=0 v=0
+SP scf=11 cp=-500000000 nl=43874821 v=-4236285
+SP scf=11 cp=-500000000 nl=51160268 v=-4939723
+SP scf=11 cp=-500000000 nl=111416461 v=-10757693
+SP scf=11 cp=-500000000 nl=1073741824 v=-103673939
+SP scf=11 cp=-232370909 nl=0 v=0
+SP scf=11 cp=-232370909 nl=43874821 v=-2095337
+SP scf=11 cp=-232370909 nl=51160268 v=-2443269
+SP scf=11 cp=-232370909 nl=111416461 v=-5320933
+SP scf=11 cp=-232370909 nl=1073741824 v=-51278842
+SP scf=11 cp=-197662475 nl=0 v=0
+SP scf=11 cp=-197662475 nl=43874821 v=-1817681
+SP scf=11 cp=-197662475 nl=51160268 v=-2119507
+SP scf=11 cp=-197662475 nl=111416461 v=-4615847
+SP scf=11 cp=-197662475 nl=1073741824 v=-44483796
+SP scf=11 cp=-197000000 nl=0 v=0
+SP scf=11 cp=-197000000 nl=43874821 v=-1812381
+SP scf=11 cp=-197000000 nl=51160268 v=-2113328
+SP scf=11 cp=-197000000 nl=111416461 v=-4602389
+SP scf=11 cp=-197000000 nl=1073741824 v=-44354100
+SP scf=11 cp=0 nl=0 v=0
+SP scf=11 cp=0 nl=43874821 v=-236443
+SP scf=11 cp=0 nl=51160268 v=-275705
+SP scf=11 cp=0 nl=111416461 v=-600426
+SP scf=11 cp=0 nl=1073741824 v=-5786416
+SP scf=12 cp=-500000000 nl=0 v=0
+SP scf=12 cp=-500000000 nl=43874821 v=-4286615
+SP scf=12 cp=-500000000 nl=51160268 v=-4998410
+SP scf=12 cp=-500000000 nl=111416461 v=-10885500
+SP scf=12 cp=-500000000 nl=1073741824 v=-104905649
+SP scf=12 cp=-232370909 nl=0 v=0
+SP scf=12 cp=-232370909 nl=43874821 v=-2145666
+SP scf=12 cp=-232370909 nl=51160268 v=-2501956
+SP scf=12 cp=-232370909 nl=111416461 v=-5448741
+SP scf=12 cp=-232370909 nl=1073741824 v=-52510551
+SP scf=12 cp=-197662475 nl=0 v=0
+SP scf=12 cp=-197662475 nl=43874821 v=-1868010
+SP scf=12 cp=-197662475 nl=51160268 v=-2178195
+SP scf=12 cp=-197662475 nl=111416461 v=-4743655
+SP scf=12 cp=-197662475 nl=1073741824 v=-45715507
+SP scf=12 cp=-197000000 nl=0 v=0
+SP scf=12 cp=-197000000 nl=43874821 v=-1862710
+SP scf=12 cp=-197000000 nl=51160268 v=-2172015
+SP scf=12 cp=-197000000 nl=111416461 v=-4730197
+SP scf=12 cp=-197000000 nl=1073741824 v=-45585811
+SP scf=12 cp=0 nl=0 v=0
+SP scf=12 cp=0 nl=43874821 v=-286773
+SP scf=12 cp=0 nl=51160268 v=-334391
+SP scf=12 cp=0 nl=111416461 v=-728234
+SP scf=12 cp=0 nl=1073741824 v=-7018126
+SP scf=13 cp=-500000000 nl=0 v=0
+SP scf=13 cp=-500000000 nl=43874821 v=-4336944
+SP scf=13 cp=-500000000 nl=51160268 v=-5057097
+SP scf=13 cp=-500000000 nl=111416461 v=-11013308
+SP scf=13 cp=-500000000 nl=1073741824 v=-106137359
+SP scf=13 cp=-232370909 nl=0 v=0
+SP scf=13 cp=-232370909 nl=43874821 v=-2195996
+SP scf=13 cp=-232370909 nl=51160268 v=-2560643
+SP scf=13 cp=-232370909 nl=111416461 v=-5576548
+SP scf=13 cp=-232370909 nl=1073741824 v=-53742262
+SP scf=13 cp=-197662475 nl=0 v=0
+SP scf=13 cp=-197662475 nl=43874821 v=-1918340
+SP scf=13 cp=-197662475 nl=51160268 v=-2236881
+SP scf=13 cp=-197662475 nl=111416461 v=-4871463
+SP scf=13 cp=-197662475 nl=1073741824 v=-46947217
+SP scf=13 cp=-197000000 nl=0 v=0
+SP scf=13 cp=-197000000 nl=43874821 v=-1913040
+SP scf=13 cp=-197000000 nl=51160268 v=-2230702
+SP scf=13 cp=-197000000 nl=111416461 v=-4858005
+SP scf=13 cp=-197000000 nl=1073741824 v=-46817520
+SP scf=13 cp=0 nl=0 v=0
+SP scf=13 cp=0 nl=43874821 v=-337102
+SP scf=13 cp=0 nl=51160268 v=-393078
+SP scf=13 cp=0 nl=111416461 v=-856042
+SP scf=13 cp=0 nl=1073741824 v=-8249836
+SP scf=14 cp=-500000000 nl=0 v=0
+SP scf=14 cp=-500000000 nl=43874821 v=-4387274
+SP scf=14 cp=-500000000 nl=51160268 v=-5115784
+SP scf=14 cp=-500000000 nl=111416461 v=-11141116
+SP scf=14 cp=-500000000 nl=1073741824 v=-107369070
+SP scf=14 cp=-232370909 nl=0 v=0
+SP scf=14 cp=-232370909 nl=43874821 v=-2246326
+SP scf=14 cp=-232370909 nl=51160268 v=-2619330
+SP scf=14 cp=-232370909 nl=111416461 v=-5704356
+SP scf=14 cp=-232370909 nl=1073741824 v=-54973972
+SP scf=14 cp=-197662475 nl=0 v=0
+SP scf=14 cp=-197662475 nl=43874821 v=-1968669
+SP scf=14 cp=-197662475 nl=51160268 v=-2295569
+SP scf=14 cp=-197662475 nl=111416461 v=-4999271
+SP scf=14 cp=-197662475 nl=1073741824 v=-48178926
+SP scf=14 cp=-197000000 nl=0 v=0
+SP scf=14 cp=-197000000 nl=43874821 v=-1963370
+SP scf=14 cp=-197000000 nl=51160268 v=-2289389
+SP scf=14 cp=-197000000 nl=111416461 v=-4985813
+SP scf=14 cp=-197000000 nl=1073741824 v=-48049230
+SP scf=14 cp=0 nl=0 v=0
+SP scf=14 cp=0 nl=43874821 v=-387432
+SP scf=14 cp=0 nl=51160268 v=-451765
+SP scf=14 cp=0 nl=111416461 v=-983850
+SP scf=14 cp=0 nl=1073741824 v=-9481547
+SP scf=15 cp=-500000000 nl=0 v=0
+SP scf=15 cp=-500000000 nl=43874821 v=-4437604
+SP scf=15 cp=-500000000 nl=51160268 v=-5174471
+SP scf=15 cp=-500000000 nl=111416461 v=-11268924
+SP scf=15 cp=-500000000 nl=1073741824 v=-108600780
+SP scf=15 cp=-232370909 nl=0 v=0
+SP scf=15 cp=-232370909 nl=43874821 v=-2296656
+SP scf=15 cp=-232370909 nl=51160268 v=-2678017
+SP scf=15 cp=-232370909 nl=111416461 v=-5832165
+SP scf=15 cp=-232370909 nl=1073741824 v=-56205682
+SP scf=15 cp=-197662475 nl=0 v=0
+SP scf=15 cp=-197662475 nl=43874821 v=-2018999
+SP scf=15 cp=-197662475 nl=51160268 v=-2354255
+SP scf=15 cp=-197662475 nl=111416461 v=-5127079
+SP scf=15 cp=-197662475 nl=1073741824 v=-49410636
+SP scf=15 cp=-197000000 nl=0 v=0
+SP scf=15 cp=-197000000 nl=43874821 v=-2013700
+SP scf=15 cp=-197000000 nl=51160268 v=-2348076
+SP scf=15 cp=-197000000 nl=111416461 v=-5113621
+SP scf=15 cp=-197000000 nl=1073741824 v=-49280940
+SP scf=15 cp=0 nl=0 v=0
+SP scf=15 cp=0 nl=43874821 v=-437762
+SP scf=15 cp=0 nl=51160268 v=-510452
+SP scf=15 cp=0 nl=111416461 v=-1111659
+SP scf=15 cp=0 nl=1073741824 v=-10713257
+SP scf=16 cp=-500000000 nl=0 v=0
+SP scf=16 cp=-500000000 nl=43874821 v=-4487934
+SP scf=16 cp=-500000000 nl=51160268 v=-5233158
+SP scf=16 cp=-500000000 nl=111416461 v=-11396733
+SP scf=16 cp=-500000000 nl=1073741824 v=-109832490
+SP scf=16 cp=-232370909 nl=0 v=0
+SP scf=16 cp=-232370909 nl=43874821 v=-2346985
+SP scf=16 cp=-232370909 nl=51160268 v=-2736704
+SP scf=16 cp=-232370909 nl=111416461 v=-5959973
+SP scf=16 cp=-232370909 nl=1073741824 v=-57437392
+SP scf=16 cp=-197662475 nl=0 v=0
+SP scf=16 cp=-197662475 nl=43874821 v=-2069329
+SP scf=16 cp=-197662475 nl=51160268 v=-2412942
+SP scf=16 cp=-197662475 nl=111416461 v=-5254887
+SP scf=16 cp=-197662475 nl=1073741824 v=-50642347
+SP scf=16 cp=-197000000 nl=0 v=0
+SP scf=16 cp=-197000000 nl=43874821 v=-2064029
+SP scf=16 cp=-197000000 nl=51160268 v=-2406763
+SP scf=16 cp=-197000000 nl=111416461 v=-5241429
+SP scf=16 cp=-197000000 nl=1073741824 v=-50512651
+SP scf=16 cp=0 nl=0 v=0
+SP scf=16 cp=0 nl=43874821 v=-488092
+SP scf=16 cp=0 nl=51160268 v=-569139
+SP scf=16 cp=0 nl=111416461 v=-1239466
+SP scf=16 cp=0 nl=1073741824 v=-11944966
+SP scf=17 cp=-500000000 nl=0 v=0
+SP scf=17 cp=-500000000 nl=43874821 v=-4538263
+SP scf=17 cp=-500000000 nl=51160268 v=-5291845
+SP scf=17 cp=-500000000 nl=111416461 v=-11524541
+SP scf=17 cp=-500000000 nl=1073741824 v=-111064200
+SP scf=17 cp=-232370909 nl=0 v=0
+SP scf=17 cp=-232370909 nl=43874821 v=-2397315
+SP scf=17 cp=-232370909 nl=51160268 v=-2795391
+SP scf=17 cp=-232370909 nl=111416461 v=-6087781
+SP scf=17 cp=-232370909 nl=1073741824 v=-58669102
+SP scf=17 cp=-197662475 nl=0 v=0
+SP scf=17 cp=-197662475 nl=43874821 v=-2119659
+SP scf=17 cp=-197662475 nl=51160268 v=-2471629
+SP scf=17 cp=-197662475 nl=111416461 v=-5382695
+SP scf=17 cp=-197662475 nl=1073741824 v=-51874057
+SP scf=17 cp=-197000000 nl=0 v=0
+SP scf=17 cp=-197000000 nl=43874821 v=-2114359
+SP scf=17 cp=-197000000 nl=51160268 v=-2465449
+SP scf=17 cp=-197000000 nl=111416461 v=-5369237
+SP scf=17 cp=-197000000 nl=1073741824 v=-51744361
+SP scf=17 cp=0 nl=0 v=0
+SP scf=17 cp=0 nl=43874821 v=-538421
+SP scf=17 cp=0 nl=51160268 v=-627826
+SP scf=17 cp=0 nl=111416461 v=-1367274
+SP scf=17 cp=0 nl=1073741824 v=-13176676
+SP scf=18 cp=-500000000 nl=0 v=0
+SP scf=18 cp=-500000000 nl=43874821 v=-4588593
+SP scf=18 cp=-500000000 nl=51160268 v=-5350532
+SP scf=18 cp=-500000000 nl=111416461 v=-11652348
+SP scf=18 cp=-500000000 nl=1073741824 v=-112295910
+SP scf=18 cp=-232370909 nl=0 v=0
+SP scf=18 cp=-232370909 nl=43874821 v=-2447644
+SP scf=18 cp=-232370909 nl=51160268 v=-2854078
+SP scf=18 cp=-232370909 nl=111416461 v=-6215589
+SP scf=18 cp=-232370909 nl=1073741824 v=-59900812
+SP scf=18 cp=-197662475 nl=0 v=0
+SP scf=18 cp=-197662475 nl=43874821 v=-2169988
+SP scf=18 cp=-197662475 nl=51160268 v=-2530316
+SP scf=18 cp=-197662475 nl=111416461 v=-5510503
+SP scf=18 cp=-197662475 nl=1073741824 v=-53105767
+SP scf=18 cp=-197000000 nl=0 v=0
+SP scf=18 cp=-197000000 nl=43874821 v=-2164688
+SP scf=18 cp=-197000000 nl=51160268 v=-2524137
+SP scf=18 cp=-197000000 nl=111416461 v=-5497045
+SP scf=18 cp=-197000000 nl=1073741824 v=-52976071
+SP scf=18 cp=0 nl=0 v=0
+SP scf=18 cp=0 nl=43874821 v=-588751
+SP scf=18 cp=0 nl=51160268 v=-686513
+SP scf=18 cp=0 nl=111416461 v=-1495082
+SP scf=18 cp=0 nl=1073741824 v=-14408387
+SP scf=19 cp=-500000000 nl=0 v=0
+SP scf=19 cp=-500000000 nl=43874821 v=-4638922
+SP scf=19 cp=-500000000 nl=51160268 v=-5409219
+SP scf=19 cp=-500000000 nl=111416461 v=-11780156
+SP scf=19 cp=-500000000 nl=1073741824 v=-113527620
+SP scf=19 cp=-232370909 nl=0 v=0
+SP scf=19 cp=-232370909 nl=43874821 v=-2497974
+SP scf=19 cp=-232370909 nl=51160268 v=-2912765
+SP scf=19 cp=-232370909 nl=111416461 v=-6343396
+SP scf=19 cp=-232370909 nl=1073741824 v=-61132523
+SP scf=19 cp=-197662475 nl=0 v=0
+SP scf=19 cp=-197662475 nl=43874821 v=-2220318
+SP scf=19 cp=-197662475 nl=51160268 v=-2589003
+SP scf=19 cp=-197662475 nl=111416461 v=-5638311
+SP scf=19 cp=-197662475 nl=1073741824 v=-54337477
+SP scf=19 cp=-197000000 nl=0 v=0
+SP scf=19 cp=-197000000 nl=43874821 v=-2215018
+SP scf=19 cp=-197000000 nl=51160268 v=-2582823
+SP scf=19 cp=-197000000 nl=111416461 v=-5624853
+SP scf=19 cp=-197000000 nl=1073741824 v=-54207781
+SP scf=19 cp=0 nl=0 v=0
+SP scf=19 cp=0 nl=43874821 v=-639080
+SP scf=19 cp=0 nl=51160268 v=-745200
+SP scf=19 cp=0 nl=111416461 v=-1622890
+SP scf=19 cp=0 nl=1073741824 v=-15640097
+SP scf=20 cp=-500000000 nl=0 v=0
+SP scf=20 cp=-500000000 nl=43874821 v=-4689252
+SP scf=20 cp=-500000000 nl=51160268 v=-5467906
+SP scf=20 cp=-500000000 nl=111416461 v=-11907964
+SP scf=20 cp=-500000000 nl=1073741824 v=-114759330
+SP scf=20 cp=-232370909 nl=0 v=0
+SP scf=20 cp=-232370909 nl=43874821 v=-2548304
+SP scf=20 cp=-232370909 nl=51160268 v=-2971451
+SP scf=20 cp=-232370909 nl=111416461 v=-6471204
+SP scf=20 cp=-232370909 nl=1073741824 v=-62364232
+SP scf=20 cp=-197662475 nl=0 v=0
+SP scf=20 cp=-197662475 nl=43874821 v=-2270647
+SP scf=20 cp=-197662475 nl=51160268 v=-2647690
+SP scf=20 cp=-197662475 nl=111416461 v=-5766119
+SP scf=20 cp=-197662475 nl=1073741824 v=-55569187
+SP scf=20 cp=-197000000 nl=0 v=0
+SP scf=20 cp=-197000000 nl=43874821 v=-2265347
+SP scf=20 cp=-197000000 nl=51160268 v=-2641511
+SP scf=20 cp=-197000000 nl=111416461 v=-5752661
+SP scf=20 cp=-197000000 nl=1073741824 v=-55439491
+SP scf=20 cp=0 nl=0 v=0
+SP scf=20 cp=0 nl=43874821 v=-689410
+SP scf=20 cp=0 nl=51160268 v=-803887
+SP scf=20 cp=0 nl=111416461 v=-1750698
+SP scf=20 cp=0 nl=1073741824 v=-16871807
+SCFUNIT relevant
+RL i=0 v=51160268
+RL i=1 v=0
+RL i=2 v=0
+RL i=3 v=9
+SCFUNIT channel
+CH inv=0 gain=-25 scf=0,0,0,8
+CHQ inv=0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+CH inv=1 gain=-24 scf=0,0,8,8
+CHQ inv=1 0 0 0 0 0 0 0 0 1 -1 0 0 0 0 0 0
+CH inv=2 gain=-24 scf=0,0,7,7
+CHQ inv=2 0 0 0 0 0 0 0 0 1 -1 0 0 0 0 0 0
+SCFUNIT improve
+IM scf0=-30 best=-30 dist=-543122742 mincalc=-30 q=1,-1,0,0
+IM scf0=-34 best=-34 dist=-608523950 mincalc=-34 q=1,-1,1,-1
+IM scf0=-38 best=-37 dist=-708786477 mincalc=-37 q=2,-2,1,-1
+SCFUNIT single
+SN nrel i=0 v=24386251
+SN nrel i=1 v=24386251
+SN nrel i=2 v=24386251
+SN nrel i=3 v=40872375
+SN scf i=0 v=-40 dist=-400000000
+SN scf i=1 v=-40 dist=-735349960
+SN scf i=2 v=-37 dist=-708786477
+SN scf i=3 v=-21 dist=-856999265
+SN qs 0 0 0 0 2 -2 0 1 2 -2 1 -1 0 0 0 0
+SCFUNIT sixband
+SX nrel i=0 v=43874821
+SX nrel i=1 v=51160268
+SX nrel i=2 v=111416461
+SX nrel i=3 v=98566677
+SX nrel i=4 v=126078588
+SX nrel i=5 v=214163982
+SX scf i=0 v=-42 dist=-782506804
+SX scf i=1 v=-43 dist=-848912379
+SX scf i=2 v=-48 dist=-854847415
+SX scf i=3 v=-56 dist=-973074615
+SX scf i=4 v=-58 dist=-2147483648
+SX scf i=5 v=-62 dist=-2147483648
+N46 v=51160268
+QB45 dist=-627841291 q=1,0,0,0
+QB46 dist=-693351700 q=0,0,0,0
+SCFUNIT end

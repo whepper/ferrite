@@ -120,6 +120,28 @@ write_wav("m3-tonal-noise-stereo-48k.wav", 2, 0.5, tonal_noise)
 write_wav("m3-quiet-sine-stereo-48k.wav", 2, 1.0,
           lambda t, c, i: sine(t, amp=50.0))
 
+# F6 stress (M4-S6): full-scale deterministic PRNG + tone stack, stereo.
+# Goal: loud HF-heavy content that overflows MAX_QUANT at the S4 gains
+# (forcing >=1 gain-loop retry) and pressures the MIN_BUFSIZE element cap.
+# Same splitmix32 stream family as the M3 noise (different seed), plus
+# three full-scale sines; all amplitudes fixed, no dither.
+_stress_st = 0x76F1A9B3
+_stress_noise = []
+for _ in range(int(SR * 0.5)):
+    _stress_st, z = splitmix32(_stress_st)
+    _stress_noise.append((z % 32767) - 16383.0)
+
+
+def stress(t, c, i):
+    nz = _stress_noise[i % len(_stress_noise)]
+    tones = (12000.0 * math.sin(2.0 * math.pi * 6000.0 * t) +
+             9000.0 * math.sin(2.0 * math.pi * 12000.0 * t) +
+             6000.0 * math.sin(2.0 * math.pi * 18000.0 * t))
+    return nz * 0.9 + tones
+
+
+write_wav("m6-stress-stereo-48k.wav", 2, 0.5, stress)
+
 # 44.1 kHz variants (different SFB table: same counts, different widths).
 SR441 = 44100
 

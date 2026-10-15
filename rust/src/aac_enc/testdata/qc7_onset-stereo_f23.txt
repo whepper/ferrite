@@ -1,0 +1,8 @@
+S7FRAME f=23
+S7SPEC ch=0 bits=0 hex=
+S7SCF ch=0 bits=0 hex=
+S7SECH ch=0 bits=9 hex=0280
+S7SPEC ch=1 bits=0 hex=
+S7SCF ch=1 bits=0 hex=
+S7SECH ch=1 bits=9 hex=0280
+S7END

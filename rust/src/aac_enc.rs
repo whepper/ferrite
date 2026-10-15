@@ -104,19 +104,64 @@ amm-info@iis.fraunhofer.de
 //! Milestone M2 adds the streaming frontend: [`pcm`] (PCM framing and
 //! lifecycle), [`block_switch`] (window-sequence decisions), and
 //! [`transform`] (forward MDCT with overlap staging).
+//!
+//! Milestone M4-S1 ports the `QCMainPrepare` front half: [`pe`]
+//! (form-factor and perceptual-entropy calculation) and [`static_bits`]
+//! (the `ChannelElementWrite(NULL)` static-bit count).
+//!
+//! Milestone M4-S2 ports VBR threshold adjustment: [`threshold_vbr`]
+//! (`AdaptThresholdsVBR` + the `AdjustThresholds` enFac add).
+//!
+//! Milestone M4-S3 ports the scalar quantizer primitives: [`quant`]
+//! (`quantizeLines`/`invQuantizeLines`/`QuantizeSpectrum`/`calcSfbDist`/
+//! `calcSfbQuantEnergyAndDist`) with tables in [`quant_tables`].
+//!
+//! Milestone M4-S4 ports scalefactor estimation and the afterburner:
+//! [`scf`] (`EstimateScaleFactors` with `invQuant == 2`).
+//!
+//! Milestone M4-S5 ports noiseless bit counting and sectioning:
+//! [`bitcount`] (`dynBitCount`/`noiselessCounter`/`scfCount`/
+//! `noiseCount` + the `bitCount`/`countValues` kernels) with tables in
+//! [`bitcount_tables`].
+//!
+//! Milestone M4-S6 ports the QC gain loop and VBR rate-control closure:
+//! [`rate`] (QC-init derivations, `AdjustBitrate`, bit distribution with
+//! `DistributeBits`, the gain loop with `reduceBitConsumption`/
+//! `crashRecovery`/`calcMaxValueInSfb`, VBR fill/finalize/reservoir).
+//!
+//! Milestone M4-S7 ports spectral and scalefactor bitstream encoding:
+//! [`bitenc`] (`codeValues`/`codeScalefactorDelta` plus the section /
+//! scalefactor / spectral payload writers) with code tables in
+//! [`bitenc_tables`].
+//!
+//! Milestone M4-S8 ports channel-element assembly and complete frame output:
+//! [`frame`] (write-mode `ChannelElementWrite`, stripped `WriteBitstream`
+//! tail and ADTS framing over the S5/S6/S7 artifacts).
 
 pub mod adts;
+pub mod bitcount;
+pub(crate) mod bitcount_tables;
+pub mod bitenc;
+pub(crate) mod bitenc_tables;
 pub mod block_switch;
 pub mod channel_map;
 pub mod config;
 pub mod energy;
+pub mod frame;
 pub mod pcm;
+pub mod pe;
 pub mod psy;
 pub(crate) mod q31;
+pub mod quant;
+pub(crate) mod quant_tables;
+pub mod rate;
+pub mod scf;
 pub mod sfb;
 pub(crate) mod sfb_tables;
+pub mod static_bits;
 #[cfg(test)]
 pub(crate) mod testdata;
+pub mod threshold_vbr;
 pub mod thresholds;
 pub mod tns;
 pub mod transform;

@@ -1,0 +1,1 @@
+S6INIT avg=4096 max=12288 min=0 bitres=12288 mode=0 distmode=1 meanpe=8231 maxbitfac=50331648 chbitrateEl=96000 maxbitsEl=12288 relbitsEl=2147483647 bits2pe=1267015296,1 pemin=3292 pemax=4939

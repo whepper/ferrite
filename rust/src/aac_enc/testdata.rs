@@ -104,7 +104,7 @@ amm-info@iis.fraunhofer.de
 use super::block_switch::MAX_GROUPS;
 use std::path::PathBuf;
 
-fn testdata_path(file: &str) -> PathBuf {
+pub(crate) fn testdata_path(file: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src/aac_enc/testdata")
         .join(file)
@@ -880,5 +880,1566 @@ pub(crate) fn load_psy(name: &str, frame: u32, channel: u32, short: bool) -> Psy
         threshold_ld,
         long_max_sfb,
         short,
+    }
+}
+
+/// One committed S1 (M4-S1) channel block from `qc1_<name>_f<F>.txt`.
+#[derive(Debug, Clone)]
+pub(crate) struct S1Channel {
+    pub(crate) geo_cnt: usize,
+    pub(crate) geo_per: usize,
+    pub(crate) geo_max: usize,
+    pub(crate) geo_seq: u8,
+    /// Exact SFB offsets consumed (`SOFF`, `cnt + 1` entries).
+    pub(crate) offsets: Vec<i32>,
+    /// TNS decisions consumed (`STNSW`, one per window; `active`/`gain`/
+    /// `merged` are runtime state, unset here).
+    pub(crate) tns: Vec<TnsWindow>,
+    /// Per-window TNS coefficient resolution (`STNSR`).
+    pub(crate) tns_coef_res: Vec<i32>,
+    pub(crate) spec: Vec<i32>,
+    pub(crate) penld: Vec<i32>,
+    pub(crate) pthld: Vec<i32>,
+    /// Post-decision linear energies (`SENL`, weighting input).
+    pub(crate) senl: Vec<i32>,
+    pub(crate) ff: Vec<i32>,
+    pub(crate) enfac: Vec<i32>,
+    pub(crate) wenld: Vec<i32>,
+    pub(crate) wthld: Vec<i32>,
+    pub(crate) spnl: Vec<i32>,
+    pub(crate) spech: Vec<i32>,
+    pub(crate) spco: Vec<i32>,
+    pub(crate) spna: Vec<i32>,
+    pub(crate) pech: [i32; 3],
+    pub(crate) isb: Vec<i32>,
+    pub(crate) iss: Vec<i32>,
+    pub(crate) noise: Vec<i32>,
+}
+
+/// One committed S1 element frame: per-channel blocks plus (stereo) MS
+/// digest/mask, element PE and the static-bit count.
+#[derive(Debug, Clone)]
+pub(crate) struct S1Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S1Channel>,
+    pub(crate) msd: Option<(i32, Vec<i32>)>,
+    pub(crate) pe: [i32; 4],
+    pub(crate) static_el: String,
+    pub(crate) static_bits: i32,
+    /// Pre-frame weighting state `[enfac0, enfac1, patch0, patch1]`.
+    pub(crate) ats_pre: [i32; 4],
+    /// Post-frame weighting state (same layout; validates evolution).
+    pub(crate) ats_post: [i32; 4],
+}
+
+/// Load a committed S1 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s1(name: &str, frame: u32) -> S1Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc1_{name}_f{frame}.txt")))
+        .expect("s1 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S1FRAME head");
+    assert_eq!(head, format!("S1FRAME f={frame}"));
+    let mut ch_blocks: Vec<S1Channel> = Vec::new();
+    let mut msd: Option<(i32, Vec<i32>)> = None;
+    let mut pe = [0i32; 4];
+    let mut static_el = String::new();
+    let mut static_bits = 0i32;
+    // Per-channel tail tags in dump order (after S1GEO/SOFF/STNSW/STNSR).
+    const TAIL: [&str; 16] = [
+        "SPEC", "PENLD", "PTHLD", "SENL", "FF", "ENFAC", "WENLD", "WTHLD", "SPNL", "SPECH", "SPCO",
+        "SPNA", "PECH", "ISB", "ISS", "NOISE",
+    ];
+    let mut pending: Vec<String> = Vec::new();
+    let mut ats_pre = [0i32; 4];
+    let mut ats_post = [0i32; 4];
+    for line in lines {
+        if line.starts_with("ATS pre=") {
+            let csv = line.split_once('=').expect("k=v").1.replace(',', " ");
+            let vals = parse_int_list(&csv);
+            assert_eq!(vals.len(), 4);
+            ats_pre = [vals[0], vals[1], vals[2], vals[3]];
+        } else if line.starts_with("ATS post=") {
+            let csv = line.split_once('=').expect("k=v").1.replace(',', " ");
+            let vals = parse_int_list(&csv);
+            assert_eq!(vals.len(), 4);
+            ats_post = [vals[0], vals[1], vals[2], vals[3]];
+        } else if line.starts_with("MSD ") {
+            let vals = parse_int_list(line.split_once(' ').expect("tag").1);
+            msd = Some((vals[0], vals[1..].to_vec()));
+        } else if line.starts_with("PE ") {
+            let vals = parse_int_list(line.split_once(' ').expect("tag").1);
+            assert_eq!(vals.len(), 4);
+            pe = [vals[0], vals[1], vals[2], vals[3]];
+        } else if line.starts_with("STATIC ") {
+            let mut p = line.split_whitespace();
+            p.next().expect("tag");
+            static_el = p.next().expect("element").to_string();
+            static_bits = p.next().expect("bits").parse().expect("int");
+        } else {
+            pending.push(line.to_string());
+        }
+    }
+    assert!(!pending.is_empty(), "no channel blocks");
+    // Channel blocks appear back-to-back in dump order; split on S1GEO.
+    let mut starts = Vec::new();
+    for (i, ln) in pending.iter().enumerate() {
+        if ln.starts_with("S1GEO ") {
+            starts.push(i);
+        }
+    }
+    assert!(!starts.is_empty());
+    for (ci, &s) in starts.iter().enumerate() {
+        let e = if ci + 1 < starts.len() {
+            starts[ci + 1]
+        } else {
+            pending.len()
+        };
+        let block = &pending[s..e];
+        let mut bi = 0;
+        assert!(block[bi].starts_with("S1GEO "), "expected S1GEO");
+        let geo = |ln: &str| {
+            ln.split_whitespace()
+                .skip(1)
+                .map(|kv| {
+                    kv.split_once('=')
+                        .expect("k=v")
+                        .1
+                        .parse::<i32>()
+                        .expect("int")
+                })
+                .collect::<Vec<_>>()
+        };
+        let g = geo(&block[bi]);
+        bi += 1;
+        assert_eq!(g.len(), 5); // ch cnt per max seq
+        let cnt = g[1] as usize;
+        let nwin = if g[4] == 2 { 8 } else { 1 };
+        assert!(block[bi].starts_with("SOFF "), "expected SOFF");
+        let offsets = parse_int_list(block[bi].split_once(' ').expect("tag").1);
+        assert_eq!(offsets.len(), cnt + 1, "SOFF length");
+        bi += 1;
+        let mut tns = Vec::new();
+        for _ in 0..nwin {
+            let wline = block[bi].as_str();
+            assert!(wline.starts_with("STNSW "), "expected STNSW");
+            let (head, coefs) = wline["STNSW ".len()..]
+                .split_once(" coefs=")
+                .expect("coefs field");
+            let wkv: std::collections::HashMap<String, String> = head
+                .split_whitespace()
+                .map(|kv| {
+                    let (k, v) = kv.split_once('=').expect("k=v field");
+                    (k.to_string(), v.to_string())
+                })
+                .collect();
+            let halves = coefs.split(" | ").collect::<Vec<_>>();
+            assert_eq!(halves.len(), 2);
+            let parse_coefs = |s: &str| {
+                s.split(',')
+                    .map(|v| v.parse::<i32>().expect("coef"))
+                    .collect::<Vec<_>>()
+            };
+            tns.push(TnsWindow {
+                window: wkv["w"].parse().expect("int"),
+                num_filters: wkv["nf"].parse().expect("int"),
+                order: parse_pair(&wkv["ord"]),
+                length: parse_pair(&wkv["len"]),
+                direction: parse_pair(&wkv["dir"]),
+                coef_hi: parse_coefs(halves[0]),
+                coef_lo: parse_coefs(halves[1]),
+                active: [false, false],
+                gain: [0, 0],
+                merged: false,
+            });
+            bi += 1;
+        }
+        assert!(block[bi].starts_with("STNSR"), "expected STNSR");
+        let tns_coef_res = parse_int_list(block[bi].split_once(' ').expect("tag").1);
+        assert_eq!(tns_coef_res.len(), nwin, "STNSR length");
+        bi += 1;
+        for (ln, tag) in block[bi..].iter().zip(TAIL.iter()) {
+            assert!(
+                ln.starts_with(&format!("{tag} ")),
+                "expected {tag}, got {}",
+                &ln[..ln.len().min(12)]
+            );
+        }
+        assert_eq!(block.len() - bi, TAIL.len(), "S1 channel tail tags");
+        let vec = |ln: &str| parse_int_list(ln.split_once(' ').expect("tag").1);
+        let tail = |tag_idx: usize| vec(&block[bi + tag_idx]);
+        let pech_line = &block[bi + 12];
+        let pech_kv: std::collections::HashMap<String, String> = pech_line
+            .split_whitespace()
+            .skip(1)
+            .filter(|tok| tok.contains('='))
+            .map(|kv| {
+                let (k, v) = kv.split_once('=').expect("k=v");
+                (k.to_string(), v.to_string())
+            })
+            .collect();
+        let get3 = |k: &str| pech_kv[k].parse::<i32>().expect("int");
+        // SPEC carries "ch=<c>" as its second token.
+        let spec_vals = {
+            let rest = block[bi].split_once(' ').expect("tag").1;
+            let body = rest.split_once(' ').expect("ch tag").1;
+            parse_int_list(body)
+        };
+        assert_eq!(spec_vals.len(), 1024, "SPEC length");
+        for (tag, vals) in [
+            ("PENLD", tail(1)),
+            ("PTHLD", tail(2)),
+            ("SENL", tail(3)),
+            ("FF", tail(4)),
+            ("ENFAC", tail(5)),
+            ("WENLD", tail(6)),
+            ("WTHLD", tail(7)),
+            ("SPNL", tail(8)),
+            ("SPECH", tail(9)),
+            ("SPCO", tail(10)),
+            ("SPNA", tail(11)),
+        ] {
+            assert_eq!(vals.len(), cnt, "{tag} length");
+        }
+        assert_eq!(tail(13).len(), cnt, "ISB length");
+        assert_eq!(tail(14).len(), cnt, "ISS length");
+        ch_blocks.push(S1Channel {
+            geo_cnt: cnt,
+            geo_per: g[2] as usize,
+            geo_max: g[3] as usize,
+            geo_seq: g[4] as u8,
+            offsets,
+            tns,
+            tns_coef_res,
+            spec: spec_vals,
+            penld: tail(1),
+            pthld: tail(2),
+            senl: tail(3),
+            ff: tail(4),
+            enfac: tail(5),
+            wenld: tail(6),
+            wthld: tail(7),
+            spnl: tail(8),
+            spech: tail(9),
+            spco: tail(10),
+            spna: tail(11),
+            pech: [get3("pe"), get3("const"), get3("nact")],
+            isb: tail(13),
+            iss: tail(14),
+            noise: tail(15),
+        });
+    }
+    if ch_blocks.len() == 2 {
+        assert!(msd.is_some(), "stereo S1 frame needs MSD");
+    }
+    S1Frame {
+        frame,
+        ch: ch_blocks,
+        msd,
+        pe,
+        static_el,
+        static_bits,
+        ats_pre,
+        ats_post,
+    }
+}
+
+/// One committed S2 (M4-S2) channel block from `qc2_<name>_f<F>.txt`.
+#[derive(Debug, Clone)]
+pub(crate) struct S2Channel {
+    pub(crate) geo_cnt: usize,
+    pub(crate) geo_per: usize,
+    pub(crate) geo_max: usize,
+    pub(crate) geo_seq: u8,
+    /// `groupLen` (`GROUPLEN`, `MAX_NO_OF_GROUPS` = 4 entries).
+    pub(crate) group_len: Vec<i32>,
+    pub(crate) thr_exp: Vec<i32>,
+    pub(crate) minsnr0: Vec<i32>,
+    pub(crate) spread0: Vec<i32>,
+    pub(crate) thrv: Vec<i32>,
+    pub(crate) minsnr1: Vec<i32>,
+    pub(crate) spread1: Vec<i32>,
+}
+
+/// One committed S2 element frame: chaos evolution plus per-channel
+/// threshold working state. S1 inputs (weighted energies/thresholds,
+/// form factors, EnFac, linear energies, MS mask, geometry) come from
+/// the matching `qc1` file.
+#[derive(Debug, Clone)]
+pub(crate) struct S2Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S2Channel>,
+    pub(crate) chaos_pre: i32,
+    pub(crate) chaos_post: i32,
+}
+
+/// Load a committed S2 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s2(name: &str, frame: u32) -> S2Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc2_{name}_f{frame}.txt")))
+        .expect("s2 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S2FRAME head");
+    assert_eq!(head, format!("S2FRAME f={frame}"));
+    const PER_CH: [&str; 8] = [
+        "S2GEO", "GROUPLEN", "THREXP", "MINSNR0", "SPREAD0", "THRV", "MINSNR1", "SPREAD1",
+    ];
+    let mut chaos_pre = 0i32;
+    let mut chaos_post = 0i32;
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S2CHAOS ") {
+            let kv: std::collections::HashMap<String, String> = line
+                .split_whitespace()
+                .skip(1)
+                .map(|tok| {
+                    let (k, v) = tok.split_once('=').expect("k=v");
+                    (k.to_string(), v.to_string())
+                })
+                .collect();
+            chaos_pre = kv["pre"].parse().expect("int");
+            chaos_post = kv["post"].parse().expect("int");
+        } else if line.starts_with("S2END") {
+            // Terminator, nothing to store.
+        } else {
+            pending.push(line.to_string());
+        }
+    }
+    let mut starts = Vec::new();
+    for (i, ln) in pending.iter().enumerate() {
+        if ln.starts_with("S2GEO ") {
+            starts.push(i);
+        }
+    }
+    assert!(!starts.is_empty(), "no S2 channel blocks");
+    let mut ch_blocks: Vec<S2Channel> = Vec::new();
+    for (ci, &s) in starts.iter().enumerate() {
+        let e = if ci + 1 < starts.len() {
+            starts[ci + 1]
+        } else {
+            pending.len()
+        };
+        let block = &pending[s..e];
+        assert_eq!(block.len(), PER_CH.len(), "S2 channel block tags");
+        for (ln, tag) in block.iter().zip(PER_CH.iter()) {
+            assert!(
+                ln.starts_with(&format!("{tag} ")),
+                "expected {tag}, got {}",
+                &ln[..ln.len().min(12)]
+            );
+        }
+        let geo = |ln: &str| {
+            ln.split_whitespace()
+                .skip(1)
+                .map(|kv| {
+                    kv.split_once('=')
+                        .expect("k=v")
+                        .1
+                        .parse::<i32>()
+                        .expect("int")
+                })
+                .collect::<Vec<_>>()
+        };
+        let g = geo(&block[0]);
+        assert_eq!(g.len(), 5); // ch cnt per max seq
+        let cnt = g[1] as usize;
+        let vec = |ln: &str| parse_int_list(ln.split_once(' ').expect("tag").1);
+        let group_len = vec(&block[1]);
+        assert_eq!(group_len.len(), 4, "GROUPLEN length");
+        for (tag, vals) in [
+            ("THREXP", vec(&block[2])),
+            ("MINSNR0", vec(&block[3])),
+            ("SPREAD0", vec(&block[4])),
+            ("THRV", vec(&block[5])),
+            ("MINSNR1", vec(&block[6])),
+            ("SPREAD1", vec(&block[7])),
+        ] {
+            assert_eq!(vals.len(), cnt, "{tag} length");
+        }
+        ch_blocks.push(S2Channel {
+            geo_cnt: cnt,
+            geo_per: g[2] as usize,
+            geo_max: g[3] as usize,
+            geo_seq: g[4] as u8,
+            group_len,
+            thr_exp: vec(&block[2]),
+            minsnr0: vec(&block[3]),
+            spread0: vec(&block[4]),
+            thrv: vec(&block[5]),
+            minsnr1: vec(&block[6]),
+            spread1: vec(&block[7]),
+        });
+    }
+    S2Frame {
+        frame,
+        ch: ch_blocks,
+        chaos_pre,
+        chaos_post,
+    }
+}
+
+/// One synthetic quantizer probe case from `qprobe_quant.txt` (produced by
+/// `tools/enc-oracle/quant_probe`, which calls the unmodified reference).
+#[derive(Debug, Clone)]
+pub(crate) enum QProbe {
+    /// Single-band quantize: `QL g=.. dz=.. n=.. spec .. q ..`.
+    Quantize {
+        gain: i32,
+        dz: bool,
+        spec: Vec<i32>,
+        q: Vec<i16>,
+    },
+    /// Multi-band quantize with an scf ramp: `QBANDS gg=.. dz=..`.
+    /// Geometry is fixed by the probe (2 groups x 2 bands,
+    /// offsets [0,3,7,11,16], scf [5,15,25,35]).
+    QuantizeBands {
+        gain: i32,
+        spec: Vec<i32>,
+        q: Vec<i16>,
+    },
+    /// Distortion with internal re-quantize: `QD g=.. dz=.. n=..`.
+    Dist {
+        gain: i32,
+        dz: bool,
+        spec: Vec<i32>,
+        q: Vec<i16>,
+        dist: i32,
+    },
+    /// Energy/distortion with caller-chosen lines: `QI g=.. n=..`.
+    InvDist {
+        gain: i32,
+        spec: Vec<i32>,
+        q: Vec<i16>,
+        en: i32,
+        dist: i32,
+    },
+}
+
+/// Probe band geometry (must match `quant_probe.cpp` QBANDS).
+pub(crate) const QPROBE_BAND_OFF: [i32; 5] = [0, 3, 7, 11, 16];
+pub(crate) const QPROBE_BAND_SCF: [i32; 4] = [5, 15, 25, 35];
+
+/// Load every synthetic probe case. Strict: unknown tags, field drift, or
+/// value overflow fails loudly here, not in numeric comparisons.
+pub(crate) fn load_qprobe() -> Vec<QProbe> {
+    let text = std::fs::read_to_string(testdata_path("qprobe_quant.txt")).expect("qprobe testdata");
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with("QPROBE ") || line.starts_with("QTARCH") {
+            continue;
+        }
+        if line.starts_with("QTABQ") || line.starts_with("QTABE") || line.starts_with("MTAB") {
+            continue;
+        }
+        if line.starts_with("EXPM") || line.starts_with("EXPS") || line.starts_with("KZ ") {
+            continue;
+        }
+        let toks: Vec<&str> = line.split_whitespace().collect();
+        let kv = |t: &str| {
+            t.split_once('=')
+                .unwrap_or_else(|| panic!("k=v token: {t}"))
+                .1
+                .parse::<i32>()
+                .unwrap_or_else(|_| panic!("int token: {t}"))
+        };
+        let section = |tag: &str| -> Vec<i32> {
+            let s = toks
+                .iter()
+                .position(|&t| t == tag)
+                .unwrap_or_else(|| panic!("{tag} in {line}"));
+            toks[s + 1..]
+                .iter()
+                .take_while(|&&t| !t.contains('=') && t != "q" && t != "dist" && t != "en")
+                .map(|t| t.parse::<i32>().unwrap_or_else(|_| panic!("int: {t}")))
+                .collect()
+        };
+        match toks[0] {
+            "QL" => {
+                let gain = kv(toks[1]);
+                let dz = kv(toks[2]) != 0;
+                let n = kv(toks[3]) as usize;
+                let spec = section("spec");
+                let q: Vec<i16> = section("q").iter().map(|&v| v as i16).collect();
+                assert_eq!(spec.len(), n, "QL spec length");
+                assert_eq!(q.len(), n, "QL q length");
+                out.push(QProbe::Quantize { gain, dz, spec, q });
+            }
+            "QBANDS" => {
+                let gain = kv(toks[1]);
+                let spec = section("spec");
+                let q: Vec<i16> = section("q").iter().map(|&v| v as i16).collect();
+                assert_eq!(spec.len(), 16, "QBANDS spec length");
+                assert_eq!(q.len(), 16, "QBANDS q length");
+                out.push(QProbe::QuantizeBands { gain, spec, q });
+            }
+            "QD" => {
+                let gain = kv(toks[1]);
+                let dz = kv(toks[2]) != 0;
+                let n = kv(toks[3]) as usize;
+                let spec = section("spec");
+                let q: Vec<i16> = section("q").iter().map(|&v| v as i16).collect();
+                let dpos = toks.iter().position(|&t| t == "dist").expect("dist tag");
+                let dist = toks[dpos + 1].parse::<i32>().expect("dist int");
+                assert_eq!(spec.len(), n, "QD spec length");
+                assert_eq!(q.len(), n, "QD q length");
+                out.push(QProbe::Dist {
+                    gain,
+                    dz,
+                    spec,
+                    q,
+                    dist,
+                });
+            }
+            "QI" => {
+                let gain = kv(toks[1]);
+                let n = kv(toks[2]) as usize;
+                let spec = section("spec");
+                let q: Vec<i16> = section("q").iter().map(|&v| v as i16).collect();
+                let epos = toks.iter().position(|&t| t == "en").expect("en tag");
+                let dpos = toks.iter().position(|&t| t == "dist").expect("dist tag");
+                let en = toks[epos + 1].parse::<i32>().expect("en int");
+                let dist = toks[dpos + 1].parse::<i32>().expect("dist int");
+                assert_eq!(spec.len(), n, "QI spec length");
+                assert_eq!(q.len(), n, "QI q length");
+                out.push(QProbe::InvDist {
+                    gain,
+                    spec,
+                    q,
+                    en,
+                    dist,
+                });
+            }
+            _ => panic!("unknown qprobe line: {line}"),
+        }
+    }
+    assert!(!out.is_empty(), "no probe cases loaded");
+    out
+}
+
+/// One committed S3 element frame: quantizer outputs over a gain grid on
+/// the matching `qc1` post-MS/IS spectrum (`SPEC`), which is exactly what
+/// `QuantizeSpectrum` consumes in the aliased encoder (`aacenc.cpp:803`).
+#[derive(Debug, Clone)]
+pub(crate) struct S3Channel {
+    pub(crate) geo_cnt: usize,
+    pub(crate) geo_per: usize,
+    pub(crate) geo_max: usize,
+    pub(crate) geo_seq: u8,
+    pub(crate) offsets: Vec<i32>,
+    pub(crate) gains: Vec<i32>,
+    /// Full 1024-line quantized spectra, one per grid gain (`S3Q`).
+    pub(crate) qspec: Vec<Vec<i16>>,
+    /// Per-band Ld distortion with internal re-quantize, one per grid
+    /// gain (`S3DIST`, `cnt` entries each).
+    pub(crate) dist: Vec<Vec<i32>>,
+    /// Per-band `(energy, distortion)` with the committed quantized
+    /// lines fed back in, one pair per grid gain (`S3EN`).
+    pub(crate) en: Vec<Vec<i32>>,
+    pub(crate) en_dist: Vec<Vec<i32>>,
+}
+
+/// One committed S3 element frame.
+#[derive(Debug, Clone)]
+pub(crate) struct S3Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S3Channel>,
+}
+
+/// Load a committed S3 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s3(name: &str, frame: u32) -> S3Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc3_{name}_f{frame}.txt")))
+        .expect("s3 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S3FRAME head");
+    assert_eq!(head, format!("S3FRAME f={frame}"));
+    let mut ch_blocks: Vec<S3Channel> = Vec::new();
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S3END") {
+            continue;
+        }
+        pending.push(line.to_string());
+    }
+    let mut starts = Vec::new();
+    for (i, ln) in pending.iter().enumerate() {
+        if ln.starts_with("S3GEO ") {
+            starts.push(i);
+        }
+    }
+    assert!(!starts.is_empty(), "no S3 channel blocks");
+    for (ci, &s) in starts.iter().enumerate() {
+        let e = if ci + 1 < starts.len() {
+            starts[ci + 1]
+        } else {
+            pending.len()
+        };
+        let block = &pending[s..e];
+        assert!(block[0].starts_with("S3GEO "), "S3GEO head");
+        let g: Vec<i32> = block[0]
+            .split_whitespace()
+            .skip(1)
+            .map(|kv| {
+                kv.split_once('=')
+                    .expect("k=v")
+                    .1
+                    .parse::<i32>()
+                    .expect("int")
+            })
+            .collect();
+        assert_eq!(g.len(), 5); // ch cnt per max seq
+        let cnt = g[1] as usize;
+        assert!(block[1].starts_with("S3OFF "), "S3OFF second");
+        let offsets = parse_int_list(block[1].split_once(' ').expect("tag").1);
+        assert_eq!(offsets.len(), cnt + 1, "S3OFF length");
+        let mut gains = Vec::new();
+        let mut qspec = Vec::new();
+        let mut dist = Vec::new();
+        let mut en = Vec::new();
+        let mut en_dist = Vec::new();
+        let mut i = 2;
+        while i < block.len() {
+            let ln = &block[i];
+            assert!(
+                ln.starts_with("S3Q g="),
+                "S3Q tag, got {}",
+                &ln[..ln.len().min(12)]
+            );
+            let gain: i32 = ln
+                .split_whitespace()
+                .nth(1)
+                .expect("g=")
+                .split_once('=')
+                .expect("k=v")
+                .1
+                .parse()
+                .expect("gain");
+            let ch_tok = ln.split_whitespace().nth(2).expect("ch=");
+            assert_eq!(ch_tok.split_once('=').expect("k=v").0, "ch");
+            let q: Vec<i16> = ln
+                .split_once("ch=")
+                .expect("ch")
+                .1
+                .split_whitespace()
+                .skip(1)
+                .map(|v| v.parse::<i32>().expect("q int") as i16)
+                .collect();
+            assert_eq!(q.len(), 1024, "S3Q length");
+            i += 1;
+            let dl = &block[i];
+            assert!(dl.starts_with("S3DIST g="), "S3DIST tag");
+            let dgain: i32 = dl
+                .split_whitespace()
+                .nth(1)
+                .expect("g=")
+                .split_once('=')
+                .expect("k=v")
+                .1
+                .parse()
+                .expect("gain");
+            assert_eq!(dgain, gain, "S3Q/S3DIST gain agreement");
+            let d: Vec<i32> = parse_int_list(
+                dl.split_once("ch=")
+                    .expect("ch")
+                    .1
+                    .split_once(' ')
+                    .expect("skip")
+                    .1,
+            );
+            assert_eq!(d.len(), cnt, "S3DIST length");
+            i += 1;
+            let el = &block[i];
+            assert!(el.starts_with("S3EN g="), "S3EN tag");
+            let egain: i32 = el
+                .split_whitespace()
+                .nth(1)
+                .expect("g=")
+                .split_once('=')
+                .expect("k=v")
+                .1
+                .parse()
+                .expect("gain");
+            assert_eq!(egain, gain, "S3Q/S3EN gain agreement");
+            let rest = el.split_once("ch=").expect("ch").1;
+            let epart = rest.split_once(" en ").expect("en").1;
+            let (e_str, d_str) = epart.split_once(" dist ").expect("dist");
+            let e: Vec<i32> = parse_int_list(e_str);
+            let ed: Vec<i32> = parse_int_list(d_str);
+            assert_eq!(e.len(), cnt, "S3EN en length");
+            assert_eq!(ed.len(), cnt, "S3EN dist length");
+            i += 1;
+            gains.push(gain);
+            qspec.push(q);
+            dist.push(d);
+            en.push(e);
+            en_dist.push(ed);
+        }
+        assert!(!gains.is_empty(), "no S3 gains");
+        ch_blocks.push(S3Channel {
+            geo_cnt: cnt,
+            geo_per: g[2] as usize,
+            geo_max: g[3] as usize,
+            geo_seq: g[4] as u8,
+            offsets,
+            gains,
+            qspec,
+            dist,
+            en,
+            en_dist,
+        });
+    }
+    S3Frame {
+        frame,
+        ch: ch_blocks,
+    }
+}
+
+/// One committed S4 invQuant level: initial formula (`inv=0`), single
+/// assimilation (`inv=1`), full afterburner (`inv=2`). `scf` holds the
+/// POST-inversion stored values (`maxSf - orig`, dead bands `0`);
+/// `qspec`/`spec` the final lines and zeroed spectrum; `dist`/`en`/
+/// `en_dist` the oracle-recomputed per-band distortion/energy with
+/// `QSS = gain - scf` (diagnostic, mirrors S3DIST/S3EN — the internal
+/// `sfbDist` scratch is not exposed by the exported call).
+#[derive(Debug, Clone)]
+pub(crate) struct S4Level {
+    pub(crate) inv: i32,
+    pub(crate) scf: Vec<i32>,
+    pub(crate) gain: i32,
+    pub(crate) qspec: Vec<i16>,
+    pub(crate) spec: Vec<i32>,
+    pub(crate) dist: Vec<i32>,
+    pub(crate) en: Vec<i32>,
+    pub(crate) en_dist: Vec<i32>,
+}
+
+/// One committed S4 channel: geometry plus the three inv levels.
+#[derive(Debug, Clone)]
+pub(crate) struct S4Channel {
+    pub(crate) geo_cnt: usize,
+    pub(crate) geo_per: usize,
+    pub(crate) geo_max: usize,
+    pub(crate) geo_seq: u8,
+    pub(crate) offsets: Vec<i32>,
+    pub(crate) levels: Vec<S4Level>,
+}
+
+/// One committed S4 element frame.
+#[derive(Debug, Clone)]
+pub(crate) struct S4Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S4Channel>,
+}
+
+/// Load a committed S4 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s4(name: &str, frame: u32) -> S4Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc4_{name}_f{frame}.txt")))
+        .expect("s4 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S4FRAME head");
+    assert_eq!(head, format!("S4FRAME f={frame}"));
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S4END") {
+            continue;
+        }
+        pending.push(line.to_string());
+    }
+    // Channel geometry blocks come first (S4GEO/S4OFF per channel).
+    let mut geo: Vec<(Vec<i32>, Vec<i32>)> = Vec::new();
+    let mut i = 0;
+    while i < pending.len() && pending[i].starts_with("S4GEO ") {
+        let g: Vec<i32> = pending[i]
+            .split_whitespace()
+            .skip(1)
+            .map(|kv| {
+                kv.split_once('=')
+                    .expect("k=v")
+                    .1
+                    .parse::<i32>()
+                    .expect("int")
+            })
+            .collect();
+        assert_eq!(g.len(), 5); // ch cnt per max seq
+        assert!(pending[i + 1].starts_with("S4OFF "), "S4OFF second");
+        let offsets = parse_int_list(pending[i + 1].split_once(' ').expect("tag").1);
+        assert_eq!(offsets.len(), g[1] as usize + 1, "S4OFF length");
+        geo.push((g, offsets));
+        i += 2;
+    }
+    assert!(!geo.is_empty(), "no S4 channel blocks");
+    let nch = geo.len();
+    let mut levels: Vec<Vec<S4Level>> = vec![Vec::new(); nch];
+    for inv in [0, 1, 2] {
+        for ch in 0..nch {
+            let cnt = geo[ch].0[1] as usize;
+            let ln = &pending[i];
+            assert!(
+                ln.starts_with(&format!("S4SCF inv={inv} ")),
+                "S4SCF tag, got {}",
+                &ln[..ln.len().min(16)]
+            );
+            // `S4SCF inv=<v> ch=<c> <cnt ints>`.
+            let scf: Vec<i32> = ln
+                .split_once(&format!("ch={ch}"))
+                .expect("ch")
+                .1
+                .split_whitespace()
+                .map(|v| v.parse::<i32>().expect("scf int"))
+                .collect();
+            assert_eq!(scf.len(), cnt, "S4SCF length");
+            i += 1;
+            let gl = &pending[i];
+            assert!(gl.starts_with(&format!("S4GAIN inv={inv} ")), "S4GAIN tag");
+            let gain: i32 = gl
+                .split_whitespace()
+                .nth(3)
+                .expect("gain")
+                .parse()
+                .expect("gain int");
+            i += 1;
+            let ql = &pending[i];
+            assert!(ql.starts_with(&format!("S4Q inv={inv} ")), "S4Q tag");
+            let q: Vec<i16> = ql
+                .split_once(&format!("ch={ch}"))
+                .expect("ch")
+                .1
+                .split_whitespace()
+                .map(|v| v.parse::<i32>().expect("q int") as i16)
+                .collect();
+            assert_eq!(q.len(), 1024, "S4Q length");
+            i += 1;
+            let sl = &pending[i];
+            assert!(sl.starts_with(&format!("S4SPEC inv={inv} ")), "S4SPEC tag");
+            let spec: Vec<i32> = sl
+                .split_once(&format!("ch={ch}"))
+                .expect("ch")
+                .1
+                .split_whitespace()
+                .map(|v| v.parse::<i32>().expect("spec int"))
+                .collect();
+            assert_eq!(spec.len(), 1024, "S4SPEC length");
+            i += 1;
+            let dl = &pending[i];
+            assert!(dl.starts_with(&format!("S4DIST inv={inv} ")), "S4DIST tag");
+            let d: Vec<i32> =
+                parse_int_list(dl.split_once(&format!("ch={ch}")).expect("ch").1.trim());
+            assert_eq!(d.len(), cnt, "S4DIST length");
+            i += 1;
+            let el = &pending[i];
+            assert!(el.starts_with(&format!("S4EN inv={inv} ")), "S4EN tag");
+            let rest = el.split_once(&format!("ch={ch}")).expect("ch").1;
+            let epart = rest.split_once(" en ").expect("en").1;
+            let (e_str, d_str) = epart.split_once(" dist ").expect("dist");
+            let e: Vec<i32> = parse_int_list(e_str);
+            let ed: Vec<i32> = parse_int_list(d_str);
+            assert_eq!(e.len(), cnt, "S4EN en length");
+            assert_eq!(ed.len(), cnt, "S4EN dist length");
+            i += 1;
+            levels[ch].push(S4Level {
+                inv,
+                scf,
+                gain,
+                qspec: q,
+                spec,
+                dist: d,
+                en: e,
+                en_dist: ed,
+            });
+        }
+    }
+    assert_eq!(i, pending.len(), "trailing S4 lines");
+    let ch_blocks = geo
+        .into_iter()
+        .zip(levels.into_iter())
+        .map(|((g, offsets), lv)| S4Channel {
+            geo_cnt: g[1] as usize,
+            geo_per: g[2] as usize,
+            geo_max: g[3] as usize,
+            geo_seq: g[4] as u8,
+            offsets,
+            levels: lv,
+        })
+        .collect();
+    S4Frame {
+        frame,
+        ch: ch_blocks,
+    }
+}
+
+/// One committed S5 section: codebook + start/count (SFB units) +
+/// section bits (Huffman + side info, like C `sectionBits`).
+#[derive(Debug, Clone)]
+pub(crate) struct S5Section {
+    pub(crate) book: i32,
+    pub(crate) start: i32,
+    pub(crate) cnt: i32,
+    pub(crate) bits: i32,
+}
+
+/// One committed S5 channel: geometry, QMAX (S6-owned
+/// `calcMaxValueInSfb` output consumed as S5 input), the PNS-off
+/// precondition vectors, and the sectioning + counts result.
+#[derive(Debug, Clone)]
+pub(crate) struct S5Channel {
+    pub(crate) geo_cnt: usize,
+    pub(crate) geo_per: usize,
+    pub(crate) geo_max: usize,
+    pub(crate) geo_seq: u8,
+    pub(crate) offsets: Vec<i32>,
+    pub(crate) qmax: Vec<u32>,
+    pub(crate) is_book: Vec<i32>,
+    pub(crate) is_scale: Vec<i32>,
+    pub(crate) noise_nrg: Vec<i32>,
+    pub(crate) sections: Vec<S5Section>,
+    pub(crate) block: i32,
+    pub(crate) side: i32,
+    pub(crate) huff: i32,
+    pub(crate) scf_bits: i32,
+    pub(crate) noise_bits: i32,
+    pub(crate) first: i32,
+    pub(crate) dyn_used: i32,
+}
+
+/// One committed S5 element frame.
+#[derive(Debug, Clone)]
+pub(crate) struct S5Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S5Channel>,
+}
+
+/// Load a committed S5 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s5(name: &str, frame: u32) -> S5Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc5_{name}_f{frame}.txt")))
+        .expect("s5 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S5FRAME head");
+    assert_eq!(head, format!("S5FRAME f={frame}"));
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S5END") {
+            continue;
+        }
+        pending.push(line.to_string());
+    }
+    // Channel geometry blocks come first (S5GEO/S5OFF per channel).
+    let mut geo: Vec<(Vec<i32>, Vec<i32>)> = Vec::new();
+    let mut i = 0;
+    while i < pending.len() && pending[i].starts_with("S5GEO ") {
+        let g: Vec<i32> = pending[i]
+            .split_whitespace()
+            .skip(1)
+            .map(|kv| {
+                kv.split_once('=')
+                    .expect("k=v")
+                    .1
+                    .parse::<i32>()
+                    .expect("int")
+            })
+            .collect();
+        assert_eq!(g.len(), 5); // ch cnt per max seq
+        assert!(pending[i + 1].starts_with("S5OFF "), "S5OFF second");
+        let offsets = parse_int_list(pending[i + 1].split_once(' ').expect("tag").1);
+        assert_eq!(offsets.len(), g[1] as usize + 1, "S5OFF length");
+        geo.push((g, offsets));
+        i += 2;
+    }
+    assert!(!geo.is_empty(), "no S5 channel blocks");
+    let nch = geo.len();
+    let mut ch_blocks: Vec<S5Channel> = Vec::new();
+    for ch in 0..nch {
+        let cnt = geo[ch].0[1] as usize;
+        let get_vals = |line: &str, tag: &str| -> Vec<i32> {
+            assert!(
+                line.starts_with(&format!("{tag} ch={ch}")),
+                "{tag} tag, got {}",
+                &line[..line.len().min(16)]
+            );
+            line.split_once(&format!("ch={ch}"))
+                .expect("ch")
+                .1
+                .split_whitespace()
+                .map(|v| v.parse::<i32>().expect("int"))
+                .collect()
+        };
+        let qmax_line = &pending[i];
+        assert!(
+            qmax_line.starts_with(&format!("S5QMAX ch={ch}")),
+            "S5QMAX tag"
+        );
+        let qmax: Vec<u32> = qmax_line
+            .split_once(&format!("ch={ch}"))
+            .expect("ch")
+            .1
+            .split_whitespace()
+            .map(|v| v.parse::<u32>().expect("qmax int"))
+            .collect();
+        assert_eq!(qmax.len(), cnt, "S5QMAX length");
+        for &q in &qmax {
+            assert!(q <= 32768, "S5QMAX range");
+        }
+        i += 1;
+        let is_book = get_vals(&pending[i], "S5ISB");
+        assert_eq!(is_book.len(), cnt, "S5ISB length");
+        i += 1;
+        let is_scale = get_vals(&pending[i], "S5ISS");
+        assert_eq!(is_scale.len(), cnt, "S5ISS length");
+        i += 1;
+        let noise_nrg = get_vals(&pending[i], "S5NOISE");
+        assert_eq!(noise_nrg.len(), cnt, "S5NOISE length");
+        i += 1;
+        let sect_line = &pending[i];
+        assert!(
+            sect_line.starts_with(&format!("S5SECT ch={ch}")),
+            "S5SECT tag"
+        );
+        let nsec: usize = sect_line
+            .split("nsec=")
+            .nth(1)
+            .expect("nsec")
+            .parse()
+            .expect("nsec int");
+        i += 1;
+        let mut sections = Vec::new();
+        for s in 0..nsec {
+            let sl = &pending[i];
+            assert!(sl.starts_with(&format!("S5SEC ch={ch}")), "S5SEC tag");
+            let kv: Vec<(&str, i32)> = sl
+                .split_whitespace()
+                .skip(2)
+                .map(|kv| {
+                    let (k, v) = kv.split_once('=').expect("k=v");
+                    (k, v.parse::<i32>().expect("sec int"))
+                })
+                .collect();
+            assert_eq!(kv.len(), 5, "S5SEC fields");
+            assert_eq!(kv[0].0, "i");
+            assert_eq!(kv[0].1, s as i32, "S5SEC order");
+            assert_eq!(kv[1].0, "book");
+            assert_eq!(kv[2].0, "start");
+            assert_eq!(kv[3].0, "cnt");
+            assert_eq!(kv[4].0, "bits");
+            sections.push(S5Section {
+                book: kv[1].1,
+                start: kv[2].1,
+                cnt: kv[3].1,
+                bits: kv[4].1,
+            });
+            i += 1;
+        }
+        let bl = &pending[i];
+        assert!(bl.starts_with(&format!("S5BITS ch={ch}")), "S5BITS tag");
+        let bv: Vec<i32> = bl
+            .split_whitespace()
+            .skip(2)
+            .map(|kv| {
+                kv.split_once('=')
+                    .expect("k=v")
+                    .1
+                    .parse::<i32>()
+                    .expect("bits int")
+            })
+            .collect();
+        // block nsec side huff scf noise first dyn
+        assert_eq!(bv.len(), 8, "S5BITS fields");
+        assert_eq!(bv[1] as usize, nsec, "S5BITS nsec agreement");
+        i += 1;
+        ch_blocks.push(S5Channel {
+            geo_cnt: cnt,
+            geo_per: geo[ch].0[2] as usize,
+            geo_max: geo[ch].0[3] as usize,
+            geo_seq: geo[ch].0[4] as u8,
+            offsets: geo[ch].1.clone(),
+            qmax,
+            is_book,
+            is_scale,
+            noise_nrg,
+            sections,
+            block: bv[0],
+            side: bv[2],
+            huff: bv[3],
+            scf_bits: bv[4],
+            noise_bits: bv[5],
+            first: bv[6],
+            dyn_used: bv[7],
+        });
+    }
+    assert_eq!(i, pending.len(), "trailing S5 lines");
+    S5Frame {
+        frame,
+        ch: ch_blocks,
+    }
+}
+
+/// One committed S6 gain-loop pass (oracle `S6IT` line).
+#[derive(Debug, Clone)]
+pub(crate) struct S6Pass {
+    pub(crate) iter: i32,
+    pub(crate) dec: i32,
+    pub(crate) dyn0: i32,
+    pub(crate) dyn1: i32,
+    pub(crate) gain0: i32,
+    pub(crate) gain1: i32,
+    pub(crate) maxq0: u32,
+    pub(crate) maxq1: u32,
+    pub(crate) eldyn: i32,
+    pub(crate) elstat: i32,
+    pub(crate) crash: i32,
+}
+
+/// One committed S6 element frame: bitrate/grant accounting, the per-pass
+/// iteration trace and the fill/finalization result.
+#[derive(Debug, Clone)]
+pub(crate) struct S6Frame {
+    pub(crate) frame: u32,
+    pub(crate) avg_total: i32,
+    pub(crate) glob_hdr: i32,
+    pub(crate) pad_rest: i32,
+    pub(crate) granted: i32,
+    pub(crate) maxdyn: i32,
+    pub(crate) avail: i32,
+    pub(crate) elgrant: i32,
+    pub(crate) gpe: i32,
+    pub(crate) gpecorr: i32,
+    pub(crate) reslevel: i32,
+    pub(crate) resmax: i32,
+    /// Pre-frame ATS grant state `(peLast, dynBitsLast, corrM, corrE,
+    /// peMin, peMax)` for exact single-frame forging.
+    pub(crate) gstate: Vec<i32>,
+    pub(crate) passes: Vec<S6Pass>,
+    pub(crate) static_: i32,
+    pub(crate) useddyn: i32,
+    pub(crate) totfill: i32,
+    pub(crate) align: i32,
+    pub(crate) total: i32,
+    pub(crate) fgranted: i32,
+    pub(crate) bitres: i32,
+    pub(crate) fcrash: i32,
+    pub(crate) npass: usize,
+    /// Post-frame ATS grant state (same 6-tuple; evolution proof:
+    /// PRE(f+1) == POST(f) on consecutive frames).
+    pub(crate) gpost: Vec<i32>,
+}
+
+/// Committed S6 QC-init vectors (oracle `S6INIT`, from the real QCInit path).
+#[derive(Debug, Clone)]
+pub(crate) struct S6Init {
+    pub(crate) avg: i32,
+    pub(crate) max: i32,
+    pub(crate) min: i32,
+    pub(crate) bitres: i32,
+    pub(crate) mode: i32,
+    pub(crate) distmode: i32,
+    pub(crate) meanpe: i32,
+    pub(crate) maxbitfac: i32,
+    pub(crate) chbitrate_el: i32,
+    pub(crate) maxbits_el: i32,
+    pub(crate) relbits_el: i32,
+    pub(crate) b2m: i32,
+    pub(crate) b2e: i32,
+    pub(crate) pemin: i32,
+    pub(crate) pemax: i32,
+}
+
+fn parse_kv_ints(line: &str) -> Vec<i32> {
+    line.split_whitespace()
+        .skip(1)
+        .map(|kv| {
+            kv.split_once('=')
+                .expect("k=v")
+                .1
+                .parse::<i32>()
+                .expect("int")
+        })
+        .collect()
+}
+
+/// Load a committed S6 frame. Strict tag-order parsing.
+pub(crate) fn load_s6(name: &str, frame: u32) -> S6Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc6_{name}_f{frame}.txt")))
+        .expect("s6 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S6FRAME head");
+    assert_eq!(head, format!("S6FRAME f={frame}"));
+    let bitr = parse_kv_ints(lines.next().expect("S6BITR"));
+    assert_eq!(bitr.len(), 3, "S6BITR fields");
+    let grant = parse_kv_ints(lines.next().expect("S6GRANT"));
+    assert_eq!(grant.len(), 8, "S6GRANT fields");
+    let gstate_line = lines.next().expect("S6GSTATE");
+    assert!(gstate_line.starts_with("S6GSTATE "), "S6GSTATE tag");
+    let gstate: Vec<i32> = gstate_line
+        .split_whitespace()
+        .skip(1)
+        .map(|v| v.parse::<i32>().expect("gstate int"))
+        .collect();
+    assert_eq!(gstate.len(), 6, "S6GSTATE fields");
+    let mut passes = Vec::new();
+    for line in lines.by_ref() {
+        if line.starts_with("S6IT ") {
+            let v = parse_kv_ints(line);
+            assert_eq!(v.len(), 12, "S6IT fields");
+            let idx = passes.len() as i32;
+            assert_eq!(v[0], idx, "S6IT pass order");
+            passes.push(S6Pass {
+                iter: v[1],
+                dec: v[2],
+                dyn0: v[3],
+                dyn1: v[4],
+                gain0: v[5],
+                gain1: v[6],
+                maxq0: v[7] as u32,
+                maxq1: v[8] as u32,
+                eldyn: v[9],
+                elstat: v[10],
+                crash: v[11],
+            });
+        } else if line.starts_with("S6FINAL ") {
+            let b = parse_kv_ints(line);
+            assert_eq!(b.len(), 9, "S6FINAL fields");
+            assert_eq!(b[8] as usize, passes.len(), "S6FINAL npass agreement");
+            let gpost_line = lines.next().expect("S6GPOST");
+            assert!(gpost_line.starts_with("S6GPOST "), "S6GPOST tag");
+            let gpost: Vec<i32> = gpost_line
+                .split_whitespace()
+                .skip(1)
+                .map(|v| v.parse::<i32>().expect("gpost int"))
+                .collect();
+            assert_eq!(gpost.len(), 6, "S6GPOST fields");
+            let end = lines.next().expect("S6END");
+            assert!(end.starts_with("S6END"), "S6END tag");
+            assert!(lines.next().is_none(), "trailing S6 lines");
+            return S6Frame {
+                frame,
+                avg_total: bitr[0],
+                glob_hdr: bitr[1],
+                pad_rest: bitr[2],
+                granted: grant[0],
+                maxdyn: grant[1],
+                avail: grant[2],
+                elgrant: grant[3],
+                gpe: grant[4],
+                gpecorr: grant[5],
+                reslevel: grant[6],
+                resmax: grant[7],
+                gstate,
+                passes,
+                static_: b[0],
+                useddyn: b[1],
+                totfill: b[2],
+                align: b[3],
+                total: b[4],
+                fgranted: b[5],
+                bitres: b[6],
+                fcrash: b[7],
+                npass: b[8] as usize,
+                gpost,
+            };
+        } else {
+            panic!("unexpected S6 line: {}", &line[..line.len().min(16)]);
+        }
+    }
+    panic!("S6FINAL missing");
+}
+
+/// Load a committed S6 init fixture (`mono-48k`, `stereo-48k`,
+/// `stereo-44100`).
+pub(crate) fn load_s6init(tag: &str) -> S6Init {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc6init_{tag}.txt")))
+        .expect("s6init testdata readable");
+    let line = text.lines().next().expect("S6INIT line");
+    assert!(line.starts_with("S6INIT "), "S6INIT tag");
+    let mut v: Vec<i32> = Vec::new();
+    let mut b2m = 0i32;
+    let mut b2e = 0i32;
+    for kv in line.split_whitespace().skip(1) {
+        let (k, val) = kv.split_once('=').expect("k=v");
+        if k == "bits2pe" {
+            let (m, e) = val.split_once(',').expect("bits2pe m,e");
+            b2m = m.parse::<i32>().expect("b2m int");
+            b2e = e.parse::<i32>().expect("b2e int");
+        } else {
+            v.push(val.parse::<i32>().expect("int"));
+        }
+    }
+    assert_eq!(v.len(), 13, "S6INIT fields");
+    S6Init {
+        avg: v[0],
+        max: v[1],
+        min: v[2],
+        bitres: v[3],
+        mode: v[4],
+        distmode: v[5],
+        meanpe: v[6],
+        maxbitfac: v[7],
+        chbitrate_el: v[8],
+        maxbits_el: v[9],
+        relbits_el: v[10],
+        b2m,
+        b2e,
+        pemin: v[11],
+        pemax: v[12],
+    }
+}
+
+/// One synthetic S7 encode-probe vector from `s7probe.txt` (produced by
+/// `tools/enc-oracle/bitenc_probe`, which calls the unmodified reference
+/// `FDKaacEnc_codeValues` / `FDKaacEnc_codeScalefactorDelta` through a real
+/// FDK writer bitstream).
+#[derive(Debug, Clone)]
+pub(crate) enum S7Probe {
+    /// Spectral encode: `CV book=.. n=.. vals=.. bits=.. hex=..`.
+    CodeValues {
+        book: i32,
+        vals: Vec<i16>,
+        bits: u32,
+        hex: String,
+    },
+    /// Scalefactor-delta encode: `CS delta=.. rc=.. bits=.. hex=..`
+    /// (`rc=1` means the C error return: `|delta| > 60`, zero bits).
+    CodeDelta {
+        delta: i32,
+        rc: i32,
+        bits: u32,
+        hex: String,
+    },
+}
+
+/// Load every S7 probe vector. Strict: unknown tags, field drift, or value
+/// overflow fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s7probe() -> Vec<S7Probe> {
+    let text = std::fs::read_to_string(testdata_path("s7probe.txt")).expect("s7probe testdata");
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty()
+            || line.starts_with("S7TABLES")
+            || line.starts_with("CTAB")
+            || line.starts_with("S7VECTORS")
+        {
+            continue;
+        }
+        let toks: Vec<&str> = line.split_whitespace().collect();
+        fn kval<'a>(toks: &[&'a str], i: usize) -> &'a str {
+            toks[i]
+                .split_once('=')
+                .unwrap_or_else(|| panic!("k=v token: {}", toks[i]))
+                .1
+        }
+        match toks[0] {
+            "CV" => {
+                assert_eq!(toks.len(), 6, "CV fields: {line}");
+                let book = kval(&toks, 1).parse::<i32>().expect("book int");
+                let n = kval(&toks, 2).parse::<usize>().expect("n int");
+                let vals: Vec<i16> = kval(&toks, 3)
+                    .split(',')
+                    .map(|v| v.parse::<i32>().expect("val int") as i16)
+                    .collect();
+                assert_eq!(vals.len(), n, "CV vals length");
+                let bits = kval(&toks, 4).parse::<u32>().expect("bits int");
+                let hex = kval(&toks, 5).to_string();
+                assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "CV hex length");
+                out.push(S7Probe::CodeValues {
+                    book,
+                    vals,
+                    bits,
+                    hex,
+                });
+            }
+            "CS" => {
+                assert_eq!(toks.len(), 5, "CS fields: {line}");
+                let delta = kval(&toks, 1).parse::<i32>().expect("delta int");
+                let rc = kval(&toks, 2).parse::<i32>().expect("rc int");
+                let bits = kval(&toks, 3).parse::<u32>().expect("bits int");
+                let hex = kval(&toks, 4).to_string();
+                assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "CS hex length");
+                out.push(S7Probe::CodeDelta {
+                    delta,
+                    rc,
+                    bits,
+                    hex,
+                });
+            }
+            _ => panic!("unknown s7probe line: {line}"),
+        }
+    }
+    assert!(!out.is_empty(), "no S7 probe cases loaded");
+    out
+}
+
+/// One committed S7 channel payload: emitted bits + MSB-first hex for the
+/// spectral (`S7SPEC`), scalefactor (`S7SCF`) and section-header
+/// (`S7SECH`) writers from the real reference encode functions.
+#[derive(Debug, Clone)]
+pub(crate) struct S7Channel {
+    pub(crate) spec_bits: u32,
+    pub(crate) spec_hex: String,
+    pub(crate) scf_bits: u32,
+    pub(crate) scf_hex: String,
+    pub(crate) sech_bits: u32,
+    pub(crate) sech_hex: String,
+}
+
+/// One committed S7 element frame.
+#[derive(Debug, Clone)]
+pub(crate) struct S7Frame {
+    pub(crate) frame: u32,
+    pub(crate) ch: Vec<S7Channel>,
+}
+
+/// Load a committed S7 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s7(name: &str, frame: u32) -> S7Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc7_{name}_f{frame}.txt")))
+        .expect("s7 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S7FRAME head");
+    assert_eq!(head, format!("S7FRAME f={frame}"));
+    let mut ch: Vec<S7Channel> = Vec::new();
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S7END") {
+            continue;
+        }
+        pending.push(line.to_string());
+    }
+    assert_eq!(pending.len() % 3, 0, "S7 triplets");
+    fn parts(line: &str, tag: &str, ch_idx: usize) -> (u32, String) {
+        let toks: Vec<&str> = line.split_whitespace().collect();
+        assert_eq!(toks.len(), 4, "S7 fields: {line}");
+        assert_eq!(toks[0], tag, "S7 tag: {line}");
+        assert_eq!(toks[1], format!("ch={ch_idx}"), "S7 order: {line}");
+        let bits = toks[2]
+            .split_once('=')
+            .expect("bits k=v")
+            .1
+            .parse::<u32>()
+            .expect("bits int");
+        let hex = toks[3].split_once('=').expect("hex k=v").1.to_string();
+        assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "S7 hex length");
+        (bits, hex)
+    }
+    for (c, triplet) in pending.chunks_exact(3).enumerate() {
+        let (spec_bits, spec_hex) = parts(&triplet[0], "S7SPEC", c);
+        let (scf_bits, scf_hex) = parts(&triplet[1], "S7SCF", c);
+        let (sech_bits, sech_hex) = parts(&triplet[2], "S7SECH", c);
+        ch.push(S7Channel {
+            spec_bits,
+            spec_hex,
+            scf_bits,
+            scf_hex,
+            sech_bits,
+            sech_hex,
+        });
+    }
+    S7Frame { frame, ch }
+}
+
+/// One committed S8 side-info channel (`S8SIDE`).
+#[derive(Debug, Clone)]
+pub(crate) struct S8Side {
+    pub(crate) wshape: i32,
+    pub(crate) gmask: i32,
+    pub(crate) mdct: i32,
+}
+
+/// One committed S8 element frame: side info plus element/raw bit-exact
+/// payloads and the fill/align/total cross-check.
+#[derive(Debug, Clone)]
+pub(crate) struct S8Frame {
+    pub(crate) frame: u32,
+    pub(crate) sides: Vec<S8Side>,
+    pub(crate) elem_bits: u32,
+    pub(crate) elem_hex: String,
+    pub(crate) raw_bits: u32,
+    pub(crate) raw_hex: String,
+    pub(crate) sstatic: i32,
+    pub(crate) useddyn: i32,
+    pub(crate) totfill: i32,
+    pub(crate) align: i32,
+    pub(crate) total: i32,
+}
+
+/// Load a committed S8 frame. Strict tag-order parsing: any oracle format
+/// drift fails loudly here, not in numeric comparisons.
+pub(crate) fn load_s8(name: &str, frame: u32) -> S8Frame {
+    let text = std::fs::read_to_string(testdata_path(&format!("qc8_{name}_f{frame}.txt")))
+        .expect("s8 testdata readable");
+    let mut lines = text.lines();
+    let head = lines.next().expect("S8FRAME head");
+    assert_eq!(head, format!("S8FRAME f={frame}"));
+    let mut pending: Vec<String> = Vec::new();
+    for line in lines {
+        if line.starts_with("S8END") {
+            continue;
+        }
+        pending.push(line.to_string());
+    }
+    // sides (one per channel) + S8ELEM + S8RAW + S8FINAL.
+    assert!(pending.len() >= 4, "S8 block");
+    let nch = pending.len() - 3;
+    let mut sides = Vec::new();
+    for (c, ln) in pending[..nch].iter().enumerate() {
+        assert!(ln.starts_with("S8SIDE "), "S8SIDE tag: {ln}");
+        assert!(ln.contains(&format!("ch={c} ")), "S8SIDE order: {ln}");
+        let kv: std::collections::HashMap<String, String> = ln
+            .split_whitespace()
+            .skip(1)
+            .filter(|tok| tok.contains('='))
+            .map(|kv| {
+                let (k, v) = kv.split_once('=').expect("k=v");
+                (k.to_string(), v.to_string())
+            })
+            .collect();
+        sides.push(S8Side {
+            wshape: kv["wshape"].parse().expect("int"),
+            gmask: kv["gmask"].parse().expect("int"),
+            mdct: kv["mdct"].parse().expect("int"),
+        });
+    }
+    let elem_line = &pending[nch];
+    let raw_line = &pending[nch + 1];
+    let final_line = &pending[nch + 2];
+    assert!(elem_line.starts_with("S8ELEM "), "S8ELEM tag");
+    assert!(raw_line.starts_with("S8RAW "), "S8RAW tag");
+    assert!(final_line.starts_with("S8FINAL "), "S8FINAL tag");
+    fn bits_hex(line: &str, tag: &str) -> (u32, String) {
+        let toks: Vec<&str> = line.split_whitespace().collect();
+        assert_eq!(toks.len(), 3, "S8 bits/hex fields: {line}");
+        assert_eq!(toks[0], tag, "S8 tag: {line}");
+        let bits = toks[1]
+            .split_once('=')
+            .expect("bits")
+            .1
+            .parse::<u32>()
+            .expect("bits int");
+        let hex = toks[2].split_once('=').expect("hex").1.to_string();
+        assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "S8 hex length");
+        (bits, hex)
+    }
+    let (elem_bits, elem_hex) = bits_hex(elem_line, "S8ELEM");
+    let (raw_bits, raw_hex) = bits_hex(raw_line, "S8RAW");
+    let fkv: std::collections::HashMap<String, String> = final_line
+        .split_whitespace()
+        .skip(1)
+        .map(|kv| {
+            let (k, v) = kv.split_once('=').expect("k=v");
+            (k.to_string(), v.to_string())
+        })
+        .collect();
+    S8Frame {
+        frame,
+        sides,
+        elem_bits,
+        elem_hex,
+        raw_bits,
+        raw_hex,
+        sstatic: fkv["static"].parse().expect("int"),
+        useddyn: fkv["useddyn"].parse().expect("int"),
+        totfill: fkv["totfill"].parse().expect("int"),
+        align: fkv["align"].parse().expect("int"),
+        total: fkv["total"].parse().expect("int"),
     }
 }
