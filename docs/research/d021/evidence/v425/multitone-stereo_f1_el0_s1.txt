@@ -1,0 +1,4 @@
+V425_S1 fixture=multitone-stereo frame=2 frame_zero_based=1 el=0 stage=post_qcmainprepare
+PE 4995 CONST -11734 NACT 616 OFFSET 0 STATIC 177
+MSDIGEST 2 COMMON 1
+MSMASK 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0

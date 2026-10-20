@@ -1,0 +1,4 @@
+V425_S1 fixture=sine-stereo frame=2 frame_zero_based=1 el=0 stage=post_qcmainprepare
+PE 3488 CONST -9389 NACT 431 OFFSET 0 STATIC 479
+MSDIGEST 1 COMMON 1
+MSMASK 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0

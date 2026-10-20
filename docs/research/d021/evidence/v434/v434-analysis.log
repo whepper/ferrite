@@ -1,0 +1,28 @@
+entries: 16
+all wrs bit-identical across 16 entries: True
+wrs len complex: 64
+C SineWindow128 pairs: 64
+live-vs-C (f32-rounded C as reference): 0/64 differ
+live-vs-C exact-float: maxabs 2.934e-08 over 63 lines
+theta range: [0.006136, 0.779262], spacing min/max: 0.01227179/0.01227190
+Traceback (most recent call last):
+  File "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434_analyze.py", line 52, in <module>
+    res = [abs((math.cos(t0 + k*dt) - lre[k], math.sin(t0 + k*dt) - lim[k])) for k in range(len(th))]
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: bad operand type for abs(): 'tuple'
+C SineWindow128 pairs: 64
+live-vs-C (f32-rounded C as reference): 0/64 differ
+live-vs-C exact-float: maxabs 2.934e-08 over 63 lines
+theta range: [0.006136, 0.779262], spacing min/max: 0.01227179/0.01227190
+analytic (cos,sin) fit: max dev 4.117e-08 at k=54
+unit check max |re^2+im^2-1|: 7.341e-08
+s : max|foldLive-foldC|  max|M3live-M3ref|  (pre-dctiv vs post-dctiv, same bins)
+0 : 0.000e+00 (bin 0)   0.000e+00 (bin 0)
+1 : 0.000e+00 (bin 0)   0.000e+00 (bin 0)
+2 : 0.000e+00 (bin 0)   0.000e+00 (bin 0)
+3 : 1.465e-08 (bin 11)   1.240e-04 (bin 2)
+4 : 1.747e-08 (bin 68)   3.900e-04 (bin 114)
+5 : 2.237e-08 (bin 125)   3.767e-04 (bin 114)
+6 : 2.563e-08 (bin 15)   3.084e-04 (bin 123)
+7 : 3.140e-08 (bin 116)   4.696e-04 (bin 114)
+overall: fold-coef effect 3.140e-08 vs observed M3 delta 4.696e-04

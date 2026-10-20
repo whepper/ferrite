@@ -1,0 +1,4 @@
+V425_S1 fixture=onset-44100 frame=23 frame_zero_based=22 el=0 stage=post_qcmainprepare
+PE 2589 CONST -8237 NACT 351 OFFSET 0 STATIC 279
+MSDIGEST 1 COMMON 1
+MSMASK 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0

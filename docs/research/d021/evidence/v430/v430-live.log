@@ -1,0 +1,291 @@
+   Compiling aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: unused import: `process_pair`
+  --> src/aac_enc/stream_driver.rs:73:5
+   |
+73 |     process_pair, process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused doc comment
+   --> src/aac_enc/tns.rs:706:1
+    |
+706 | / /// TNS detect for one subblock (`TnsDetect`, `aacenc_tns.cpp:766-944`).
+707 | | /// Updates `state`/`info` for `window`; `short` selects the short config
+708 | | /// behavior (LO filter long-only). Takes the Q31 stored-domain spectrum
+709 | | /// (post-rescale detect input, like C); the exact integer merge runs on
+710 | | /// it directly, and only the Schur stage uses float ratios.
+    | |_-----------------------------------------------------------^
+    |   |
+    |   rustdoc does not generate documentation for macro invocations
+    |
+    = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/aac_enc/psy.rs:3465:13
+     |
+3465 |         let mut input = ChannelInput {
+     |             ----^^^^^
+     |             |
+     |             help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_l`
+    --> src/aac_enc/stream_driver.rs:1889:9
+     |
+1889 |         e_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_l`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_r`
+    --> src/aac_enc/stream_driver.rs:1890:9
+     |
+1890 |         e_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_r`
+
+warning: unused variable: `t_l`
+    --> src/aac_enc/stream_driver.rs:1891:9
+     |
+1891 |         t_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_l`
+
+warning: unused variable: `t_r`
+    --> src/aac_enc/stream_driver.rs:1892:9
+     |
+1892 |         t_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_r`
+
+warning: unused variable: `em`
+    --> src/aac_enc/stream_driver.rs:1897:9
+     |
+1897 |         em: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_em`
+
+warning: unused variable: `es`
+    --> src/aac_enc/stream_driver.rs:1898:9
+     |
+1898 |         es: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_es`
+
+warning: value assigned to `fac1` is never read
+   --> src/aac_enc/tns.rs:596:20
+    |
+596 |     let mut fac1 = 0i64;
+    |                    ^^^^ this value is reassigned later and never used
+...
+599 |         fac1 = auto_corr_norm_fac(rxx1_0, -2 * sc1 + nsc1, &mut sc_fac1);
+    |         ---------------------------------------------------------------- `fac1` is overwritten here before the previous value is read
+    |
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `spread_l` and `spread_r` are never read
+   --> src/aac_enc/stream_driver.rs:373:9
+    |
+364 | pub(crate) struct MsDecisionCapture {
+    |                   ----------------- fields in this struct
+...
+373 |     pub spread_l: Vec<i32>,
+    |         ^^^^^^^^
+374 |     pub spread_r: Vec<i32>,
+    |         ^^^^^^^^
+    |
+    = note: `MsDecisionCapture` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4037:9
+     |
+4036 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4037 |     pub stem: String,
+     |         ^^^^
+...
+4042 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:4413:9
+     |
+4412 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+4413 |     pub short: String,
+     |         ^^^^^
+...
+4416 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `start_band`, `start_line`, `thresh_on`, and `limit_order` are never read
+   --> src/aac_enc/testdata.rs:465:16
+    |
+461 | pub(crate) struct TnsCfgSnap {
+    |                   ---------- fields in this struct
+...
+465 |     pub(crate) start_band: [i32; 2],
+    |                ^^^^^^^^^^
+466 |     pub(crate) start_line: [i32; 2],
+    |                ^^^^^^^^^^
+...
+469 |     pub(crate) thresh_on: [i32; 2],
+    |                ^^^^^^^^^
+470 |     pub(crate) limit_order: [i32; 2],
+    |                ^^^^^^^^^^^
+    |
+    = note: `TnsCfgSnap` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:604:16
+    |
+583 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+604 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `tns` is never read
+   --> src/aac_enc/testdata.rs:625:16
+    |
+620 | pub(crate) struct AllCfg {
+    |                   ------ field in this struct
+...
+625 |     pub(crate) tns: TnsCfgSnap,
+    |                ^^^
+    |
+    = note: `AllCfg` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `noise` is never read
+    --> src/aac_enc/testdata.rs:1021:16
+     |
+ 993 | pub(crate) struct S1Channel {
+     |                   --------- field in this struct
+...
+1021 |     pub(crate) noise: Vec<i32>,
+     |                ^^^^^
+     |
+     = note: `S1Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1028:16
+     |
+1027 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1028 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1275:16
+     |
+1274 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1275 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1533:16
+     |
+1529 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1533 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1728:16
+     |
+1724 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1728 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `fgranted` and `fcrash` are never read
+    --> src/aac_enc/testdata.rs:2123:16
+     |
+2101 | pub(crate) struct S6Frame {
+     |                   ------- fields in this struct
+...
+2123 |     pub(crate) fgranted: i32,
+     |                ^^^^^^^^
+2124 |     pub(crate) bitres: i32,
+2125 |     pub(crate) fcrash: i32,
+     |                ^^^^^^
+     |
+     = note: `S6Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2393:16
+     |
+2392 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2393 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2457:16
+     |
+2456 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2457 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:690:18
+    |
+690 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `check` is never used
+   --> src/tp_dec/pce.rs:709:8
+    |
+251 | impl ProgramConfig {
+    | ------------------ method in this implementation
+...
+709 |     fn check(&mut self) -> bool {
+    |        ^^^^^
+
+warning: `aac` (lib test) generated 26 warnings (run `cargo fix --lib -p aac --tests` to apply 8 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.46s
+     Running unittests src/lib.rs (target/debug/deps/aac-488857a6104395d5)
+
+running 1 test
+V430N 16
+V430RXX entry=0 w=0 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=1 w=1 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=2 w=2 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=3 w=3 RXX1=[1073741896, 772834638, 225298216, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1610612792, 1465270304, 1312677597, 1151714333, 942542108, 703562493, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=4 w=4 RXX1=[1073741824, 157621090, -6606600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1610612796, -1514803170, 1368184319, -1189117258, 986968033, -760129494, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=5 w=5 RXX1=[1073741824, 214029970, 10499944, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1320096528, -75229838, -1092816693, 55648945, 774544463, -35446195, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=6 w=6 RXX1=[1073741824, -178172720, -162459836, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1159788399, -50399902, -954270917, 44413893, 676649549, -31688710, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=7 w=7 RXX1=[1073741824, -97146060, 47726644, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1049461427, -24242215, -866222330, 11476320, 613434783, -2684079, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=8 w=0 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=9 w=1 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=10 w=2 RXX1=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=11 w=3 RXX1=[1073741896, 772834638, 225298216, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1610612792, 1465270304, 1312677597, 1151714333, 942542108, 703562493, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=12 w=4 RXX1=[1073741824, 157621090, -6606600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1610612796, -1514803170, 1368184319, -1189117258, 986968033, -760129494, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=13 w=5 RXX1=[1073741824, 214029970, 10499944, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1320096528, -75229838, -1092816693, 55648945, 774544463, -35446195, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=14 w=6 RXX1=[1073741824, -178172720, -162459836, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1159788399, -50399902, -954270917, 44413893, 676649549, -31688710, 0, 0, 0, 0, 0, 0, 0]
+V430RXX entry=15 w=7 RXX1=[1073741824, -97146060, 47726644, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] RXX2=[1049461427, -24242215, -866222330, 11476320, 613434783, -2684079, 0, 0, 0, 0, 0, 0, 0]
+test aac_enc::stream_driver::phase1_tests::v430_probe_rxx_tmp ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 451 filtered out; finished in 0.04s
+

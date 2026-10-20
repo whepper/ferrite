@@ -1,0 +1,12 @@
+entries: 2
+entry0: seq=2 shape=0 slope=128 len=2048
+entry1: seq=2 shape=0 slope=128 len=2048
+wav: 2ch 16bit 48000Hz 48000 frames; ch0==ch1: True
+entry0 tail[1600:2048] vs pcm[24576:25024]/32768: diffs 0/448
+entry0 hist[0:1600] vs pcm[22976:24576]/32768: diffs 0/1600
+entry1 tail[1600:2048] vs pcm[24576:25024]/32768: diffs 0/448
+entry1 hist[0:1600] vs pcm[22976:24576]/32768: diffs 0/1600
+committed ring count: 2048
+live-entry0 round(ring*32768) vs committed i16: diffs 0/2048
+maxabs i16-domain diff: 0
+live ch0-ring vs ch1-ring: diffs 0/2048

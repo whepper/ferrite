@@ -1,0 +1,21 @@
+live slices: 16 lens: [128]
+--- ch0 (mdctExp=9) ---
+w0: diffs 0/128
+w1: diffs 0/128
+w2: diffs 0/128
+w3: diffs 102/128 first idx0 live -50624616 ref -50624920
+w4: diffs 102/128 first idx0 live -701572 ref -701528
+w5: diffs 102/128 first idx0 live -9167368 ref -9166552
+w6: diffs 101/128 first idx0 live 6620024 ref 6619684
+w7: diffs 102/128 first idx0 live 2549224 ref 2548704
+ch0 total diffs 509/1024 maxabs 5688 first (3, (0, -50624616, -50624920))
+--- ch1 (mdctExp=9) ---
+w0: diffs 0/128
+w1: diffs 0/128
+w2: diffs 0/128
+w3: diffs 102/128 first idx0 live -50624616 ref -50624920
+w4: diffs 102/128 first idx0 live -701572 ref -701528
+w5: diffs 102/128 first idx0 live -9167368 ref -9166552
+w6: diffs 101/128 first idx0 live 6620024 ref 6619684
+w7: diffs 102/128 first idx0 live 2549224 ref 2548704
+ch1 total diffs 509/1024 maxabs 5688 first (3, (0, -50624616, -50624920))

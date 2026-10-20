@@ -1,0 +1,298 @@
+   Compiling aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: value assigned to `fac1` is never read
+   --> src/aac_enc/tns.rs:596:20
+    |
+596 |     let mut fac1 = 0i64;
+    |                    ^^^^ this value is reassigned later and never used
+...
+599 |         fac1 = auto_corr_norm_fac(rxx1_0, -2 * sc1 + nsc1, &mut sc_fac1);
+    |         ---------------------------------------------------------------- `fac1` is overwritten here before the previous value is read
+    |
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1130:15
+     |
+1130 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:684:18
+    |
+684 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:690:18
+    |
+690 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:696:15
+    |
+696 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:702:15
+    |
+702 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `check` is never used
+   --> src/tp_dec/pce.rs:709:8
+    |
+251 | impl ProgramConfig {
+    | ------------------ method in this implementation
+...
+709 |     fn check(&mut self) -> bool {
+    |        ^^^^^
+
+warning: unused import: `process_pair`
+  --> src/aac_enc/stream_driver.rs:73:5
+   |
+73 |     process_pair, process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aac` (lib) generated 7 warnings
+warning: variable does not need to be mutable
+    --> src/aac_enc/psy.rs:3465:13
+     |
+3465 |         let mut input = ChannelInput {
+     |             ----^^^^^
+     |             |
+     |             help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_l`
+    --> src/aac_enc/stream_driver.rs:1889:9
+     |
+1889 |         e_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_l`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_r`
+    --> src/aac_enc/stream_driver.rs:1890:9
+     |
+1890 |         e_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_r`
+
+warning: unused variable: `t_l`
+    --> src/aac_enc/stream_driver.rs:1891:9
+     |
+1891 |         t_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_l`
+
+warning: unused variable: `t_r`
+    --> src/aac_enc/stream_driver.rs:1892:9
+     |
+1892 |         t_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_r`
+
+warning: unused variable: `em`
+    --> src/aac_enc/stream_driver.rs:1897:9
+     |
+1897 |         em: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_em`
+
+warning: unused variable: `es`
+    --> src/aac_enc/stream_driver.rs:1898:9
+     |
+1898 |         es: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_es`
+
+warning: fields `spread_l` and `spread_r` are never read
+   --> src/aac_enc/stream_driver.rs:373:9
+    |
+364 | pub(crate) struct MsDecisionCapture {
+    |                   ----------------- fields in this struct
+...
+373 |     pub spread_l: Vec<i32>,
+    |         ^^^^^^^^
+374 |     pub spread_r: Vec<i32>,
+    |         ^^^^^^^^
+    |
+    = note: `MsDecisionCapture` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:3990:9
+     |
+3989 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+3990 |     pub stem: String,
+     |         ^^^^
+...
+3995 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:4366:9
+     |
+4365 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+4366 |     pub short: String,
+     |         ^^^^^
+...
+4369 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `start_band`, `start_line`, `thresh_on`, and `limit_order` are never read
+   --> src/aac_enc/testdata.rs:465:16
+    |
+461 | pub(crate) struct TnsCfgSnap {
+    |                   ---------- fields in this struct
+...
+465 |     pub(crate) start_band: [i32; 2],
+    |                ^^^^^^^^^^
+466 |     pub(crate) start_line: [i32; 2],
+    |                ^^^^^^^^^^
+...
+469 |     pub(crate) thresh_on: [i32; 2],
+    |                ^^^^^^^^^
+470 |     pub(crate) limit_order: [i32; 2],
+    |                ^^^^^^^^^^^
+    |
+    = note: `TnsCfgSnap` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:604:16
+    |
+583 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+604 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `tns` is never read
+   --> src/aac_enc/testdata.rs:625:16
+    |
+620 | pub(crate) struct AllCfg {
+    |                   ------ field in this struct
+...
+625 |     pub(crate) tns: TnsCfgSnap,
+    |                ^^^
+    |
+    = note: `AllCfg` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `noise` is never read
+    --> src/aac_enc/testdata.rs:1021:16
+     |
+ 993 | pub(crate) struct S1Channel {
+     |                   --------- field in this struct
+...
+1021 |     pub(crate) noise: Vec<i32>,
+     |                ^^^^^
+     |
+     = note: `S1Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1028:16
+     |
+1027 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1028 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1275:16
+     |
+1274 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1275 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1533:16
+     |
+1529 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1533 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1728:16
+     |
+1724 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1728 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `fgranted` and `fcrash` are never read
+    --> src/aac_enc/testdata.rs:2123:16
+     |
+2101 | pub(crate) struct S6Frame {
+     |                   ------- fields in this struct
+...
+2123 |     pub(crate) fgranted: i32,
+     |                ^^^^^^^^
+2124 |     pub(crate) bitres: i32,
+2125 |     pub(crate) fcrash: i32,
+     |                ^^^^^^
+     |
+     = note: `S6Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2393:16
+     |
+2392 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2393 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2457:16
+     |
+2456 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2457 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: `aac` (lib test) generated 25 warnings (3 duplicates) (run `cargo fix --lib -p aac --tests` to apply 8 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.81s
+     Running unittests src/lib.rs (target/debug/deps/aac-488857a6104395d5)
+
+running 7 tests
+test aac_enc::stream_driver::phase1_tests::phase1c_ms_grouping_saturates_like_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_threshold_ld_floor_matches_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_short_ms_ld_grouped_refresh ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_sine_f1_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_onset441_f22_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1h_d021_live_frame_reconciliation ... ok
+test aac_enc::stream_driver::phase1_tests::phase1_reproducibility ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 444 filtered out; finished in 0.08s
+
+   Doc-tests aac
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0.00s
+

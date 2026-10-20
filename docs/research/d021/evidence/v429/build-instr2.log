@@ -1,0 +1,5 @@
+[  0%] Building CXX object CMakeFiles/fdk-aac.dir/cpp/libAACenc/src/aacenc.cpp.o
+[  1%] Linking C shared library libfdk-aac.dylib
+[ 97%] Built target fdk-aac
+[ 98%] Linking C executable aac-enc
+[100%] Built target aac-enc

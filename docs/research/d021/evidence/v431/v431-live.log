@@ -1,0 +1,294 @@
+   Compiling aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: unused doc comment
+   --> src/aac_enc/psy.rs:453:1
+    |
+453 | / /// Process a mono element (single channel) or one stereo pair.
+454 | | ///
+455 | | /// `left`/`right` hold persistent state; inputs carry the M2 spectra.
+456 | | /// Returns `(left_output, right_output, ms_output)`. LFE elements skip
+...   |
+466 | | /// Convenience form that allocates a fresh [`PsyScratch`] per call;
+467 | | /// hot-path callers use [`process_pair_reuse`].
+    | |_-----------------------------------------------^
+    |   |
+    |   rustdoc does not generate documentation for macro invocations
+    |
+    = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `process_pair`
+  --> src/aac_enc/stream_driver.rs:73:5
+   |
+73 |     process_pair, process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> src/aac_enc/psy.rs:3488:13
+     |
+3488 |         let mut input = ChannelInput {
+     |             ----^^^^^
+     |             |
+     |             help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_l`
+    --> src/aac_enc/stream_driver.rs:1889:9
+     |
+1889 |         e_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_l`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `e_r`
+    --> src/aac_enc/stream_driver.rs:1890:9
+     |
+1890 |         e_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_e_r`
+
+warning: unused variable: `t_l`
+    --> src/aac_enc/stream_driver.rs:1891:9
+     |
+1891 |         t_l: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_l`
+
+warning: unused variable: `t_r`
+    --> src/aac_enc/stream_driver.rs:1892:9
+     |
+1892 |         t_r: &[i32],
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_t_r`
+
+warning: unused variable: `em`
+    --> src/aac_enc/stream_driver.rs:1897:9
+     |
+1897 |         em: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_em`
+
+warning: unused variable: `es`
+    --> src/aac_enc/stream_driver.rs:1898:9
+     |
+1898 |         es: &[i32],
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_es`
+
+warning: value assigned to `fac1` is never read
+   --> src/aac_enc/tns.rs:596:20
+    |
+596 |     let mut fac1 = 0i64;
+    |                    ^^^^ this value is reassigned later and never used
+...
+599 |         fac1 = auto_corr_norm_fac(rxx1_0, -2 * sc1 + nsc1, &mut sc_fac1);
+    |         ---------------------------------------------------------------- `fac1` is overwritten here before the previous value is read
+    |
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `spread_l` and `spread_r` are never read
+   --> src/aac_enc/stream_driver.rs:373:9
+    |
+364 | pub(crate) struct MsDecisionCapture {
+    |                   ----------------- fields in this struct
+...
+373 |     pub spread_l: Vec<i32>,
+    |         ^^^^^^^^
+374 |     pub spread_r: Vec<i32>,
+    |         ^^^^^^^^
+    |
+    = note: `MsDecisionCapture` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4058:9
+     |
+4057 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4058 |     pub stem: String,
+     |         ^^^^
+...
+4063 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:4434:9
+     |
+4433 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+4434 |     pub short: String,
+     |         ^^^^^
+...
+4437 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `start_band`, `start_line`, `thresh_on`, and `limit_order` are never read
+   --> src/aac_enc/testdata.rs:465:16
+    |
+461 | pub(crate) struct TnsCfgSnap {
+    |                   ---------- fields in this struct
+...
+465 |     pub(crate) start_band: [i32; 2],
+    |                ^^^^^^^^^^
+466 |     pub(crate) start_line: [i32; 2],
+    |                ^^^^^^^^^^
+...
+469 |     pub(crate) thresh_on: [i32; 2],
+    |                ^^^^^^^^^
+470 |     pub(crate) limit_order: [i32; 2],
+    |                ^^^^^^^^^^^
+    |
+    = note: `TnsCfgSnap` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:604:16
+    |
+583 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+604 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `tns` is never read
+   --> src/aac_enc/testdata.rs:625:16
+    |
+620 | pub(crate) struct AllCfg {
+    |                   ------ field in this struct
+...
+625 |     pub(crate) tns: TnsCfgSnap,
+    |                ^^^
+    |
+    = note: `AllCfg` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `noise` is never read
+    --> src/aac_enc/testdata.rs:1021:16
+     |
+ 993 | pub(crate) struct S1Channel {
+     |                   --------- field in this struct
+...
+1021 |     pub(crate) noise: Vec<i32>,
+     |                ^^^^^
+     |
+     = note: `S1Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1028:16
+     |
+1027 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1028 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1275:16
+     |
+1274 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1275 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1533:16
+     |
+1529 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1533 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1728:16
+     |
+1724 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1728 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `fgranted` and `fcrash` are never read
+    --> src/aac_enc/testdata.rs:2123:16
+     |
+2101 | pub(crate) struct S6Frame {
+     |                   ------- fields in this struct
+...
+2123 |     pub(crate) fgranted: i32,
+     |                ^^^^^^^^
+2124 |     pub(crate) bitres: i32,
+2125 |     pub(crate) fcrash: i32,
+     |                ^^^^^^
+     |
+     = note: `S6Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2393:16
+     |
+2392 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2393 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2457:16
+     |
+2456 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2457 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:690:18
+    |
+690 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `check` is never used
+   --> src/tp_dec/pce.rs:709:8
+    |
+251 | impl ProgramConfig {
+    | ------------------ method in this implementation
+...
+709 |     fn check(&mut self) -> bool {
+    |        ^^^^^
+
+warning: `aac` (lib test) generated 26 warnings (run `cargo fix --lib -p aac --tests` to apply 8 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.85s
+     Running unittests src/lib.rs (target/debug/deps/aac-488857a6104395d5)
+
+running 1 test
+V431N 16
+V431DET ch=0 w=0 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=1 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=2 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=3 SPEC=[-50624616, -64761024, -85066816, -89833232, -57551180, 4318972, 57296824, 69482208, 47766240, 23765940, 15748764, 16612980, 14483388, 9537908, 7449156, 8010944, 7330600, 5255452, 4384628, 4787772, 4479364, 3347892, 2897720, 3198484, 3030300, 2320380, 2055520, 2287276, 2185504, 1701408, 1533120, 1716980, 1650140, 1299212, 1184876, 1333176, 1286168, 1020324, 939096, 1061892, 1028944, 822216, 762364, 864292, 839180, 673712, 628676, 715588, 697264, 562628, 526880, 599640, 584420, 472780, 444680, 507500, 495728, 402524, 379972, 433852, 423588, 344000, 325304, 372272, 364176, 296496, 281124, 322144, 315404, 256896, 243300, 278456, 272636, 222404, 211232, 242112, 237148, 193496, 183708, 210420, 206012, 168076, 159656, 182952, 179136, 146088, 138568, 158480, 154764, 125692, 118976, 136512, 133964, 109252, 103148, 117528, 114748, 93120, 87376, 99116, 96532, 78300, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=4 SPEC=[-701572, -5443204, 14936204, 2975148, -28007036, 648260416, 146738912, -6575664, 3308400, -10632880, 7680580, -2298960, 1790416, -3419232, 3000908, -1489676, 1272916, -1896408, 1774124, -1110956, 993080, -1302428, 1251800, -898128, 822628, -995604, 977320, -753408, 702452, -808224, 797016, -657224, 615552, -686752, 680264, -581332, 554808, -601592, 590552, -521172, 499236, -533348, 528520, -476788, 457664, -481356, 480128, -431908, 422584, -442804, 442000, -408900, 393912, -409440, 409036, -381640, 369524, -381144, 381404, -362804, 351088, -360840, 358648, -341116, 334016, -340256, 339016, -325896, 316380, -327904, 324640, -312588, 304048, -310184, 311404, -298648, 292896, -299508, 298220, -288640, 283988, -288416, 286620, -279284, 276224, -278532, 278276, -272328, 268532, -272464, 269824, -261828, 260328, -263828, 264840, -258248, 254964, -259316, 259336, -252600, 253028, -249788, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=5 SPEC=[-9167368, 11960828, 17531060, -45180880, -269399712, -610182144, 108164440, -31278904, -12886168, 8473240, 5038440, -4009936, -2750924, 2372412, 1760544, -1597204, -1227724, 1141252, 922360, -864456, -715296, 680872, 573288, -549088, -469136, 454564, 394124, -384752, -334508, 323040, 287400, -280140, -250868, 243684, 218708, -214036, -193996, 199584, 172296, -166976, -153336, 150792, 139808, -135436, -125896, 123896, 113960, -103688, -105256, 101992, 92928, -93412, -86548, 83936, 79652, -77764, -74672, 71960, 63548, -65564, -62732, 63456, 58020, -57236, -52500, 52892, 49440, -48660, -44360, 45720, 42428, -43720, -41312, 40192, 36836, -37960, -34208, 34520, 32304, -32224, -30320, 29952, 29868, -27600, -26896, 27336, 24760, -25524, -22004, 22912, 26360, -21812, -19276, 17836, 18140, -17632, -18068, 16924, 16708, -15952, -16728, 14576, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=6 SPEC=[6620024, -1371620, -22199420, -9054348, 398284352, -160098496, -159204800, -6855960, 17933448, 1257244, -6555616, -310432, 3351208, 34424, -2022764, 50844, 1354288, -96788, -957892, 108372, 714532, -108084, -552464, 101664, 439652, -97236, -365504, 90312, 295888, -82328, -248860, 75024, 210976, -68520, -182720, 64332, 154612, -65040, -138256, 53604, 122044, -50156, -108708, 45644, 98624, -42992, -86572, 48072, 77428, -37476, -71784, 34072, 65104, -30732, -59844, 30536, 53780, -27688, -45220, 27372, 46104, -23788, -41792, 22284, 40032, -21828, -35712, 18596, 32272, -14020, -29988, 17604, 29136, -15320, -27740, 15252, 23900, -13324, -24192, 12440, 21692, -11492, -20084, 10620, 19264, -11464, -17212, 8624, 17368, -8012, -19536, 5624, 13904, -7336, -14376, 7148, 11716, -4996, -12092, 6240, 12428, -9720, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=0 w=7 SPEC=[2549224, -10590472, 4670612, 54234348, -128885016, 770280384, 51040476, 38133912, -5046992, -9730456, 1516564, 4319288, -600136, -2407848, 260276, 1510312, -102648, -1043016, 37436, 755588, 1692, -572236, -20812, 446768, 30548, -357412, -28612, 294416, 39572, -243360, -38048, 204320, 37228, -173340, -37488, 150396, 40152, -134060, -34144, 114056, 31420, -100704, -30472, 90876, 27504, -80916, -25244, 80928, 23156, -65260, -23636, 60108, 20800, -53556, -19848, 48164, 19876, -44192, -18052, 38644, 15776, -37044, -15896, 34560, 15508, -33176, -13176, 29664, 11072, -32280, -12364, 25784, 11652, -24784, -9644, 21804, 9752, -20152, -10124, 18912, 8084, -18552, -7092, 16060, 7876, -15740, -7468, 15844, 5444, -14928, -7284, 15380, 6020, -12744, -4880, 12008, 3400, -9844, -4108, 9748, 5404, -4248, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=0 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=1 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=2 SPEC=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=3 SPEC=[-50624616, -64761024, -85066816, -89833232, -57551180, 4318972, 57296824, 69482208, 47766240, 23765940, 15748764, 16612980, 14483388, 9537908, 7449156, 8010944, 7330600, 5255452, 4384628, 4787772, 4479364, 3347892, 2897720, 3198484, 3030300, 2320380, 2055520, 2287276, 2185504, 1701408, 1533120, 1716980, 1650140, 1299212, 1184876, 1333176, 1286168, 1020324, 939096, 1061892, 1028944, 822216, 762364, 864292, 839180, 673712, 628676, 715588, 697264, 562628, 526880, 599640, 584420, 472780, 444680, 507500, 495728, 402524, 379972, 433852, 423588, 344000, 325304, 372272, 364176, 296496, 281124, 322144, 315404, 256896, 243300, 278456, 272636, 222404, 211232, 242112, 237148, 193496, 183708, 210420, 206012, 168076, 159656, 182952, 179136, 146088, 138568, 158480, 154764, 125692, 118976, 136512, 133964, 109252, 103148, 117528, 114748, 93120, 87376, 99116, 96532, 78300, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=4 SPEC=[-701572, -5443204, 14936204, 2975148, -28007036, 648260416, 146738912, -6575664, 3308400, -10632880, 7680580, -2298960, 1790416, -3419232, 3000908, -1489676, 1272916, -1896408, 1774124, -1110956, 993080, -1302428, 1251800, -898128, 822628, -995604, 977320, -753408, 702452, -808224, 797016, -657224, 615552, -686752, 680264, -581332, 554808, -601592, 590552, -521172, 499236, -533348, 528520, -476788, 457664, -481356, 480128, -431908, 422584, -442804, 442000, -408900, 393912, -409440, 409036, -381640, 369524, -381144, 381404, -362804, 351088, -360840, 358648, -341116, 334016, -340256, 339016, -325896, 316380, -327904, 324640, -312588, 304048, -310184, 311404, -298648, 292896, -299508, 298220, -288640, 283988, -288416, 286620, -279284, 276224, -278532, 278276, -272328, 268532, -272464, 269824, -261828, 260328, -263828, 264840, -258248, 254964, -259316, 259336, -252600, 253028, -249788, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=5 SPEC=[-9167368, 11960828, 17531060, -45180880, -269399712, -610182144, 108164440, -31278904, -12886168, 8473240, 5038440, -4009936, -2750924, 2372412, 1760544, -1597204, -1227724, 1141252, 922360, -864456, -715296, 680872, 573288, -549088, -469136, 454564, 394124, -384752, -334508, 323040, 287400, -280140, -250868, 243684, 218708, -214036, -193996, 199584, 172296, -166976, -153336, 150792, 139808, -135436, -125896, 123896, 113960, -103688, -105256, 101992, 92928, -93412, -86548, 83936, 79652, -77764, -74672, 71960, 63548, -65564, -62732, 63456, 58020, -57236, -52500, 52892, 49440, -48660, -44360, 45720, 42428, -43720, -41312, 40192, 36836, -37960, -34208, 34520, 32304, -32224, -30320, 29952, 29868, -27600, -26896, 27336, 24760, -25524, -22004, 22912, 26360, -21812, -19276, 17836, 18140, -17632, -18068, 16924, 16708, -15952, -16728, 14576, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=6 SPEC=[6620024, -1371620, -22199420, -9054348, 398284352, -160098496, -159204800, -6855960, 17933448, 1257244, -6555616, -310432, 3351208, 34424, -2022764, 50844, 1354288, -96788, -957892, 108372, 714532, -108084, -552464, 101664, 439652, -97236, -365504, 90312, 295888, -82328, -248860, 75024, 210976, -68520, -182720, 64332, 154612, -65040, -138256, 53604, 122044, -50156, -108708, 45644, 98624, -42992, -86572, 48072, 77428, -37476, -71784, 34072, 65104, -30732, -59844, 30536, 53780, -27688, -45220, 27372, 46104, -23788, -41792, 22284, 40032, -21828, -35712, 18596, 32272, -14020, -29988, 17604, 29136, -15320, -27740, 15252, 23900, -13324, -24192, 12440, 21692, -11492, -20084, 10620, 19264, -11464, -17212, 8624, 17368, -8012, -19536, 5624, 13904, -7336, -14376, 7148, 11716, -4996, -12092, 6240, 12428, -9720, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431DET ch=1 w=7 SPEC=[2549224, -10590472, 4670612, 54234348, -128885016, 770280384, 51040476, 38133912, -5046992, -9730456, 1516564, 4319288, -600136, -2407848, 260276, 1510312, -102648, -1043016, 37436, 755588, 1692, -572236, -20812, 446768, 30548, -357412, -28612, 294416, 39572, -243360, -38048, 204320, 37228, -173340, -37488, 150396, 40152, -134060, -34144, 114056, 31420, -100704, -30472, 90876, 27504, -80916, -25244, 80928, 23156, -65260, -23636, 60108, 20800, -53556, -19848, 48164, 19876, -44192, -18052, 38644, 15776, -37044, -15896, 34560, 15508, -33176, -13176, 29664, 11072, -32280, -12364, 25784, 11652, -24784, -9644, 21804, 9752, -20152, -10124, 18912, 8084, -18552, -7092, 16060, 7876, -15740, -7468, 15844, 5444, -14928, -7284, 15380, 6020, -12744, -4880, 12008, 3400, -9844, -4108, 9748, 5404, -4248, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+V431CFG lp=102 finalShift0=2 finalShift1=2 mdctExp0=9 mdctExp1=9
+test aac_enc::stream_driver::phase1_tests::v431_probe_detin_tmp ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 451 filtered out; finished in 0.03s
+

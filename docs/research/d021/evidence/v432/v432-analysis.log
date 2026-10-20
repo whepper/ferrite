@@ -1,0 +1,38 @@
+m3: [0, 1] lens: [1024]
+V432 Q31 == V4.31 Q31 slices: True
+--- ch0 (A) liveM3 vs refF64, per window ---
+w0: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w1: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w2: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w3: diffs 128/128 maxabs 1.239278e-04 maxrel 1.320e-01 refmax 5.354495e+00 first idx0 live -3.0174623 ref -3.0174803733825684
+w4: diffs 128/128 maxabs 3.900341e-04 maxrel 2.605e-02 refmax 3.863904e+01 first idx0 live -0.041816935 ref -0.041814327239990234
+w5: diffs 128/128 maxabs 3.767479e-04 maxrel 5.853e+00 refmax 3.636938e+01 first idx0 live -0.5464177 ref -0.5463690757751465
+w6: diffs 128/128 maxabs 3.083944e-04 maxrel 2.758e+00 refmax 2.373962e+01 first idx0 live 0.39458418 ref 0.3945639133453369
+w7: diffs 128/128 maxabs 4.695505e-04 maxrel 3.510e+01 refmax 4.591195e+01 first idx0 live 0.15194553 ref 0.1519145965576172
+--- ch0 (B) liveQ31 vs scaled liveM3: ratio constancy ---
+w0: distinct ratios 0 top []
+w1: distinct ratios 0 top []
+w2: distinct ratios 0 top []
+w3: distinct ratios 2 top [(4.0, 101), (4.000005521590108, 1)]
+w4: distinct ratios 8 top [(4.0, 95), (4.000002939447384, 1), (4.000001071222935, 1), (4.000005377890952, 1)]
+w5: distinct ratios 2 top [(4.0, 101), (4.000000059391304, 1)]
+w6: distinct ratios 5 top [(4.0, 98), (4.000000040172305, 1), (3.999999799001045, 1), (4.000002333737265, 1)]
+w7: distinct ratios 2 top [(4.0, 101), (3.999999875370061, 1)]
+--- ch1 (A) liveM3 vs refF64, per window ---
+w0: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w1: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w2: diffs 0/128 maxabs 0.000000e+00 maxrel 0.000e+00 refmax 0.000000e+00
+w3: diffs 128/128 maxabs 1.239278e-04 maxrel 1.320e-01 refmax 5.354495e+00 first idx0 live -3.0174623 ref -3.0174803733825684
+w4: diffs 128/128 maxabs 3.900341e-04 maxrel 2.605e-02 refmax 3.863904e+01 first idx0 live -0.041816935 ref -0.041814327239990234
+w5: diffs 128/128 maxabs 3.767479e-04 maxrel 5.853e+00 refmax 3.636938e+01 first idx0 live -0.5464177 ref -0.5463690757751465
+w6: diffs 128/128 maxabs 3.083944e-04 maxrel 2.758e+00 refmax 2.373962e+01 first idx0 live 0.39458418 ref 0.3945639133453369
+w7: diffs 128/128 maxabs 4.695505e-04 maxrel 3.510e+01 refmax 4.591195e+01 first idx0 live 0.15194553 ref 0.1519145965576172
+--- ch1 (B) liveQ31 vs scaled liveM3: ratio constancy ---
+w0: distinct ratios 0 top []
+w1: distinct ratios 0 top []
+w2: distinct ratios 0 top []
+w3: distinct ratios 2 top [(4.0, 101), (4.000005521590108, 1)]
+w4: distinct ratios 8 top [(4.0, 95), (4.000002939447384, 1), (4.000001071222935, 1), (4.000005377890952, 1)]
+w5: distinct ratios 2 top [(4.0, 101), (4.000000059391304, 1)]
+w6: distinct ratios 5 top [(4.0, 98), (4.000000040172305, 1), (3.999999799001045, 1), (4.000002333737265, 1)]
+w7: distinct ratios 2 top [(4.0, 101), (3.999999875370061, 1)]
