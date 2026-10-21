@@ -115,7 +115,7 @@ amm-info@iis.fraunhofer.de
 
 use super::block_switch::WindowSequence;
 use super::energy;
-use super::q31::shift_int;
+use super::q31::{calc_ld_data, shift_int};
 use super::sfb::{BlockKind, SfbConfig};
 use super::thresholds::{apply_pcm_floor, clip_cap, init_threshold, spreading_max, PreEchoState};
 use super::tns::{self, TnsChannel, TnsConfig};
@@ -205,6 +205,33 @@ pub struct GroupedOutput {
     pub spectrum: Vec<f64>,
     /// Bands per group output.
     pub max_sfb_per_group: usize,
+    /// Grouped mid/side stored energies for this channel's half (mid on
+    /// ch0, side on ch1; zeros for mono).
+    ///
+    /// Grouped-band layout contract (explicit; no C flat-array aliasing):
+    /// flat `no_of_groups * sfb_cnt`, where `sfb_cnt` is the short
+    /// config band count. Active band `b` of group `g` lives at
+    /// `g * sfb_cnt + b` (saturating `nrgAddSaturate` window sums over
+    /// the group's windows, `grp_data.cpp:211-224`). Indices
+    /// `g * sfb_cnt + active .. (g + 1) * sfb_cnt - 1` are stride
+    /// padding (zeros, never consumed: downstream reads stop at
+    /// `max_sfb_per_group`). Matches the sibling grouped vectors
+    /// (`energies`, `thresholds`, `spread`) elementwise.
+    pub ms_energies: Vec<i32>,
+    /// Fresh grouped mid/side Ld for this channel's half, elementwise
+    /// `CalcLdData` (`fLog2`, `fixpoint_math.h:807-885`) of
+    /// [`GroupedOutput::ms_energies`], as float (`Q31 as f64 / 2^31`,
+    /// exact power-of-two scaling; `-1.0` sentinel for non-positive,
+    /// matching `fLog2(0)`).
+    ///
+    /// Mirrors the short-frame MS Ld refresh
+    /// (`psy_main.cpp:1078-1084`: `LdDataVector` of the grouped MS
+    /// sums). Computed from the current frame's grouped sums only;
+    /// never reads `PsyChannel` MS history. Padding bands hold the
+    /// sentinel. Long blocks have no grouped output (`grouped` is
+    /// `None`; fresh long MS Ld lives in [`MsOutput::mid_ld`] /
+    /// [`MsOutput::side_ld`]).
+    pub ms_ld: Vec<f64>,
 }
 
 /// Per-channel per-frame output.
@@ -309,6 +336,15 @@ impl PsyTables {
 
 /// One channel's frame input: M2 spectrum as f64 (converted once, exactly),
 /// modified in place by TNS filtering and exact power-of-two scalings.
+///
+/// # Caller preconditions (D-022)
+///
+/// - If `is_lfe` is `true`, `seq` must be `WindowSequence::Long`.  An LFE
+///   channel that becomes `Short` through pair synchronization is rejected by
+///   [`process_pair`] / [`process_pair_reuse`] with a descriptive assertion.
+/// - In a stereo pair, both channels' `seq` values must agree (both Long or
+///   both Short, etc.).  Mismatched sequences are rejected with a descriptive
+///   assertion before MS-energy cross-indexing or regrouping.
 pub struct ChannelInput<'a> {
     /// Full-window spectrum (1024 lines; short windows use all of it).
     pub spectrum: &'a mut [f64; 1024],
@@ -322,6 +358,17 @@ pub struct ChannelInput<'a> {
 }
 
 /// Element-level MS output (stereo only).
+///
+/// Pre-grouping (per-window Short) view: `mid`/`side` are always fresh
+/// per-window stored sums; `mid_ld`/`side_ld` are fresh on long blocks
+/// (`CalcBandNrgMSOpt` with `calcLd`, `psy_main.cpp:1033-1035`) and
+/// intentionally stale on short blocks (C leaves `sfbEnergyMSLdData`
+/// untouched when `calcLdData=0`, `psy_main.cpp:1033-1035`; the oracle
+/// dumps and committed `ms_*` fixtures capture this pre-grouping stale
+/// view). The post-grouping fresh short-block MS Ld
+/// (`psy_main.cpp:1078-1084`) lives per channel-half in
+/// [`GroupedOutput::ms_ld`] (mid on ch0, side on ch1), which is the
+/// input the future MS decision must consume on short blocks.
 #[derive(Debug, Clone, Default)]
 pub struct MsOutput {
     /// Mid energies per window (stored ints).
@@ -359,21 +406,118 @@ fn lowpass_and_zero_check(
     true
 }
 
+/// Reusable psychoacoustic working buffers (M5.20).
+///
+/// Owned by the encoder (one instance per `StreamEncoder`) and passed to
+/// [`process_pair_reuse`]. Every field is reset to exactly the contents
+/// the former per-call allocation had *before its first read*:
+/// `clear` + helper write for buffers the energy helpers fully overwrite,
+/// `resize` + `fill` for buffers whose initial contents are observable
+/// (all-zero/`-1.0` placeholders read on the silent-element path). Inner
+/// `Vec` lengths are always exactly `active*`, because consumers iterate
+/// the full inner vector (`advance_thresholds` → `spreading_max` bound
+/// `n`, `PreEchoState::control` uses `thr.len()`, and the `min_spec_shift`
+/// loop iterates all entries). Nothing is read before that reset, so no
+/// state leaks between frames, channels, or elements; the buffers are
+/// plain owned `Vec`s (no unsafe, no globals, no caches).
+///
+/// Buffers that escape into the returned outputs (`ChannelOutput`,
+/// `GroupedOutput`, `MsOutput`) are deliberately *not* reused.
+#[derive(Default)]
+pub struct PsyScratch {
+    /// Q31-mapped spectra of the integer lane (1024 ints).
+    q_l: Vec<i32>,
+    q_r: Vec<i32>,
+    /// Post-threshold MS remap spectra (1024 ints, stereo only).
+    ql_full: Vec<i32>,
+    qr_full: Vec<i32>,
+    /// Per-window TNS remap scratch (`tns_encode_channel`).
+    qwin: Vec<i32>,
+    /// `band_energy_long` pre-shift accumulations (per window).
+    tns_pre: Vec<i32>,
+    maxsc_l: Vec<Vec<i32>>,
+    maxsc_r: Vec<Vec<i32>>,
+    e_l: Vec<Vec<i32>>,
+    e_r: Vec<Vec<i32>>,
+    eld_l: Vec<Vec<f64>>,
+    eld_r: Vec<Vec<f64>>,
+    t_l: Vec<Vec<i32>>,
+    t_r: Vec<Vec<i32>>,
+    spread_l: Vec<Vec<i32>>,
+    spread_r: Vec<Vec<i32>>,
+    /// Zero MS vectors for mono elements (never written, mirroring C).
+    ms_zeros_l: Vec<Vec<i32>>,
+    ms_zeros_r: Vec<Vec<i32>>,
+}
+
 /// Process a mono element (single channel) or one stereo pair.
 ///
 /// `left`/`right` hold persistent state; inputs carry the M2 spectra.
 /// Returns `(left_output, right_output, ms_output)`. LFE elements skip
 /// the TNS block (mirroring the `isLFE[0]` check); LFE channels skip
 /// pre-echo control.
+///
+/// # Preconditions (D-022)
+///
+/// See [`ChannelInput`] caller preconditions. Invalid LFE/window-sequence
+/// combinations or mismatched CPE window sequences are rejected by
+/// descriptive `assert!` checks (active in release builds).
+///
+/// Convenience form that allocates a fresh [`PsyScratch`] per call;
+/// hot-path callers use [`process_pair_reuse`].
 pub fn process_pair(
     left: &mut PsyChannel,
-    mut right: Option<&mut PsyChannel>,
+    right: Option<&mut PsyChannel>,
     lin: ChannelInput<'_>,
     rin: Option<ChannelInput<'_>>,
     tables: &PsyTables,
 ) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
+    let mut ws = PsyScratch::default();
+    process_pair_reuse(left, right, lin, rin, tables, &mut ws)
+}
+
+/// [`process_pair`] with caller-owned scratch reuse (M5.20): identical
+/// arithmetic, ordering, casts, comparisons and thresholds; the workspace
+/// only removes the per-call heap allocations of the internal working
+/// buffers.
+pub fn process_pair_reuse(
+    left: &mut PsyChannel,
+    right: Option<&mut PsyChannel>,
+    lin: ChannelInput<'_>,
+    rin: Option<ChannelInput<'_>>,
+    tables: &PsyTables,
+    ws: &mut PsyScratch,
+) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
+    let mut right = right;
     let stereo = right.is_some();
     assert_eq!(stereo, rin.is_some(), "channel/state pairing");
+
+    // D-022 robustness preconditions (ordinary assert!, active in release builds):
+    // 1. LFE window invariant: every channel marked LFE must have an
+    //    effective Long window sequence. Block switching forces LFE to
+    //    Long, but pair synchronization can merge an LFE Long with a
+    //    partner Short into Short; reject that for both left and right.
+    assert!(
+        !(lin.is_lfe && lin.seq == WindowSequence::Short),
+        "D-022: LFE channel must not enter psy with an effective Short window \
+         sequence (block-switch forced Long merged with partner Short)"
+    );
+    if let Some(rin) = rin.as_ref() {
+        assert!(
+            !(rin.is_lfe && rin.seq == WindowSequence::Short),
+            "D-022: LFE channel must not enter psy with an effective Short window \
+             sequence (block-switch forced Long merged with partner Short)"
+        );
+    }
+    // 2. CPE sequence invariant: left and right effective window sequences
+    //    must match before MS-energy cross-indexing and regrouping.
+    if let Some(rin) = rin.as_ref() {
+        assert_eq!(
+            lin.seq, rin.seq,
+            "D-022: CPE left and right window sequences must match before \
+             MS-energy and regrouping"
+        );
+    }
 
     // Per-channel static selection.
     let short_l = lin.seq == WindowSequence::Short;
@@ -473,39 +617,42 @@ pub fn process_pair(
 
     // Integer lane: Q31-mapped spectra (round-to-nearest, the single
     // approximation point; all later integer ops are exact).
-    let mut q_l = energy::map_spectrum_to_q31(spec_l, m_l);
+    // M5.20: written into reused scratch (`clear` + `push` reproduces the
+    // former fresh `Vec` exactly: same values, same length, same order).
+    energy::map_spectrum_to_q31_into(spec_l, m_l, &mut ws.q_l);
 
     // --- Rescale stage, joint over the element. ---
     // NOTE: maxScale/energies run unconditionally (zero spectra yield 30s
     // and zeros naturally); the all-zero shortcut below applies per C only
     // when the whole element is silent (mixed elements take the full path,
     // including the Ld offset on zero bands).
-    let mut maxsc_l: Vec<Vec<i32>> = vec![vec![0; active_l]; n_win_l];
+    ws.maxsc_l.resize(n_win_l, Vec::new());
     let mut min_spec_shift = i32::MAX;
     for w in 0..n_win_l {
-        maxsc_l[w] = energy::max_scale_spec(
-            &q_l[w * wlen_l..(w + 1) * wlen_l],
+        energy::max_scale_spec_into(
+            &ws.q_l[w * wlen_l..(w + 1) * wlen_l],
             conf_l.offsets(),
             active_l,
+            &mut ws.maxsc_l[w],
         );
-        for &m in maxsc_l[w].iter() {
+        for &m in ws.maxsc_l[w].iter() {
             min_spec_shift = min_spec_shift.min(m);
         }
     }
     // Right channel contributes to the global minimum (when present).
-    let mut q_r: Vec<i32> = Vec::new();
-    let mut maxsc_r: Vec<Vec<i32>> = Vec::new();
+    ws.q_r.clear();
+    ws.maxsc_r.resize(n_win_r, Vec::new());
     if let (Some(spec_r), Some(zero_r)) = (spec_r_opt.as_deref(), zero_r) {
         let _ = zero_r;
-        q_r = energy::map_spectrum_to_q31(spec_r, m_r);
-        maxsc_r = vec![vec![0; active_r]; n_win_r];
+        energy::map_spectrum_to_q31_into(spec_r, m_r, &mut ws.q_r);
         for w in 0..n_win_r {
-            maxsc_r[w] = energy::max_scale_spec(
-                &q_r[w * wlen_r..(w + 1) * wlen_r],
+            energy::max_scale_spec_into(
+                &ws.q_r[w * wlen_r..(w + 1) * wlen_r],
                 conf_r.offsets(),
                 active_r,
+                &mut ws.maxsc_r[w],
             );
-            for &m in maxsc_r[w].iter() {
+            for &m in ws.maxsc_r[w].iter() {
                 min_spec_shift = min_spec_shift.min(m);
             }
         }
@@ -513,30 +660,48 @@ pub fn process_pair(
 
     // Energies (stored ints). Log energies derive from the stored values
     // after the re-shift below (see `stored_ld`).
-    let mut e_l: Vec<Vec<i32>> = vec![vec![0; active_l]; n_win_l];
-    let mut eld_l: Vec<Vec<f64>> = vec![vec![-1.0; active_l]; n_win_l];
-    let mut e_r: Vec<Vec<i32>> = vec![vec![0; active_r]; n_win_r];
-    let mut eld_r: Vec<Vec<f64>> = vec![vec![-1.0; active_r]; n_win_r];
+    // M5.20: `e_*` are fully overwritten by the helpers below, but the
+    // `eld_*` placeholders (-1.0) are read on the all-zero path (they are
+    // the `energy_ld` outputs there), so both are reset to the exact
+    // former `vec![...]` contents; inner lengths stay exactly `active_*`.
+    ws.e_l.resize(n_win_l, Vec::new());
+    ws.eld_l.resize(n_win_l, Vec::new());
+    for w in 0..n_win_l {
+        ws.e_l[w].clear();
+        ws.e_l[w].resize(active_l, 0);
+        ws.eld_l[w].clear();
+        ws.eld_l[w].resize(active_l, -1.0);
+    }
+    ws.e_r.resize(n_win_r, Vec::new());
+    ws.eld_r.resize(n_win_r, Vec::new());
+    for w in 0..n_win_r {
+        ws.e_r[w].clear();
+        ws.e_r[w].resize(active_r, 0);
+        ws.eld_r[w].clear();
+        ws.eld_r[w].resize(active_r, -1.0);
+    }
     let mut max_nrg = 0i32;
     for w in 0..n_win_l {
-        e_l[w] = energy::check_band_energy(
-            &q_l[w * wlen_l..(w + 1) * wlen_l],
-            &maxsc_l[w],
+        energy::check_band_energy_into(
+            &ws.q_l[w * wlen_l..(w + 1) * wlen_l],
+            &ws.maxsc_l[w],
             conf_l.offsets(),
             active_l,
+            &mut ws.e_l[w],
         );
-        let m = energy::max_nrg_for_shift(&e_l[w], &maxsc_l[w], min_spec_shift);
+        let m = energy::max_nrg_for_shift(&ws.e_l[w], &ws.maxsc_l[w], min_spec_shift);
         max_nrg = max_nrg.max(m);
     }
     if spec_r_opt.as_deref().is_some() {
         for w in 0..n_win_r {
-            e_r[w] = energy::check_band_energy(
-                &q_r[w * wlen_r..(w + 1) * wlen_r],
-                &maxsc_r[w],
+            energy::check_band_energy_into(
+                &ws.q_r[w * wlen_r..(w + 1) * wlen_r],
+                &ws.maxsc_r[w],
                 conf_r.offsets(),
                 active_r,
+                &mut ws.e_r[w],
             );
-            let m = energy::max_nrg_for_shift(&e_r[w], &maxsc_r[w], min_spec_shift);
+            let m = energy::max_nrg_for_shift(&ws.e_r[w], &ws.maxsc_r[w], min_spec_shift);
             max_nrg = max_nrg.max(m);
         }
     }
@@ -544,14 +709,26 @@ pub fn process_pair(
     // mdctScale 0 only when every channel is silent; otherwise the full
     // path runs (zero channels get natural zeros plus the Ld offset).
     let zero_elem = zero_l && (!stereo || zero_r == Some(true));
-    let mut t_l: Vec<Vec<i32>> = vec![vec![0; active_l]; n_win_l];
-    let mut t_r: Vec<Vec<i32>> = vec![vec![0; active_r]; n_win_r];
+    // `t_*` initial zeros are observable on the all-zero path (they are
+    // the `thresholds` outputs there), so reset to exact length+zeros.
+    ws.t_l.resize(n_win_l, Vec::new());
+    for w in 0..n_win_l {
+        ws.t_l[w].clear();
+        ws.t_l[w].resize(active_l, 0);
+    }
+    ws.t_r.resize(n_win_r, Vec::new());
+    for w in 0..n_win_r {
+        ws.t_r[w].clear();
+        ws.t_r[w].resize(active_r, 0);
+    }
     let final_shift = if zero_elem {
         for w in 0..n_win_l {
-            maxsc_l[w] = vec![0; active_l];
+            ws.maxsc_l[w].clear();
+            ws.maxsc_l[w].resize(active_l, 0);
         }
         for w in 0..n_win_r {
-            maxsc_r[w] = vec![0; active_r];
+            ws.maxsc_r[w].clear();
+            ws.maxsc_r[w].resize(active_r, 0);
         }
         m_l = 0;
         m_r = 0;
@@ -561,43 +738,43 @@ pub fn process_pair(
         // Apply: Ld from the RAW energies with C's exact guard/shift rules,
         // then stored E re-shift + thresholds init.
         for w in 0..n_win_l {
-            eld_l[w] = energy::rescale_ld(&e_l[w], &maxsc_l[w], f);
+            energy::rescale_ld_into(&ws.e_l[w], &ws.maxsc_l[w], f, &mut ws.eld_l[w]);
             for b in 0..active_l {
-                let mut scale = (maxsc_l[w][b] - 4).max(0);
+                let mut scale = (ws.maxsc_l[w][b] - 4).max(0);
                 scale = ((scale - f) << 1).min(31);
-                e_l[w][b] = shift_int(e_l[w][b], -scale);
-                t_l[w][b] = init_threshold(e_l[w][b]);
+                ws.e_l[w][b] = shift_int(ws.e_l[w][b], -scale);
+                ws.t_l[w][b] = init_threshold(ws.e_l[w][b]);
             }
         }
         if stereo {
             for w in 0..n_win_r {
-                eld_r[w] = energy::rescale_ld(&e_r[w], &maxsc_r[w], f);
+                energy::rescale_ld_into(&ws.e_r[w], &ws.maxsc_r[w], f, &mut ws.eld_r[w]);
                 for b in 0..active_r {
-                    let mut scale = (maxsc_r[w][b] - 4).max(0);
+                    let mut scale = (ws.maxsc_r[w][b] - 4).max(0);
                     scale = ((scale - f) << 1).min(31);
-                    e_r[w][b] = shift_int(e_r[w][b], -scale);
-                    t_r[w][b] = init_threshold(e_r[w][b]);
+                    ws.e_r[w][b] = shift_int(ws.e_r[w][b], -scale);
+                    ws.t_r[w][b] = init_threshold(ws.e_r[w][b]);
                 }
             }
         }
         // Representation shift (C shifts stored ints, tracked by
         // mdctScale; real values unchanged, so the float lane is untouched).
         if f != 0 {
-            for v in q_l.iter_mut() {
+            for v in ws.q_l.iter_mut() {
                 *v = shift_int(*v, f);
             }
             for w in 0..n_win_l {
-                for m in maxsc_l[w].iter_mut() {
+                for m in ws.maxsc_l[w].iter_mut() {
                     *m -= f;
                 }
             }
             m_l -= f;
             if spec_r_opt.is_some() {
-                for v in q_r.iter_mut() {
+                for v in ws.q_r.iter_mut() {
                     *v = shift_int(*v, f);
                 }
                 for w in 0..n_win_r {
-                    for m in maxsc_r[w].iter_mut() {
+                    for m in ws.maxsc_r[w].iter_mut() {
                         *m -= f;
                     }
                 }
@@ -621,7 +798,7 @@ pub fn process_pair(
                 &mut left.tns_state,
                 &mut left.tns_info,
                 tconf_l,
-                &q_l[base..base + wlen_l],
+                &ws.q_l[base..base + wlen_l],
                 w,
                 short_l,
                 conf_l.sfb_count(),
@@ -640,7 +817,7 @@ pub fn process_pair(
                     rstate,
                     rinfo,
                     tconf_r,
-                    &q_r[base..base + wlen_r],
+                    &ws.q_r[base..base + wlen_r],
                     w,
                     short_r,
                     conf_r.sfb_count(),
@@ -678,17 +855,19 @@ pub fn process_pair(
             tconf_l,
             conf_l,
             spec_l,
-            &mut q_l,
-            &mut maxsc_l,
-            &mut e_l,
-            &mut eld_l,
-            &mut t_l,
+            &mut ws.q_l,
+            &mut ws.maxsc_l,
+            &mut ws.e_l,
+            &mut ws.eld_l,
+            &mut ws.t_l,
             &tns_active,
             short_l,
             active_l,
             &mut m_l,
             &mut nrg_scaling[0],
             &mut tns_spec_shift,
+            &mut ws.qwin,
+            &mut ws.tns_pre,
         );
         // Right channel.
         if stereo {
@@ -703,17 +882,19 @@ pub fn process_pair(
                 tconf_r,
                 conf_r,
                 spec_r,
-                &mut q_r,
-                &mut maxsc_r,
-                &mut e_r,
-                &mut eld_r,
-                &mut t_r,
+                &mut ws.q_r,
+                &mut ws.maxsc_r,
+                &mut ws.e_r,
+                &mut ws.eld_r,
+                &mut ws.t_r,
                 &tns_active,
                 short_r,
                 active_r,
                 &mut m_r,
                 &mut nrg_scaling[1],
                 &mut tns_spec_shift,
+                &mut ws.qwin,
+                &mut ws.tns_pre,
             );
         }
     } else {
@@ -728,10 +909,10 @@ pub fn process_pair(
     if tns_spec_shift != 0 {
         overflow_rescale(
             spec_l,
-            &mut q_l,
-            &mut e_l,
-            &mut eld_l,
-            &mut t_l,
+            &mut ws.q_l,
+            &mut ws.e_l,
+            &mut ws.eld_l,
+            &mut ws.t_l,
             &mut m_l,
             lowpass_l,
             active_l,
@@ -742,10 +923,10 @@ pub fn process_pair(
             let spec_r = spec_r_opt.as_deref_mut().expect("stereo spectrum");
             overflow_rescale(
                 spec_r,
-                &mut q_r,
-                &mut e_r,
-                &mut eld_r,
-                &mut t_r,
+                &mut ws.q_r,
+                &mut ws.e_r,
+                &mut ws.eld_r,
+                &mut ws.t_r,
                 &mut m_r,
                 lowpass_r,
                 active_r,
@@ -756,12 +937,19 @@ pub fn process_pair(
     }
 
     // --- Threshold advance per channel (psy_main:922-1019 minus MS). ---
-    let mut spread_l: Vec<Vec<i32>> = vec![vec![0; active_l]; n_win_l];
+    // M5.20: `spread_*` placeholders are fully overwritten per band by
+    // `advance_thresholds` (copy_from_slice of the energies), reset here
+    // to the exact former zeros and exact length.
+    ws.spread_l.resize(n_win_l, Vec::new());
+    for w in 0..n_win_l {
+        ws.spread_l[w].clear();
+        ws.spread_l[w].resize(active_l, 0);
+    }
     advance_thresholds(
         &mut left.preecho,
-        &mut t_l,
-        &mut spread_l,
-        &e_l,
+        &mut ws.t_l,
+        &mut ws.spread_l,
+        &ws.e_l,
         conf_l,
         active_l,
         m_l,
@@ -769,15 +957,19 @@ pub fn process_pair(
         lin.seq,
         lin.is_lfe,
     );
-    let mut spread_r: Vec<Vec<i32>> = Vec::new();
+    ws.spread_r.clear();
     if stereo {
-        spread_r = vec![vec![0; active_r]; n_win_r];
+        ws.spread_r.resize(n_win_r, Vec::new());
+        for w in 0..n_win_r {
+            ws.spread_r[w].clear();
+            ws.spread_r[w].resize(active_r, 0);
+        }
         let rstate = right.as_deref_mut().expect("stereo state");
         advance_thresholds(
             &mut rstate.preecho,
-            &mut t_r,
-            &mut spread_r,
-            &e_r,
+            &mut ws.t_r,
+            &mut ws.spread_r,
+            &ws.e_r,
             conf_r,
             active_r,
             m_r,
@@ -790,18 +982,22 @@ pub fn process_pair(
     // --- MS energies (stereo element-level, psy_main:1021-1037). ---
     let ms_out = if stereo {
         // Re-map Q with current exponents (post everything).
-        let ql_full = energy::map_spectrum_to_q31(spec_l, m_l);
-        let qr_full =
-            energy::map_spectrum_to_q31(spec_r_opt.as_deref().expect("stereo spectrum"), m_r);
+        // M5.20: reused scratch (full overwrite by the mapper).
+        energy::map_spectrum_to_q31_into(spec_l, m_l, &mut ws.ql_full);
+        energy::map_spectrum_to_q31_into(
+            spec_r_opt.as_deref().expect("stereo spectrum"),
+            m_r,
+            &mut ws.qr_full,
+        );
         let calc_ld = rseq != WindowSequence::Short;
         let mut mid = Vec::with_capacity(n_win_r);
         let mut side = Vec::with_capacity(n_win_r);
         for w in 0..n_win_r {
             let (mi, si, mil, sil) = energy::calc_ms_energies(
-                &ql_full[w * wlen_r..(w + 1) * wlen_r],
-                &qr_full[w * wlen_r..(w + 1) * wlen_r],
-                &maxsc_l[w],
-                &maxsc_r[w],
+                &ws.ql_full[w * wlen_r..(w + 1) * wlen_r],
+                &ws.qr_full[w * wlen_r..(w + 1) * wlen_r],
+                &ws.maxsc_l[w],
+                &ws.maxsc_r[w],
                 conf_r.offsets(),
                 active_l,
                 calc_ld,
@@ -837,19 +1033,27 @@ pub fn process_pair(
     // --- Grouping + outputs per channel. ---
     // MS vectors per channel for short-block regrouping (mid ch0/side ch1).
     // Mono MS buffers stay zero (never written in C either).
-    let ms_zeros_l: Vec<Vec<i32>> = vec![vec![0; active_l]; n_win_l];
-    let ms_zeros_r: Vec<Vec<i32>> = vec![vec![0; active_r]; n_win_r];
+    ws.ms_zeros_l.resize(n_win_l, Vec::new());
+    for w in 0..n_win_l {
+        ws.ms_zeros_l[w].clear();
+        ws.ms_zeros_l[w].resize(active_l, 0);
+    }
+    ws.ms_zeros_r.resize(n_win_r, Vec::new());
+    for w in 0..n_win_r {
+        ws.ms_zeros_r[w].clear();
+        ws.ms_zeros_r[w].resize(active_r, 0);
+    }
     let (ms_l, ms_r): (&[Vec<i32>], &[Vec<i32>]) = match &ms_out {
         Some(ms) => (&ms.mid, &ms.side),
-        None => (&ms_zeros_l, &ms_zeros_r),
+        None => (&ws.ms_zeros_l, &ws.ms_zeros_r),
     };
     let mut left_out = finish_channel(
         &left.preecho,
-        &t_l,
-        &e_l,
-        &eld_l,
-        &spread_l,
-        &maxsc_l,
+        &ws.t_l,
+        &ws.e_l,
+        &ws.eld_l,
+        &ws.spread_l,
+        &ws.maxsc_l,
         spec_l,
         conf_l,
         short_l,
@@ -869,11 +1073,11 @@ pub fn process_pair(
         let rstate = right.as_deref_mut().expect("stereo state");
         Some(finish_channel(
             &rstate.preecho,
-            &t_r,
-            &e_r,
-            &eld_r,
-            &spread_r,
-            &maxsc_r,
+            &ws.t_r,
+            &ws.e_r,
+            &ws.eld_r,
+            &ws.spread_r,
+            &ws.maxsc_r,
             spec_r_opt.as_deref().expect("stereo spectrum"),
             conf_r,
             short_r,
@@ -919,6 +1123,10 @@ fn tns_encode_channel(
     mdct_scale: &mut i32,
     nrg_scaling_out: &mut i32,
     tns_spec_shift_global: &mut i32,
+    // M5.20 scratch: per-window Q31 remap and `band_energy_long` pre-shift
+    // accumulations (fully overwritten per window before any read).
+    qwin: &mut Vec<i32>,
+    pre: &mut Vec<i32>,
 ) {
     use super::q31::shift_int;
     let n_win = if short_ch { 8 } else { 1 };
@@ -948,18 +1156,32 @@ fn tns_encode_channel(
         );
         if tns_active[w] {
             // Recompute headroom on the filtered spectrum (psy_main:860-863).
-            let qwin = energy::map_spectrum_to_q31(&spectrum[base..base + wlen], *mdct_scale);
-            maxsc[w] = energy::max_scale_spec(&qwin, conf.offsets(), active);
-            q[base..base + wlen].copy_from_slice(&qwin);
+            // M5.20: `qwin`/`pre` are the reused per-window scratch (the
+            // former `qwin` fresh `Vec` is copied into `q` right below, so
+            // it never escapes).
+            energy::map_spectrum_to_q31_into(&spectrum[base..base + wlen], *mdct_scale, qwin);
+            energy::max_scale_spec_into(qwin, conf.offsets(), active, &mut maxsc[w]);
+            q[base..base + wlen].copy_from_slice(qwin);
             if short_ch {
-                e_stored[w] = energy::band_energy_short(&qwin, &maxsc[w], conf.offsets(), active);
+                energy::band_energy_short_into(
+                    qwin,
+                    &maxsc[w],
+                    conf.offsets(),
+                    active,
+                    &mut e_stored[w],
+                );
                 // Short Ld stays at rescale values (C quirk: Short path
                 // takes no Ld array, mirrored).
             } else {
-                let (e_new, k, ld_new) =
-                    energy::band_energy_long(&qwin, &maxsc[w], conf.offsets(), active);
-                e_stored[w] = e_new;
-                eld_true[w] = ld_new;
+                let k = energy::band_energy_long_into(
+                    qwin,
+                    &maxsc[w],
+                    conf.offsets(),
+                    active,
+                    pre,
+                    &mut e_stored[w],
+                    &mut eld_true[w],
+                );
                 *nrg_scaling_out = k;
                 *tns_spec_shift_global = (*tns_spec_shift_global).max(k);
             }
@@ -1225,17 +1447,29 @@ fn finish_channel(
             no_groups as usize,
             &lens,
         );
-        let _ = gms;
+        // Fresh grouped MS Ld refresh (`psy_main.cpp:1078-1084`):
+        // exact `CalcLdData` of the grouped sums, never stale history.
+        let gms_ld: Vec<f64> = gms
+            .iter()
+            .map(|&s| calc_ld_data(s) as f64 / 2_147_483_648.0)
+            .collect();
+        // M5.20: the Ld vectors are derived before the grouped vectors move
+        // into the output (formerly `ge.clone()`/`gt.clone()`/`gs.clone()`
+        // allocated three redundant copies per short channel per frame).
+        let g_energy_ld = grouped_ld(&ge);
+        let g_threshold_ld = grouped_ld_clamped(&gt);
         let grouped = GroupedOutput {
-            energies: ge.clone(),
-            thresholds: gt.clone(),
-            spread: gs.clone(),
-            energy_ld: grouped_ld(&ge),
-            threshold_ld: grouped_ld_clamped(&gt),
+            energies: ge,
+            thresholds: gt,
+            spread: gs,
+            energy_ld: g_energy_ld,
+            threshold_ld: g_threshold_ld,
             offsets: goff,
             min_snr: gminsnr,
             spectrum: gspec,
             max_sfb_per_group: max_sfb,
+            ms_energies: gms,
+            ms_ld: gms_ld,
         };
         out.grouped = Some(grouped);
         out.max_sfb_per_group = max_sfb;
@@ -1663,7 +1897,10 @@ mod tests {
     /// changes. Entries exist ONLY for windows/bands proven divergent;
     /// everything else takes the strict path (a new divergence class —
     /// e.g. nf/len/dir/coefLO/active flips, which never occur in corpus —
-    /// fails strict loudly instead of landing here silently).
+    /// fails strict loudly instead of landing here silently). Flip
+    /// magnitude is ±1 step except four recorded +2 cases (sine f5 ch0/ch1
+    /// bands 32/42/43; onset f26 ch0/ch1 band 42), pinned as exact triples
+    /// in their entries below.
 
     struct KnownMaxscaleDivergence {
         fixture: &'static str,
@@ -2801,6 +3038,410 @@ mod tests {
                     compare_ms(name, f, &ms, &testdata::load_ms(name, f));
                 }
             }
+        }
+    }
+
+    /// D-022 regression: LFE channel whose effective sequence became Short
+    /// through pair synchronization must be rejected before panic-prone
+    /// processing.
+    #[test]
+    #[should_panic(expected = "D-022: LFE channel must not enter psy")]
+    fn d022_lfe_short_partner_rejected() {
+        // Build an LFE channel forced to Long and a partner that decides
+        // Short, then synchronize so the effective sequence merges to Short.
+        let mut sw_lfe = BlockSwitch::new();
+        let silent = [0i16; 1024];
+        sw_lfe.process(&silent, true); // is_lfe=true forces Long
+
+        let mut sw_partner = BlockSwitch::new();
+        // Build history, then an attack to trigger Short.
+        for _ in 0..3 {
+            sw_partner.process(&[0i16; 1024], false);
+        }
+        let mut burst = [0i16; 1024];
+        for v in burst.iter_mut() {
+            *v = 32767;
+        }
+        // Process multiple attack frames
+        for _ in 0..2 {
+            sw_partner.process(&burst, false);
+        }
+
+        // Setup assertion: partner must be Short before synchronization.
+        assert_eq!(
+            sw_partner.sequence(),
+            WindowSequence::Short,
+            "test setup: partner must decide Short before sync"
+        );
+
+        BlockSwitch::synchronize_pair(&mut sw_lfe, &mut sw_partner);
+
+        // Setup assertion: LFE must be Short after synchronization.
+        assert_eq!(
+            sw_lfe.sequence(),
+            WindowSequence::Short,
+            "test setup: synchronized LFE must be Short"
+        );
+
+        let ((lcfg, _), _) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            lcfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec = [1000.0f64; 1024];
+        let input = ChannelInput {
+            spectrum: &mut spec,
+            seq: sw_lfe.sequence(),
+            grouping: sw_lfe.grouping(),
+            is_lfe: true,
+        };
+        // Reaches process_pair with an LFE channel whose effective sequence
+        // is Short; the assertion must fire before max_nrg_for_shift.
+        let _ = process_pair(&mut psy, None, input, None, &tables);
+    }
+
+    /// D-022 regression: mismatched CPE window sequences must be rejected
+    /// before MS-energy cross-indexing or regrouping.
+    #[test]
+    #[should_panic(expected = "D-022: CPE left and right window sequences must match")]
+    fn d022_mismatched_cpe_sequences_rejected() {
+        let ((lcfg, _), _) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            lcfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy_l = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut psy_r = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec_l = [1000.0f64; 1024];
+        let mut spec_r = [1000.0f64; 1024];
+        let lin = ChannelInput {
+            spectrum: &mut spec_l,
+            seq: WindowSequence::Long,
+            grouping: (1, [1, 0, 0, 0]),
+            is_lfe: false,
+        };
+        let rin = ChannelInput {
+            spectrum: &mut spec_r,
+            seq: WindowSequence::Short,
+            grouping: (8, [2, 2, 2, 2]),
+            is_lfe: false,
+        };
+        let _ = process_pair(&mut psy_l, Some(&mut psy_r), lin, Some(rin), &tables);
+    }
+
+    /// D-022 control: valid Long-window LFE input does not trip assertions.
+    #[test]
+    fn d022_valid_long_lfe_ok() {
+        let ((lcfg, _), _) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            lcfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec = [1000.0f64; 1024];
+        let input = ChannelInput {
+            spectrum: &mut spec,
+            seq: WindowSequence::Long,
+            grouping: (1, [1, 0, 0, 0]),
+            is_lfe: true,
+        };
+        let _ = process_pair(&mut psy, None, input, None, &tables);
+    }
+
+    /// D-022 control: valid matching-Long CPE input does not trip assertions.
+    #[test]
+    fn d022_valid_matching_long_cpe_ok() {
+        let ((lcfg, _), _) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            lcfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy_l = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut psy_r = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec_l = [1000.0f64; 1024];
+        let mut spec_r = [1000.0f64; 1024];
+        let lin = ChannelInput {
+            spectrum: &mut spec_l,
+            seq: WindowSequence::Long,
+            grouping: (1, [1, 0, 0, 0]),
+            is_lfe: false,
+        };
+        let rin = ChannelInput {
+            spectrum: &mut spec_r,
+            seq: WindowSequence::Long,
+            grouping: (1, [1, 0, 0, 0]),
+            is_lfe: false,
+        };
+        let _ = process_pair(&mut psy_l, Some(&mut psy_r), lin, Some(rin), &tables);
+    }
+
+    /// D-022 regression: right-hand LFE channel with effective Short window
+    /// sequence must be rejected (F1 correction).
+    #[test]
+    #[should_panic(expected = "D-022: LFE channel must not enter psy")]
+    fn d022_right_lfe_short_rejected() {
+        let ((lcfg, _), _) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            lcfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy_l = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut psy_r = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec_l = [10.0f64; 1024];
+        let mut spec_r = [10.0f64; 1024];
+        let lin = ChannelInput {
+            spectrum: &mut spec_l,
+            seq: WindowSequence::Short,
+            grouping: (4, [2, 2, 2, 2]),
+            is_lfe: false,
+        };
+        let rin = ChannelInput {
+            spectrum: &mut spec_r,
+            seq: WindowSequence::Short,
+            grouping: (4, [2, 2, 2, 2]),
+            is_lfe: true,
+        };
+        let _ = process_pair(&mut psy_l, Some(&mut psy_r), lin, Some(rin), &tables);
+    }
+
+    /// D-022 control: valid matching-Short CPE input does not trip assertions.
+    #[test]
+    fn d022_valid_matching_short_cpe_ok() {
+        let ((lcfg, _), (scfg, _)) = testdata::load_cfg(48000, 96000);
+        let tables = PsyTables::for_rate(
+            48000,
+            96000,
+            192000,
+            19293,
+            lcfg.min_snr_ld.clone(),
+            scfg.min_snr_ld.clone(),
+        )
+        .expect("tables");
+        let mut psy_l = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut psy_r = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
+        let mut spec_l = [10.0f64; 1024];
+        let mut spec_r = [10.0f64; 1024];
+        let lin = ChannelInput {
+            spectrum: &mut spec_l,
+            seq: WindowSequence::Short,
+            grouping: (4, [2, 2, 2, 2]),
+            is_lfe: false,
+        };
+        let rin = ChannelInput {
+            spectrum: &mut spec_r,
+            seq: WindowSequence::Short,
+            grouping: (4, [2, 2, 2, 2]),
+            is_lfe: false,
+        };
+        let _ = process_pair(&mut psy_l, Some(&mut psy_r), lin, Some(rin), &tables);
+    }
+
+    /// No stale-history leakage: polluting the previous frame's MS Ld
+    /// history leaves the grouped refresh unchanged (it reads only the
+    /// current grouped sums), while the pre-grouping `MsOutput` view
+    /// keeps its documented stale behavior. Fails pre-fix if the
+    /// refreshed field read history.
+    #[test]
+    fn short_grouped_ms_ignores_stale_history() {
+        fn run_to_24(pollute: bool) -> (ChannelOutput, ChannelOutput, MsOutput) {
+            let mut stream = Stream::new("onset-stereo");
+            for f in 0..=23 {
+                let _ = stream.step(f);
+            }
+            if pollute {
+                for ch in stream.psy.iter_mut() {
+                    ch.ms_ld = [[12345.678; 64]; 8];
+                }
+            }
+            let (left, right_opt, ms_opt) = {
+                let (seqs, groupings, out) = stream.step(24);
+                assert_eq!(seqs[0], WindowSequence::Short);
+                let _ = groupings;
+                out
+            };
+            (left, right_opt.expect("right"), ms_opt.expect("ms"))
+        }
+        let (cl, cr, cms) = run_to_24(false);
+        let (pl, pr, pms) = run_to_24(true);
+        let (cgl, cgr) = (
+            cl.grouped.as_ref().expect("clean left grouped"),
+            cr.grouped.as_ref().expect("clean right grouped"),
+        );
+        let (pgl, pgr) = (
+            pl.grouped.as_ref().expect("polluted left grouped"),
+            pr.grouped.as_ref().expect("polluted right grouped"),
+        );
+        assert_eq!(pgl.ms_energies, cgl.ms_energies, "mid sums ignore history");
+        assert_eq!(pgl.ms_ld, cgl.ms_ld, "mid Ld ignores history");
+        assert_eq!(pgr.ms_energies, cgr.ms_energies, "side sums ignore history");
+        assert_eq!(pgr.ms_ld, cgr.ms_ld, "side Ld ignores history");
+        // Control: the pre-grouping stale view DOES track history (C parity).
+        assert_ne!(pms.mid_ld, cms.mid_ld, "stale view tracks history");
+    }
+
+    /// Grouping correctness: production regroup follows the C saturating
+    /// accumulation and band/window mapping (`grp_data.cpp:211-224`),
+    /// including stride padding and saturation pinning. Synthetic inputs,
+    /// independent `saturating_add` expectation.
+    #[test]
+    fn short_grouped_ms_saturating_mapping() {
+        let stream = Stream::new("onset-stereo");
+        let conf = stream.tables.short_cfg.clone();
+        let active = conf.sfb_active();
+        let sfb_cnt = conf.sfb_count();
+        let spectrum = vec![0.0f64; 1024];
+        let zeros_w: Vec<Vec<i32>> = vec![vec![0; active]; 8];
+        let min_snr = vec![0i32; active];
+        // Distinct pattern: ms[w][b] = w * 1000 + b.
+        let ms: Vec<Vec<i32>> = (0..8)
+            .map(|w| (0..active).map(|b| w as i32 * 1000 + b as i32).collect())
+            .collect();
+        let group_len: [u8; 4] = [3, 1, 3, 1];
+        let (_, _, _, gms, _, _, _, _) = group_short_channel(
+            &spectrum, &zeros_w, &zeros_w, &ms, &zeros_w, &min_snr, &conf, 4, &group_len,
+        );
+        assert_eq!(gms.len(), 4 * sfb_cnt, "flat span");
+        let mut wnd = 0usize;
+        for (grp, &n) in [3usize, 1, 3, 1].iter().enumerate() {
+            for b in 0..active {
+                let mut acc = 0i32;
+                for k in 0..n {
+                    acc = acc.saturating_add(ms[wnd + k][b]);
+                }
+                assert_eq!(gms[grp * sfb_cnt + b], acc, "grp{grp} band{b}");
+            }
+            for b in active..sfb_cnt {
+                assert_eq!(gms[grp * sfb_cnt + b], 0, "grp{grp} pad{b}");
+            }
+            wnd += n;
+        }
+        // Saturation pinning at MAXVAL (non-negative energies).
+        let big: Vec<Vec<i32>> = vec![vec![i32::MAX; active]; 8];
+        let (_, _, _, gbig, _, _, _, _) = group_short_channel(
+            &spectrum, &zeros_w, &zeros_w, &big, &zeros_w, &min_snr, &conf, 4, &group_len,
+        );
+        for grp in 0..4 {
+            for b in 0..active {
+                assert_eq!(gbig[grp * sfb_cnt + b], i32::MAX, "pinned grp{grp} band{b}");
+            }
+        }
+        // Fresh Ld of the pinned max is exact (not sentinel).
+        assert_eq!(calc_ld_data(i32::MAX) as f64 / 2_147_483_648.0 > -1.0, true);
+    }
+
+    /// Long-block regression: no grouped output, pre-grouping MS Ld stays
+    /// fresh from the per-window path, and committed comparison still
+    /// passes. Guards the untouched long path.
+    #[test]
+    fn long_block_ms_path_unchanged() {
+        let mut stream = Stream::new("sine-stereo");
+        let mut last = None;
+        for f in 0..=5 {
+            let (seqs, _, out) = stream.step(f);
+            if f == 5 {
+                assert_eq!(seqs[0], WindowSequence::Long, "f5 long");
+                assert_eq!(seqs[1], WindowSequence::Long, "f5 long right");
+                last = Some(out);
+            }
+        }
+        let (left, right_opt, ms_opt) = last.expect("f5 output");
+        assert!(left.grouped.is_none(), "long has no grouped");
+        assert!(right_opt.as_ref().expect("right").grouped.is_none());
+        let ms = ms_opt.expect("stereo ms");
+        assert_eq!(ms.mid.len(), 1, "long windows");
+        assert_eq!(ms.mid_ld.len(), 1);
+        compare_ms("sine-stereo", 5, &ms, &testdata::load_ms("sine-stereo", 5));
+    }
+
+    /// Short stereo integration: both channel halves carry their grouped
+    /// MS side (mid on ch0, side on ch1) with spans aligned to the sibling
+    /// grouped vectors, and regrouping the pre-grouping `MsOutput` stored
+    /// sums reproduces them. This is the input the future MS decision
+    /// consumes on short blocks.
+    #[test]
+    fn short_stereo_grouped_ms_integration() {
+        let mut stream = Stream::new("onset-stereo");
+        let mut last = None;
+        for f in 0..=24 {
+            let (seqs, groupings, out) = stream.step(f);
+            if f == 24 {
+                assert_eq!(seqs[0], WindowSequence::Short);
+                last = Some((groupings, out));
+            }
+        }
+        let (groupings, (left, right_opt, ms_opt)) = last.expect("f24");
+        let right = right_opt.as_ref().expect("right");
+        let ms = ms_opt.expect("ms");
+        let (gl, gr) = (
+            left.grouped.as_ref().expect("left grouped"),
+            right.grouped.as_ref().expect("right grouped"),
+        );
+        // Span alignment with sibling grouped vectors (shared layout).
+        for (g, name) in [(gl, "left"), (gr, "right")] {
+            assert_eq!(g.ms_energies.len(), g.energies.len(), "{name} span");
+            assert_eq!(g.ms_ld.len(), g.energies.len(), "{name} Ld span");
+            assert_eq!(g.offsets.len(), g.energies.len() + 1, "{name} offsets");
+        }
+        // Regrouping the pre-grouping stored sums reproduces the retained
+        // grouped sums (saturating, same grouping).
+        let (no_groups, lens) = groupings[0];
+        let conf = stream.tables.short_cfg.clone();
+        let sfb_cnt = conf.sfb_count();
+        let regroup = |src: &[Vec<i32>]| {
+            let mut out = vec![0i32; no_groups as usize * sfb_cnt];
+            let mut wnd = 0usize;
+            for grp in 0..no_groups as usize {
+                let n = lens[grp] as usize;
+                for b in 0..src[0].len() {
+                    let mut acc = 0i32;
+                    for k in 0..n {
+                        acc = acc.saturating_add(src[wnd + k][b]);
+                    }
+                    out[grp * sfb_cnt + b] = acc;
+                }
+                wnd += n;
+            }
+            out
+        };
+        assert_eq!(regroup(&ms.mid), gl.ms_energies, "mid regroup reaches ch0");
+        assert_eq!(
+            regroup(&ms.side),
+            gr.ms_energies,
+            "side regroup reaches ch1"
+        );
+        // Fresh Ld reaches the output fields (not stale history).
+        for (i, (&s, &ld)) in gl.ms_energies.iter().zip(gl.ms_ld.iter()).enumerate() {
+            assert_eq!(
+                ld,
+                calc_ld_data(s) as f64 / 2_147_483_648.0,
+                "ch0 ms_ld[{i}]"
+            );
         }
     }
 

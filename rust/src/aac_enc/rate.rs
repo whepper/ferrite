@@ -209,7 +209,10 @@ amm-info@iis.fraunhofer.de
 //! - [Open] Multi-element `InitElementBits` arms and the CBR family are
 //!   future work; selected explicitly with panics, never silent defaults.
 
-use super::bitcount::{count_values, dyn_bit_count, BitCountInput, SectionData, CODE_BOOK_PNS_NO};
+use super::bitcount::{
+    count_values, dyn_bit_count_reuse, BitCountInput, BitCountScratch, SectionData,
+    CODE_BOOK_PNS_NO,
+};
 use super::q31::{fdiv_norm, fdiv_norm_e, fmult, fmult_add_div2, fmult_i, schur_div};
 use super::static_bits::{static_bits_cpe, static_bits_sce, MsDigest};
 use super::tns::TnsChannel;
@@ -1359,6 +1362,17 @@ pub struct QcFrameOutput {
     pub final_sections: Vec<SectionData>,
     pub final_gains: Vec<i32>,
     pub final_max_sfb: Vec<usize>,
+    /// Final-pass quantized spectra, per channel (M5.18). These are the
+    /// loop's own last `quantize_spectrum` results: any gain adjustment or
+    /// crash-recovery `maxSfb` reduction sets `recalc` (`reduce_bit_consumption`)
+    /// so the final constraints-checked pass always quantized at the final
+    /// gain under the final `maxSfb`. Bands at/after `final_max_sfb` per
+    /// group stride hold the `vec![0i16; len]` initialization zeros —
+    /// exactly what a zeroed-spectrum re-quantization would produce.
+    pub final_quants: Vec<Vec<i16>>,
+    /// Per-band maxima matching [`QcFrameOutput::final_quants`], from the
+    /// same final `calcMaxValueInSfb` pass (M5.18).
+    pub final_qmaxs: Vec<Vec<u32>>,
     pub static_bits_used: i32,
     pub used_dyn_bits: i32,
     pub tot_fill_bits: i32,
@@ -1368,11 +1382,17 @@ pub struct QcFrameOutput {
 }
 
 /// Persistent per-stream QC kernel state (`QC_STATE` VBR-5 slice).
-#[derive(Debug, Clone, Copy)]
+///
+/// M5.22: no longer `Copy` — it now owns the reused bit-count scratch
+/// (`bc_scratch`); nothing in the crate relies on by-value copies of it.
+#[derive(Debug, Clone)]
 pub struct QcState {
     pub bit_res_tot: i32,
     pub bit_res_tot_max: i32,
     pub padding_rest: i32,
+    /// Reused bit-count scratch (M5.22): owns the `noiseless_counter`
+    /// working buffers so the sectioning path allocates nothing per group.
+    pub bc_scratch: BitCountScratch,
 }
 
 impl QcState {
@@ -1381,6 +1401,7 @@ impl QcState {
             bit_res_tot: bit_res_tot_max,
             bit_res_tot_max,
             padding_rest: sample_rate,
+            bc_scratch: BitCountScratch::default(),
         }
     }
 }
@@ -1640,7 +1661,7 @@ pub fn qc_main_frame(
                     is_scale: c.is_scale,
                     use_vcb11: false,
                 };
-                let (sd, d) = dyn_bit_count(&bc_input);
+                let (sd, d) = dyn_bit_count_reuse(&bc_input, &mut qc.bc_scratch);
                 sections[ch] = sd;
                 dyns[ch] = d;
                 el_dyn += d;
@@ -1731,6 +1752,12 @@ pub fn qc_main_frame(
         final_sections: sections,
         final_gains: gains,
         final_max_sfb: max_sfb,
+        // M5.18: the loop's final-pass quantized spectra and per-band
+        // maxima were previously dropped here and re-derived by the
+        // stream driver; they are moved out unchanged instead. No
+        // decision, arithmetic, or loop behavior is affected.
+        final_quants: quants,
+        final_qmaxs: maxes,
         static_bits_used: el_static,
         used_dyn_bits: el_dyn,
         tot_fill_bits: tot_fill_sized,
@@ -2138,6 +2165,7 @@ mod tests {
                 bit_res_tot: init.max,
                 bit_res_tot_max: init.max,
                 padding_rest: 0,
+                bc_scratch: Default::default(),
             };
             let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
                 .expect("s6 frame converges");
@@ -2176,6 +2204,7 @@ mod tests {
                 bit_res_tot: init.max,
                 bit_res_tot_max: init.max,
                 padding_rest: 0,
+                bc_scratch: Default::default(),
             };
             let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
                 .expect("chain frame converges");
@@ -2261,6 +2290,7 @@ mod tests {
             bit_res_tot: 2000,
             bit_res_tot_max: 2000,
             padding_rest: 0,
+            bc_scratch: Default::default(),
         };
         let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
             .expect("tiny-budget frame converges");
@@ -2302,6 +2332,7 @@ mod tests {
             bit_res_tot: 1200,
             bit_res_tot_max: 1200,
             padding_rest: 0,
+            bc_scratch: Default::default(),
         };
         let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
             .expect("starvation frame converges via crash");

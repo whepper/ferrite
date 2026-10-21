@@ -962,6 +962,34 @@ fn gm_stage2(
     }
 }
 
+/// Reusable scratch for [`dyn_bit_count`] (M5.22).
+///
+/// Owned by persistent encoder state (`QcState`) and passed down to
+/// [`noiseless_counter`]. The three buffers replace the per-group `vec![]`
+/// allocations of `BITCNTR_STATE`-equivalent working memory; they are
+/// resized to `max_sfb_per_group.max(1)` at the top of every group
+/// iteration and hold no information across groups, calls, channels, or
+/// encoder instances.
+///
+/// Initialization semantics (audited against `build_bit_lookup` /
+/// `gm_stage0..2` / the compress pass):
+/// * `bit_lookup` — every row later read is rewritten in full by
+///   `build_bit_lookup` (`out.copy_from_slice`), so only the length is
+///   restored.
+/// * `work` — every `SectionInfo` later read is rewritten in full by
+///   `build_bit_lookup`, so only the length is restored (the resize
+///   placeholder matches the former `vec![]` initializer anyway).
+/// * `merge_gain` — only section-start indices are written before the
+///   first `find_max_merge` walk, so the former fresh-allocation zeros are
+///   restored explicitly (`fill(0)`) for all potentially observed
+///   elements.
+#[derive(Debug, Default, Clone)]
+pub struct BitCountScratch {
+    bit_lookup: Vec<[i32; 12]>,
+    merge_gain: Vec<i32>,
+    work: Vec<SectionInfo>,
+}
+
 /// `noiselessCounter` (`dyn_bits.cpp:343-430`): per-group sectioning.
 /// Returns `(sections, side_info_bits, huffman_bits)`.
 #[allow(clippy::too_many_arguments)]
@@ -976,6 +1004,7 @@ fn noiseless_counter(
     noise_nrg: &[i32],
     is_book: &[i32],
     use_vcb11: bool,
+    scratch: &mut BitCountScratch,
 ) -> (Vec<SectionInfo>, i32, i32) {
     let side_info_tab: &[i16] = match block_type {
         BLOCK_SHORT => &SIDE_INFO_TAB_SHORT,
@@ -991,45 +1020,55 @@ fn noiseless_counter(
     }
     let mut grp = 0;
     while grp < sfb_cnt {
-        // Per-group scratch (C reuses the BITCNTR_STATE buffers).
-        let mut bit_lookup = vec![[0i32; 12]; max_sfb_per_group.max(1)];
-        let mut merge_gain = vec![0i32; max_sfb_per_group.max(1)];
-        let mut work = vec![
+        // Per-group scratch (C reuses the BITCNTR_STATE buffers). M5.22:
+        // caller-owned and reused across groups/calls — the lengths are
+        // restored to `max_sfb_per_group.max(1)` here, `bit_lookup`/`work`
+        // are then fully rewritten for every index read later, and
+        // `merge_gain`'s observable zeros are restored explicitly (it is
+        // only partially written before its first read).
+        let n = max_sfb_per_group.max(1);
+        scratch.bit_lookup.resize(n, [0i32; 12]);
+        scratch.merge_gain.resize(n, 0);
+        scratch.merge_gain.fill(0);
+        scratch.work.resize(
+            n,
             SectionInfo {
                 code_book: -1,
                 sfb_start: 0,
                 sfb_cnt: 0,
                 section_bits: 0,
-            };
-            max_sfb_per_group.max(1)
-        ];
+            },
+        );
+        let bit_lookup = &mut scratch.bit_lookup[..];
+        let merge_gain = &mut scratch.merge_gain[..];
+        let work = &mut scratch.work[..];
         let off = &sfb_offsets[grp..];
         build_bit_lookup(
             quant_spec,
             max_sfb_per_group,
             off,
             &max_value_in_sfb[grp..],
-            &mut bit_lookup,
-            &mut work,
+            bit_lookup,
+            work,
         );
         gm_stage0(
-            &mut work,
-            &bit_lookup,
+            work,
+            bit_lookup,
             max_sfb_per_group,
             &noise_nrg[grp..],
             &is_book[grp..],
         );
         gm_stage1(
-            &mut work,
-            &mut bit_lookup,
+            work,
+            bit_lookup,
             max_sfb_per_group,
             side_info_tab,
             use_vcb11,
         );
         gm_stage2(
-            &mut work,
-            &mut merge_gain,
-            &mut bit_lookup,
+            work,
+            merge_gain,
+            bit_lookup,
             max_sfb_per_group,
             side_info_tab,
             use_vcb11,
@@ -1192,7 +1231,21 @@ fn noise_count(sections: &[SectionInfo], noise_nrg: &[i32]) -> i32 {
 
 /// `FDKaacEnc_dynBitCount` (`dyn_bits.cpp:617-643`): full per-channel
 /// noiseless count. Returns `(SectionData, dyn_bits_used)`.
+/// `dynBitCount` (`dyn_bits.cpp:437-465`) entry point. Convenience form
+/// that allocates a fresh [`BitCountScratch`] per call; hot-path callers
+/// use [`dyn_bit_count_reuse`].
 pub fn dyn_bit_count(input: &BitCountInput<'_>) -> (SectionData, i32) {
+    let mut scratch = BitCountScratch::default();
+    dyn_bit_count_reuse(input, &mut scratch)
+}
+
+/// [`dyn_bit_count`] with caller-owned scratch reuse (M5.22): identical
+/// integer arithmetic, comparison order, tie-breaking, loop order and
+/// early exits; the scratch only removes the per-group heap allocations.
+pub fn dyn_bit_count_reuse(
+    input: &BitCountInput<'_>,
+    scratch: &mut BitCountScratch,
+) -> (SectionData, i32) {
     let no_of_groups = (input.sfb_cnt / input.sfb_per_group) as i32;
     let (sections, side_info_bits, huffman_bits) = noiseless_counter(
         input.quant_spec,
@@ -1205,6 +1258,7 @@ pub fn dyn_bit_count(input: &BitCountInput<'_>) -> (SectionData, i32) {
         input.noise_nrg,
         input.is_book,
         input.use_vcb11,
+        scratch,
     );
     let (scalefac_bits, first_scf) =
         scf_count(input.scf, input.max_value_in_sfb, &sections, input.is_scale);
@@ -1593,6 +1647,130 @@ mod tests {
                     "{name} f={f} ch={ci} dyn-sum"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn s5_scratch_reuse_is_bit_exact() {
+        // M5.22: one shared `BitCountScratch` across every S5 case must
+        // return exactly the same `SectionData` (and dynamic-bit total) as
+        // the per-call fresh-scratch wrapper — in the corpus order and in
+        // reverse order, so the reused buffers shrink and grow across
+        // long/short block shapes while carrying state from the previous
+        // case.
+        use super::super::testdata;
+        let mut shared = BitCountScratch::default();
+        for pass in 0..2 {
+            let mut cases: Vec<(&str, u32)> = S5_CASES.to_vec();
+            if pass == 1 {
+                cases.reverse();
+            }
+            for (name, f) in cases {
+                let s4 = testdata::load_s4(name, f);
+                let s5 = testdata::load_s5(name, f);
+                for (ci, (c4, c5)) in s4.ch.iter().zip(s5.ch.iter()).enumerate() {
+                    let lv = &c4.levels[2];
+                    assert_eq!(lv.inv, 2, "{name} f={f} ch={ci} inv");
+                    let input = BitCountInput {
+                        quant_spec: &lv.qspec,
+                        max_value_in_sfb: &c5.qmax,
+                        scf: &lv.scf,
+                        block_type: c5.geo_seq as i32,
+                        sfb_cnt: c5.geo_cnt,
+                        max_sfb_per_group: c5.geo_max,
+                        sfb_per_group: c5.geo_per,
+                        sfb_offsets: &c5.offsets,
+                        noise_nrg: &c5.noise_nrg,
+                        is_book: &c5.is_book,
+                        is_scale: &c5.is_scale,
+                        use_vcb11: false,
+                    };
+                    let (fresh_sd, fresh_bits) = dyn_bit_count(&input);
+                    let (reuse_sd, reuse_bits) = dyn_bit_count_reuse(&input, &mut shared);
+                    assert_eq!(
+                        fresh_bits, reuse_bits,
+                        "{name} f={f} ch={ci} pass={pass} dyn bits"
+                    );
+                    assert_eq!(
+                        fresh_sd, reuse_sd,
+                        "{name} f={f} ch={ci} pass={pass} section data"
+                    );
+                }
+            }
+        }
+        // Synthetic shapes the committed corpus does not exercise with a
+        // reused scratch (reviewer-identified gap): PNS and IS sections
+        // (the `gm_stage0` pre-assignment and the `calc_merge_gain` −1
+        // veto), and a two-group short block so the per-group reset path
+        // runs repeatedly on the same buffers after long-block shapes.
+        let pns = BitCountInput {
+            quant_spec: &[0i16; 4],
+            max_value_in_sfb: &[0],
+            scf: &[7],
+            block_type: BLOCK_LONG,
+            sfb_cnt: 1,
+            max_sfb_per_group: 1,
+            sfb_per_group: 1,
+            sfb_offsets: &[0, 4],
+            noise_nrg: &[5],
+            is_book: &[0],
+            is_scale: &[0],
+            use_vcb11: false,
+        };
+        let is_sec = BitCountInput {
+            quant_spec: &[0i16; 4],
+            max_value_in_sfb: &[0],
+            scf: &[7],
+            block_type: BLOCK_LONG,
+            sfb_cnt: 1,
+            max_sfb_per_group: 1,
+            sfb_per_group: 1,
+            sfb_offsets: &[0, 4],
+            noise_nrg: &[NO_NOISE_PNS],
+            is_book: &[CODE_BOOK_IS_IN_PHASE_NO],
+            is_scale: &[3],
+            use_vcb11: false,
+        };
+        let short_2grp = BitCountInput {
+            quant_spec: &[3i16; 32],
+            max_value_in_sfb: &[3u32; 8],
+            scf: &[7i32; 8],
+            block_type: BLOCK_SHORT,
+            sfb_cnt: 8,
+            max_sfb_per_group: 3,
+            sfb_per_group: 4,
+            sfb_offsets: &[0, 4, 8, 12, 16, 20, 24, 28, 32],
+            noise_nrg: &[NO_NOISE_PNS; 8],
+            is_book: &[0i32; 8],
+            is_scale: &[0i32; 8],
+            use_vcb11: false,
+        };
+        let all_zeroes = BitCountInput {
+            quant_spec: &[0i16; 4],
+            max_value_in_sfb: &[0],
+            scf: &[0],
+            block_type: BLOCK_LONG,
+            sfb_cnt: 1,
+            max_sfb_per_group: 0,
+            sfb_per_group: 1,
+            sfb_offsets: &[0, 4],
+            noise_nrg: &[NO_NOISE_PNS],
+            is_book: &[0],
+            is_scale: &[0],
+            use_vcb11: false,
+        };
+        for (tag, input) in [
+            ("pns-short-pns", &pns),
+            ("is", &is_sec),
+            ("short-2grp", &short_2grp),
+            ("all-zeroes", &all_zeroes),
+            ("short-2grp-again", &short_2grp),
+            ("pns-again", &pns),
+        ] {
+            let (fresh_sd, fresh_bits) = dyn_bit_count(input);
+            let (reuse_sd, reuse_bits) = dyn_bit_count_reuse(input, &mut shared);
+            assert_eq!(fresh_bits, reuse_bits, "{tag} synthetic dyn bits");
+            assert_eq!(fresh_sd, reuse_sd, "{tag} synthetic section data");
         }
     }
 

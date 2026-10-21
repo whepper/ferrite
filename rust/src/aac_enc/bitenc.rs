@@ -328,11 +328,23 @@ impl BitWriter {
                 free_bits: free,
             });
         }
-        for k in (0..nbits).rev() {
-            if (value >> k) & 1 == 1 {
-                self.buf[self.bits / 8] |= 1 << (7 - (self.bits % 8));
-            }
-            self.bits += 1;
+        // Byte-chunk emission (was: one bounds-checked bit iteration per
+        // bit). Places the same high-bit-first bits at the same positions:
+        // each step fills the current byte's remaining high slots with the
+        // top `take` bits of the not-yet-written field. One buffer access
+        // per touched byte instead of one per bit; entry checks above
+        // already guarantee every access is in-bounds.
+        let mut remaining = need;
+        let mut shift = need;
+        while remaining > 0 {
+            let room = 8 - self.bits % 8;
+            let take = room.min(remaining);
+            shift -= take;
+            let chunk = ((value >> shift) & ((1u32 << take) - 1)) as u8;
+            let byte_idx = self.bits / 8;
+            self.buf[byte_idx] |= chunk << (room - take);
+            self.bits += take;
+            remaining -= take;
         }
         Ok(())
     }

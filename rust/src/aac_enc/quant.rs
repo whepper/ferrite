@@ -262,6 +262,12 @@ fn fpow2(a: i32) -> i32 {
 /// `dzone_quant_enable` selects the dead-zone addend (`false` = LC).
 /// The output wraps through `as i16` exactly like the C `(SHORT)` cast:
 /// no clipping happens here.
+///
+/// M5.16: the band-invariant quantizer state (`quantizer`,
+/// `quantizer_shift`, `k` — pure functions of `gain` and
+/// `dzone_quant_enable`, computed once per band by the C reference at
+/// `quantize.cpp:120-131`) now lives in [`quantize_line_body`]; this
+/// wrapper computes it and delegates. Per-line arithmetic is unchanged.
 pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
@@ -270,6 +276,25 @@ pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
     } else {
         QUANT_K0
     };
+    quantize_line_body(quantizer, quantizer_shift, k, spec)
+}
+
+/// Per-line quantizer arithmetic over precomputed band-invariant state
+/// (`quantizer`, `quantizer_shift`, `k` — see [`quantize_line`]). This is
+/// the exact former body of [`quantize_line`]; every operation, order,
+/// wrapping behavior, and the `as i16` narrowing are identical. The split
+/// exists so [`calc_sfb_dist`] can hoist the invariant state out of its
+/// line loop (mirroring `FDKaacEnc_quantizeLines`) without changing any
+/// per-line computation.
+///
+/// `always`: the plain `#[inline]` hint was measured insufficient —
+/// release LLVM's size cost model kept an out-of-line per-line call from
+/// `calc_sfb_dist`'s loop (verified in M5.16 Gate D disassembly), which
+/// is exactly the code shape this kernel exists to remove. Forcing the
+/// inline is safe: the body is straight-line integer code with no
+/// recursion, and Gate D verifies the resulting shape.
+#[inline(always)]
+fn quantize_line_body(quantizer: i16, quantizer_shift: i32, k: i32, spec: i32) -> i16 {
     let mut accu = fixmuldiv2_ds(spec, quantizer);
     if accu < 0 {
         accu = accu.wrapping_neg();
@@ -352,11 +377,17 @@ pub fn inv_quantize_line(gain: i32, q: i16) -> i32 {
 }
 
 /// `FDKaacEnc_QuantizeSpectrum` (`quantize.cpp:278-301`): per-band
-/// `QSS = global_gain - scf[band]`, then [`quantize_line`] per line.
+/// `QSS = global_gain - scf[band]`, then the per-line quantizer over the
+/// band.
 ///
-/// `cnt`/`max_per`/`per`/`off` are the psy band geometry (`sfbCnt`,
-/// `maxSfbPerGroup`, `sfbPerGroup`, `sfbOffsets`); `spec` holds the full
-/// 1024-line spectrum and `out` receives one `i16` per line.
+/// M5.16: the band-invariant quantizer state for each band's `QSS` is
+/// computed once per band — the exact structure of the C reference
+/// (`QuantizeSpectrum` calls `FDKaacEnc_quantizeLines` per band, which
+/// computes `quantizer`/`quantizershift`/`k` before its line loop,
+/// `quantize.cpp:283-297`). The per-line call now goes through
+/// [`quantize_line_body`] with identical arguments, so every emitted
+/// value matches `quantize_line(qss, spec[line], dzone_quant_enable)`
+/// bit-for-bit.
 #[allow(clippy::too_many_arguments)]
 pub fn quantize_spectrum(
     cnt: usize,
@@ -373,10 +404,17 @@ pub fn quantize_spectrum(
     while sfb_offs < cnt {
         for sfb in 0..max_per {
             let qss = global_gain.wrapping_sub(scf[sfb_offs + sfb]);
+            let quantizer = QUANT_TABLE_Q[(qss.wrapping_neg() & 3) as usize];
+            let quantizer_shift = (qss.wrapping_neg() >> 2) + 1;
+            let k = if dzone_quant_enable {
+                QUANT_K1
+            } else {
+                QUANT_K0
+            };
             let start = off[sfb_offs + sfb] as usize;
             let end = off[sfb_offs + sfb + 1] as usize;
             for line in start..end {
-                out[line] = quantize_line(qss, spec[line], dzone_quant_enable);
+                out[line] = quantize_line_body(quantizer, quantizer_shift, k, spec[line]);
             }
         }
         sfb_offs += per;
@@ -406,10 +444,26 @@ fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
 /// single slipped value (`-32768`) takes the same branch as in C; the
 /// subsequent table index then panics loudly (see module docs).
 /// `quant` receives the fresh quantized lines (C quantizes in place).
+///
+/// M5.16: the band-invariant quantizer state (`quantizer`,
+/// `quantizer_shift`, `k`) is computed once per band here — exactly like
+/// the C reference's `FDKaacEnc_quantizeLines` prologue (`quantize.cpp:120-131`)
+/// — and the per-line work runs through [`quantize_line_body`]. The
+/// values are identical to the former per-line computation (pure
+/// functions of `gain`/`dzone_quant_enable`), so every emitted `q`,
+/// the early-out, the inverse quantization, and the distortion
+/// accumulation are unchanged.
 pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &mut [i16]) -> i32 {
+    let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
+    let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
+    let k = if dzone_quant_enable {
+        QUANT_K1
+    } else {
+        QUANT_K0
+    };
     let mut xfsf: i32 = 0;
     for (i, &s) in spec.iter().enumerate() {
-        let q = quantize_line(gain, s, dzone_quant_enable);
+        let q = quantize_line_body(quantizer, quantizer_shift, k, s);
         quant[i] = q;
         if (q.wrapping_abs() as i32) > MAX_QUANT {
             return 0;

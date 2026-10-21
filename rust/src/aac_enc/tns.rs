@@ -454,6 +454,42 @@ fn calc_auto_corr_value(
     }
     result
 }
+/// Fused multi-lag autocorrelation for one quarter (`start..stop`).
+/// Structural twin of repeated [`calc_auto_corr_value`] calls with
+/// `lag in 1..=max_lag`: a single explicit index traversal with one
+/// `i64` accumulator per lag (no per-lag repass, no iterator dispatch).
+/// Per-term ops, per-lag contributing sample sets (`i in [start,
+/// stop-lag)`) and `i`-ascending accumulation order are identical to the
+/// single-lag version, so `out[lag]` equals the corresponding
+/// `calc_auto_corr_value(spectrum, start, stop, lag, scale)` exactly.
+/// `out[0]` is left untouched (lag 0 keeps its `fPow2` path in the
+/// caller). All arithmetic stays integer `i64`; no reordering, no
+/// precision change.
+#[allow(clippy::needless_range_loop)]
+fn autocorr_quarter_lags(
+    spectrum: &[i64],
+    start: usize,
+    stop: usize,
+    scale: i32,
+    max_lag: usize,
+    out: &mut [i64; 13],
+) {
+    debug_assert!(max_lag >= 1 && max_lag <= 12);
+    let mut acc = [0i64; 13];
+    for i in start..stop {
+        let a = spectrum[i] as i32;
+        // Lags covering sample i are 1..=(stop-i-1), capped at max_lag
+        // (`i < stop`, so `stop-i-1` cannot underflow).
+        let lim = max_lag.min(stop - i - 1);
+        for lag in 1..=lim {
+            let b = spectrum[i + lag] as i32;
+            acc[lag] += (super::q31::fmult(a, b) as i64) >> scale;
+        }
+    }
+    for lag in 1..=max_lag {
+        out[lag] = acc[lag];
+    }
+}
 /// Exact integer mirror of `FDKaacEnc_AutoCorrNormFac`
 /// (`aacenc_tns.cpp:578-617`): energy normalization factor `~= 1/value`.
 /// `scale` is the caller-side exponent `(-2*sc_up + nsc)`; `*sc`
@@ -563,9 +599,14 @@ fn merged_autocorr_fixed(spectrum_q31: &[i32], config: &TnsConfig) -> ([i64; 13]
         fac1 = auto_corr_norm_fac(rxx1_0, -2 * sc1 + nsc1, &mut sc_fac1);
         rxx1[0] = scale_value_64(fmult(rxx1_0 as i32, fac1 as i32) as i64, sc_fac1);
         // LC is never low-delay: single non-LD path (3*lag window).
+        // Fused single traversal (was: one calc_auto_corr_value per lag).
+        // `3*lag <= max_order+3` ⟺ `lag <= (max_order+3)/3` on integers,
+        // so the fused bound covers exactly the gated lag set.
+        let mut ac1 = [0i64; 13];
+        autocorr_quarter_lags(&pspec, idx0, idx1, nsc1, (max_order + 3) / 3, &mut ac1);
         for lag in 1..=max_order {
             if 3 * lag <= max_order + 3 {
-                let x1 = calc_auto_corr_value(&pspec, idx0, idx1, lag, nsc1);
+                let x1 = ac1[lag];
                 rxx1[lag] = fmult(
                     scale_value_64(fmult(x1 as i32, fac1 as i32) as i64, sc_fac1) as i32,
                     config.acf_window_q31[LO][3 * lag],
@@ -595,26 +636,18 @@ fn merged_autocorr_fixed(spectrum_q31: &[i32], config: &TnsConfig) -> ([i64; 13]
         rxx2[0] = scale_value_64(fmult(rxx2_0 as i32, fac2 as i32) as i64, sc_fac2)
             + scale_value_64(fmult(rxx3_0 as i32, fac3 as i32) as i64, sc_fac3)
             + scale_value_64(fmult(rxx4_0 as i32, fac4 as i32) as i64, sc_fac4);
+        // Fused single traversal per quarter (was: one
+        // calc_auto_corr_value per quarter per lag).
+        let mut ac2 = [0i64; 13];
+        let mut ac3 = [0i64; 13];
+        let mut ac4 = [0i64; 13];
+        autocorr_quarter_lags(&pspec, idx1, idx2, nsc2, max_order, &mut ac2);
+        autocorr_quarter_lags(&pspec, idx2, idx3, nsc3, max_order, &mut ac3);
+        autocorr_quarter_lags(&pspec, idx3, idx4, nsc4, max_order, &mut ac4);
         for lag in 1..=max_order {
-            let x2 = scale_value_64(
-                fmult(
-                    calc_auto_corr_value(&pspec, idx1, idx2, lag, nsc2) as i32,
-                    fac2 as i32,
-                ) as i64,
-                sc_fac2,
-            ) + scale_value_64(
-                fmult(
-                    calc_auto_corr_value(&pspec, idx2, idx3, lag, nsc3) as i32,
-                    fac3 as i32,
-                ) as i64,
-                sc_fac3,
-            ) + scale_value_64(
-                fmult(
-                    calc_auto_corr_value(&pspec, idx3, idx4, lag, nsc4) as i32,
-                    fac4 as i32,
-                ) as i64,
-                sc_fac4,
-            );
+            let x2 = scale_value_64(fmult(ac2[lag] as i32, fac2 as i32) as i64, sc_fac2)
+                + scale_value_64(fmult(ac3[lag] as i32, fac3 as i32) as i64, sc_fac3)
+                + scale_value_64(fmult(ac4[lag] as i32, fac4 as i32) as i64, sc_fac4);
             rxx2[lag] = fmult(x2 as i32, config.acf_window_q31[HI][lag]) as i64;
         }
     }

@@ -119,8 +119,18 @@ use super::q31::{
 
 /// `CalcSfbMaxScaleSpec` (`band_nrg.cpp:111-132`): per-band headroom as
 /// `min(30, clz(max|q|) - 1)` over Q31-mapped spectrum ints.
-pub fn max_scale_spec(spectrum_q31: &[i32], offsets: &[u16], sfb_active: usize) -> Vec<i32> {
-    let mut out = vec![0i32; sfb_active];
+///
+/// M5.20 `_into` form writes into caller-owned scratch: `clear` + `push`
+/// yields exactly the former fresh `vec![0i32; sfb_active]` result (same
+/// values, same length, same order — only the allocation is reused).
+pub fn max_scale_spec_into(
+    spectrum_q31: &[i32],
+    offsets: &[u16],
+    sfb_active: usize,
+    out: &mut Vec<i32>,
+) {
+    out.clear();
+    out.reserve(sfb_active);
     for b in 0..sfb_active {
         let mut peak: i32 = 0;
         for j in offsets[b] as usize..offsets[b + 1] as usize {
@@ -129,8 +139,13 @@ pub fn max_scale_spec(spectrum_q31: &[i32], offsets: &[u16], sfb_active: usize) 
             // (Unreachable for real spectra; kept for exactness.)
             peak = peak.max(a);
         }
-        out[b] = (count_leading_zeros(peak) - 1).min(30);
+        out.push((count_leading_zeros(peak) - 1).min(30));
     }
+}
+
+pub fn max_scale_spec(spectrum_q31: &[i32], offsets: &[u16], sfb_active: usize) -> Vec<i32> {
+    let mut out = Vec::new();
+    max_scale_spec_into(spectrum_q31, offsets, sfb_active, &mut out);
     out
 }
 
@@ -147,13 +162,15 @@ pub fn map_to_q31(spectrum: &[f64]) -> Vec<i32> {
 /// sums (`spec << max(0, maxScale-4)`, halved-square accumulation,
 /// final `<<1`). Returns the raw sums; the caller derives `maxNrg` with
 /// [`max_nrg_for_shift`] and Ld values directly from true sums.
-pub fn check_band_energy(
+pub fn check_band_energy_into(
     spectrum_q31: &[i32],
     max_scale: &[i32],
     offsets: &[u16],
     sfb_active: usize,
-) -> Vec<i32> {
-    let mut energies = vec![0i32; sfb_active];
+    energies: &mut Vec<i32>,
+) {
+    energies.clear();
+    energies.reserve(sfb_active);
     for b in 0..sfb_active {
         let scale = (max_scale[b] - 4).max(0);
         let mut tmp: i32 = 0;
@@ -161,8 +178,18 @@ pub fn check_band_energy(
             let spec = shift_int(spectrum_q31[j], scale);
             tmp = fpow2_add_div2(tmp, spec);
         }
-        energies[b] = tmp.wrapping_shl(1);
+        energies.push(tmp.wrapping_shl(1));
     }
+}
+
+pub fn check_band_energy(
+    spectrum_q31: &[i32],
+    max_scale: &[i32],
+    offsets: &[u16],
+    sfb_active: usize,
+) -> Vec<i32> {
+    let mut energies = Vec::new();
+    check_band_energy_into(spectrum_q31, max_scale, offsets, sfb_active, &mut energies);
     energies
 }
 
@@ -200,13 +227,15 @@ pub fn max_nrg_for_shift(energies: &[i32], max_scale: &[i32], min_spec_shift: i3
 /// for short windows. Note the differences from the long path: `maxScale -
 /// 3` headroom, NO final `<<1`, and a saturating output rescale by
 /// `-(2*(maxScale-3)-1)`.
-pub fn band_energy_short(
+pub fn band_energy_short_into(
     spectrum_q31: &[i32],
     max_scale: &[i32],
     offsets: &[u16],
     sfb_active: usize,
-) -> Vec<i32> {
-    let mut energies = vec![0i32; sfb_active];
+    energies: &mut Vec<i32>,
+) {
+    energies.clear();
+    energies.reserve(sfb_active);
     for b in 0..sfb_active {
         let leading = max_scale[b] - 3;
         let mut tmp: i32 = 0;
@@ -214,12 +243,22 @@ pub fn band_energy_short(
             let spec = shift_int(spectrum_q31[j], leading);
             tmp = fpow2_add_div2(tmp, spec);
         }
-        energies[b] = tmp;
+        energies.push(tmp);
     }
     for b in 0..sfb_active {
         let scale = (2 * (max_scale[b] - 3) - 1).clamp(-31, 31);
         energies[b] = scale_value_saturate(energies[b], -scale);
     }
+}
+
+pub fn band_energy_short(
+    spectrum_q31: &[i32],
+    max_scale: &[i32],
+    offsets: &[u16],
+    sfb_active: usize,
+) -> Vec<i32> {
+    let mut energies = Vec::new();
+    band_energy_short_into(spectrum_q31, max_scale, offsets, sfb_active, &mut energies);
     energies
 }
 
@@ -233,13 +272,17 @@ pub fn band_energy_short(
 /// at exact 0/multiples of 2/64 boundaries (corpus-gated, never observed).
 /// `maxNrgLd` starts at 0.0 in C (line 199), so all-nonpositive Ld takes
 /// the zero path.
-pub fn band_energy_long(
+pub fn band_energy_long_into(
     spectrum_q31: &[i32],
     max_scale: &[i32],
     offsets: &[u16],
     sfb_active: usize,
-) -> (Vec<i32>, i32, Vec<f64>) {
-    let mut pre = vec![0i32; sfb_active];
+    pre: &mut Vec<i32>,
+    energies: &mut Vec<i32>,
+    ld: &mut Vec<f64>,
+) -> i32 {
+    pre.clear();
+    pre.reserve(sfb_active);
     for b in 0..sfb_active {
         let leading = max_scale[b] - 4;
         let mut tmp: i32 = 0;
@@ -255,28 +298,25 @@ pub fn band_energy_long(
                 tmp = fpow2_add_div2(tmp, spec);
             }
         }
-        pre[b] = tmp.wrapping_shl(1);
+        pre.push(tmp.wrapping_shl(1));
     }
     // Guarded Ld + max (C lines 224-235).
-    let mut ld = vec![-1.0f64; sfb_active];
+    ld.clear();
+    ld.reserve(sfb_active);
     let mut max_ld = 0.0f64;
     for b in 0..sfb_active {
         let scale_diff = (max_scale[b] - 4) as f64 * 2.0 / 64.0;
         let base = if pre[b] <= 0 { -1.0 } else { log2frac(pre[b]) };
-        ld[b] = if base >= (-0.5 + scale_diff / 2.0) {
+        let v = if base >= (-0.5 + scale_diff / 2.0) {
             base - scale_diff
         } else {
             -1.0
         };
-        max_ld = max_ld.max(ld[b]);
+        ld.push(v);
+        max_ld = max_ld.max(v);
     }
-    if max_ld <= 0.0 {
-        let mut energies = vec![0i32; sfb_active];
-        for b in 0..sfb_active {
-            let scale = ((max_scale[b] - 4) << 1).min(31);
-            energies[b] = shift_int(pre[b], -scale);
-        }
-        (energies, 0, ld)
+    let shift_bits = if max_ld <= 0.0 {
+        0
     } else {
         let mut run = max_ld;
         let mut shift_bits = 0;
@@ -284,14 +324,39 @@ pub fn band_energy_long(
             run -= 2.0 / 64.0;
             shift_bits += 1;
         }
-        let mut energies = vec![0i32; sfb_active];
-        for b in 0..sfb_active {
-            let scale = (((max_scale[b] - 4) + shift_bits) << 1).min(31);
-            energies[b] = shift_int(pre[b], -scale);
+        shift_bits
+    };
+    energies.clear();
+    energies.reserve(sfb_active);
+    for b in 0..sfb_active {
+        let scale = (((max_scale[b] - 4) + shift_bits) << 1).min(31);
+        energies.push(shift_int(pre[b], -scale));
+        if shift_bits > 0 {
             ld[b] -= shift_bits as f64 * 2.0 / 64.0;
         }
-        (energies, shift_bits, ld)
     }
+    shift_bits
+}
+
+pub fn band_energy_long(
+    spectrum_q31: &[i32],
+    max_scale: &[i32],
+    offsets: &[u16],
+    sfb_active: usize,
+) -> (Vec<i32>, i32, Vec<f64>) {
+    let mut pre = Vec::new();
+    let mut energies = Vec::new();
+    let mut ld = Vec::new();
+    let shift_bits = band_energy_long_into(
+        spectrum_q31,
+        max_scale,
+        offsets,
+        sfb_active,
+        &mut pre,
+        &mut energies,
+        &mut ld,
+    );
+    (energies, shift_bits, ld)
 }
 
 /// `CalcBandNrgMSOpt` (`band_nrg.cpp:296-361`): mid/side band energies for
@@ -374,12 +439,21 @@ pub fn calc_ms_energies(
 /// with saturation. Single approximation point of the integer lane: every
 /// subsequent integer op is exact, so mapped values compare with small
 /// tolerances while pure-integer state must match exactly.
-pub fn map_spectrum_to_q31(spectrum: &[f64], mdct_scale: i32) -> Vec<i32> {
+pub fn map_spectrum_to_q31_into(spectrum: &[f64], mdct_scale: i32, out: &mut Vec<i32>) {
     let factor = 2f64.powi(31 - mdct_scale);
-    spectrum
-        .iter()
-        .map(|&v| (v * factor).round().clamp(i32::MIN as f64, i32::MAX as f64) as i32)
-        .collect()
+    out.clear();
+    out.reserve(spectrum.len());
+    out.extend(
+        spectrum
+            .iter()
+            .map(|&v| (v * factor).round().clamp(i32::MIN as f64, i32::MAX as f64) as i32),
+    );
+}
+
+pub fn map_spectrum_to_q31(spectrum: &[f64], mdct_scale: i32) -> Vec<i32> {
+    let mut out = Vec::new();
+    map_spectrum_to_q31_into(spectrum, mdct_scale, &mut out);
+    out
 }
 
 /// Q31-fraction log2: `log2(E/2^31)/64`, the float equivalent of C's
@@ -405,20 +479,24 @@ pub fn stored_ld(energies: &[i32]) -> Vec<f64> {
 /// from the RAW (pre-shift) energies with the `!= -1.0` guard on the
 /// scale correction, then the UNCONDITIONAL ldShift (it also lifts the
 /// sentinel: silent bands read `-1.0 + final*2/64`, verified on sine f5).
+pub fn rescale_ld_into(e_raw: &[i32], maxscale: &[i32], final_shift: i32, out: &mut Vec<f64>) {
+    out.clear();
+    out.reserve(e_raw.len());
+    for (&e, &ms) in e_raw.iter().zip(maxscale.iter()) {
+        let mut ld = if e <= 0 {
+            -1.0
+        } else {
+            log2frac(e) - (ms - 4).max(0) as f64 * 2.0 / 64.0
+        };
+        ld += final_shift as f64 * 2.0 / 64.0;
+        out.push(ld);
+    }
+}
+
 pub fn rescale_ld(e_raw: &[i32], maxscale: &[i32], final_shift: i32) -> Vec<f64> {
-    e_raw
-        .iter()
-        .zip(maxscale.iter())
-        .map(|(&e, &ms)| {
-            let mut ld = if e <= 0 {
-                -1.0
-            } else {
-                log2frac(e) - (ms - 4).max(0) as f64 * 2.0 / 64.0
-            };
-            ld += final_shift as f64 * 2.0 / 64.0;
-            ld
-        })
-        .collect()
+    let mut out = Vec::new();
+    rescale_ld_into(e_raw, maxscale, final_shift, &mut out);
+    out
 }
 
 /// TNS-long-recompute Ld (`CalcBandEnergyOptimLong`, `band_nrg.cpp:224-253`):

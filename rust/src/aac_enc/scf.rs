@@ -252,7 +252,9 @@ pub struct ScfChannelOutput {
     pub sfb_dist: Vec<i32>,
 }
 
-/// `calcSfbRelevantLines` (`sf_estim.cpp:183-224`).
+/// `calcSfbRelevantLines` (`sf_estim.cpp:183-224`). Writes into the
+/// caller-owned `out` (M5.19: resized and zero-filled to the exact
+/// former `vec![0i32; cnt]` initial state before the conditional writes).
 pub fn calc_sfb_relevant_lines(
     form_factor_ld: &[i32],
     energy_ld: &[i32],
@@ -261,8 +263,10 @@ pub fn calc_sfb_relevant_lines(
     cnt: usize,
     per: usize,
     max: usize,
-) -> Vec<i32> {
-    let mut out = vec![0i32; cnt];
+    out: &mut Vec<i32>,
+) {
+    out.resize(cnt, 0);
+    out.fill(0);
     let mut offs = 0;
     while offs < cnt {
         for sfb in 0..max {
@@ -277,7 +281,6 @@ pub fn calc_sfb_relevant_lines(
         }
         offs += per;
     }
-    out
 }
 
 /// `countSingleScfBits` (`:233-243`).
@@ -476,6 +479,9 @@ fn improve_scf(
 }
 
 /// `assimilateSingleScf` (`:458-623`) with `restartOnSuccess = 1`.
+/// `prev_last`/`prev_next`/`last_delta` are caller-owned scratch (M5.19),
+/// initialized to `i32::MAX` exactly like the former per-call
+/// `vec![i32::MAX; cnt]` allocations.
 #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
 fn assimilate_single_scf(
     offsets: &[i32],
@@ -492,10 +498,13 @@ fn assimilate_single_scf(
     dist: &mut [i32],
     const_pe_part: &mut [i32],
     min_scf_calc: &mut [i32],
+    prev_last: &mut [i32],
+    prev_next: &mut [i32],
+    last_delta: &mut [i32],
 ) {
-    let mut prev_last = vec![i32::MAX; cnt];
-    let mut prev_next = vec![i32::MAX; cnt];
-    let mut last_delta = vec![i32::MAX; cnt];
+    prev_last[..cnt].fill(i32::MAX);
+    prev_next[..cnt].fill(i32::MAX);
+    last_delta[..cnt].fill(i32::MAX);
     let mut sfb_last: i32 = -1;
     let mut sfb_act: i32 = -1;
     let mut sfb_next: i32 = -1;
@@ -565,13 +574,24 @@ fn assimilate_single_scf(
                         .wrapping_add(count_single_scf_bits(cur, l, n));
                     let tmp_delta = delta_pe.wrapping_add(pe_new).wrapping_sub(pe_old);
                     if tmp_delta < PE_GATE {
-                        let mut t = vec![0i16; width];
-                        let dnew = calc_sfb_dist(&spectrum[offs..offs + width], cur, dz, &mut t);
+                        // M5.17: trial quantized lines go directly into the
+                        // channel scratch band slice (C: `quantSpecTmp +
+                        // sfbOffs`, `sf_estim.cpp:575-587`). The zero fill
+                        // reproduces the former fresh-`vec![0i16; width]`
+                        // contents exactly, including the tail beyond a
+                        // `MAX_QUANT` early-out line (`calc_sfb_dist`
+                        // returns after a prefix write); `tmp` never holds
+                        // best-so-far state, so a reused slice is safe once
+                        // re-zeroed. Acceptance still copies the band into
+                        // `quant` (best-so-far); the former `tmp <- t` copy
+                        // became an identity self-copy and is dropped.
+                        let t = &mut tmp[offs..offs + width];
+                        t.fill(0);
+                        let dnew = calc_sfb_dist(&spectrum[offs..offs + width], cur, dz, t);
                         if dnew < dist[a] {
                             scf[a] = cur;
                             dist[a] = dnew;
-                            quant[offs..offs + width].copy_from_slice(&t);
-                            tmp[offs..offs + width].copy_from_slice(&t);
+                            quant[offs..offs + width].copy_from_slice(t);
                             delta_new = tmp_delta;
                             success = true;
                         }
@@ -699,10 +719,18 @@ fn assimilate_multiple_scf(
                             old_sum = old_sum.wrapping_add(calc_inv_ld_data(dist[b]) >> DIST_SHIFT);
                             let w = (offsets[b + 1] - offsets[b]) as usize;
                             let o = offsets[b] as usize;
-                            let mut t = vec![0i16; w];
-                            let dn = calc_sfb_dist(&spectrum[o..o + w], act, dz, &mut t);
+                            // M5.17: trial writes directly into the channel
+                            // scratch band slice (C: `quantSpecTmp + sfbOffs`,
+                            // `sf_estim.cpp:717`); the zero fill keeps the
+                            // former fresh-`vec!` contents, including any
+                            // `MAX_QUANT` early-out tail. The unconditional
+                            // write happens at the same loop position as the
+                            // former `tmp <- t` copy; acceptance below reads
+                            // `tmp` per band, unchanged.
+                            let t = &mut tmp[o..o + w];
+                            t.fill(0);
+                            let dn = calc_sfb_dist(&spectrum[o..o + w], act, dz, t);
                             new_d[b] = dn;
-                            tmp[o..o + w].copy_from_slice(&t);
                             if dn > threshold_ld[b] {
                                 new_sum = old_sum.wrapping_shl(1);
                                 broke = true;
@@ -852,9 +880,16 @@ fn assimilate_multiple_scf2(
                                 if trial[b] != NO_SCF {
                                     let w = (offsets[b + 1] - offsets[b]) as usize;
                                     let o = offsets[b] as usize;
-                                    let mut t = vec![0i16; w];
-                                    let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, &mut t);
-                                    tmp[o..o + w].copy_from_slice(&t);
+                                    // M5.17: trial writes directly into the
+                                    // channel scratch band slice (C:
+                                    // `quantSpecTmp + sfbOffs`,
+                                    // `sf_estim.cpp:877`); zero fill keeps
+                                    // the former fresh-`vec!` contents
+                                    // (incl. early-out tails). Acceptance
+                                    // below reads `tmp` per band, unchanged.
+                                    let t = &mut tmp[o..o + w];
+                                    t.fill(0);
+                                    let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
                                     new_d[b] = dn;
                                     if dn > dmax[b] {
                                         ok = false;
@@ -935,10 +970,17 @@ fn assimilate_multiple_scf2(
                                     old_sum.wrapping_add(calc_inv_ld_data(dist[b]) >> DIST_SHIFT);
                                 let w = (offsets[b + 1] - offsets[b]) as usize;
                                 let o = offsets[b] as usize;
-                                let mut t = vec![0i16; w];
-                                let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, &mut t);
+                                // M5.17: trial writes directly into the
+                                // channel scratch band slice (C:
+                                // `quantSpecTmp + sfbOffs`,
+                                // `sf_estim.cpp:954`); zero fill keeps the
+                                // former fresh-`vec!` contents (incl.
+                                // early-out tails). Acceptance below reads
+                                // `tmp` per band, unchanged.
+                                let t = &mut tmp[o..o + w];
+                                t.fill(0);
+                                let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
                                 new_d[b] = dn;
-                                tmp[o..o + w].copy_from_slice(&t);
                                 if dn > threshold_ld[b] {
                                     new_sum = old_sum.wrapping_shl(1);
                                     broke = true;
@@ -1033,36 +1075,106 @@ fn assimilate_multiple_scf2(
 // Step-1 candidate-dist side table removed: candidates now live in a
 // per-`nw` stack array (`new_d`), no shared state.
 
+/// Reusable S4 scratch buffers (M5.19).
+///
+/// Owned by the encoder across frames and passed to
+/// [`estimate_scale_factors_channel_reuse`]; one instance serves both
+/// channels of a frame because every field is fully re-initialized from
+/// the call's inputs before use — at exactly the points where the
+/// previous per-call allocations were initialized (`resize` + `fill`
+/// with the same initial values, `clear` + `extend_from_slice` for the
+/// read-only geometry/energy copies). No field is read before that
+/// reset, so no information crosses calls and per-channel isolation is
+/// preserved. Plain owned buffers: no unsafe, no globals, no caches.
+#[derive(Default)]
+pub struct ScfWorkspace {
+    offsets: Vec<i32>,
+    energy_ld: Vec<i32>,
+    threshold_ld: Vec<i32>,
+    form_factor: Vec<i32>,
+    tmp: Vec<i16>,
+    min_scf_calc: Vec<i32>,
+    min_max_quant: Vec<i32>,
+    const_pe: Vec<i32>,
+    n_rel: Vec<i32>,
+    prev_last: Vec<i32>,
+    prev_next: Vec<i32>,
+    last_delta: Vec<i32>,
+}
+
 /// Channel orchestrator `EstimateScaleFactorsChannel` (`:1046-1277`)
 /// with `inv_quant = 2`, `dZoneQuantEnable = false` only.
+///
+/// Convenience form that allocates a fresh [`ScfWorkspace`] per call;
+/// hot-path callers should use [`estimate_scale_factors_channel_reuse`].
 pub fn estimate_scale_factors_channel(input: &mut ScfChannelInput<'_>) -> ScfChannelOutput {
-    estimate_channel_with_inv(input, 2)
+    let mut ws = ScfWorkspace::default();
+    estimate_channel_with_inv_ws(input, 2, &mut ws)
+}
+
+/// [`estimate_scale_factors_channel`] with caller-owned scratch reuse
+/// (M5.19): identical arithmetic and initialization semantics; the
+/// workspace only removes the per-call heap allocations. The returned
+/// output vectors are still freshly owned by the caller.
+pub fn estimate_scale_factors_channel_reuse(
+    input: &mut ScfChannelInput<'_>,
+    ws: &mut ScfWorkspace,
+) -> ScfChannelOutput {
+    estimate_channel_with_inv_ws(input, 2, ws)
 }
 
 /// Test-only entry covering the oracle's `inv = 0/1` checkpoints with the
 /// same code path: `0` stops after the initial formula (+ clamp/inversion),
 /// `1` adds `improveScf` + single assimilation, `2` is the full afterburner.
-/// Production callers use [`estimate_scale_factors_channel`] (`inv = 2`).
+/// Production callers use [`estimate_scale_factors_channel_reuse`] (`inv = 2`).
 pub(crate) fn estimate_channel_with_inv(
     input: &mut ScfChannelInput<'_>,
     inv_quant: i32,
+) -> ScfChannelOutput {
+    let mut ws = ScfWorkspace::default();
+    estimate_channel_with_inv_ws(input, inv_quant, &mut ws)
+}
+
+fn estimate_channel_with_inv_ws(
+    input: &mut ScfChannelInput<'_>,
+    inv_quant: i32,
+    ws: &mut ScfWorkspace,
 ) -> ScfChannelOutput {
     assert!((0..=2).contains(&inv_quant), "invQuant envelope");
     assert_eq!(input.spectrum.len(), 1024);
     let cnt = input.geo.sfb_cnt;
     let per = input.geo.sfb_per_group;
     let max = input.geo.max_sfb_per_group;
-    let offsets = input.geo.offsets.to_vec();
-    let energy_ld = input.energy_ld.to_vec();
-    let threshold_ld = input.threshold_ld.to_vec();
-    let form_factor = input.form_factor_ld.to_vec();
+    // M5.19: workspace buffers replace the former per-call `to_vec()` /
+    // `vec![...]` allocations. `clear` + `extend_from_slice` fully
+    // overwrites the read-only copies; `resize` + `fill` restores the
+    // exact initial contents (`0` / `NO_SCF`) of the former fresh
+    // allocations before any read.
+    ws.offsets.clear();
+    ws.offsets.extend_from_slice(input.geo.offsets);
+    ws.energy_ld.clear();
+    ws.energy_ld.extend_from_slice(input.energy_ld);
+    ws.threshold_ld.clear();
+    ws.threshold_ld.extend_from_slice(input.threshold_ld);
+    ws.form_factor.clear();
+    ws.form_factor.extend_from_slice(input.form_factor_ld);
+    let offsets = &ws.offsets[..];
+    let energy_ld = &ws.energy_ld[..];
+    let threshold_ld = &ws.threshold_ld[..];
+    let form_factor = &ws.form_factor[..];
     let mut spec = input.spectrum.to_vec();
     let mut quant = vec![0i16; 1024];
-    let mut tmp = vec![0i16; 1024];
+    ws.tmp.resize(1024, 0);
+    ws.tmp.fill(0);
+    let tmp = &mut ws.tmp[..];
     let mut scf = vec![NO_SCF; cnt];
     let mut dist = vec![0i32; cnt];
-    let mut min_scf_calc = vec![NO_SCF; cnt];
-    let mut min_max_quant = vec![NO_SCF; cnt];
+    ws.min_scf_calc.resize(cnt, NO_SCF);
+    ws.min_scf_calc.fill(NO_SCF);
+    ws.min_max_quant.resize(cnt, NO_SCF);
+    ws.min_max_quant.fill(NO_SCF);
+    let min_scf_calc = &mut ws.min_scf_calc[..];
+    let min_max_quant = &mut ws.min_max_quant[..];
     // Initial formula.
     let mut offs = 0;
     while offs < cnt {
@@ -1097,15 +1209,16 @@ pub(crate) fn estimate_channel_with_inv(
                 min_max_quant[s] = floor;
                 s_int = s_int.max(floor);
                 if inv_quant > 0 {
-                    let w = end - start;
-                    let mut q = vec![0i16; w];
-                    let mut t = vec![0i16; w];
+                    // Trial directly in the destination band slices (was:
+                    // per-band `q`/`t` temps + copy-back). `improve_scf`
+                    // fully overwrites both slices via `calc_sfb_dist`, so
+                    // no temporary is needed and results are identical.
                     let mut d = 0i32;
                     let mut m = 0i32;
                     let best = improve_scf(
                         &spec[start..end],
-                        &mut q,
-                        &mut t,
+                        &mut quant[start..end],
+                        &mut tmp[start..end],
                         th,
                         s_int,
                         floor,
@@ -1113,10 +1226,6 @@ pub(crate) fn estimate_channel_with_inv(
                         &mut m,
                         false,
                     );
-                    quant[start..end].copy_from_slice(&q);
-                    for (k, &v) in t.iter().enumerate() {
-                        tmp[start + k] = v;
-                    }
                     dist[s] = d;
                     min_scf_calc[s] = m;
                     scf[s] = best;
@@ -1128,73 +1237,88 @@ pub(crate) fn estimate_channel_with_inv(
         offs += per;
     }
     // Afterburner (`invQuant > 0` gates single, `> 1` gates multiple).
-    let mut const_pe = vec![NO_SCF; cnt];
+    ws.const_pe.resize(cnt, NO_SCF);
+    ws.const_pe.fill(NO_SCF);
+    let const_pe = &mut ws.const_pe[..];
     let n_rel = if inv_quant > 0 {
         calc_sfb_relevant_lines(
-            &form_factor,
-            &energy_ld,
-            &threshold_ld,
-            &offsets,
+            form_factor,
+            energy_ld,
+            threshold_ld,
+            offsets,
             cnt,
             per,
             max,
-        )
+            &mut ws.n_rel,
+        );
+        &ws.n_rel[..]
     } else {
-        vec![0i32; cnt]
+        ws.n_rel.resize(cnt, 0);
+        ws.n_rel.fill(0);
+        &ws.n_rel[..]
     };
     if inv_quant > 0 {
+        // M5.19: size the neighbour scratch exactly like the former
+        // per-call `vec![i32::MAX; cnt]` allocations; the callee re-fills
+        // `[..cnt]` at entry, so prior contents never leak across calls.
+        ws.prev_last.resize(cnt, i32::MAX);
+        ws.prev_next.resize(cnt, i32::MAX);
+        ws.last_delta.resize(cnt, i32::MAX);
         assimilate_single_scf(
-            &offsets,
+            offsets,
             cnt,
             &spec,
-            &energy_ld,
-            &form_factor,
-            &n_rel,
+            energy_ld,
+            form_factor,
+            n_rel,
             &mut quant,
-            &mut tmp,
+            tmp,
             false,
             &mut scf,
-            &min_max_quant,
+            min_max_quant,
             &mut dist,
-            &mut const_pe,
-            &mut min_scf_calc,
+            const_pe,
+            min_scf_calc,
+            &mut ws.prev_last,
+            &mut ws.prev_next,
+            &mut ws.last_delta,
         );
     }
     if inv_quant > 1 {
         let mut delta2 = 0i32;
         assimilate_multiple_scf(
-            &offsets,
+            offsets,
             cnt,
             &spec,
-            &energy_ld,
-            &threshold_ld,
-            &form_factor,
-            &n_rel,
+            energy_ld,
+            threshold_ld,
+            form_factor,
+            n_rel,
             &mut quant,
-            &mut tmp,
+            tmp,
             false,
             &mut scf,
-            &min_max_quant,
+            min_max_quant,
             &mut dist,
-            &mut const_pe,
+            const_pe,
             &mut delta2,
         );
         let mut delta3 = 0i32;
         assimilate_multiple_scf2(
-            &offsets,
+            offsets,
             cnt,
             &spec,
-            &threshold_ld,
-            &energy_ld,
-            &form_factor,
-            &n_rel,
+            threshold_ld,
+            energy_ld,
+            form_factor,
+            n_rel,
             &mut quant,
-            &mut tmp,
+            tmp,
             false,
             &mut scf,
-            &min_max_quant,
+            min_max_quant,
             &mut dist,
-            &mut const_pe,
+            const_pe,
             &mut delta3,
         );
     }
@@ -1220,9 +1344,14 @@ pub(crate) fn estimate_channel_with_inv(
                 if inv_quant > 0 {
                     let start = offsets[o2 + b] as usize;
                     let end = offsets[o2 + b + 1] as usize;
-                    let mut q = vec![0i16; end - start];
-                    dist[s] = calc_sfb_dist(&spec[start..end], scf[s], false, &mut q);
-                    quant[start..end].copy_from_slice(&q);
+                    // M5.19: `tmp` is dead after the assimilation passes;
+                    // reuse its band slice as the clamp-trial buffer. The
+                    // zero fill preserves the former fresh-`vec!` contents
+                    // exactly (incl. `MAX_QUANT` early-out tails).
+                    let q = &mut tmp[start..end];
+                    q.fill(0);
+                    dist[s] = calc_sfb_dist(&spec[start..end], scf[s], false, q);
+                    quant[start..end].copy_from_slice(q);
                 }
             }
         }
@@ -1565,7 +1694,8 @@ mod tests {
         let ff_rl = [-337460364, -318525798, 0, 100000000];
         let en_rl = [-693314277, -734730193, 0, -100000000];
         let th_rl = [-704116391, -700000000, 0, -200000000];
-        let got_rl = calc_sfb_relevant_lines(&ff_rl, &en_rl, &th_rl, &off4, 4, 4, 4);
+        let mut got_rl = Vec::new();
+        calc_sfb_relevant_lines(&ff_rl, &en_rl, &th_rl, &off4, 4, 4, 4, &mut got_rl);
         let mut exp_rl = Vec::new();
         let mut nrel4 = [0i32; 4];
         let mut scf_sn = [0i32; 4];
@@ -1613,6 +1743,9 @@ mod tests {
             let mut qs = vec![0i16; 1024];
             let mut qt = vec![0i16; 1024];
             let nrel_v = nrel4.to_vec();
+            let mut pl4 = vec![i32::MAX; 4];
+            let mut pn4 = vec![i32::MAX; 4];
+            let mut ld4 = vec![i32::MAX; 4];
             assimilate_single_scf(
                 &off4,
                 4,
@@ -1628,6 +1761,9 @@ mod tests {
                 &mut dist,
                 &mut cpe,
                 &mut min_calc,
+                &mut pl4,
+                &mut pn4,
+                &mut ld4,
             );
             assert_eq!(scf, scf_sn, "single scf");
             assert_eq!(dist, dist_sn, "single dist");
@@ -1681,7 +1817,8 @@ mod tests {
                 -997806997,
                 -1050985593,
             ];
-            let nrel = calc_sfb_relevant_lines(&ff6, &en6, &th6, &off6, 6, 6, 6);
+            let mut nrel = Vec::new();
+            calc_sfb_relevant_lines(&ff6, &en6, &th6, &off6, 6, 6, 6, &mut nrel);
             assert_eq!(nrel, nrel6.to_vec(), "6-band nrel");
             // Isolated 6-band single final scf (edge-tracking regression:
             // first/last neighbours track `cur`, not the visit-start value).
@@ -1710,6 +1847,9 @@ mod tests {
                     }
                 }
                 let nrel_v = nrel.clone();
+                let mut pl6 = vec![i32::MAX; 6];
+                let mut pn6 = vec![i32::MAX; 6];
+                let mut ld6 = vec![i32::MAX; 6];
                 assimilate_single_scf(
                     &off6,
                     6,
@@ -1725,6 +1865,9 @@ mod tests {
                     &mut dist,
                     &mut cpe,
                     &mut min_calc,
+                    &mut pl6,
+                    &mut pn6,
+                    &mut ld6,
                 );
                 assert_eq!(scf, scf6, "6-band single scf");
             }
@@ -1833,7 +1976,8 @@ mod tests {
                     let t: Vec<&str> = line.split_whitespace().collect();
                     let v: i32 = t[1].split('=').nth(1).expect("v").parse().expect("int");
                     let off1 = [912, 916];
-                    let got = calc_sfb_relevant_lines(
+                    let mut got = Vec::new();
+                    calc_sfb_relevant_lines(
                         &[-337460364],
                         &[-693314277],
                         &[-704116391],
@@ -1841,6 +1985,7 @@ mod tests {
                         1,
                         1,
                         1,
+                        &mut got,
                     );
                     assert_eq!(got, vec![v], "nrel46");
                 } else if line.starts_with("QB45 ") || line.starts_with("QB46 ") {
