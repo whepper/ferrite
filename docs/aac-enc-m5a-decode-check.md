@@ -33,7 +33,7 @@ Command: `AAC_DEC_BIN=/tmp/m5a-build/aac-dec cargo test --features aac_enc m5a_ 
 |---|---|---|---|---|---|---|---|
 | mono-48k | ok, 25 frames | 25 headers, lens sum 2680 | 0 / empty, 0 / empty | 1 / 48000 / 16 | 25600 → 23856 | yes (nonzero bytes) | identical, `6a359695…b1a263e` |
 | stereo-48k | ok, 49 frames | 49 headers, lens sum 2359 | 0 / empty, 0 / empty | 2 / 48000 / 16 | 50176 → 48432 | yes | identical, `4d729444…ff1325` |
-| stereo-44.1k | ok, 45 frames | 45 headers, lens sum 2998 | 0 / empty, 0 / empty | 2 / 44100 / 16 | 46080 → 44395 | yes | identical, `aecb7b97…0ca6a52` |
+| stereo-44.1k | ok, 45 frames | 45 headers, lens sum 2998 | 0 / empty, 0 / empty | 2 / 44100 / 16 | 46080 → 44395 | yes | identical, `aecb7b97…6fc8fdd` |
 | mono-44.1k | blocked (see §2) | — | — | — | — | — | — |
 
 Decoded WAV sizes: 47756 / 193772 / 177624 B. All WAVs: `RIFF/WAVE/fmt /data`, `data_len == file_len − 44`, data length frame-aligned (`% (2·ch) == 0`), channel count and sample rate match the encode configuration. i16 PCM has no non-finite representation; not applicable. No decoder warnings, truncation, or structural anomalies in any executed case.
