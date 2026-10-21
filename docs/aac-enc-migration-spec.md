@@ -5,6 +5,8 @@ actual repository plus four focused source audits (pipeline/API, psychoacoustics
 quant/rate-control/bitstream, Rust reuse). Verified facts cite `path:line`;
 hypotheses are marked **(H)**.
 
+> **MSRV policy note (2026-10-21):** This Phase-0 specification records the repository state at 2026-10-14, when the manifests declared MSRV 1.81.0. The current minimum supported Rust version is **1.99.1**; references to 1.81 below are historical evidence, not current compatibility requirements.
+
 ## 0. Repository facts
 
 - `whepper/fdk-aac` fork of FDK AAC v3.0.0, stripped on `main` in three commits:

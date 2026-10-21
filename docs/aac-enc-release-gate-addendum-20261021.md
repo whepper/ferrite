@@ -3,8 +3,9 @@
 **Status:** Current-state addendum. This document does not rewrite the historical M6.5 report. It records the verified state at the commit below and supersedes no historical evidence.
 
 - Audit date: 2026-10-21
-- HEAD: `21bccf3baf19b64d49dc6f133d4c935ad2e50516`
-- Branch: `main`, three commits ahead of `origin/main`, zero behind
+- Audit HEAD: `21bccf3baf19b64d49dc6f133d4c935ad2e50516`
+- Audit branch state: `main`, three commits ahead of `origin/main`, zero behind at the audit
+- MSRV policy amendment: after this audit, the workspace minimum was raised to Rust 1.99.1; see §7
 - Scope: native Rust AAC-LC VBR-5 encoder, current stable Rust delivery, ADTS correctness, and release-scope documentation
 - No encoder, decoder, test, fixture, oracle, manifest, or existing documentation change was made during the audit
 
@@ -12,7 +13,7 @@
 
 **ADTS audit: `PASS WITH FINDINGS`.** No ADTS framing, syntax, configuration, or decode defect was reproduced. The encoder's ADTS streams are structurally valid, decode successfully, and differ from the C reference where the payload or its resulting frame length differs.
 
-**Encoder-only release on Rust 1.99.1: `PASS WITH FINDINGS`.** The current-stable build and test matrix is green. Release remains conditional on explicitly recording the M8 provisional-corpus finding, not claiming verified Rust 1.81 support, and correcting the unsupported `544/558` claim.
+**Encoder-only release on Rust 1.99.1: `PASS WITH FINDINGS`.** The current-stable build and test matrix is green. Release remains conditional on explicitly recording the M8 provisional-corpus finding and correcting the unsupported `544/558` claim.
 
 **Broader 19-fixture corpus: NOT APPROVED.** M8 remains `PROVISIONAL`; the qualification evidence and owner acceptance are unresolved.
 
@@ -157,12 +158,11 @@ M8 is test/research-only: production encoder builds do not read the WAV. The cur
 
 ## 7. Rust target and MSRV scope
 
+- **Minimum supported Rust:** 1.99.1, declared by `rust-version` in the workspace manifests.
 - **Tested delivery target:** Rust 1.99.1; all builds and tests above were executed with that exact toolchain.
-- **Earlier evidence, not re-run here:** Rust 1.99.0 and 1.85.1.
-- **Declared MSRV:** `rust-version = "1.81.0"`.
-- **Rust 1.81 status:** unverified; no 1.81 toolchain is installed.
+- **Historical note:** the previous manifests declared `rust-version = "1.81.0"`. Rust 1.81 was not tested and is no longer a supported target; it is not an outstanding release requirement.
 
-A current-stable Rust release may proceed with the explicit statement that 1.99.1 is verified and 1.81 is unverified. It must not claim Rust 1.81 compatibility without a separate 1.81 build/test.
+Rust 1.81 is not a supported target and must not be claimed as verified. Only Rust 1.99.1 is currently declared and tested for this release.
 
 ## 8. Outstanding findings and closure evidence
 
@@ -170,7 +170,6 @@ A current-stable Rust release may proceed with the explicit statement that 1.99.
 |---|---|---|
 | `544/558` unsupported | No functional block; release-documentation block | Identify the original metric/source and reproduce it, or remove the figure and use 558/558 core fields, 399/558 headers, 286/558 complete frames |
 | M8 provisional | No production block; blocks broader corpus approval | Recover or replace the qualification report, complete independent package review, identify approver, record written acceptance |
-| Rust 1.81 unverified | No, for a current-stable target; yes if 1.81 is claimed | Separate 1.81 build and test run, or revise the MSRV claim |
 | 11 GSPEC-only vector differences | No | Keep vectors frozen; use `--cfg-only` for config regeneration, or document a future determinism fix |
 | Isolated clean-checkout build not rerun | No current build failure | Run a clean `git archive` checkout build if the release process requires it |
 | Non-fatal warnings | No | Optional cleanup; no compatibility impact |
@@ -181,7 +180,7 @@ No encoder code change is recommended solely to increase byte parity with C. The
 
 For an encoder-only release targeting current stable Rust:
 
-> **PASS WITH FINDINGS.** The native Rust AAC-LC VBR-5 encoder builds and tests successfully on Rust 1.99.1, produces structurally valid and decodable ADTS streams, preserves established hashes and census invariants, and has a freshly passing D-083 regression. The release must carry the M8 provisional-corpus finding, must not claim verified Rust 1.81 support, and must not repeat the unsupported 544/558 complete-frame claim.
+> **PASS WITH FINDINGS.** The native Rust AAC-LC VBR-5 encoder builds and tests successfully on Rust 1.99.1, produces structurally valid and decodable ADTS streams, preserves established hashes and census invariants, and has a freshly passing D-083 regression. The release must carry the M8 provisional-corpus finding and must not repeat the unsupported 544/558 complete-frame claim. The minimum supported Rust version is 1.99.1.
 
 This addendum does not approve the broader 19-fixture corpus.
 
@@ -208,3 +207,4 @@ At audit completion:
 - M8 provenance remains `PROVISIONAL` with SHA-256 `a24e0786…d131cd`.
 - No commit, amend, rebase, reset, stash, clean, or push was performed.
 - All audit builds, tests, decode outputs, and temporary scripts are outside the repository.
+- The MSRV policy amendment was made after this audit; it does not change the ADTS, M8, or test evidence recorded above.

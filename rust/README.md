@@ -26,9 +26,9 @@ You can run unit tests using the command: `cargo test`.
 
 * Install Cargo:
   * `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-* Use version 1.81.0:
-  * `rustup install 1.81.0`
-  * `rustup default 1.81.0`
+* Minimum supported Rust version: 1.99.1
+  * `rustup install 1.99.1`
+  * `rustup default 1.99.1`
 
 ### How to Build the Full Decoder in Rust
 
