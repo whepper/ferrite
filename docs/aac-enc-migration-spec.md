@@ -239,7 +239,13 @@ distributions, SNR/SDR floors), never byte-identity, with rationale per metric.
 - Proposed corpus (all 16-bit WAV, hashed, in-repo): silence mono/stereo,
   impulse, 1 kHz + sweep tones, transient clicks, short (<1 frame) + long files,
   representative music excerpts; metrics per file: decodability (C + Rust + FFmpeg),
-  avg bitrate, frame-size histogram, SNR/SDR vs PCM (delay-compensated, nDelay=1600),
+  avg bitrate, frame-size histogram, SNR/SDR vs PCM (delay-compensated using the
+  measured common lag; encoder nominal delay 1600 samples; decoder CLI front
+  trim info->outputDelay measured as 1744 samples for the tested 48 kHz path;
+  end-to-end alignment measured at 1600 samples for the four named synthetic
+  48 kHz fixtures (m2-onset-stereo-48k, m2-click-mono-48k,
+  m2-impulse-mono-48k, m2-edge-mono-48k), not yet established for every corpus
+  stream; 44.1 kHz alignment still unmeasured and separately gated),
   encode MB/s + peak RSS, all with tool versions + input hashes recorded.
 
 ## 7. Migration plan (dependency-ordered, with exit criteria)
