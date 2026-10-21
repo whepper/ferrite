@@ -141,7 +141,7 @@ All commands from `rust/` unless noted.
 - **ADTS hashes:** `a9d7b395…` (click-mono), `702c8717…` (onset-stereo), `aa906b52…` (sine-441k), `c3b8b5fd…` (onset-mono-441k).
 - **Decoded WAV hashes:** `6a359695…`, `4d729444…`, `aecb7b97…`, `b8b33083…`; decoder exit 0 with empty stderr on all four.
 - **M5.b metrics:** `/tmp/m63-metrics.json` is identical to the recorded baseline for the three historical cases; only the additive M5.e key is new.
-- **Census:** 19 streams, **2,442 rows**, `max iter = 0`, minimum `avail − sum = 984` bits, `tot_fill` max 7 bits, 287 nonzero-fill frames, zero crash, zero `npass > 1`. Per-stream fill distribution matches the M5.g table (the historical §5 sentence "231 frames" remains inconsistent with its own table, which sums to 287; documentation-only, unchanged).
+- **Census:** 19 streams, **2,442 rows**, `max iter = 0`, minimum `avail − sum = 984` bits, `tot_fill` max 7 bits, 287 nonzero-fill frames, zero crash, zero `npass > 1`. Per-stream fill distribution matches the M5.g table. At M6.3 authoring time, M5.g §5 still said "231 frames" while its table summed to 287; the later authorized C5 documentation commit aligned M5.g/M5.i/M5.j to **287** nonzero-fill frames, all with `tot_fill == 7`. No validation result changed.
 - **Migration equality:** all 20 established streams byte-identical through the public API.
 
 ## 7. External prerequisites and reproducibility (Scope D)

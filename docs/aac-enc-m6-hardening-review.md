@@ -158,7 +158,7 @@ Result: **19/19 phase1 tests pass** with the regenerated scratch data. They are 
 - **Empty-input stream (separate check):** 2 ADTS frames / 26 bytes, `aac-dec` exit 0 with empty stderr, mono 48 kHz WAV with 304 samples (`2×1024 − 1744` decoder trim), all-zero content, decode deterministic across two runs.
 - **M5.b baseline:** `/tmp/m62-metrics.json` equals the recorded baseline for all three historical cases (`click-mono`, `onset-stereo`, `sine-stereo-44100`); only the additive M5.e key `onset-mono-44100` is new.
 - **Census/margins:** 19 streams, 2442 rows, `max iter = 0`, minimum `avail − sum = 984` bits, fill max 7 bits, zero crash, zero `npass > 1`, `is_book`/`noise` false everywhere. Every per-stream `tot_fill (sum/max/nonzero)` matches the M5.g table exactly.
-- **Documentation discrepancy (not a code change):** M5.g §5 says "231 frames carry nonzero `tot_fill`", but its own per-stream table sums to **287**, and the re-run artifact reproduces 287. The historical report was not edited; this is a documentation-only inconsistency.
+- **Documentation discrepancy (not a code change):** when this review was authored, M5.g §5 said "231 frames carry nonzero `tot_fill`", while its own per-stream table summed to **287** and the review's re-run artifact reproduced 287. The later authorized C5 documentation commit corrected M5.g/M5.i/M5.j to **287**; this finding records the pre-correction state. No code behavior changed.
 
 ## 9. Remaining gaps and risks
 

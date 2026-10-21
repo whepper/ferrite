@@ -4,7 +4,7 @@ Repository integration and validation milestone. No encoder, psychoacoustic, bit
 
 **Verdict: `PASS WITH FINDINGS`**
 
-The technical release gate passes: builds, packaging, API/migration tests, regression suites, oracle regeneration, and every compatibility baseline reproduce exactly. Two repository-level actions remain outside this milestone's allowed operations: **the M6 source line and seven assets are still untracked**, and **the m8 corpus approval contradiction is unresolved by authoritative evidence**.
+The technical release gate passes: builds, packaging, API/migration tests, regression suites, oracle regeneration, and every compatibility baseline reproduce exactly. At M6.5 authoring time, two repository-level actions remained outside that milestone's allowed operations: **the M6 source line and seven assets were still untracked**, and **the m8 corpus approval contradiction was unresolved by authoritative evidence**. The subsequent C1–C8 consolidation tracked the source and assets; m8 remains provisional. This report records the M6.5 snapshot, and no post-consolidation clean-checkout build has been rerun.
 
 ## 1. Initial state
 
@@ -16,7 +16,7 @@ The technical release gate passes: builds, packaging, API/migration tests, regre
 | Staged | empty |
 | Tracked diff | 13 files, 1667 insertions(+), 412 deletions(-) |
 
-The untracked set is broader than the seven assets: it also contains the M6 production modules (`encoder.rs`, `psy_config.rs`, `m6_migration.rs`, `stream_driver.rs`, `m5a_decode.rs`, `m5b_measure.rs`, `m5g_census.rs`, `phase1b.rs`) and all M5/M6 reports. This matters for §7: **the current Git state cannot build the encoder at all**, not merely the config snapshot.
+At M6.5 time, the untracked set was broader than the seven assets: it also contained the M6 production modules (`encoder.rs`, `psy_config.rs`, `m6_migration.rs`, `stream_driver.rs`, `m5a_decode.rs`, `m5b_measure.rs`, `m5g_census.rs`, `phase1b.rs`) and all M5/M6 reports. This mattered for §7: **that snapshot's Git state could not build the encoder at all**, not merely the config snapshot. The later C1–C8 consolidation tracked these files; this report does not claim a post-consolidation clean-checkout build.
 
 ## 2. Seven-file manifest
 
@@ -95,7 +95,7 @@ python3 tools/enc-oracle/extract_testdata.py --cfg-only "$S/oracle" "$S/cfg4" \
 | `cfg_48000_112000.txt` | `8c2ef084…` | byte-identical |
 | `cfg_48000_96000.txt` | `27d895f0…` | byte-identical |
 
-Full-extraction regression (same 15 dumps, fresh output directory): **149/160 files byte-identical**; the 11 differences are `psy_*` files whose **only** differing line is `GSPEC` (known pointer/inactive-region SPEC wobble). No committed vector was overwritten or regenerated; the artifact count and tags were re-verified (`differing-tags ['GSPEC']`). The repository `testdata/` status remained the same seven untracked assets after the runs.
+Full-extraction regression (same 15 dumps, fresh output directory): **149/160 files byte-identical**; the 11 differences are `psy_*` files whose **only** differing line is `GSPEC` (known pointer/inactive-region SPEC wobble). No committed vector was overwritten or regenerated; the artifact count and tags were re-verified (`differing-tags ['GSPEC']`). At M6.5 time, the repository `testdata/` status remained the same seven untracked assets after the runs.
 
 ## 5. Release-gate matrix
 
@@ -136,20 +136,20 @@ Failure classification: `tp_dec::pce::tests::read` is the only failure; it is th
 
 ## 7. Clean-checkout verification
 
-Method: scratch copies only; the user's worktree was not cleaned, reset, or checked out. Because the whole M6 line is uncommitted, “present Git state” and “post-integration state” are distinct.
+Method: scratch copies only; the user's worktree was not cleaned, reset, or checked out. Because the whole M6 line was uncommitted at M6.5 time, “present Git state” and “post-integration state” were distinct.
 
 | Scenario | Construction | Command | Observed |
 |---|---|---|---|
-| **A. Present Git state** | `git ls-files` export of the current worktree content (1 101 files; tracked files only) | `cargo check --features aac_enc` | **Blocked** — `error[E0583]: file not found for module encoder` and `psy_config`; exit 101. The tracked state lacks the M6 source modules. |
+| **A. Present Git state (M6.5)** | `git ls-files` export of the then-current worktree content (1 101 files; tracked files only) | `cargo check --features aac_enc` | **Blocked** — `error[E0583]: file not found for module encoder` and `psy_config`; exit 101. The tracked state at M6.5 lacked the M6 source modules. |
 | **B. Post-integration, assets supplied** | `cargo package` tarball (contains all crate files incl. 4 cfg + 4 WAVs) unpacked in scratch | `cargo check --features aac_enc`; `cargo test --no-run --features aac_enc`; `cargo test … encoder::`; `… psy_config::` | **Pass** — build OK, full test suite compiles, 11 + 2 tests pass |
 | **C. Post-integration, cfg missing** | B with `cfg_44100_112000.txt` removed | `cargo check --features aac_enc` | **Blocked** — `couldn't read … cfg_44100_112000.txt`; exit 101 |
 | **D. Post-integration, test WAV missing** | B with `m7-music-stereo-48k.wav` removed | `cargo test --no-run --features aac_enc` | **Blocked** — `couldn't read … m7-music-stereo-48k.wav`; exit 101 |
 
-**Conclusion:** clean-checkout reproducibility is **not** demonstrated for the present Git state, because neither the M6 source nor the seven assets are tracked. It **is** demonstrated for a post-integration tree containing the tracked M6 sources and the seven assets (scenario B). The production-build dependency (C) and test-asset dependency (D) were verified separately, with explicit prerequisite errors. No claim is made that a literal `git clone` of the current repository builds the encoder.
+**Conclusion:** at M6.5 time, clean-checkout reproducibility was **not** demonstrated for the then-current Git state, because neither the M6 source nor the seven assets were tracked. It **was** demonstrated for a post-integration tree containing the tracked M6 sources and the seven assets (scenario B). The production-build dependency (C) and test-asset dependency (D) were verified separately, with explicit prerequisite errors. The later C1–C8 consolidation tracked those files, but no post-consolidation clean-checkout build has been rerun; this report does not claim one.
 
 ## 8. Release blockers and next actions
 
-1. **User must authorize and create the release commit(s):** add the seven assets (§2) **and** the untracked M6 source modules/reports; otherwise scenario A remains the truth. No staging or committing was performed.
+1. **Release commits (historical):** at M6.5 time this required user authorization to add the seven assets (§2) **and** the untracked M6 source modules/reports; scenario A described that then-current state. The subsequent C1–C8 consolidation has since tracked them. No staging or committing was performed as part of M6.5, and no post-consolidation clean-checkout build is recorded here.
 2. **m8 owner decision (§3):** confirm corpus acceptance and the authoritative review artifact, or keep m8 provisional and treat it as a release finding. Licensing alone does not resolve approval.
 3. **Do not regenerate committed per-frame vectors:** full extraction is not byte-identical (11 `GSPEC`-only diffs). Use `--cfg-only` for snapshots.
 4. **D-083:** known pre-existing decoder test failure; out of scope.
