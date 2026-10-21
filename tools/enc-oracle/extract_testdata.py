@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Extract committed Rust testdata from enc_oracle dump files.
 
-Usage: extract_testdata.py <oracle-dir> <testdata-dir>
+Usage: extract_testdata.py [--cfg-only] <oracle-dir> <testdata-dir> [cfg-stem ...]
+
+`--cfg-only` skips the per-frame vectors and writes only config snapshots, from
+the built-in CFG_SOURCES plus any extra stems named on the command line (e.g.
+`onset-mono-44100` for the mono/44.1 kHz snapshot). Extra stems are additive
+and do not affect the built-in set.
 
 Writes (M2, unchanged format):
   seq_<name>.txt                  all frames: "f ch seq shape groups g0 g1 g2 g3"
@@ -16,7 +21,13 @@ Writes (M3):
 import os
 import sys
 
-ORACLE_DIR, TESTDATA_DIR = sys.argv[1], sys.argv[2]
+ARGS = [arg for arg in sys.argv[1:] if arg != "--cfg-only"]
+CFG_ONLY = "--cfg-only" in sys.argv[1:]
+if len(ARGS) < 2:
+    sys.exit("usage: extract_testdata.py [--cfg-only] <oracle-dir> "
+             "<testdata-dir> [cfg-stem ...]")
+ORACLE_DIR, TESTDATA_DIR = ARGS[0], ARGS[1]
+EXTRA_CFG_STEMS = ARGS[2:]
 
 # (oracle stem, mdct frames [(frame, ch)], ring frames [(frame, ch)],
 #  psy frames [(frame, ch)])
@@ -252,8 +263,32 @@ def short_name(stem):
                .replace("-441k", "-44100")
 
 
+def extract_configs(stems):
+    for stem in stems:
+        _, cfg = parse(os.path.join(ORACLE_DIR, stem + ".oracle.txt"))
+        rates = sorted({sr for (_, sr) in cfg if isinstance(sr, int)})
+        assert len(rates) == 1, rates
+        # per-channel bitrate from the header comment of the dump
+        head = open(os.path.join(ORACLE_DIR, stem + ".oracle.txt")).readline()
+        pch = int(head.split("chBitrate=")[1])
+        name = f"cfg_{rates[0]}_{pch}.txt"
+        with open(os.path.join(TESTDATA_DIR, name), "w") as f:
+            for kind in ("LONG", "SHORT"):
+                c = cfg[(kind, rates[0])]
+                f.write(c["head"] + "\n")
+                for tag in ("OFFSETS", "PCMQ", "MASKHI", "MASKLO", "MASKHIS",
+                            "MASKLOS", "MINSNR"):
+                    f.write(f"{tag} " + " ".join(map(str, c["extra"][tag]))
+                            + "\n")
+                f.write(cfg[(kind, "tns")] + "\n")
+        print(f"{stem}: config {name} written")
+
+
 def main():
     os.makedirs(TESTDATA_DIR, exist_ok=True)
+    if CFG_ONLY:
+        extract_configs(CFG_SOURCES + EXTRA_CFG_STEMS)
+        return
     for stem, (mdct_frames, ring_frames, psy_frames) in PLAN.items():
         frames, _ = parse(os.path.join(ORACLE_DIR, stem + ".oracle.txt"))
         name = short_name(stem)
@@ -315,24 +350,7 @@ def main():
                     for tag, vals in d["ms"]:
                         f.write(f"{tag} " + " ".join(map(str, vals)) + "\n")
         print(f"{stem}: {len(frames)} frames extracted")
-    for stem in CFG_SOURCES:
-        _, cfg = parse(os.path.join(ORACLE_DIR, stem + ".oracle.txt"))
-        rates = sorted({sr for (_, sr) in cfg if isinstance(sr, int)})
-        assert len(rates) == 1, rates
-        # per-channel bitrate from the header comment of the dump
-        head = open(os.path.join(ORACLE_DIR, stem + ".oracle.txt")).readline()
-        pch = int(head.split("chBitrate=")[1])
-        name = f"cfg_{rates[0]}_{pch}.txt"
-        with open(os.path.join(TESTDATA_DIR, name), "w") as f:
-            for kind in ("LONG", "SHORT"):
-                c = cfg[(kind, rates[0])]
-                f.write(c["head"] + "\n")
-                for tag in ("OFFSETS", "PCMQ", "MASKHI", "MASKLO", "MASKHIS",
-                            "MASKLOS", "MINSNR"):
-                    f.write(f"{tag} " + " ".join(map(str, c["extra"][tag]))
-                            + "\n")
-                f.write(cfg[(kind, "tns")] + "\n")
-        print(f"{stem}: config {name} written")
+    extract_configs(CFG_SOURCES + EXTRA_CFG_STEMS)
 
 
 main()

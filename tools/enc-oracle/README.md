@@ -134,6 +134,32 @@ c++ -std=c++11 -O2 \
 python3 tools/enc-oracle/extract_quant_tables.py "$BLD/qprobe.txt"
 ```
 
+### Config-only regeneration
+
+Config snapshots can be regenerated without rewriting any committed per-frame
+vector (`seq_`, `mdct_`, `ring_`, `psy_`, `rxx_`, `ms_`):
+
+```sh
+mkdir -p "$BLD/cfg"
+python3 tools/enc-oracle/extract_testdata.py --cfg-only "$BLD" "$BLD/cfg"
+```
+
+The built-in sources cover 48000/96000, 48000/112000, and 44100/96000. The
+mono 44.1 kHz snapshot additionally needs the M5.b input dump and an explicit
+config stem:
+
+```sh
+# Writes $TMPDIR/m5b-quality/inputs/onset-mono-44100.orig.wav
+(cd rust && cargo test --features aac_enc m5b_dump_inputs)
+"$BLD/enc_oracle" "$TMPDIR/m5b-quality/inputs/onset-mono-44100.orig.wav" \
+  "$BLD/oracle/onset-mono-44100.oracle.txt"
+python3 tools/enc-oracle/extract_testdata.py --cfg-only \
+  "$BLD/oracle" "$BLD/cfg" onset-mono-44100
+```
+
+Extra stems are additive. Expected outputs are byte-identical to the committed
+`rust/src/aac_enc/testdata/cfg_*.txt` files (M5.e/M6.4 record the hashes).
+
 ## Output format
 
 Header line `# sr=.. ch=.. frames=.. src=.. chBitrate=..`, config blocks
