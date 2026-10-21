@@ -1,0 +1,154 @@
+V3 real-music reference fixture (additive to the M5.5 licensed set)
+=====================================================================
+
+Status: PROVISIONAL. The corpus is not final, and this provenance package is not
+approved, until it has passed independent review (see CORPUS STATUS below).
+
+FIXTURE
+-------
+File          : m8-music-eroica-stereo-48k.wav
+Short name    : music-eroica-stereo  (testdata.rs::fixture_samples)
+Format        : RIFF/WAVE, PCM signed 16-bit little-endian, 48 000 Hz, 2 channels
+Frames        : 480 000 per channel (10.000000 s)
+File bytes    : 1 920 044  (44-byte canonical header + 1 920 000 bytes PCM)
+File SHA-256  : 4413c8a41fe148192081c504ecfb5d69b5c7c4fc158cefff8b0dfadf8923986b
+PCM SHA-256   : fe6e890c7c8f8c5ec3251e9f7971bd7b3e4f2ebb0fe6493fd496d21a0ed46cce
+               (over the 1 920 000-byte data chunk: what both encoders consume)
+Peak / RMS    : L -3.06 dBFS / -17.37 dBFS, R -1.21 dBFS / -17.25 dBFS
+Stereo        : true stereo (L==R in 0.0094 % of frames, L/R correlation 0.297)
+
+SOURCE
+------
+Work          : Beethoven, Symphony No. 3 in E-flat major, Op. 55 ("Eroica"),
+                I. Allegro con brio
+Performers    : Czech National Symphony Orchestra, credited as "Musopen Symphony"
+Project/date  : Musopen Kickstarter Project, 2012
+Commons page  : https://commons.wikimedia.org/wiki/File:Beethoven_-_Symphony_No._3_in_E_flat_major,_Op._55_%27Eroica%27_-_I._Allegro_con_brio_(Musopen_Symphony).flac
+Revision used : oldid=1030946903 (a PAGE revision, dated 23:43, 11 May 2025).
+                It is not a file revision: file history shows exactly one upload
+                (2024-11-11, user Kcx36) and the page states the file cannot be
+                overwritten. The bytes are pinned by the checksums below, not by
+                the permalink.
+Media URL     : https://upload.wikimedia.org/wikipedia/commons/9/99/Beethoven_-_Symphony_No._3_in_E_flat_major%2C_Op._55_%27Eroica%27_-_I._Allegro_con_brio_%28Musopen_Symphony%29.flac
+Source bytes  : 159 115 806
+Source SHA-1  : 5b09b709198ce8ae9ce15f7649abd2bf810b0063
+Source MD5    : 20ecf68e1821c207505d7c115f334beb
+Source SHA-256: 7a4b4d89c3107d2e57964879f2ff75ed2a36a88ea758f12f584ac9a35430f24a
+Native format : FLAC, 24-bit, 48 000 Hz, 2 channels, 43 754 520 samples (911.5525 s)
+Cross-check   : the Internet Archive item "MusopenCollectionAsFlac" lists this
+                exact file (same SHA-1, MD5 and byte length) as source=original,
+                with its MP3 and Ogg Vorbis copies marked source=derivative.
+                Commons API size/sha1, the archive listing and local recomputation
+                all agree.
+Licence       : Public domain. Recording: {PD-author|Musopen} -- released into
+                the public domain worldwide, usable "for any purpose, without any
+                conditions". Composition: PD-old-100-expired (d. 1827). Commons
+                API: LicenseShortName/UsageTerms = "Public domain",
+                AttributionRequired = false, License = "pd".
+                Archive item licence: CC Public Domain Mark 1.0.
+Attribution   : Not legally required. Recommended credit: "Performed by the Czech
+                National Symphony Orchestra (credited as Musopen Symphony),
+                Musopen Kickstarter Project (2012). Public domain (Musopen PD
+                release; CC PD Mark 1.0)."
+Qualification : V3-MUSIC-FIXTURE-QUALIFICATION.md (independent review: PASS)
+report SHA-256: 22010c8380266b6c7b9c43e5e0479e5e8b06bf159fabf156f85f2e50fe1c6bab
+
+EXCERPT
+-------
+Source frames : [27 552 000, 28 032 000)  (exactly 480 000 stereo frames)
+Source time   : 574.000000 s .. 584.000000 s
+Content       : continuous full-orchestra passage inside a sustained loud block;
+                no silence, fade, edit boundary or applause. Section labels are
+                inference from the measured level profile, not verified against
+                a score (see limitation 5).
+
+DETERMINISTIC CONVERSION
+------------------------
+Tool          : ffmpeg 9.0.2 (Homebrew, /opt/homebrew/Cellar/ffmpeg/9.0.2/bin/ffmpeg)
+Tool SHA-256  : ed1a276b95a6a1b3607cfefa5aad12a64c1e0616348bd695ee4f4de8a71f433f
+Command       :
+  ffmpeg -v error -nostdin -i beethoven3-i.flac \
+    -map 0:a:0 -ac 2 -ar 48000 \
+    -af "atrim=start_sample=27552000:end_sample=28032000,\
+aresample=48000:dither_method=none,asetpts=N/SR/TB" \
+    -c:a pcm_s16le -map_metadata -1 -fflags +bitexact -flags:a +bitexact \
+    m8-music-eroica-stereo-48k.wav
+Policy        : no resampling (native 48 kHz), no downmix (both channels kept),
+                24->16 bit by arithmetic right shift (v24 >> 8), NO dither,
+                no metadata chunks.
+Verified      : the WAV PCM equals v24 >> 8 computed from the decoded source for
+                every one of 960 000 samples (0 mismatches), which simultaneously
+                proves no resampling and no dither; two independent runs produced
+                byte-identical files (4413c8a41fe14819...).
+
+C REFERENCE BITSTREAM
+---------------------
+Encoder       : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/bin/aac-enc
+                MD5 850a8e6ed56641f453dc12b3c83946f5
+                SHA-256 a9933caf271f465ab02ddf2ddb78164c28a7c1d60e34791eb97f83bd6c25a003
+Engine        : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/fdk-aac-build/libfdk-aac.2.0.4.dylib
+                (loaded via the binary's absolute LC_RPATH)
+                SHA-256 fc5c6f0c2197eeea93cdb76f862ba163ab6a8b3bd215697da784047dd7ed61f4
+Command       : aac-enc m8-music-eroica-stereo-48k.wav m8-music-eroica-stereo-48k.aac
+Location      : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/m55/aac/m8-music-eroica-stereo-48k.aac
+                (outside the repository, same convention as the m7 references)
+Size          : 235 444 bytes
+SHA-256       : 2eb91eeaa6c864441f7064716c72aefbe3db2203b1a7d1fb6625e6b91e04fa11
+MD5           : f7e8a232e2b7c9fb896256d90a400695
+ADTS          : 471 frames; AAC-LC (profile bits 1); sampling-frequency index 3
+                (48 000 Hz); channel configuration 2 (stereo); protection absent;
+                frame lengths sum to the file length exactly. Decoded length
+                482 304 samples (1 600 encoder delay + 480 000 input + 704 padding).
+
+KNOWN LIMITATIONS (qualification report section 7, verbatim)
+-----------------------------------------------------------
+**Qualified for:** use as the V3 objective-quality baseline's real-music reference fixture, and
+submission for independent Muse review, provided the limitations below are carried forward verbatim
+into the fixture's provenance record.
+
+**Outstanding uncertainties / limitations:**
+
+1. **No auditable capture chain.** Provenance is "the public-domain FLAC as distributed by Musopen",
+   corroborated by three agreeing checksums across Commons and the Internet Archive and by the
+   archive's `source: original` designation. There is no session or mastering documentation, so
+   "lossless master" is supported by evidence but not proven.
+2. **24-bit container cannot be distinguished from a dithered 16-bit source**; the low 8 bits carry
+   noise-like activity in both cases. The quietest second (−73.2 dBFS) does not contradict either.
+3. **Low high-frequency content** (≤0.43 % of energy above 6 kHz, median 0.061 %). The fixture is a
+   weak stress test for HF coding; if the baseline needs an HF-rich music case, add a second,
+   brighter lossless fixture (separate task).
+4. **One 10 s passage of a 15 min 12 s movement**, chosen by measured level/stability/spectral
+   balance; it is not representative of the whole work.
+5. **Section/idiom identification is inference** from the level profile, not verified against a score.
+6. **The conversion is unvalidated**: no excerpt was produced, so the draft command's dither
+   behaviour is a proposal. It becomes trustworthy only after check 4 of §5.6 passes byte-exactly,
+   and the exact ffmpeg build hash must be pinned alongside the fixture.
+7. `oldid=1030946903` is a **page** revision (a Wikidata claim edit); the file bytes have a single,
+   never-overwritten version. No file-revision ambiguity, but the permalink pins the page, not the
+   bytes — the byte pin is the checksum list in §1.2.
+
+SOURCE INTEGRITY vs LOSSLESS PROVENANCE
+---------------------------------------
+Two different things were established and must not be conflated:
+  * INTEGRITY (proven): the source FLAC decodes without error and its decoded
+    24-bit PCM MD5 equals its embedded STREAMINFO MD5
+    (914acc415a8dc1643aaf17e3f3df47b6). The file is undamaged and internally
+    consistent.
+  * LOSSLESS RECORDING PROVENANCE (supported, not proven): the 24-bit container
+    carries genuine low-bit activity, its spectrum decays smoothly to Nyquist
+    with no codec cliff, and the Internet Archive labels it the original with
+    lossy copies as derivatives. There is, however, no session, master or ADC
+    documentation, so "lossless master" remains an inference from evidence.
+  A lossy transcode would also decode cleanly and match its own STREAMINFO MD5.
+
+CORPUS STATUS
+-------------
+The corpus is now 19 fixtures (15 synthetic + 3 licensed M5.5 + this V3
+reference). The previously recorded 18-fixture identities remain valid
+descriptions of the pre-V3 corpus and are HISTORICAL, superseded for future
+work: fixture PCM manifest 27befab0..., corpus PCM digest 0977ec70..., and the
+earlier, unreproducible 201b292d... citation. They must not be re-labelled as
+errors, and the new 19-fixture digests are recorded with the V3 manifest.
+
+m7-music-stereo-48k.wav (SHA-256 b49e10a1...), its C reference, its provenance
+and all M5.25/M5.26 evidence are UNCHANGED by this addition.

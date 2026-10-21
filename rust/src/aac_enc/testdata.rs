@@ -102,6 +102,11 @@ amm-info@iis.fraunhofer.de
 //! claim against committed ring vectors.
 
 use super::block_switch::MAX_GROUPS;
+// M6.1: config-snapshot loading moved to the production `psy_config` module
+// (needed by `StreamEncoder::new`); re-exported here so existing test call
+// sites are untouched. M6.3: snapshots are embedded at compile time, so the
+// testdata path helper (for all other committed vectors) lives back here.
+pub(crate) use super::psy_config::{load_cfg, parse_kv_list, CfgSnap, TnsCfgSnap};
 use std::path::PathBuf;
 
 pub(crate) fn testdata_path(file: &str) -> PathBuf {
@@ -217,6 +222,70 @@ pub(crate) fn fixture_sample_rate(name: &str) -> u32 {
     }
 }
 
+/// Parse an embedded 48 kHz stereo s16le WAV with a plain 44-byte header
+/// into per-channel i16 vectors. Used only by the M5.5 licensed fixtures
+/// below (real speech/music assets); ordinary tests never touch the
+/// network. Panics loudly on any format deviation.
+fn wav_stereo_s16(bytes: &[u8]) -> Vec<Vec<i16>> {
+    assert!(bytes.len() > 44, "wav too short");
+    assert_eq!(&bytes[0..4], b"RIFF", "wav RIFF");
+    assert_eq!(&bytes[8..12], b"WAVE", "wav WAVE");
+    // Walk chunks (ffmpeg may emit a LIST chunk before data).
+    let mut off = 12usize;
+    let (mut fmt, mut data) = (None, None);
+    while off + 8 <= bytes.len() {
+        let id = &bytes[off..off + 4];
+        let size = u32::from_le_bytes([
+            bytes[off + 4],
+            bytes[off + 5],
+            bytes[off + 6],
+            bytes[off + 7],
+        ]) as usize;
+        if id == b"fmt " {
+            fmt = Some(off + 8);
+        } else if id == b"data" {
+            data = Some((off + 8, size));
+            break;
+        }
+        off += 8 + size + (size % 2);
+    }
+    let fmt = fmt.expect("wav fmt chunk");
+    let (dstart, dsize) = data.expect("wav data chunk");
+    assert_eq!(
+        u16::from_le_bytes([bytes[fmt], bytes[fmt + 1]]),
+        1,
+        "wav PCM"
+    );
+    assert_eq!(
+        u16::from_le_bytes([bytes[fmt + 2], bytes[fmt + 3]]),
+        2,
+        "wav stereo"
+    );
+    assert_eq!(
+        u32::from_le_bytes([
+            bytes[fmt + 4],
+            bytes[fmt + 5],
+            bytes[fmt + 6],
+            bytes[fmt + 7]
+        ]),
+        48000,
+        "wav rate"
+    );
+    assert_eq!(
+        u16::from_le_bytes([bytes[fmt + 14], bytes[fmt + 15]]),
+        16,
+        "wav s16"
+    );
+    assert_eq!(dstart + dsize, bytes.len(), "wav length");
+    assert_eq!(dsize % 4, 0, "wav frame alignment");
+    let (mut l, mut r) = (Vec::with_capacity(dsize / 4), Vec::with_capacity(dsize / 4));
+    for fr in bytes[dstart..dstart + dsize].chunks_exact(4) {
+        l.push(i16::from_le_bytes([fr[0], fr[1]]));
+        r.push(i16::from_le_bytes([fr[2], fr[3]]));
+    }
+    vec![l, r]
+}
+
 /// Resynthesize one oracle fixture: per-channel sample vectors.
 /// Formulae (amplitudes, phases, edges) are identical to
 /// `tools/enc-oracle/make_fixtures.py`.
@@ -328,120 +397,64 @@ pub(crate) fn fixture_samples(name: &str) -> Vec<Vec<i16>> {
                     .collect()
             })
             .collect(),
+        // M5.e mono-44.1k restore: mono version of the onset-stereo-44100
+        // formula (byte-identical to that fixture's channel 0).
+        "onset-mono-44100" => (0..1)
+            .map(|_| {
+                (0..44100)
+                    .map(|t| {
+                        if t < 22050 {
+                            0
+                        } else {
+                            sine_at_sr(t, 44100.0, 1000.0, 10_000.0)
+                        }
+                    })
+                    .collect()
+            })
+            .collect(),
+        // M6 stress (Phase 1 streaming coverage): full-scale deterministic
+        // PRNG + tone stack, mirroring `make_fixtures.py` exactly (seed
+        // 0x76F1A9B3, `(z % 32767) - 16383.0` noise, `nz * 0.9 + tones`,
+        // i16 clamp via truncating-saturating `as`).
+        "stress-stereo" => {
+            let mut st = 0x76F1A9B3u32;
+            let nz: Vec<f64> = (0..24000)
+                .map(|_| (splitmix32(&mut st) % 32767) as f64 - 16383.0)
+                .collect();
+            (0..2)
+                .map(|_| {
+                    (0..24000)
+                        .map(|t| {
+                            let time = t as f64 / 48000.0;
+                            let tones = 12000.0
+                                * (2.0 * core::f64::consts::PI * 6000.0 * time).sin()
+                                + 9000.0 * (2.0 * core::f64::consts::PI * 12000.0 * time).sin()
+                                + 6000.0 * (2.0 * core::f64::consts::PI * 18000.0 * time).sin();
+                            (nz[t] * 0.9 + tones) as i16
+                        })
+                        .collect()
+                })
+                .collect()
+        }
+        // M5.5 licensed fixtures (see testdata/m55-PROVENANCE.txt):
+        // real speech/music recordings, embedded as deterministic WAV
+        // assets (no network at test time).
+        "music-stereo" => wav_stereo_s16(include_bytes!("testdata/m7-music-stereo-48k.wav")),
+        "speech-pauses-stereo" => {
+            wav_stereo_s16(include_bytes!("testdata/m7-speech-pauses-stereo-48k.wav"))
+        }
+        "speech-clean-stereo" => {
+            wav_stereo_s16(include_bytes!("testdata/m7-speech-clean-stereo-48k.wav"))
+        }
+        // V3 lossless real-music reference (see testdata/m8-PROVENANCE.txt):
+        // Musopen/Beethoven "Eroica" I excerpt, 24->16 bit by arithmetic
+        // shift with no dither. Additive to the M5.5 licensed set; the m7
+        // assets above are unchanged.
+        "music-eroica-stereo" => {
+            wav_stereo_s16(include_bytes!("testdata/m8-music-eroica-stereo-48k.wav"))
+        }
         _ => panic!("unknown fixture {name}"),
     }
-}
-
-/// Committed PSY_CONFIGURATION snapshot (long or short) for one rate and
-/// per-channel bitrate.
-#[derive(Debug, Clone)]
-pub(crate) struct CfgSnap {
-    pub(crate) sfb_cnt: usize,
-    pub(crate) sfb_active: usize,
-    pub(crate) sfb_active_lfe: usize,
-    pub(crate) lowpass_line: usize,
-    pub(crate) lowpass_line_lfe: usize,
-    pub(crate) clip_energy: i32,
-    pub(crate) offsets: Vec<i32>,
-    pub(crate) pcm_quant: Vec<i32>,
-    pub(crate) mask_hi: Vec<i32>,
-    pub(crate) mask_lo: Vec<i32>,
-    pub(crate) mask_hi_spr: Vec<i32>,
-    pub(crate) mask_lo_spr: Vec<i32>,
-    pub(crate) min_snr_ld: Vec<i32>,
-}
-
-/// Committed TNS configuration snapshot.
-#[derive(Debug, Clone)]
-pub(crate) struct TnsCfgSnap {
-    pub(crate) active: bool,
-    pub(crate) max_order: i32,
-    pub(crate) coef_res: i32,
-    pub(crate) start_band: [i32; 2],
-    pub(crate) start_line: [i32; 2],
-    pub(crate) stop_band: i32,
-    pub(crate) stop_line: i32,
-    pub(crate) thresh_on: [i32; 2],
-    pub(crate) limit_order: [i32; 2],
-}
-
-fn parse_kv_list(line: &str) -> Vec<(String, String)> {
-    // Skips the tag (and kind word, if any): keeps only k=v tokens.
-    line.split_whitespace()
-        .filter(|tok| tok.contains('='))
-        .map(|kv| {
-            let (k, v) = kv.split_once('=').expect("k=v field");
-            (k.to_string(), v.to_string())
-        })
-        .collect()
-}
-
-/// Load committed config snapshots: ((long, long-tns), (short, short-tns)).
-/// `pch` is the per-channel bitrate encoded in the file name.
-pub(crate) fn load_cfg(
-    sample_rate: u32,
-    pch: u32,
-) -> ((CfgSnap, TnsCfgSnap), (CfgSnap, TnsCfgSnap)) {
-    let text = std::fs::read_to_string(testdata_path(&format!("cfg_{sample_rate}_{pch}.txt")))
-        .expect("cfg testdata readable");
-    let mut lines = text.lines();
-    let mut block = || {
-        let head = lines.next().expect("CFG head");
-        assert!(head.starts_with("CFG"));
-        let kv: std::collections::HashMap<String, String> =
-            parse_kv_list(head).into_iter().collect();
-        let get = |k: &str| kv[k].parse::<i32>().expect("int cfg field");
-        let mut arrays = std::collections::HashMap::new();
-        for _ in 0..7 {
-            let line = lines.next().expect("cfg array");
-            let (tag, rest) = line.split_once(' ').expect("tag + values");
-            arrays.insert(
-                tag.to_string(),
-                rest.split_whitespace()
-                    .map(|v| v.parse::<i32>().expect("int"))
-                    .collect::<Vec<_>>(),
-            );
-        }
-        let tns_line = lines.next().expect("TNSCFG");
-        assert!(tns_line.starts_with("TNSCFG"));
-        let tkv: std::collections::HashMap<String, String> =
-            parse_kv_list(tns_line).into_iter().collect();
-        let pair = |k: &str| {
-            let (a, b) = tkv[k].split_once(',').expect("a,b pair");
-            [
-                a.parse::<i32>().expect("int"),
-                b.parse::<i32>().expect("int"),
-            ]
-        };
-        let snap = CfgSnap {
-            sfb_cnt: get("cnt") as usize,
-            sfb_active: get("active") as usize,
-            sfb_active_lfe: get("activeLFE") as usize,
-            lowpass_line: get("lowpass") as usize,
-            lowpass_line_lfe: get("lowpassLFE") as usize,
-            clip_energy: get("clipE"),
-            offsets: arrays.remove("OFFSETS").expect("offsets"),
-            pcm_quant: arrays.remove("PCMQ").expect("pcmq"),
-            mask_hi: arrays.remove("MASKHI").expect("maskhi"),
-            mask_lo: arrays.remove("MASKLO").expect("masklo"),
-            mask_hi_spr: arrays.remove("MASKHIS").expect("maskhis"),
-            mask_lo_spr: arrays.remove("MASKLOS").expect("masklos"),
-            min_snr_ld: arrays.remove("MINSNR").expect("minsnr"),
-        };
-        let tns = TnsCfgSnap {
-            active: tkv["active"] != "0",
-            max_order: tkv["maxOrder"].parse().expect("int"),
-            coef_res: tkv["coefRes"].parse().expect("int"),
-            start_band: pair("startBand"),
-            start_line: pair("startLine"),
-            stop_band: tkv["stopBand"].parse().expect("int"),
-            stop_line: tkv["stopLine"].parse().expect("int"),
-            thresh_on: pair("threshOn"),
-            limit_order: pair("limitOrder"),
-        };
-        (snap, tns)
-    };
-    (block(), block())
 }
 
 /// One committed TNS window: decisions, orders, lengths, coefficients.

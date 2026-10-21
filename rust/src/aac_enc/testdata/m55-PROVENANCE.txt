@@ -1,0 +1,71 @@
+M5.5 fixture provenance (speech + music coverage expansion)
+=============================================================
+All conversions by ffmpeg; no normalization; trims exact.
+
+MUSIC
+-----
+Title:    Thoughtness (a simple GarageBand song, per file description)
+Creator:  Kian Moretz (file page Artist credit; uploaded by Commons user Meecoder, own work)
+Source:   https://commons.wikimedia.org/wiki/File:Thoughtness.ogg
+License:  CC0 1.0 Universal (file page UsageTerms: "Creative Commons Zero,
+          Public Domain Dedication"; LicenseUrl:
+          http://creativecommons.org/publicdomain/zero/1.0/deed.en)
+Original: Thoughtness.ogg, 1148202 bytes,
+          SHA-1 eeb6576c9f1ec1667dabca85bb7a5dc385c773b1 (matches Commons),
+          Ogg Vorbis, stereo, 44100 Hz, 46.132245 s.
+Passage:  9.0-19.0 s (10.0 s): continuous music with a ~0.7 s break at
+          ~16.2 s and re-entry transient (sustained + transient coverage).
+          Verified via silencedetect (-30 dB: pauses at 7.2/8.2/16.2/23.2 s,
+          trailing silence from 40.9 s) and per-second RMS (~-26..-30 dB
+          across 9-19 s).
+Command:  ffmpeg -hide_banner -v error -y -ss 9 -t 10 \
+            -i Thoughtness.ogg -ar 48000 -ac 2 -sample_fmt s16 \
+            m7-music-stereo-48k.wav
+Output:   m7-music-stereo-48k.wav, PCM s16le, stereo, 48000 Hz, 10.0 s
+          (480000 samples/ch).
+          SHA-256 b49e10a1d3f51b80db1d4d1a1179afa9963570528042395df20be8e2193f3086
+C ref:    bin/aac-enc m7-music-stereo-48k.wav m55/aac/m7-music-stereo-48k.aac
+          251279 bytes,
+          SHA-256 791a948096c3ee4afc67fc77bae3f3f0db14839cb77bcc567569d1d618556fbb
+          (ffprobe AAC-LC/48k/stereo, full FFmpeg decode exit 0).
+
+SPEECH (LibriSpeech ASR corpus, test-clean)
+------------------------------------------
+Corpus:   LibriSpeech, test-clean (clean read English speech)
+Source:   https://www.openslr.org/12/ (archive test-clean.tar.gz, 346M,
+          EU mirror https://openslr.trmal.net/resources/12/test-clean.tar.gz)
+Checksum: MD5 32fa31d27d2e1cad72775fee3f4849a9 (verified against the MD5
+          published at https://www.openslr.org/12/ -> md5sum.txt)
+License:  CC BY 4.0 (Librispeech; Panayotov et al. 2015). Attribution:
+          "LibriSpeech ASR corpus, test-clean, by Vassil Panayotov et al.,
+          http://www.openslr.org/12/, CC BY 4.0."
+Utterances (real IDs from the extracted corpus; source mono 16 kHz FLAC):
+  A. pauses:  speaker 4507 / chapter 16021 / utterance 0047
+     path:    4507/16021/4507-16021-0047.flac (35.0 s source)
+     SHA-256: 420cb9723363ce143c2a99b46df7a0f3d77dc688f75b92149e5ba447f8e9262c
+     text:    "YESTERDAY YOU WERE TREMBLING ..." (61-70970.trans.txt style;
+              see 4507-16021.trans.txt in corpus)
+     passage: 4.0-14.0 s (10.0 s): pauses at ~4.4 s and a 0.70 s pause at
+              6.75-7.45 s plus short phrase breaks (silencedetect -40 dB).
+  B. continuous: speaker 1995 / chapter 1836 / utterance 0004
+     path:    1995/1836/1995-1836-0004.flac (33.9 s source)
+     SHA-256: da66ec05e27d53402f964125c1054fc92f618122e3ba99ea4375c82f265737c3
+     text:    "AS SHE AWAITED HER GUESTS ..." (see 1995-1836.trans.txt)
+     passage: 23.0-33.0 s (10.0 s): only brief phrase breaks (~0.3-0.4 s at
+              ~26.7 s and ~30.4 s); relatively continuous vs utterance A.
+Conversion (each passage; source mono duplicated to stereo, no norm.):
+     ffmpeg -hide_banner -v error -y -ss <START> -t 10 -i <FLAC> \
+       -ar 48000 -ac 2 -sample_fmt s16 m7-speech-<KIND>-stereo-48k.wav
+Outputs:  m7-speech-pauses-stereo-48k.wav
+          SHA-256 67d69a64fed23fe16ab666a9e1f02262afa78934363c69999728cadd9ec1a4d3
+          m7-speech-clean-stereo-48k.wav
+          SHA-256 3dfb7dcb0cd9f600f9ae66eb791df6d7c740c833218df88f1de73f87353346ff
+          (PCM s16le, stereo dual-mono, 48000 Hz, 10.0 s = 480000 samples/ch;
+           embedded under testdata/ for deterministic include_bytes loading)
+C refs:   bin/aac-enc m7-speech-<KIND>-stereo-48k.wav m55/aac/<...>.aac
+          (same VBR-5 ADTS procedure as Phase 0):
+          pauses: 125996 bytes,
+          SHA-256 7e4c6197b5fce79f9bfc7158ebdc6c176337b329b65bc865aecfbf4098007bc7
+          clean: 127971 bytes,
+          SHA-256 0aa6189a40d946068704af9d0477989a769a09410bbf62c1c49933b16426f769
+          (both ffprobe AAC-LC/48k/stereo, full FFmpeg decode exit 0).

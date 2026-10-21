@@ -146,11 +146,25 @@ pub(crate) mod bitenc_tables;
 pub mod block_switch;
 pub mod channel_map;
 pub mod config;
+pub mod encoder;
 pub mod energy;
 pub mod frame;
+#[cfg(test)]
+pub(crate) mod m5a_decode;
+#[cfg(test)]
+pub(crate) mod m5b_measure;
+#[cfg(test)]
+pub(crate) mod m5g_census;
+#[cfg(test)]
+pub(crate) mod m6_migration;
 pub mod pcm;
 pub mod pe;
+#[cfg(test)]
+pub(crate) mod phase1b;
 pub mod psy;
+// Init-time PSY/TNS configuration snapshots (production: needed by
+// `StreamEncoder::new` for table setup).
+pub mod psy_config;
 pub(crate) mod q31;
 pub mod quant;
 pub(crate) mod quant_tables;
@@ -159,6 +173,12 @@ pub mod scf;
 pub mod sfb;
 pub(crate) mod sfb_tables;
 pub mod static_bits;
+// M6.1: production module. Test-only harnesses, fixtures, and census
+// instrumentation inside remain individually `#[cfg(test)]`-gated (verified
+// by `cargo build --features aac_enc` passing without test code); the
+// encoder path itself (`StreamEncoder`, snapshots, helpers) carries no
+// test-only behavior.
+pub(crate) mod stream_driver;
 #[cfg(test)]
 pub(crate) mod testdata;
 pub mod threshold_vbr;
