@@ -1353,6 +1353,12 @@ impl ProgramConfig {
             self.is_valid = false;
         }
 
+        // Check order of elements according to ISO/IEC 13818-7:2003(E),
+        // chapter 8.5.1. An invalid ordering must not remain valid.
+        if !self.check() {
+            self.is_valid = false;
+        }
+
         // Skip comment_bytes
         bs.push((8 * comment_bytes) as isize);
     }
@@ -1729,5 +1735,45 @@ mod tests {
         assert_eq!(pce.num_channels, 10);
         assert_eq!(pce.num_effective_channels, 9);
         assert!(!pce.is_valid);
+    }
+
+    #[test]
+    fn read_conformant_pce_stays_valid() {
+        // Minimal conformant PCE: one front CPE (stereo), AAC-LC, 48 kHz,
+        // no mixdowns, no LFE/assoc/CC elements, empty comment field.
+        let mut bitstream_writer = Bitstream::new(16, Mode::Writer);
+        {
+            bitstream_writer.write(0, 4); // element_instance_tag
+            bitstream_writer.write(1, 2); // profile (AAC LC)
+            bitstream_writer.write(3, 4); // sampling_frequency_index (48 kHz)
+            bitstream_writer.write(1, 4); // num front channel elements
+            bitstream_writer.write(0, 4); // num side channel elements
+            bitstream_writer.write(0, 4); // num back channel elements
+            bitstream_writer.write(0, 2); // num LFE channel elements
+            bitstream_writer.write(0, 3); // num assoc data elements
+            bitstream_writer.write(0, 4); // num valid CC elements
+            bitstream_writer.write(0, 1); // mono mixdown present
+            bitstream_writer.write(0, 1); // stereo mixdown present
+            bitstream_writer.write(0, 1); // matrix mixdown present
+            bitstream_writer.write(1, 1); // front element is CPE
+            bitstream_writer.write(0, 4); // front element tag
+            bitstream_writer.write(0, 1); // byte alignment
+            bitstream_writer.write(0, 8); // comment_field_bytes
+            bitstream_writer.sync();
+        }
+
+        let mut bitstream_reader = Bitstream::new(bitstream_writer.buffer().len(), Mode::Reader);
+        bitstream_reader.init(bitstream_writer.buffer(), 48);
+
+        let mut pce = ProgramConfig::new();
+        pce.init();
+        let alignment_anchor = bitstream_reader.valid_bits();
+        pce.read(&mut bitstream_reader, alignment_anchor);
+
+        assert_eq!(pce.num_channel_elements[FRONT], 1);
+        assert_eq!(pce.num_channels, 2);
+        assert_eq!(pce.comment_field_bytes, 0);
+        assert!(pce.is_valid());
+        assert_eq!(bitstream_reader.valid_bits(), 0);
     }
 }
