@@ -60,7 +60,7 @@ mod m5g_tests {
                 // emitted frame. (Skips/notes already fail loudly above.)
                 assert_eq!(r.npass, 1, "{stem} f={}: npass", r.frame);
                 assert_eq!(r.crash, -1, "{stem} f={}: crash", r.frame);
-                // M5.f §7 book invariants: zero books end to end.
+                // Corpus regression: the 19 non-IS fixtures must remain IS-free end to end.
                 assert!(
                     !r.is_book_any,
                     "{stem} f={}: nonzero is_book observed",

@@ -26,14 +26,12 @@
 //!    [`calc_ld_data`] = C `fLog2`, so the only noise source is the
 //!    stored-int float residue; threshold Ld carries the C
 //!    `-0.515625` floor via [`threshold_ld_of`]).
-//! 5. [`ms_stereo_mirror`] (test-only exact integer port of
-//!    `ms_stereo.cpp`, verified against oracle `MSD` lines): digest, mask,
-//!    in-place M/S substitution of spectra/energies/thresholds/spread.
-//!    Short-block mid/side Ld is the fresh grouped `LdDataVector` refresh
+//! 5. [`intensity_stereo`] decision and in-place processing, then
+//!    [`ms_stereo_mirror`] (exact integer port of `ms_stereo.cpp`,
+//!    including the IS-band skip and `MS_SOME` rules). Short-block
+//!    mid/side Ld is the fresh grouped `LdDataVector` refresh
 //!    ([`grouped_ms_vectors`], `psy_main.cpp:1078-1084`), not stale history.
-//!    IS is asserted inactive (proven corpus-wide by the oracle dumps);
-//!    any live `is_book != 0` is a loud finding, never silently consumed.
-//!    PNS is off by configuration (`NO_NOISE_PNS`, zero books/scales).
+//!    PNS is off by configuration (`NO_NOISE_PNS`, zero noise energies).
 //! 6. `form_factor` + `pe_calculation` (S1), `static_bits_{sce,cpe}`.
 //! 7. `adapt_thresholds_vbr` (S2, evolves ATS chaos).
 //! 8. `estimate_scale_factors_channel` (S4 inv=2) on the S3-contract
@@ -67,25 +65,25 @@ use super::frame::{
     build_adts_frame, build_raw_block, channel_element_write, check_static_agreement,
     ChannelFrameInput, ElementFrameInput, FrameError, RawBlockInput, ID_CPE, ID_SCE,
 };
+use super::intensity::intensity_stereo;
 #[cfg(test)]
 use super::pcm::PcmFeeder;
 use super::pe::{form_factor, pe_calculation, AtsElement, PeChannelInput};
 use super::psy::{
-    process_pair, process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel,
-    PsyScratch, PsyTables,
+    process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel, PsyScratch, PsyTables,
 };
+use super::psy_config::load_cfg;
 use super::q31::calc_ld_data;
 use super::rate::{
     adjust_bitrate, calc_bits_per_frame, calc_max_value_in_sfb, derive_qc_init,
-    distribute_state_init, init_bits2pe_factor, qc_main_frame, total_consumed_bits,
-    BitResMode, DistributeState, QcChannelInput, QcError, QcFrameInput, QcInitParams,
-    QcState, MAXVAL_DBL, GLOBAL_EXT_BITS, MAX_ITERATIONS,
+    distribute_state_init, init_bits2pe_factor, qc_main_frame, total_consumed_bits, BitResMode,
+    DistributeState, QcChannelInput, QcError, QcFrameInput, QcInitParams, QcState, GLOBAL_EXT_BITS,
+    MAXVAL_DBL, MAX_ITERATIONS,
 };
 use super::scf::{
     estimate_scale_factors_channel_reuse, ScfChannelInput, ScfGeometry, ScfWorkspace,
 };
 use super::static_bits::{ms_mask_bits, static_bits_cpe, static_bits_sce, MsDigest};
-use super::psy_config::load_cfg;
 #[cfg(test)]
 use super::testdata;
 use super::threshold_vbr::{adapt_thresholds_vbr, S2ChannelInput, SfbGeometry};
@@ -222,15 +220,16 @@ fn group_windows(groups: u8, lens: &[u8; 4]) -> Vec<(usize, usize)> {
     out
 }
 
-/// Test-only exact port of `FDKaacEnc_MsStereoProcessing`
-/// (`cpp/libAACenc/src/ms_stereo.cpp:109-295`) for the supported path
-/// (`isBook` all zero, i.e. no intensity bands).
+/// Exact integer port of `FDKaacEnc_MsStereoProcessing`
+/// (`cpp/libAACenc/src/ms_stereo.cpp:109-330`), including IS-band skipping
+/// and the C `MS_NONE`/`MS_SOME`/`MS_ALL` rules.
 ///
 /// All energy/threshold/spread slices span `cnt` bands (long: ungrouped;
 /// short: grouped stride, already gathered by the caller); spectra span
-/// 1024 lines with band `b` at `offsets[b]..offsets[b+1]`. MS bands are
-/// substituted in place; returns `(digest, mask)` with
-/// `SI_MS_MASK_{NONE,SOME,ALL} = 0/1/2`.
+/// 1024 lines with band `b` at `offsets[b]..offsets[b+1]`. `is_book` is the
+/// right-channel IS book vector; `initial_mask` is the phase/mask vector
+/// left by [`intensity_stereo`]. MS bands are substituted in place; returns
+/// `(digest, mask)` with `SI_MS_MASK_{NONE,SOME,ALL} = 0/1/2`.
 #[allow(clippy::too_many_arguments)]
 fn ms_stereo_mirror(
     e_l: &mut [i32],
@@ -254,6 +253,8 @@ fn ms_stereo_mirror(
     per: usize,
     max: usize,
     allow_ms: bool,
+    is_book: &[i32],
+    initial_mask: &[i32],
 ) -> (i32, Vec<i32>) {
     // Band application shared by the first pass and the ALL upgrade.
     fn apply(
@@ -296,7 +297,8 @@ fn ms_stereo_mirror(
         spread_l[b] = min_sp;
         spread_r[b] = min_sp;
     }
-    let mut mask = vec![0i32; cnt];
+    let mut mask = initial_mask.to_vec();
+    assert_eq!(mask.len(), cnt, "IS mask spans channel bands");
     let mut true_somewhere = false;
     let mut num_false = 0i32;
     for sfb in (0..cnt).step_by(per) {
@@ -304,6 +306,15 @@ fn ms_stereo_mirror(
             let b = sfb + off;
             if b >= cnt {
                 break;
+            }
+            if is_book.get(b).copied().unwrap_or(0) != 0 {
+                // Keep the IS phase/mask decision. C sets numMsMaskFalse=9
+                // to prohibit MS_ALL and only counts a true bit here.
+                if mask[b] != 0 {
+                    true_somewhere = true;
+                }
+                num_false = 9;
+                continue;
             }
             let min_tld = tld_l[b].min(tld_r[b]);
             let tmp = eld_l[b].max(tld_l[b]);
@@ -338,7 +349,7 @@ fn ms_stereo_mirror(
                     if b >= cnt {
                         break;
                     }
-                    if mask[b] == 0 {
+                    if is_book.get(b).copied().unwrap_or(0) == 0 && mask[b] == 0 {
                         mask[b] = 1;
                         apply(
                             b, e_l, e_r, t_l, t_r, eld_l, eld_r, tld_l, tld_r, e_m, e_s, em_ld,
@@ -388,6 +399,7 @@ pub(crate) struct MsDecisionCapture {
     pub per: usize,
     pub max: usize,
     pub allow_ms: bool,
+    pub is_book: Vec<i32>,
     pub digest: i32,
     pub mask: Vec<i32>,
 }
@@ -470,10 +482,18 @@ pub(crate) struct FrameSnapshot {
     /// Typed step failure for the production API mapping (`None` on success
     /// and on notes-only policy skips). Set at existing early-return sites.
     pub step_error: Option<StepError>,
-    /// M5.g census: true if any `is_book` value passed to S5 counting was
-    /// nonzero this frame. Pure read of the constructed input slices; the
-    /// driver only ever passes the all-zero book (see S1/S5 call sites).
+    /// True if any `is_book` value was nonzero this frame.
     pub is_book_any: bool,
+    /// Number of right-channel bands selected for intensity stereo.
+    pub is_bands: u32,
+    /// Number of nonzero right-channel intensity scalefactors.
+    pub is_scale_nz: u32,
+    /// Right-channel intensity scalefactors (test diagnostics).
+    pub is_scale_values: Vec<i32>,
+    /// Initial `msDigest` supplied by the IS stage (`MS_NONE`/`MS_SOME`).
+    pub is_digest: i32,
+    /// Final section codebooks (S5 output) per channel, test diagnostics.
+    pub section_books: Vec<Vec<i32>>,
     /// M5.g census: true if any `noise_nrg` value passed to S5 counting
     /// differed from `NO_NOISE_PNS` this frame. Pure read; the driver only
     /// ever passes the all-`NO_NOISE_PNS` vector.
@@ -888,6 +908,40 @@ impl StreamEncoder {
             max_common,
         } = fe;
 
+        let cnt = live[0].cnt;
+        let mut books: Vec<Vec<i32>> = (0..self.channels).map(|_| vec![0i32; cnt]).collect();
+        let mut scales: Vec<Vec<i32>> = (0..self.channels).map(|_| vec![0i32; cnt]).collect();
+        let mut is_mask = vec![0i32; cnt];
+        let mut is_digest = 0i32;
+        if self.channels == 2 {
+            let allow_is = self.tables.long_cfg.allow_is();
+            let (l, r) = live.split_at_mut(1);
+            let (c0, c1) = (&mut l[0], &mut r[0]);
+            let res = intensity_stereo(
+                &c0.e_stored,
+                &mut c1.e_stored,
+                &mut c0.spec_q31,
+                &mut c1.spec_q31,
+                &c0.t_stored,
+                &mut c1.t_stored,
+                &mut c1.t_ld,
+                &c0.spread,
+                &mut c1.spread,
+                &c0.e_ld,
+                &mut c1.e_ld,
+                &c1.offsets,
+                c1.cnt,
+                c1.per,
+                max_common,
+                allow_is,
+            );
+            books[1] = res.is_book;
+            scales[1] = res.is_scale;
+            is_mask = res.ms_mask;
+            is_digest = res.ms_digest;
+        }
+        snap.is_digest = is_digest;
+
         // --- MS mirror (stereo) ---
         // Mid/side STORED energies are always fresh (grouped sums on
         // short, mirroring the `groupShortData` MS branch). Mid/side Ld
@@ -959,6 +1013,7 @@ impl StreamEncoder {
                 per: c0.per,
                 max: max_common,
                 allow_ms: true,
+                is_book: books[1].clone(),
                 ..MsDecisionCapture::default()
             };
             let (d, m) = ms_stereo_mirror(
@@ -983,6 +1038,8 @@ impl StreamEncoder {
                 c0.per,
                 max_common,
                 true,
+                &books[1],
+                &is_mask,
             );
             cap.digest = d;
             cap.mask = m.clone();
@@ -996,10 +1053,14 @@ impl StreamEncoder {
         snap.ms_ran = self.channels == 2;
 
         // --- S1: form factor + PE + static bits ---
-        let zero_book = vec![0i32; live[0].cnt];
-        // M5.g census (pure read, no behavior change): the driver passes
-        // `zero_book` at every S5/S1 book site; record if that ever changes.
-        snap.is_book_any |= zero_book.iter().any(|&b| b != 0);
+        // The IS decision is carried on the right channel only; the left
+        // book/scale vectors remain zero, exactly as C does.
+        snap.is_book_any |= books.iter().flatten().any(|&b| b != 0);
+        if self.channels == 2 {
+            snap.is_bands = books[1].iter().filter(|&&b| b != 0).count() as u32;
+            snap.is_scale_nz = scales[1].iter().filter(|&&s| s != 0).count() as u32;
+            snap.is_scale_values = scales[1].clone();
+        }
         for c in live.iter_mut() {
             c.ff = form_factor(&c.spec_q31, &c.offsets, c.cnt, c.per, max_common);
         }
@@ -1011,7 +1072,8 @@ impl StreamEncoder {
         };
         let pe_inputs: Vec<PeChannelInput> = live
             .iter()
-            .map(|c| PeChannelInput {
+            .enumerate()
+            .map(|(ch, c)| PeChannelInput {
                 energy_ld: &c.e_ld,
                 threshold_ld: &c.t_ld,
                 energy_linear: &c.e_stored,
@@ -1021,8 +1083,8 @@ impl StreamEncoder {
                 sfb_cnt: c.cnt,
                 sfb_per_group: c.per,
                 max_sfb_per_group: max_common,
-                is_book: &zero_book,
-                is_scale: &zero_book,
+                is_book: &books[ch],
+                is_scale: &scales[ch],
                 short_block: c.short,
             })
             .collect();
@@ -1196,8 +1258,8 @@ impl StreamEncoder {
                     sfb_per_group: c.per,
                     sfb_offsets: &c.offsets,
                     noise_nrg: &noise,
-                    is_book: &zero_book,
-                    is_scale: &zero_book,
+                    is_book: &books[ch],
+                    is_scale: &scales[ch],
                     use_vcb11: false,
                 },
                 &mut self.qc.bc_scratch,
@@ -1226,8 +1288,8 @@ impl StreamEncoder {
                 sfb_offsets: &c.offsets,
                 block_type: seqs[ch] as i32,
                 noise_nrg: &noise,
-                is_book: &zero_book,
-                is_scale: &zero_book,
+                is_book: &books[ch],
+                is_scale: &scales[ch],
                 tns: &c.tns,
             })
             .collect();
@@ -1329,6 +1391,11 @@ impl StreamEncoder {
         let final_max: Vec<usize> = qc_out.final_max_sfb.clone();
         let final_quants: Vec<Vec<i16>> = qc_out.final_quants;
         let final_qmaxs: Vec<Vec<u32>> = qc_out.final_qmaxs;
+        snap.section_books = qc_out
+            .final_sections
+            .iter()
+            .map(|s| s.sections.iter().map(|sec| sec.code_book).collect())
+            .collect();
 
         // --- S8 + transport ---
         let shapes: Vec<i32> = (0..self.channels)
@@ -1374,8 +1441,8 @@ impl StreamEncoder {
                     max_value_in_sfb: &final_qmaxs[ch],
                     sfb_offsets: &live[ch].offsets,
                     noise_nrg: &noise,
-                    is_book: &zero_book,
-                    is_scale: &zero_book,
+                    is_book: &books[ch],
+                    is_scale: &scales[ch],
                     tns: &live[ch].tns,
                     mdct_scale: live[ch].mdct_scale,
                 })
@@ -1417,8 +1484,8 @@ impl StreamEncoder {
                 max_value_in_sfb: &final_qmaxs[ch],
                 sfb_offsets: &live[ch].offsets,
                 noise_nrg: &noise,
-                is_book: &zero_book,
-                is_scale: &zero_book,
+                is_book: &books[ch],
+                is_scale: &scales[ch],
                 tns: &live[ch].tns,
                 mdct_scale: live[ch].mdct_scale,
             })
@@ -2755,10 +2822,8 @@ mod phase1_tests {
         // Real-C ground truth (V4.25 ms_post, MSDIGEST 1).
         let real_digest = 1;
         let real_mask: [i32; 56] = [
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
         ];
         assert_eq!(cap.digest, real_digest, "digest vs real-C");
         assert_eq!(cap.mask, real_mask, "mask vs real-C");
@@ -2804,14 +2869,14 @@ mod phase1_tests {
         // Real-C ground truth (V4.25 ms_post, MSDIGEST 1).
         let real_digest = 1;
         let real_mask: [i32; 56] = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
         ];
         assert_eq!(cap.digest, real_digest, "digest vs real-C");
         assert_eq!(cap.mask, real_mask, "mask vs real-C");
-        println!("onset441 f22: live mask matches real-C (digest 1, groups 0-1 silent, 2-3 all-MS)");
+        println!(
+            "onset441 f22: live mask matches real-C (digest 1, groups 0-1 silent, 2-3 all-MS)"
+        );
     }
 
     /// Phase 1H (V4.27): D-021 live frame-boundary reconciliation.
@@ -2837,18 +2902,61 @@ mod phase1_tests {
         // (fixture, sample rate, zero-based frame, real-C ADTS bytes,
         //  live ADTS bytes, live total/static/pe, live gains, live dyn).
         let cases: [(&str, u32, u32, usize, usize, i32, i32, i32, [i32; 2], i32); 4] = [
-            ("onset-stereo", 48000u32, 24u32, 309usize, 337usize, 2640, 347, 2533, [-47, 0], 2289),
-            ("onset-stereo-44100", 44100u32, 22u32, 303usize, 310usize, 2424, 279, 2572, [-47, 0], 2140),
-            ("sine-stereo", 48000u32, 1u32, 253usize, 252usize, 1960, 479, 3488, [-36, 0], 1474),
-            ("multitone-stereo", 48000u32, 1u32, 223usize, 223usize, 1728, 177, 4993, [-33, 0], 1543),
+            (
+                "onset-stereo",
+                48000u32,
+                24u32,
+                309usize,
+                337usize,
+                2640,
+                347,
+                2533,
+                [-47, 0],
+                2289,
+            ),
+            (
+                "onset-stereo-44100",
+                44100u32,
+                22u32,
+                303usize,
+                310usize,
+                2424,
+                279,
+                2572,
+                [-47, 0],
+                2140,
+            ),
+            (
+                "sine-stereo",
+                48000u32,
+                1u32,
+                253usize,
+                252usize,
+                1960,
+                479,
+                3488,
+                [-36, 0],
+                1474,
+            ),
+            (
+                "multitone-stereo",
+                48000u32,
+                1u32,
+                223usize,
+                223usize,
+                1728,
+                177,
+                4993,
+                [-33, 0],
+                1543,
+            ),
         ];
         for (name, sr, frame, real_len, live_len, total, static_b, pe, gains, dyn_b) in cases {
             let pcm = testdata::fixture_samples(name);
             let ch = pcm.len();
             let s = pcm[0].len();
             let cfg =
-                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
-                    .expect("cfg");
+                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg");
             let mut feeder = PcmFeeder::new(cfg);
             let mut interleaved = Vec::with_capacity(s * ch);
             for i in 0..s {
@@ -2880,7 +2988,11 @@ mod phase1_tests {
             let snap = got_snap.unwrap();
             assert_eq!(snap.seq, 2, "{name} f={frame} live SHORT");
             assert_eq!(got_len, live_len, "{name} live ADTS bytes");
-            assert_eq!(got_len * 8, (snap.total + 56) as usize, "{name} total+56==ADTS");
+            assert_eq!(
+                got_len * 8,
+                (snap.total + 56) as usize,
+                "{name} total+56==ADTS"
+            );
             assert_eq!(snap.total, total, "{name} live payload bits");
             assert_eq!(snap.static_bits, static_b, "{name} live static bits");
             assert_eq!(snap.pe, pe, "{name} live PE");
@@ -4785,6 +4897,659 @@ mod m58_tests {
                     .unwrap_or_else(|| "n/a".to_string()),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod is_integration_tests {
+    use super::*;
+
+    fn probe_pcm(stereo: bool, out_phase: bool, centered: bool, narrow: bool) -> Vec<Vec<i16>> {
+        let sr = 48_000.0f64;
+        let n = 96_000usize;
+        let freqs: Vec<f64> = if narrow {
+            (0..=50).map(|i| 5500.0 + 20.0 * i as f64).collect()
+        } else {
+            vec![
+                2000.0, 2500.0, 3000.0, 3500.0, 4000.0, 4500.0, 5000.0, 6000.0, 7000.0, 8000.0,
+                9000.0, 10000.0,
+            ]
+        };
+        let mut base = vec![0.0f64; n];
+        for (i, f) in freqs.iter().enumerate() {
+            let phase = i as f64 * 0.371;
+            let step = 2.0 * std::f64::consts::PI * *f / sr;
+            for t in 0..n {
+                base[t] += (step * t as f64 + phase).sin() / freqs.len() as f64;
+            }
+        }
+        let peak = base.iter().map(|v| v.abs()).fold(0.0f64, f64::max);
+        let fade = (0.1 * sr) as usize;
+        for (t, v) in base.iter_mut().enumerate() {
+            let env = if t < fade {
+                0.5 - 0.5 * (std::f64::consts::PI * t as f64 / fade as f64).cos()
+            } else if t + fade >= n {
+                0.5 - 0.5 * (std::f64::consts::PI * (n - 1 - t) as f64 / fade as f64).cos()
+            } else {
+                1.0
+            };
+            *v = 0.5 * *v / peak * env;
+        }
+        if !stereo {
+            return vec![base
+                .iter()
+                .map(|v| (v * 32767.0).round().clamp(-32768.0, 32767.0) as i16)
+                .collect()];
+        }
+        let gain = if narrow { 0.5 } else { 0.25 };
+        let right: Vec<i16> = base
+            .iter()
+            .map(|v| {
+                let r = if centered {
+                    *v
+                } else if out_phase {
+                    -gain * *v
+                } else {
+                    gain * *v
+                };
+                (r * 32767.0).round().clamp(-32768.0, 32767.0) as i16
+            })
+            .collect();
+        let left = base
+            .iter()
+            .map(|v| (v * 32767.0).round().clamp(-32768.0, 32767.0) as i16)
+            .collect();
+        vec![left, right]
+    }
+
+    fn run_at(sample_rate: u32, pcm: &[Vec<i16>], channels: usize) -> Vec<FrameSnapshot> {
+        let cfg = EncoderConfig::new(
+            sample_rate,
+            channels as u32,
+            FRAME_LENGTH,
+            TransportType::Adts,
+        )
+        .expect("config");
+        let mut interleaved = Vec::with_capacity(pcm[0].len() * channels);
+        for i in 0..pcm[0].len() {
+            for c in 0..channels {
+                interleaved.push(pcm[c][i]);
+            }
+        }
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+        let mut enc = StreamEncoder::new(sample_rate, channels);
+        let mut out = Vec::with_capacity(frames.len());
+        for (i, fr) in frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (bytes, snap) = enc.step_frame(i as u32, &fresh);
+            assert!(bytes.is_some(), "frame {i} notes={:?}", snap.notes);
+            assert!(snap.notes.is_empty(), "frame {i} notes={:?}", snap.notes);
+            out.push(snap);
+        }
+        out
+    }
+
+    fn run_with_bytes(pcm: &[Vec<i16>], channels: usize) -> (Vec<FrameSnapshot>, Vec<u8>) {
+        let cfg = EncoderConfig::new(48000, channels as u32, FRAME_LENGTH, TransportType::Adts)
+            .expect("config");
+        let mut interleaved = Vec::with_capacity(pcm[0].len() * channels);
+        for i in 0..pcm[0].len() {
+            for c in 0..channels {
+                interleaved.push(pcm[c][i]);
+            }
+        }
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+        let mut enc = StreamEncoder::new(48000, channels);
+        let mut out = Vec::with_capacity(frames.len());
+        let mut adts = Vec::new();
+        for (i, fr) in frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (bytes, snap) = enc.step_frame(i as u32, &fresh);
+            let bytes = bytes.unwrap_or_else(|| panic!("frame {i} notes={:?}", snap.notes));
+            assert!(snap.notes.is_empty(), "frame {i} notes={:?}", snap.notes);
+            adts.extend_from_slice(&bytes);
+            out.push(snap);
+        }
+        (out, adts)
+    }
+
+    fn run(pcm: &[Vec<i16>], channels: usize) -> Vec<FrameSnapshot> {
+        run_at(48000, pcm, channels)
+    }
+
+    fn read_wav_16(path: &str) -> Vec<Vec<i16>> {
+        let b = std::fs::read(path).expect("read WAV");
+        assert_eq!(&b[0..4], b"RIFF");
+        assert_eq!(&b[8..12], b"WAVE");
+        let mut pos = 12usize;
+        let mut channels = 0usize;
+        let mut data_off = 0usize;
+        let mut data_len = 0usize;
+        while pos + 8 <= b.len() {
+            let id = &b[pos..pos + 4];
+            let n = u32::from_le_bytes([b[pos + 4], b[pos + 5], b[pos + 6], b[pos + 7]]) as usize;
+            if id == b"fmt " {
+                assert_eq!(u16::from_le_bytes([b[pos + 8], b[pos + 9]]), 1);
+                channels = u16::from_le_bytes([b[pos + 10], b[pos + 11]]) as usize;
+                assert_eq!(u16::from_le_bytes([b[pos + 22], b[pos + 23]]), 16);
+            } else if id == b"data" {
+                data_off = pos + 8;
+                data_len = n;
+                break;
+            }
+            pos += 8 + n + (n & 1);
+        }
+        assert!(channels == 1 || channels == 2);
+        assert!(data_off > 0 && data_off + data_len <= b.len());
+        let mut out = vec![Vec::new(); channels];
+        for i in 0..data_len / 2 {
+            let v = i16::from_le_bytes([b[data_off + 2 * i], b[data_off + 2 * i + 1]]);
+            out[i % channels].push(v);
+        }
+        out
+    }
+
+    #[test]
+    fn intensity_probe_wav_parity() {
+        let Ok(path) = std::env::var("IS_PROBE_WAV") else {
+            return;
+        };
+        let pcm = read_wav_16(&path);
+        let snaps = run(&pcm, pcm.len());
+        let is_frames = snaps.iter().filter(|s| s.is_bands > 0).count();
+        let is_bands: u32 = snaps.iter().map(|s| s.is_bands).sum();
+        let books15: usize = snaps
+            .iter()
+            .flat_map(|s| s.section_books.get(1).into_iter().flatten())
+            .filter(|&&b| b == 15)
+            .count();
+        println!(
+            "IS_PROBE_WAV {path}: frames={} is_frames={is_frames} is_bands={is_bands} books15={books15}",
+            snaps.len()
+        );
+        if let Ok(out) = std::env::var("IS_PROBE_OUT") {
+            use std::io::Write;
+            let mut f = std::fs::File::create(out).expect("create probe dump");
+            for (i, s) in snaps.iter().enumerate() {
+                writeln!(f, "{i} {} {}", s.is_bands, s.digest).expect("write probe dump");
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum ResidualKind {
+        FrontendBoundary,
+        UnresolvedTail,
+    }
+
+    fn range_vec(a: i32, b: i32) -> Vec<i32> {
+        (a..=b).collect()
+    }
+
+    // Signatures of the retained 2026-10-22 synthetic probes. Long-frame
+    // edge losses follow pre-IS C/Rust spectrum/energy divergence (verified
+    // by replaying the Rust port on C pre-IS operands); the flush-tail cases
+    // are marked unresolved because their exact upstream stage is not pinned
+    // down. Any new signature fails the parity test.
+    fn expected_residual(probe: &str, frame: u32) -> Option<(ResidualKind, Vec<i32>, Vec<i32>)> {
+        match probe {
+            "noise-like-in-phase" => match frame {
+                28 | 47 => Some((
+                    ResidualKind::FrontendBoundary,
+                    range_vec(15, 37),
+                    range_vec(15, 35),
+                )),
+                43 => Some((
+                    ResidualKind::FrontendBoundary,
+                    range_vec(14, 36),
+                    range_vec(14, 35),
+                )),
+                51 => Some((
+                    ResidualKind::FrontendBoundary,
+                    range_vec(13, 35),
+                    range_vec(14, 35),
+                )),
+                60 => Some((
+                    ResidualKind::FrontendBoundary,
+                    range_vec(15, 35),
+                    range_vec(13, 35),
+                )),
+                _ => None,
+            },
+            "noise-like-out-phase" => match frame {
+                51 => Some((
+                    ResidualKind::FrontendBoundary,
+                    range_vec(13, 35),
+                    range_vec(14, 35),
+                )),
+                95 => Some((
+                    ResidualKind::UnresolvedTail,
+                    range_vec(16, 22),
+                    range_vec(14, 22),
+                )),
+                _ => None,
+            },
+            "tones-in-phase" => {
+                if frame == 95 {
+                    Some((
+                        ResidualKind::UnresolvedTail,
+                        vec![
+                            14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32,
+                        ],
+                        range_vec(14, 32),
+                    ))
+                } else if (8..=89).contains(&frame) && (frame - 8) % 3 == 0 {
+                    Some((
+                        ResidualKind::FrontendBoundary,
+                        range_vec(12, 33),
+                        range_vec(12, 32),
+                    ))
+                } else {
+                    None
+                }
+            }
+            "tones-out-phase" => (frame == 95).then(|| {
+                (
+                    ResidualKind::UnresolvedTail,
+                    range_vec(14, 22),
+                    range_vec(14, 32),
+                )
+            }),
+            "narrowband-in-phase" => {
+                (frame == 95).then(|| (ResidualKind::UnresolvedTail, Vec::new(), range_vec(24, 30)))
+            }
+            "narrowband-out-phase" => None,
+            _ => None,
+        }
+    }
+
+    fn known_scale_frame(probe: &str, frame: u32) -> bool {
+        match probe {
+            "noise-like-in-phase" => matches!(frame, 1 | 2 | 19 | 33 | 56),
+            "noise-like-out-phase" => frame == 95,
+            "tones-in-phase" | "tones-out-phase" => {
+                frame == 95 || ((7..=88).contains(&frame) && (frame - 7) % 3 == 0)
+            }
+            "narrowband-in-phase" | "narrowband-out-phase" => false,
+            _ => false,
+        }
+    }
+
+    fn expected_scale_mismatches(probe: &str) -> usize {
+        match probe {
+            "noise-like-in-phase" => 5,
+            "noise-like-out-phase" => 1,
+            "tones-in-phase" => 38,
+            "tones-out-phase" => 30,
+            "narrowband-in-phase" | "narrowband-out-phase" => 0,
+            _ => 0,
+        }
+    }
+
+    fn expected_scale_compared(probe: &str) -> usize {
+        match probe {
+            "noise-like-in-phase" => 2046,
+            "noise-like-out-phase" => 2032,
+            "tones-in-phase" => 2015,
+            "tones-out-phase" => 1924,
+            "narrowband-in-phase" => 17,
+            "narrowband-out-phase" => 13,
+            _ => 0,
+        }
+    }
+
+    fn expected_band_sets(probe: &str) -> (u32, u32) {
+        match probe {
+            "noise-like-in-phase" => (2052, 2048),
+            "noise-like-out-phase" => (2033, 2034),
+            "tones-in-phase" => (2043, 2016),
+            "tones-out-phase" => (1924, 1934),
+            "narrowband-in-phase" => (17, 24),
+            "narrowband-out-phase" => (13, 13),
+            _ => (0, 0),
+        }
+    }
+
+    fn band_indices(v: &[i32]) -> Vec<i32> {
+        v.iter()
+            .enumerate()
+            .filter(|(_, &x)| x != 0)
+            .map(|(i, _)| i as i32)
+            .collect()
+    }
+
+    #[test]
+    fn intensity_probe_c_oracle_parity() {
+        // Environment-gated: the retained probe WAV and C oracle are outside
+        // the repository. Exact oracle-domain band vectors are compared below;
+        // decoder `aCodeBook` indices are not used for short-block comparison.
+        let (Ok(path), Ok(oracle)) = (std::env::var("IS_PROBE_WAV"), std::env::var("IS_C_ORACLE"))
+        else {
+            return;
+        };
+        let probe = std::path::Path::new(&path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .expect("probe stem")
+            .to_string();
+        let pcm = read_wav_16(&path);
+        let snaps = run(&pcm, pcm.len());
+        let dir = std::env::temp_dir().join(format!("is-c-oracle-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("mkdir oracle dir");
+        let dump = dir.join("probe.oracle.txt");
+        let out = std::process::Command::new(oracle)
+            .arg(&path)
+            .arg(&dump)
+            .output()
+            .expect("spawn enc_oracle");
+        assert!(out.status.success(), "oracle exit {:?}", out.status);
+
+        let mut c_sets = Vec::<Vec<i32>>::new();
+        let mut c_iss = Vec::<Vec<i32>>::new();
+        let mut c_msd = Vec::<i32>::new();
+        let mut cur = 0usize;
+        let mut ch = 0usize;
+        let mut got_frame = false;
+        for line in std::fs::read_to_string(&dump)
+            .expect("read oracle dump")
+            .lines()
+        {
+            if let Some(rest) = line.strip_prefix("FRAME ") {
+                let mut it = rest.split_whitespace();
+                cur = it.next().expect("frame").parse().expect("frame int");
+                it.next(); // CH
+                ch = it.next().expect("ch").parse().expect("ch int");
+                if cur >= c_sets.len() {
+                    c_sets.resize_with(cur + 1, Vec::new);
+                    c_iss.resize_with(cur + 1, Vec::new);
+                    c_msd.resize(cur + 1, 0);
+                }
+                got_frame = true;
+            } else if got_frame && ch == 1 && line.starts_with("ISB ") {
+                c_sets[cur] = line
+                    .split_whitespace()
+                    .skip(1)
+                    .map(|v| v.parse().expect("ISB int"))
+                    .collect();
+            } else if got_frame && ch == 1 && line.starts_with("ISS ") {
+                c_iss[cur] = line
+                    .split_whitespace()
+                    .skip(1)
+                    .map(|v| v.parse().expect("ISS int"))
+                    .collect();
+            } else if got_frame && line.starts_with("MSD ") {
+                c_msd[cur] = line
+                    .split_whitespace()
+                    .nth(1)
+                    .expect("MSD digest")
+                    .parse()
+                    .expect("MSD int");
+            }
+        }
+        let n = snaps.len().min(c_sets.len());
+        let mut exact_frames = 0usize;
+        let mut boundary_frames = 0usize;
+        let mut tail_frames = 0usize;
+        let mut band_mismatches = 0usize;
+        let mut scale_cmp = 0usize;
+        let mut scale_mismatch = 0usize;
+        for i in 0..n {
+            let cs = band_indices(&c_sets[i]);
+            let rs = snaps[i]
+                .ms_cap
+                .as_ref()
+                .map(|c| band_indices(&c.is_book))
+                .unwrap_or_default();
+            match expected_residual(&probe, i as u32) {
+                Some((kind, expected_c, expected_r)) => {
+                    assert_ne!(
+                        cs, rs,
+                        "{probe} f={i}: expected known {kind:?} residual no longer present"
+                    );
+                    assert_eq!(
+                        cs, expected_c,
+                        "{probe} f={i}: C band set changed from known {kind:?} residual"
+                    );
+                    assert_eq!(
+                        rs, expected_r,
+                        "{probe} f={i}: Rust band set changed from known {kind:?} residual"
+                    );
+                    band_mismatches += 1;
+                    match kind {
+                        ResidualKind::FrontendBoundary => boundary_frames += 1,
+                        ResidualKind::UnresolvedTail => tail_frames += 1,
+                    }
+                }
+                None => {
+                    exact_frames += 1;
+                    assert_eq!(
+                        cs, rs,
+                        "{probe} f={i}: unexpected exact-band mismatch: C={cs:?} Rust={rs:?}"
+                    );
+                }
+            }
+
+            if let Some(cap) = snaps[i].ms_cap.as_ref() {
+                for (b, &book) in cap.is_book.iter().enumerate() {
+                    if book != 0 && c_iss.get(i).and_then(|v| v.get(b)).copied().unwrap_or(0) != 0 {
+                        scale_cmp += 1;
+                        if snaps[i].is_scale_values.get(b).copied().unwrap_or(0) != c_iss[i][b] {
+                            assert!(
+                                known_scale_frame(&probe, i as u32),
+                                "{probe} f={i} b={b}: unexpected intensity-scale mismatch C={} Rust={}",
+                                c_iss[i][b],
+                                snaps[i].is_scale_values.get(b).copied().unwrap_or(0)
+                            );
+                            scale_mismatch += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // C oracle `ISB` and Rust `ms_cap.is_book` are the same decision
+        // representation. Do not compare C `ISB` to decoder `aCodeBook`
+        // indices for short blocks: the decoder's grouped section indexing
+        // is offset from the oracle book vector, while both C and Rust ADTS
+        // streams carry the same short-frame codebook placement.
+        if probe == "narrowband-in-phase" {
+            let short_c = band_indices(&c_sets[1]);
+            let short_r = snaps[1]
+                .ms_cap
+                .as_ref()
+                .map(|c| band_indices(&c.is_book))
+                .unwrap_or_default();
+            assert_eq!(short_c, range_vec(30, 37), "C short-frame IS bands");
+            assert_eq!(short_r, short_c, "Rust short-frame IS bands");
+        }
+
+        let c_total: u32 = c_sets
+            .iter()
+            .take(n)
+            .map(|v| band_indices(v).len() as u32)
+            .sum();
+        let r_total: u32 = snaps.iter().take(n).map(|s| s.is_bands).sum();
+        let (expected_c_total, expected_r_total) = expected_band_sets(&probe);
+        assert_eq!(
+            (c_total, r_total),
+            (expected_c_total, expected_r_total),
+            "{probe}: C/Rust band totals changed"
+        );
+        assert_eq!(
+            scale_cmp,
+            expected_scale_compared(&probe),
+            "{probe}: scale comparison count changed"
+        );
+        assert_eq!(
+            scale_mismatch,
+            expected_scale_mismatches(&probe),
+            "{probe}: scale mismatch count changed"
+        );
+        let msd_mismatch = (0..n).filter(|&i| snaps[i].digest != c_msd[i]).count();
+        let expected_msd = usize::from(probe == "narrowband-in-phase");
+        assert_eq!(
+            msd_mismatch, expected_msd,
+            "{probe}: MSD mismatch pattern changed"
+        );
+        if probe == "narrowband-in-phase" {
+            assert_eq!(c_msd.get(95).copied(), Some(2), "C frame 95 MSD");
+            assert_eq!(
+                snaps.get(95).map(|s| s.digest),
+                Some(1),
+                "Rust frame 95 MSD"
+            );
+        }
+
+        println!(
+            "IS_C_PARITY {probe}: frames={n} exact={exact_frames} known_frontend_boundary={boundary_frames} unresolved_tail={tail_frames} band_set_mismatches={band_mismatches} C_bands={c_total} R_bands={r_total} msd_mismatch={msd_mismatch} scale_compared={scale_cmp} scale_mismatch={scale_mismatch}"
+        );
+    }
+
+    #[test]
+    fn intensity_probe_decisions() {
+        for (label, out_phase, centered, narrow) in [
+            ("broad-in", false, false, false),
+            ("broad-out", true, false, false),
+            ("centered", false, true, false),
+            ("narrow-in", false, false, true),
+        ] {
+            let pcm = probe_pcm(true, out_phase, centered, narrow);
+            let snaps = run(&pcm, 2);
+            let is_frames = snaps.iter().filter(|s| s.is_bands > 0).count();
+            let is_bands: u32 = snaps.iter().map(|s| s.is_bands).sum();
+            let is_scale: u32 = snaps.iter().map(|s| s.is_scale_nz).sum();
+            let books15: usize = snaps
+                .iter()
+                .flat_map(|s| s.section_books.get(1).into_iter().flatten())
+                .filter(|&&b| b == 15)
+                .count();
+            let mask_ones: u32 = snaps
+                .iter()
+                .filter_map(|s| s.ms_cap.as_ref())
+                .map(|c| c.mask.iter().map(|&v| v as u32).sum::<u32>())
+                .sum();
+            let mut is_mask_zero = 0u32;
+            let mut is_mask_one = 0u32;
+            for cap in snaps.iter().filter_map(|s| s.ms_cap.as_ref()) {
+                for (b, &book) in cap.is_book.iter().enumerate() {
+                    if book != 0 {
+                        if cap.mask[b] == 0 {
+                            is_mask_zero += 1;
+                        } else {
+                            is_mask_one += 1;
+                        }
+                    }
+                }
+            }
+            let digest_counts = [
+                snaps.iter().filter(|s| s.digest == 0).count(),
+                snaps.iter().filter(|s| s.digest == 1).count(),
+                snaps.iter().filter(|s| s.digest == 2).count(),
+            ];
+            println!(
+                "{label}: frames={} is_frames={is_frames} is_bands={is_bands} is_scale={is_scale} books15={books15} mask_ones={mask_ones} is_mask0={is_mask_zero} is_mask1={is_mask_one} digests={digest_counts:?}",
+                snaps.len()
+            );
+            if centered {
+                assert_eq!(is_frames, 0, "centered must not use IS");
+                assert!(!snaps.iter().any(|s| s.is_book_any));
+            } else {
+                assert!(is_frames > 0, "{label} should trigger IS");
+                assert!(is_bands > 0 && is_scale > 0);
+                assert_eq!(is_scale, is_bands, "{label}: selected bands have scales");
+                assert!(
+                    snaps.iter().any(|s| s.seq == 2 && s.is_bands > 0),
+                    "{label}: no short-frame IS decision"
+                );
+                assert!(books15 > 0, "{label}: right-channel codebook 15");
+                assert!(!snaps
+                    .iter()
+                    .any(|s| s.section_books[0].iter().any(|&b| b == 15)));
+                if !narrow {
+                    assert!(
+                        snaps
+                            .iter()
+                            .filter(|s| s.is_bands > 0)
+                            .all(|s| s.digest == 1),
+                        "{label}: IS frames use MS_SOME"
+                    );
+                }
+                if out_phase && !narrow {
+                    assert!(is_mask_one > is_mask_zero, "out-of-phase mask");
+                }
+                if !out_phase && !narrow {
+                    assert!(is_mask_zero > is_mask_one, "in-phase mask");
+                }
+            }
+        }
+
+        let mono = probe_pcm(false, false, false, false);
+        let mono_snaps = run(&mono, 1);
+        assert!(!mono_snaps.iter().any(|s| s.is_book_any));
+        assert!(mono_snaps.iter().all(|s| s.is_bands == 0));
+
+        let centered_existing = testdata::fixture_samples("sine-stereo");
+        let existing_snaps = run(&centered_existing, 2);
+        assert!(!existing_snaps.iter().any(|s| s.is_book_any));
+    }
+
+    #[test]
+    fn intensity_probe_44100_stereo() {
+        // Rust-only positive-path coverage at the other production rate.
+        // This deliberately does not claim C parity; the C-oracle cases are
+        // environment-gated because their retained WAV/oracle artifacts are
+        // external to the repository.
+        let pcm = probe_pcm(true, false, false, false);
+        let snaps = run_at(44_100, &pcm, 2);
+        assert!(
+            snaps.iter().any(|s| s.is_bands > 0),
+            "44.1 kHz stereo probe did not exercise IS"
+        );
+        assert!(
+            snaps
+                .iter()
+                .any(|s| s.section_books.get(1).is_some_and(|v| v.contains(&15))),
+            "44.1 kHz stereo probe did not emit right-channel codebook 15"
+        );
+    }
+
+    #[test]
+    fn intensity_probe_adts_decodes() {
+        let Ok(dec) = std::env::var("AAC_DEC_BIN") else {
+            return;
+        };
+        let pcm = probe_pcm(true, false, false, false);
+        let (snaps, adts) = run_with_bytes(&pcm, 2);
+        assert!(snaps.iter().any(|s| s.is_bands > 0));
+        let dir = std::env::temp_dir().join(format!("is-rust-decode-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("mkdir decode dir");
+        let aac = dir.join("probe.aac");
+        let wav = dir.join("probe.wav");
+        std::fs::write(&aac, &adts).expect("write aac");
+        let out = std::process::Command::new(dec)
+            .arg(&aac)
+            .arg(&wav)
+            .output()
+            .expect("spawn aac-dec");
+        assert!(
+            out.status.success(),
+            "decoder exit={:?} stderr={}",
+            out.status,
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(
+            out.stderr.is_empty(),
+            "decoder stderr={}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let decoded = std::fs::read(&wav).expect("read decoded wav");
+        assert!(decoded.len() > 44);
+        assert_eq!(&decoded[0..4], b"RIFF");
+        assert!(decoded[44..].iter().any(|&b| b != 0));
     }
 }
 

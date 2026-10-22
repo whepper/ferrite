@@ -149,6 +149,7 @@ pub mod config;
 pub mod encoder;
 pub mod energy;
 pub mod frame;
+pub(crate) mod intensity;
 #[cfg(test)]
 pub(crate) mod m5a_decode;
 #[cfg(test)]

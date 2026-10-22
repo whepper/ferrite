@@ -1,9 +1,11 @@
 # AAC-LC VBR-5 Encoder Profile: C Reference and Rust Implementation
 
-Status: source-audit and documentation record. No encoder behaviour was changed.
+Status: profile audit and current implementation-status record. The
+intensity-stereo implementation described here is part of the current Rust
+encoder; this document is not a listening or perceptual-quality report.
 
 - Date: 2026-10-22
-- Repository HEAD: `e51f35fe3d4e757a2a140455eb69c1e8d770dab9`
+- Baseline HEAD: `c5ab7d1`
 - C reference: FDK AAC v3.0.0 (`99356b5`) with the repository's encoder strip
   commits applied; the algorithm files listed in §1.3 are unchanged from
   v3.0.0.
@@ -50,7 +52,9 @@ units. Where the source does not establish a value, the document says
 
 ### 1.3 Method and evidence classes
 
-The audit was read-only. Three evidence classes are used:
+The source audit was read-only. The implementation-status sections describe
+the current `rust/src/aac_enc` implementation; no listening test was run.
+Three evidence classes are used:
 
 - **[Source]** a value or branch read directly from the cited C or Rust source.
 - **[Measured]** a number taken from a committed or retained measurement record,
@@ -232,8 +236,9 @@ For each frame, `FDKaacEnc_EncodeFrame` (`aacenc.cpp:769`) runs:
 
 1. block switching per channel and stereo synchronization;
 2. forward MDCT with the selected window sequence;
-3. psychoacoustic analysis: energies, spreading, thresholds, pre-echo, TNS,
-   M/S energies;
+3. psychoacoustic analysis: energies, spreading, thresholds, pre-echo and
+   TNS; then PNS (disabled in this profile), the intensity-stereo
+   decision/processing, and M/S energies;
 4. VBR threshold adaptation (`FDKaacEnc_AdaptThresholdsVBR`,
    `adj_thr.cpp:2160-2194`);
 5. scalefactor estimation with `invQuant = 2`
@@ -282,7 +287,7 @@ needed to understand the profile:
 |---|---|---|---|---|
 | Low-pass line | 823 (48 kHz long), 895 (44.1 kHz long), 102 (48 kHz short), 111 (44.1 kHz short) | `floor(2 × bandwidth × frameLength / sampleRate)` | `SfbConfig::lowpass_line` | 1 |
 | Active SFB count | 45 long / 13 short at 48 kHz; 47 long / 13 short at 44.1 kHz | First SFB whose offset reaches the low-pass line | `sfb_active` | 1 |
-| `allowIS` | Stereo: true (96,000 / 19,293 = 4, integer division, `< 5`); mono: false (112,000 / 19,293 = 5) | `useIS && (bitrate / bandwidth) < 5` | `allow_is` computed; IS itself not implemented | 3 (see §7.2) |
+| `allowIS` | Stereo: true (96,000 / 19,293 = 4, integer division, `< 5`); mono: false (112,000 / 19,293 = 5) | `useIS && (bitrate / bandwidth) < 5` | `allow_is` computed in `sfb.rs` and consumed by the stereo-only IS call | 1 configuration; see §7.2 for end-to-end decisions |
 | `allowMS` | true | `useMS = 1` | `allow_ms = true` | 1 configuration |
 | Long-window spreading high factor | 2.0 | `bitrate > 20,000` selects `MASKHIGHSPRENLONG` | Q31 table value | 1 |
 | TNS stop band | 40 (48 kHz long), 42 (44.1 kHz long) | `min(tnsMaxBands, sfbActive)` | `TnsConfig::stop_band` | 1 |
@@ -292,8 +297,9 @@ needed to understand the profile:
 
 The `allowIS` result is a direct consequence of the VBR-5 bitrate and
 bandwidth values, not a separate VBR-5 switch. It matters because the C
-encoder is *permitted* to use intensity stereo on stereo VBR-5 content, while
-the Rust encoder does not implement the IS decision (§8, D2).
+encoder is *permitted* to use intensity stereo on stereo VBR-5 content. The
+Rust encoder computes the same gate and consumes it in the stereo path; the
+remaining end-to-end differences are described in §5.3, §7.2 and D2.
 
 ---
 
@@ -311,7 +317,7 @@ the Rust encoder does not implement the IS decision (§8, D2).
 | Transport | ADTS default, RAW allowed; LATM/LOAS/ADIF rejected | Seven-byte ADTS header, no CRC, one raw block | `TransportType::Adts`/`Raw` (`config.rs:132-139`); production API ADTS only | 1 for ADTS, 4 for RAW exposure |
 | TNS | Enabled, mask `0xF` (long and short) | Common AAC-LC tool, signal-controlled | `TnsConfig.active = true` for long/short | 1 configuration, 2 implementation |
 | M/S | Enabled (`useMS = 1`) | Common AAC-LC stereo tool | `allow_ms = true` | 1 configuration, 2 implementation |
-| Intensity stereo | Enabled (`useIS = 1`) | Common AAC-LC stereo tool; `allowIS` decides per configuration | `allow_is` computed, decision not implemented | 3 |
+| Intensity stereo | Enabled (`useIS = 1`) | Common AAC-LC stereo tool; `allowIS` decides per configuration | `allow_is`; `intensity_stereo` before M/S; right-channel books/scales; mono/no-IS zero path | 1 configuration, 2 implementation |
 | PNS | Forced off in this tree (`usePns = 0`) | No perceptual noise substitution | No PNS path; `NO_NOISE_PNS` | 1 configuration, 4 implementation |
 | Afterburner | Forced on (`invQuant = 2`) | Analysis-by-synthesis scalefactor search | `estimate_scale_factors_channel*` always `inv = 2` | 1 |
 | User bitrate | Ignored | The table value wins | No bitrate parameter | 1 |
@@ -348,13 +354,26 @@ reference audited here.
 - **PNS [Source]**: `hAacConfig->usePns = 0` (`aacenc_lib.cpp:665-666`);
   `FDKaacEnc_PnsDetect` returns immediately when `usePns == 0`
   (`aacenc_pns.cpp:192-194`); `CodePnsChannel` writes `NO_NOISE_PNS`.
-  Rust passes `NO_NOISE_PNS` and zero books (`stream_driver.rs:34-36,1172-1175`).
+  Rust passes `NO_NOISE_PNS`; the PNS path remains disabled.
 - **IS [Source]**: `allowIS` is true for stereo because 96,000/19,293 = 4
   in integer division (`psy_configuration.cpp:565`). IS also requires a common
-  window (`psy_main.cpp:1187,1213`). The C encoder can therefore set
-  `isBook`/`isScale` on suitable stereo content. Rust computes `allow_is` but
-  passes zero books (`stream_driver.rs:999-1025`) and does not implement the
-  decision. This is discussed as D2 in §8.
+  window (`psy_main.cpp:1187,1213`). The Rust stereo CPE has a common window
+  by construction and, after the frontend and before M/S, calls the Q31
+  decision/processing port in `intensity.rs` (`stream_driver.rs:917-938`;
+  `intensity.rs:375-591`). It writes right-channel `isBook`/`isScale` data,
+  keeps the left channel zero, skips IS bands in M/S, and carries the
+  books/scales through PE, bit counting, rate control and frame assembly.
+  Mono bypasses IS, and `allow_is == false` returns all-zero books/scales.
+  C/Rust pre-IS operands are not always bit-identical: on retained synthetic
+  probes, long-frame boundary decisions and intensity scales differ, and the
+  narrowband frame-95 flush-tail decision differs. Replaying C pre-IS
+  operands through the Rust port reproduces C's band decisions, so the
+  retained differences are frontend/state-driven rather than a demonstrated
+  IS-port defect; the exact upstream stage for the tail is not established.
+  The narrowband short frame-1 decision is exact in the oracle book domain;
+  the apparent decoder-band shift is a representation difference for both C
+  and Rust, not an IS decision difference. These findings do not prove an
+  audible-quality difference or perceptual equivalence.
 
 ### 5.4 Limits
 
@@ -411,9 +430,10 @@ and frame accounting rather than on the transform or stereo tools:
    KBD for long, SINE for start/short, KBD for stop
    (`block_switch.cpp:122-124`; `transform.cpp:117-167`).
 3. **Psychoacoustics [Source]**: band energies, spreading, threshold
-   initialization, PCM floor, pre-echo control, TNS and M/S energies
-   (`psy_main.cpp:552-1130`). The VBR-5 bandwidth limits the active bands to
-   45 long at 48 kHz, 47 long at 44.1 kHz, and 13 short at both rates.
+   initialization, PCM floor, pre-echo control, TNS, the IS decision and
+   M/S energies (`psy_main.cpp:552-1130,1177-1219`). The VBR-5 bandwidth
+   limits the active bands to 45 long at 48 kHz, 47 long at 44.1 kHz, and
+   13 short at both rates.
 4. **VBR threshold adaptation [Source]**: `AdaptThresholdsVBR`
    (`adj_thr.cpp:2160-2194`) calls `adaptMinSnr`, `initAvoidHoleFlag`, and
    `reduceThresholdsVBR` (`:1108-1312`). The threshold lift is
@@ -471,7 +491,7 @@ This is the central mechanism of VBR-5.
 
 **Not fixed by the preset:** the window sequence, shape and grouping; the TNS
 active flags, order and coefficients; the M/S digest and per-band mask; the IS
-books/scales in C; scalefactors and global gain; whether the gain loop needs a
+books/scales; scalefactors and global gain; whether the gain loop needs a
 second pass or crash recovery; the fill bits; and the resulting frame size and
 average rate. The preset fixes the bandwidth, quality factor, nominal rate
 table and accounting rules; these decisions remain per-frame and
@@ -494,7 +514,8 @@ and scalefactors, plus 0–7 alignment bits. It varies because:
   spreading, and quantizer demands;
 - long versus short windows change the number of coded bands, grouping and
   TNS configuration;
-- stereo M/S changes which bands are coded as sum/difference;
+- stereo M/S and IS change which bands are coded as sum/difference or
+  intensity;
 - TNS can reshape the spectrum and change its coding cost;
 - the gain loop may requantize or, in the limit, drop bands;
 - there is no reservoir smoothing and no average-frame target to pull a quiet
@@ -592,8 +613,8 @@ The production path is:
 | Bit counting / sections | `bitcount.rs` | exact integer mirror |
 | Rate control / gain loop | `rate.rs` | exact integer mirror of VBR branches |
 | Frame assembly / ADTS | `frame.rs`, `adts.rs` | exact bit writer and header writer |
-| Stereo M/S | `stream_driver.rs::ms_stereo_mirror` | exact integer mirror, float-derived inputs |
-| Intensity stereo | — | not implemented |
+| Intensity stereo | `intensity.rs` + driver call | C Q31 decision/processing before M/S; stereo CPE only |
+| Stereo M/S | `stream_driver.rs::ms_stereo_mirror` | exact integer mirror, float-derived inputs, IS-band skip |
 | PNS | — | not implemented; configuration is off |
 
 The Rust module docs themselves state the intended fidelity. For example,
@@ -614,7 +635,7 @@ autocorrelation lane and the float Schur lane.
 | Forward MDCT | Fixed-point MDCT | Float MDCT with pinned absolute scale | **2** — implementation difference; output residue feeds later decisions | `transform.rs:94-127` |
 | TNS | Integer autocorrelation + fixed-point Schur; max order 12/5, coefRes 4/3 | Exact integer autocorrelation; float Schur; same config | **2** for mechanism, **3** for 40 pinned decision flips (active-filter cases have unverified quality impact) | `aacenc_tns.cpp:377-503`; `tns.rs:94-116,185-246`; M5.25 D-012/D-013 |
 | Stereo M/S | Threshold-based per-band decision; `MS_NONE/SOME/ALL`; allows all non-IS bands to become M/S | Exact integer mirror of `MsStereoProcessing`; `allow_ms = true` | **2** — exact logic, float-derived operands; one known band-16 flip | `ms_stereo.cpp:109-295`; `stream_driver.rs:235-389,964-987`; M5.26 |
-| Intensity stereo | Enabled by default; `allowIS = true` for stereo VBR-5; requires common window and correlation/region tests | Not implemented; zero books are passed | **3** — C can use IS on suitable stereo content; Rust cannot | `intensity.cpp:614-639`; `psy_configuration.cpp:565`; `stream_driver.rs:34-36,999-1025` |
+| Intensity stereo | Enabled by default; `allowIS = true` for stereo VBR-5; requires common window and correlation/region tests | C-derived Q31 decision/processing in `intensity.rs`, called before M/S; right-channel books/scales; mono/no-IS zero path | **2** — exact integer port given C pre-IS operands; end-to-end boundary residuals are frontend-driven; narrowband flush tail unresolved | `intensity.cpp:258-817`; `intensity.rs:189-591`; `stream_driver.rs:917-938,1019`; `stream_driver.rs::is_integration_tests` |
 | PNS | Forced off in this tree | Not implemented; zero noise books | **4** — not applicable to this profile; the C path is disabled by configuration and Rust has no path | `aacenc_lib.cpp:665-666`; `aacenc_pns.cpp:192-194`; `stream_driver.rs:1172-1175` |
 | Quantization | Fixed-point quantizer, dead zone off, `MAX_QUANT = 8191` | Exact integer mirror | **1** | `quantize.cpp:116-301`; `quant.rs:94-140` |
 | Scalefactor search / afterburner | `invQuant = 2` full search | Exact integer mirror, `inv = 2` only | **1** (with the `q == -32768` guard difference below) | `sf_estim.cpp:1046-1292`; `scf.rs:94-189,1106-1145` |
@@ -656,7 +677,9 @@ These are distinct and should not be conflated:
 
 - Float-native block switching, MDCT, Schur/TNS, and spectrum-to-Q31 mapping,
   with documented residue and pinned flips.
-- No IS decision in Rust, although the C configuration allows IS for stereo.
+- IS is implemented as a Q31 port and integrated before M/S; it is not
+  end-to-end bit-identical because those frontend operands are not always
+  identical (see D2).
 - No multi-pass/crash frame emission in the Rust production API, although
   `rate.rs` implements the mechanism.
 - Init-time `minSnr` comes from committed C snapshots for four operating
@@ -684,6 +707,12 @@ must be restated.
 - **No evidence of perceptual equivalence**: there is no listening test, ABX
   test, or perceptual metric in the repository. Structural and objective
   distance measurements do not establish transparency.
+- **IS parity is conditional**: the Q31 port reproduces C's band decisions
+  when fed C's pre-IS operands. On six retained synthetic probes, end-to-end
+  band sets differ on 38 of 576 aligned frames (34 long-frame frontend
+  boundaries and four flush tails), 74 intensity-scale values differ, and one
+  MSD differs (narrowband frame 95). The exact upstream tail stage is not
+  established.
 
 ---
 
@@ -695,7 +724,7 @@ measured quality result.
 | ID | Deviation / gap | Effect | Evidence | Severity |
 |---|---|---|---|---|
 | D1 | **Multi-pass / crash frames are not emitted by the Rust API.** `step_frame` returns no bytes when `passes.len() != 1`; crash frames are classified and discarded. C can encode them (possibly with reduced `maxSfb`) or fail through its own error paths. | A frame that needs requantization after the first pass becomes a terminal error in `Encoder`, not output. | `stream_driver.rs:1297-1310`; `encoder.rs:288-299,318-336`; M5.25 D-040; M5.i (0 occurrences in 2,442 corpus frames) | High for robustness; not observed in the corpus |
-| D2 | **Intensity stereo is not implemented.** C computes `allowIS = true` for stereo VBR-5 and can set `isBook`/`isScale`; Rust passes zero books. | On strongly correlated, off-center stereo content C could use IS and Rust cannot; bitstream and rate may diverge. Corpus oracle dumps show no live IS, so this is unexercised, not disproven. | `psy_configuration.cpp:565`; `intensity.cpp:614-639`; `stream_driver.rs:34-36,999-1025`; M5.25 D-014 | Medium–high |
+| D2 | **Intensity-stereo decisions are not end-to-end identical on retained synthetic probes.** The Q31 decision/processing port is implemented and reproduces C's band decisions when fed C's pre-IS operands. C/Rust pre-IS spectra/energies differ on boundary frames, and narrowband frame 95 differs because its pre-IS operands differ. | On the six retained probes, 38 of 576 aligned frames have band-set differences (34 long-frame frontend boundaries, four flush tails); 74 intensity scales and one MSD differ. The exact upstream tail stage is unresolved. No audible-quality difference or perceptual equivalence is established. | `intensity.cpp:258-817`; `intensity.rs:375-591`; `stream_driver.rs:917-938,1019`; `stream_driver.rs::is_integration_tests` | Medium; not a direct IS-port defect |
 | D3 | **TNS decision flips on 40 pinned windows.** The documented likely cause is f32 MDCT residue crossing Q15 coefficient borders; active-filter cases change the encoded spectrum. | Bitstream/rate differences on transients; quality impact unverified. | `aac-enc-quality-divergence-audit-m5.25.md` D-012/D-013; `tns.rs:94-116` | Medium |
 | D4 | **Float front-end residue** (MDCT, block-switch energies, spectrum-to-Q31 mapping) causes 21 `KNOWN_MAXSCALE` ±1 flips and at least one MS band-16 decision flip. | Mostly representational; decision flips are pinned and bounded. No general neutrality proof. | M5.25 D-011; M5.26 §1; `energy.rs:107-112` | Medium–low |
 | D5 | **Init-time psy tables are snapshots, not derivations.** `minSnr` is embedded for 44.1/48 kHz × 96/112 kbit/s; the snapshot loader panics for other combinations. | Exact at the validated points; cannot generalize to other rates/bitrates without new snapshots. | `psy_config.rs:29-55`; `stream_driver.rs:568-576` | Medium for scope; none at validated points |
@@ -709,9 +738,11 @@ measured quality result.
 
 ### Open questions
 
-1. **How often does C actually use IS at VBR-5 on real stereo content?**
-   `allowIS` is true, but the correlation/region tests are strict. The corpus
-   shows zero books; that is a corpus result, not a proof of non-occurrence.
+1. **How often do C and Rust use IS at VBR-5 on real stereo content?**
+   `allowIS` is true, but the correlation/region tests are strict. The
+   retained synthetic probes exercise IS, while the 19-stream corpus remains
+   IS-free; that is a corpus result, not a proof of non-occurrence or
+   equivalence.
 2. **How often do multi-pass or crash frames occur on real content?** The
    measured 19-stream corpus shows zero in 2,442 frames, with at least 984 bits
    of headroom (M5.i §5). The mechanism is implemented but unexercised live.
@@ -745,7 +776,7 @@ measured quality result.
 | `cpp/libAACenc/src/aacenc_tns.cpp` | TNS config `:377-503` |
 | `cpp/libAACenc/src/block_switch.cpp` | LC block switching `:122-145,168-345` |
 | `cpp/libAACenc/src/ms_stereo.cpp` | M/S decision `:109-295` |
-| `cpp/libAACenc/src/intensity.cpp` | IS decision and `allowIS` early-out `:614-639` |
+| `cpp/libAACenc/src/intensity.cpp` | IS decision/processing `:258-817`; `allowIS` early-out `:639` |
 | `cpp/libAACenc/src/quantize.cpp` | Quantizer/inverse quantizer `:116-301` |
 | `cpp/libAACenc/src/sf_estim.cpp` | Scalefactor search / afterburner `:1046-1292` |
 | `cpp/libAACenc/src/dyn_bits.cpp`, `bit_cnt.cpp` | Sectioning and noiseless bit counting |
@@ -758,7 +789,8 @@ measured quality result.
 |---|---|
 | `rust/src/aac_enc/config.rs` | VBR-5 constants, whitelists, nominal rate, delay |
 | `rust/src/aac_enc/encoder.rs` | Production `Encoder` API and fail-closed error mapping |
-| `rust/src/aac_enc/stream_driver.rs` | Per-frame orchestration, M/S mirror, policy gates |
+| `rust/src/aac_enc/stream_driver.rs` | Per-frame orchestration, IS invocation, M/S mirror, policy gates |
+| `rust/src/aac_enc/intensity.rs` | C-derived Q31 IS decision and processing |
 | `rust/src/aac_enc/sfb.rs` | SFB geometry, spreading tables, `allow_is`/`allow_ms` |
 | `rust/src/aac_enc/psy_config.rs` | Embedded init-time C snapshots |
 | `rust/src/aac_enc/psy.rs`, `thresholds.rs`, `energy.rs` | Psychoacoustic orchestration and threshold chain |
@@ -792,6 +824,9 @@ measured quality result.
   scope and error contract.
 - `rust/src/aac_enc/testdata/qc6init_*.txt` — C-captured QC init values used
   in §3.2.
+- Retained synthetic IS probes (six cases, 2026-10-22) and the external
+  C-pre-IS diagnostic replay — used for the exact-band and residual
+  classifications; the probe WAVs and C dumps are not committed.
 
 ### 9.4 What the tests do and do not prove
 
@@ -800,6 +835,13 @@ measured quality result.
   divergence pinning, and no silent fallback on unsupported paths.
 - They do not prove: perceptual equivalence, bit-exactness on arbitrary
   content, IS/multi-pass behaviour on live content, or a target bitrate.
+- IS regression coverage includes exact C-oracle band sets on six retained
+  synthetic probes, an explicit short-frame exact-set check, classified
+  long-frame boundary signatures, a separately marked unresolved flush-tail
+  signature, scale/MSD gates, and a normal-suite 44.1 kHz stereo positive IS
+  test that emits codebook 15. The C-oracle checks are environment-gated
+  because their WAV/oracle artifacts are external to the repository; the
+  44.1 kHz test is not gated.
 
 ---
 
@@ -819,7 +861,10 @@ Any change that claims to preserve the VBR-5 profile must preserve:
 - afterburner `invQuant = 2` and PNS off, unless the profile definition is
   explicitly changed;
 - ADTS structural fields (56-bit header, profile 1, one block, `0x7FF`
-  fullness, 13-bit length).
+  fullness, 13-bit length);
+- IS remains stereo-only, gated by `allow_is`, and uses the C-derived
+  thresholds and integer operations; frontend residuals are not fixed by
+  retuning IS to force parity.
 
 ### 10.2 Validation gates
 
@@ -840,10 +885,14 @@ A change should be checked at four levels:
 
 - Changing any constant in §10.1 requires re-running the corpus, updating this
   document, and re-baselining the committed hashes.
-- Adding IS or multi-pass emission is not a profile change, but it changes the
-  effective output on content where those tools fire. It requires new C-oracle
-  fixtures and an explicit note that the previous corpus did not exercise the
-  path.
+- IS is present. Changing its thresholds, region rules or integration is not a
+  profile change, but it changes output on content where IS fires. Re-run the
+  retained C-oracle probes and update the classified residual signatures; do
+  not retune IS thresholds to force frontend parity.
+- Adding multi-pass emission is not a profile change, but it changes the
+  effective output on content where the gain loop would retry. It requires new
+  C-oracle fixtures and an explicit note that the previous corpus did not
+  exercise the path.
 - Do not describe a change as "quality improvement" without a listening or
   objective test that is actually run. The afterburner and VBR factor are
   mechanisms, not measured quality claims.
