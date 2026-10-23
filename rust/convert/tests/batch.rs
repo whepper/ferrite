@@ -91,7 +91,7 @@ fn flat_directory_converts_flac_and_ignores_the_rest() {
     assert_eq!(plan.entries.len(), 2);
     assert_eq!(plan.ignored.len(), 2);
 
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(
         outcome.summary,
         aac_convert::batch::BatchSummary {
@@ -99,6 +99,7 @@ fn flat_directory_converts_flac_and_ignores_the_rest() {
             failed: 0,
             existing: 0,
             ignored: 2,
+            skipped: 0,
         }
     );
     assert!(output.join("a.m4a").is_file());
@@ -137,7 +138,7 @@ fn nested_recursive_run_mirrors_structure_in_sorted_order() {
         "structure and stem preserved, extension replaced"
     );
 
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 3);
     assert_eq!(outcome.summary.failed, 0);
     // Reporting order equals processing order equals plan order.
@@ -165,7 +166,7 @@ fn no_recursive_converts_only_top_level_but_tallies_nested() {
     assert_eq!(plan.entries.len(), 1);
     assert_eq!(plan.entries[0].relative_input, PathBuf::from("top.flac"));
 
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 1);
     assert_eq!(
         outcome.summary.ignored, 1,
@@ -210,7 +211,7 @@ fn extension_case_variants_map_to_lowercase_batch_extensions() {
     );
     assert_eq!(plan.ignored.len(), 3);
 
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 4);
     assert_eq!(outcome.summary.failed, 0);
     for expected in &mapped {
@@ -239,7 +240,7 @@ fn hidden_files_and_directories_are_traversed() {
     let output = workspace.join("out");
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
     assert_eq!(plan.entries.len(), 2);
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 2);
     assert!(output.join(".hidden.m4a").is_file());
     assert!(output.join(".hiddendir/nested.m4a").is_file());
@@ -348,7 +349,7 @@ fn existing_destinations_fail_without_touching_sentinels() {
     fs::write(output.join("keep.m4a"), b"sentinel").unwrap();
 
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 1);
     assert_eq!(outcome.summary.failed, 1);
     assert_eq!(outcome.summary.existing, 1);
@@ -370,7 +371,7 @@ fn mixed_valid_and_broken_inputs_convert_what_can_convert() {
     let output = workspace.join("out");
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
     assert_eq!(plan.entries.len(), 3);
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 1);
     assert_eq!(outcome.summary.failed, 2);
     assert_eq!(outcome.summary.existing, 0);
@@ -403,7 +404,7 @@ fn nested_output_root_is_safe_and_repeat_runs_report_existing() {
     let output = input.join("conv");
 
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
-    let first = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let first = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(first.summary.converted, 2);
     assert_eq!(first.summary.failed, 0);
     assert!(output.join("a.m4a").is_file());
@@ -411,7 +412,7 @@ fn nested_output_root_is_safe_and_repeat_runs_report_existing() {
     // Generated outputs are not rediscovered as inputs.
     let replan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
     assert_eq!(replan.entries.len(), 2);
-    let second = execute_plan(&replan, OutputFormat::M4a, false).unwrap();
+    let second = execute_plan(&replan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(second.summary.converted, 0);
     assert_eq!(second.summary.failed, 2);
     assert_eq!(second.summary.existing, 2);
@@ -433,7 +434,7 @@ fn dry_run_plans_without_creating_decoding_or_publishing() {
 
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
     assert_eq!(plan.entries.len(), 2);
-    let outcome = execute_plan(&plan, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, true, false).unwrap();
     assert_eq!(outcome.summary.converted, 2);
     assert_eq!(outcome.summary.failed, 0);
     assert!(
@@ -447,7 +448,7 @@ fn dry_run_plans_without_creating_decoding_or_publishing() {
     assert_no_temp_files_anywhere(&input);
 
     // The real run then fails on the corrupt file while converting the good one.
-    let real = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let real = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(real.summary.converted, 1);
     assert_eq!(real.summary.failed, 1);
 }
@@ -462,7 +463,7 @@ fn dry_run_reports_existing_destinations_without_writing() {
     fs::write(output.join("a.m4a"), b"sentinel").unwrap();
 
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
-    let outcome = execute_plan(&plan, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, true, false).unwrap();
     assert_eq!(outcome.summary.converted, 0);
     assert_eq!(outcome.summary.failed, 1);
     assert_eq!(outcome.summary.existing, 1);
@@ -487,7 +488,7 @@ fn batch_m4a_outputs_carry_smpb_without_edit_list() {
     let output = workspace.join("out");
 
     let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 2);
 
     // D = 1600, P = 736, S = 12000 for the stereo fixture.
@@ -530,7 +531,7 @@ fn batch_adts_outputs_are_structurally_valid() {
         PathBuf::from("a.aac"),
         "ADTS batch extension is canonical .aac"
     );
-    let outcome = execute_plan(&plan, OutputFormat::Adts, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::Adts, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 1);
 
     let bytes = fs::read(output.join("a.aac")).unwrap();
@@ -559,7 +560,7 @@ fn batch_output_is_byte_identical_to_single_file_output() {
     // Convert the same files sequentially through one shared output tree to
     // also prove peak resource use never exceeds one file at a time: each
     // iteration leaves no temp files behind.
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 2);
 
     // Direct byte comparison against fresh single-file conversions proves
@@ -581,7 +582,7 @@ fn batch_output_is_byte_identical_to_single_file_output() {
     let fresh_adts = TempDir::new("batch-identity-fresh-adts");
     let batch_adts_out = workspace.join("batch-adts");
     let plan = plan_batch(&input, &batch_adts_out, OutputFormat::Adts, true).unwrap();
-    execute_plan(&plan, OutputFormat::Adts, false).unwrap();
+    execute_plan(&plan, OutputFormat::Adts, false, false).unwrap();
     aac_convert::convert_file_with_format(
         &input.join("y.flac"),
         &fresh_adts.join("y.aac"),
@@ -618,7 +619,7 @@ fn concurrent_batch_runs_never_replace_the_winner() {
         let barrier = Arc::clone(&barrier);
         handles.push(thread::spawn(move || {
             barrier.wait();
-            execute_plan(&plan, OutputFormat::M4a, false).unwrap()
+            execute_plan(&plan, OutputFormat::M4a, false, false).unwrap()
         }));
     }
     barrier.wait();
@@ -683,7 +684,7 @@ fn symlinked_directories_are_not_descended_but_files_are() {
     );
     assert_eq!(plan.discovery_failures[0].category, "InputOpen");
 
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 3);
     assert_eq!(outcome.summary.failed, 1);
     assert!(output.join("linked-file.m4a").is_file());
@@ -730,7 +731,7 @@ fn unreadable_subdirectory_fails_only_its_own_entry() {
         "unreadable subdir must be a per-file failure: {:?}",
         plan.discovery_failures
     );
-    let outcome = execute_plan(&plan, OutputFormat::M4a, false).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 1);
     assert_eq!(outcome.summary.failed, 1);
 }
@@ -1056,4 +1057,377 @@ fn cli_batch_default_format_is_m4a_and_adts_is_explicit() {
     assert_eq!(result.status.code(), Some(0));
     assert!(out_adts.join("a.aac").is_file());
     assert!(!out_adts.join("a.m4a").exists());
+}
+
+// ---------------------------------------------------------------------------
+// M8.3: --skip-existing (safe batch reruns)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn skip_existing_leaves_sentinels_untouched_without_decoding() {
+    let workspace = TempDir::new("skip-sentinel");
+    let input = workspace.join("in");
+    seed_file(&input, "good.flac", "stereo-48k-16.flac");
+    // A corrupt source behind a pre-existing destination proves skipped files
+    // are never decoded: decoding it would fail the run.
+    seed_file(&input, "broken.flac", "truncated-stereo-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("good.m4a"), b"sentinel-good").unwrap();
+    fs::write(output.join("broken.m4a"), b"sentinel-broken").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, true).unwrap();
+    assert_eq!(outcome.summary.converted, 0);
+    assert_eq!(outcome.summary.failed, 0);
+    assert_eq!(outcome.summary.existing, 0);
+    assert_eq!(outcome.summary.skipped, 2);
+    assert!(
+        outcome.results.iter().all(|result| result.is_skipped()),
+        "every item must be a skip: {:?}",
+        outcome.results
+    );
+    assert_eq!(fs::read(output.join("good.m4a")).unwrap(), b"sentinel-good");
+    assert_eq!(
+        fs::read(output.join("broken.m4a")).unwrap(),
+        b"sentinel-broken"
+    );
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn skip_existing_mixes_skips_and_conversions() {
+    let workspace = TempDir::new("skip-mixed");
+    let input = workspace.join("in");
+    seed_file(&input, "old.flac", "stereo-48k-16.flac");
+    seed_file(&input, "new.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("old.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, true).unwrap();
+    assert_eq!(outcome.summary.converted, 1);
+    assert_eq!(outcome.summary.failed, 0);
+    assert_eq!(outcome.summary.skipped, 1);
+    assert_eq!(fs::read(output.join("old.m4a")).unwrap(), b"sentinel");
+    parse_mp4(&fs::read(output.join("new.m4a")).unwrap());
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn skip_existing_does_not_hide_unrelated_failures() {
+    let workspace = TempDir::new("skip-failure");
+    let input = workspace.join("in");
+    seed_file(&input, "done.flac", "stereo-48k-16.flac");
+    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("done.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, true).unwrap();
+    assert_eq!(outcome.summary.converted, 0);
+    assert_eq!(outcome.summary.failed, 1);
+    assert_eq!(outcome.summary.skipped, 1);
+    assert!(
+        outcome.results.iter().any(|result| matches!(
+            &result.outcome,
+            BatchFileOutcome::Failed {
+                category: "UnsupportedBitDepth",
+                ..
+            }
+        )),
+        "the real failure must still be reported: {:?}",
+        outcome.results
+    );
+}
+
+#[test]
+fn without_flag_existing_destinations_still_fail() {
+    // Default behavior is unchanged by the flag's existence.
+    let workspace = TempDir::new("skip-default");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("a.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
+    assert_eq!(outcome.summary.converted, 0);
+    assert_eq!(outcome.summary.failed, 1);
+    assert_eq!(outcome.summary.existing, 1);
+    assert_eq!(outcome.summary.skipped, 0);
+}
+
+#[test]
+fn skip_existing_dry_run_plans_and_skips_without_writing() {
+    let workspace = TempDir::new("skip-dryrun");
+    let input = workspace.join("in");
+    seed_file(&input, "done.flac", "stereo-48k-16.flac");
+    seed_file(&input, "todo.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("done.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let outcome = execute_plan(&plan, OutputFormat::M4a, true, true).unwrap();
+    assert_eq!(outcome.summary.converted, 1);
+    assert_eq!(outcome.summary.failed, 0);
+    assert_eq!(outcome.summary.skipped, 1);
+    assert!(
+        outcome
+            .results
+            .iter()
+            .any(|result| matches!(result.outcome, BatchFileOutcome::Planned)),
+        "free destinations must still be planned"
+    );
+    assert_eq!(fs::read(output.join("done.m4a")).unwrap(), b"sentinel");
+    assert!(
+        !output.join("todo.m4a").exists(),
+        "dry run must write nothing"
+    );
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn skip_existing_keeps_duplicate_detection_fatal() {
+    let workspace = TempDir::new("skip-dup");
+    let input = workspace.join("in");
+    fs::create_dir(&input).unwrap();
+    seed_file(&input, "A.flac", "stereo-48k-16.flac");
+    if fs::copy(fixture("mono-441k-16.flac"), input.join("a.flac")).is_err()
+        || same_file_hard_check(&input.join("A.flac"), &input.join("a.flac"))
+    {
+        eprintln!("case-insensitive filesystem: duplicate-source test not applicable");
+        return;
+    }
+    let output = workspace.join("out");
+    // Planning itself refuses the ambiguous plan, flag or not.
+    let err = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap_err();
+    assert!(
+        matches!(err, BatchError::DuplicateDestination { .. }),
+        "{err:?}"
+    );
+    assert!(!output.exists(), "nothing may be converted or created");
+}
+
+#[test]
+fn skip_existing_turns_publication_races_into_skips() {
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    let workspace = TempDir::new("skip-race");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    let plan = Arc::new(plan_batch(&input, &output, OutputFormat::M4a, true).unwrap());
+    let barrier = Arc::new(Barrier::new(3));
+    let mut handles = Vec::new();
+    for _ in 0..2 {
+        let plan = Arc::clone(&plan);
+        let barrier = Arc::clone(&barrier);
+        handles.push(thread::spawn(move || {
+            barrier.wait();
+            execute_plan(&plan, OutputFormat::M4a, false, true).unwrap()
+        }));
+    }
+    barrier.wait();
+    let outcomes: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+
+    let converted: u64 = outcomes.iter().map(|o| o.summary.converted).sum();
+    let skipped: u64 = outcomes.iter().map(|o| o.summary.skipped).sum();
+    let failed: u64 = outcomes.iter().map(|o| o.summary.failed).sum();
+    assert_eq!(converted, 1, "exactly one racer must win");
+    assert_eq!(skipped, 1, "the loser must skip, not fail");
+    assert_eq!(failed, 0, "no failures in a skip race");
+    parse_mp4(&fs::read(output.join("a.m4a")).unwrap());
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn cli_skip_existing_rerun_succeeds_without_modifying_outputs() {
+    let workspace = TempDir::new("cli-skip-rerun");
+    let input = workspace.join("in");
+    seed_file(&input, "b.flac", "mono-441k-16.flac");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    let first = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(first.status.code(), Some(0));
+    let before_a = fs::read(output.join("a.m4a")).unwrap();
+    let before_b = fs::read(output.join("b.m4a")).unwrap();
+
+    // Default rerun still fails on existing destinations (M8.2 behavior).
+    let rerun = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(rerun.status.code(), Some(1));
+    assert!(
+        !String::from_utf8_lossy(&rerun.stdout).contains("skipped"),
+        "default summary shape must not mention skips"
+    );
+
+    // Flagged rerun is a successful no-op with byte-identical outputs.
+    let skipped = run_cli(&[
+        "--skip-existing",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        skipped.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&skipped.stderr)
+    );
+    let lines = stdout_lines(&skipped);
+    assert!(lines[0].contains("skip-existing"), "{lines:?}");
+    assert!(
+        lines.iter().any(|l| l == "skip a.flac -> a.m4a (exists)"),
+        "{lines:?}"
+    );
+    assert!(
+        lines.iter().any(|l| l == "skip b.flac -> b.m4a (exists)"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .last()
+            .unwrap()
+            .starts_with("summary: 0 converted, 0 failed, 0 existing, 0 ignored, 2 skipped ("),
+        "{lines:?}"
+    );
+    assert!(String::from_utf8_lossy(&skipped.stderr).is_empty());
+    assert_eq!(fs::read(output.join("a.m4a")).unwrap(), before_a);
+    assert_eq!(fs::read(output.join("b.m4a")).unwrap(), before_b);
+}
+
+#[test]
+fn cli_skip_existing_mixed_run_converts_missing_and_reports_failures() {
+    let workspace = TempDir::new("cli-skip-mixed");
+    let input = workspace.join("in");
+    seed_file(&input, "done.flac", "stereo-48k-16.flac");
+    seed_file(&input, "todo.flac", "mono-441k-16.flac");
+    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("done.m4a"), b"sentinel").unwrap();
+
+    let result = run_cli(&[
+        "--skip-existing",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(1));
+    let lines = stdout_lines(&result);
+    assert!(
+        lines
+            .iter()
+            .any(|l| l == "skip done.flac -> done.m4a (exists)"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("ok todo.flac -> todo.m4a ")),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l == "fail bad.flac: UnsupportedBitDepth"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .last()
+            .unwrap()
+            .starts_with("summary: 1 converted, 1 failed, 0 existing, 0 ignored, 1 skipped ("),
+        "{lines:?}"
+    );
+    assert_eq!(fs::read(output.join("done.m4a")).unwrap(), b"sentinel");
+}
+
+#[test]
+fn cli_skip_existing_dry_run_reports_plans_and_skips() {
+    let workspace = TempDir::new("cli-skip-dryrun");
+    let input = workspace.join("in");
+    seed_file(&input, "done.flac", "stereo-48k-16.flac");
+    seed_file(&input, "todo.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("done.m4a"), b"sentinel").unwrap();
+
+    let result = run_cli(&[
+        "--skip-existing",
+        "--dry-run",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    let lines = stdout_lines(&result);
+    assert!(
+        lines.iter().any(|l| l == "plan todo.flac -> todo.m4a"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l == "skip done.flac -> done.m4a (exists)"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .last()
+            .unwrap()
+            .starts_with("dry-run: 1 converted, 0 failed, 0 existing, 0 ignored, 1 skipped ("),
+        "{lines:?}"
+    );
+    assert!(
+        !output.join("todo.m4a").exists(),
+        "dry run must write nothing"
+    );
+}
+
+#[test]
+fn cli_skip_existing_with_single_file_input_is_a_usage_error() {
+    let workspace = TempDir::new("cli-skip-single");
+    let output = workspace.join("out.m4a");
+    let result = run_cli(&[
+        "--skip-existing",
+        fixture("stereo-48k-16.flac").to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&result.stderr)
+            .contains("--skip-existing requires a directory input"),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!output.exists());
+}
+
+#[test]
+fn cli_skip_existing_quiet_prints_only_the_summary() {
+    let workspace = TempDir::new("cli-skip-quiet");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    let first = run_cli(&["-q", input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(first.status.code(), Some(0));
+    let rerun = run_cli(&[
+        "--skip-existing",
+        "-q",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(rerun.status.code(), Some(0));
+    let lines = stdout_lines(&rerun);
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(
+        lines[0].starts_with("summary: 0 converted, 0 failed, 0 existing, 0 ignored, 1 skipped ("),
+        "{lines:?}"
+    );
 }

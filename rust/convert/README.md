@@ -70,6 +70,12 @@ cargo run -p aac-convert -- --format adts --no-recursive album/ /tmp/adts-out/
 
 # Preview the plan without writing anything
 cargo run -p aac-convert -- --dry-run album/ /tmp/out/
+
+# Rerun a completed or partial batch, skipping finished files
+cargo run -p aac-convert -- --skip-existing album/ /tmp/out/
+
+# Preview what a rerun would convert or skip
+cargo run -p aac-convert -- --skip-existing --dry-run album/ /tmp/out/
 ```
 
 - **Mode dispatch.** A regular file input converts one file (behavior above);
@@ -97,21 +103,36 @@ cargo run -p aac-convert -- --dry-run album/ /tmp/out/
   the destination-collision checks while creating no files or directories and
   decoding no audio.
 - **Existing outputs and safe reruns.** Existing destinations are never
-  overwritten, truncated, or replaced — they are reported as failures (and
-  tallied separately as `existing`), so rerunning a batch after fixing real
-  errors exits non-zero until every file is converted. There are no overwrite
-  or skip flags in this release.
+  overwritten, truncated, or replaced. Without `--skip-existing` they are
+  reported as failures (and tallied separately as `existing`), so rerunning a
+  batch after fixing real errors exits non-zero until every file is converted.
+  With `--skip-existing`, destinations that already exist are skipped instead:
+  the source is never decoded, no temporary file is created, the destination
+  is left byte-for-byte unchanged, and the file counts as `skipped` — neither
+  a conversion nor a failure. Missing destinations convert normally. A batch
+  in which every file is skipped (and nothing fails) exits `0`. The flag never
+  enables overwriting: a destination appearing after planning is still refused
+  by the atomic publication, and surfaces as a skip (flag on) or a failure
+  (flag off). Duplicate destination collisions remain fatal preflight errors
+  either way. `--skip-existing` applies to directory batch mode only; with a
+  single-file input it is a usage error. There are no overwrite or force
+  options in this release.
 - **Progress and summary.** One line per file in processing order on stdout
-  (`ok <in> -> <out> (<frames> frames, <bytes> bytes)` or
+  (`ok <in> -> <out> (<frames> frames, <bytes> bytes)`,
+  `skip <in> -> <out> (exists)` with `--skip-existing`, or
   `fail <in>: <category>`), failure details as `error: <in>: <message>` on
   stderr, and always a final summary line:
   `summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<elapsed>s)`
-  (`dry-run: …` for dry runs). `--verbose` adds per-file audio detail and
+  (`dry-run: …` for dry runs). With `--skip-existing` the summary gains a
+  trailing skipped count (`…, <ignored> ignored, <skipped> skipped (…)`).
+  `--verbose` adds per-file audio detail and
   `ignore <path>` lines; `--quiet` prints only the summary on stdout while
   keeping failure diagnostics on stderr.
 - **Exit codes.** `0`: at least one file converted (or a clean dry-run plan),
-  zero failures. `1`: batch completed with one or more per-file failures
-  (existing destinations count as failures). `2`: CLI usage error. `3`:
+  zero failures — including a valid batch in which every file was skipped via
+  `--skip-existing`. `1`: batch completed with one or more per-file failures
+  (existing destinations count as failures unless `--skip-existing` skips
+  them; skips never hide unrelated failures). `2`: CLI usage error. `3`:
   fatal setup — missing input, input that is neither file nor directory,
   unreadable input root, empty directory, no eligible FLAC files, duplicate
   destinations, or output-root creation failure.

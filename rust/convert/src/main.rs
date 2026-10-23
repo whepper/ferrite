@@ -10,7 +10,8 @@ use aac_convert::{convert_file_with_format, OutputFormat};
 const USAGE: &str = "\
 Usage: aac-convert [--format adts|m4a] <input.flac> <output>
        aac-convert [--format m4a|adts] [--recursive|--no-recursive] [--dry-run]
-                   [-v|--verbose] [-q|--quiet] <input-dir> <output-root>
+                   [--skip-existing] [-v|--verbose] [-q|--quiet]
+                   <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
 using the native FDK AAC VBR-5 encoder.
@@ -28,7 +29,9 @@ other extension selects ADTS. Existing output files are never overwritten.
 Batch (directory) mode: --format defaults to m4a and selects the output
 extension (.m4a or .aac). Traversal is recursive by default; --no-recursive
 converts only top-level files (last of the two flags wins). --dry-run prints
-the plan without writing anything. -v/--verbose adds per-file detail;
+the plan without writing anything. --skip-existing skips destinations that
+already exist instead of failing on them; it never overwrites anything.
+-v/--verbose adds per-file detail;
 -q/--quiet prints only the final summary (conflicts with --verbose).
 
 Without --format, a .m4a or .mp4 output selects M4A; every other extension
@@ -84,6 +87,7 @@ struct Cli {
     explicit_format: Option<OutputFormat>,
     recursive: Option<bool>,
     dry_run: bool,
+    skip_existing: bool,
     verbose: bool,
     quiet: bool,
     input: PathBuf,
@@ -96,6 +100,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
     let mut explicit_format = None;
     let mut recursive = None;
     let mut dry_run = false;
+    let mut skip_existing = false;
     let mut verbose = false;
     let mut quiet = false;
     let mut options_done = false;
@@ -147,6 +152,11 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     index += 1;
                     continue;
                 }
+                Some("--skip-existing") => {
+                    skip_existing = true;
+                    index += 1;
+                    continue;
+                }
                 Some("-v" | "--verbose") => {
                     verbose = true;
                     index += 1;
@@ -182,6 +192,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
         explicit_format,
         recursive,
         dry_run,
+        skip_existing,
         verbose,
         quiet,
         input: PathBuf::from(positional.remove(0)),
@@ -264,6 +275,11 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
             "--dry-run requires a directory input".to_string(),
         ));
     }
+    if cli.skip_existing {
+        return Err(CliError::Usage(
+            "--skip-existing requires a directory input".to_string(),
+        ));
+    }
     if cli.verbose || cli.quiet {
         return Err(CliError::Usage(
             "--verbose/--quiet requires a directory input".to_string(),
@@ -301,20 +317,25 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         .map_err(|err| CliError::Setup(err.to_string()))?;
 
     let start = std::time::Instant::now();
-    let outcome =
-        execute_plan(&plan, format, cli.dry_run).map_err(|err| CliError::Setup(err.to_string()))?;
+    let outcome = execute_plan(&plan, format, cli.dry_run, cli.skip_existing)
+        .map_err(|err| CliError::Setup(err.to_string()))?;
     let elapsed = start.elapsed();
 
     let mode = if recursive { "recursive" } else { "top-level" };
+    let skip_suffix = if cli.skip_existing {
+        ", skip-existing"
+    } else {
+        ""
+    };
     if !cli.quiet {
         if cli.dry_run {
             println!(
-                "batch: {} files, format {format}, {mode}, dry-run",
+                "batch: {} files, format {format}, {mode}{skip_suffix}, dry-run",
                 plan.entries.len()
             );
         } else {
             println!(
-                "batch: {} files, format {format}, {mode}",
+                "batch: {} files, format {format}, {mode}{skip_suffix}",
                 plan.entries.len()
             );
         }
@@ -371,6 +392,22 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
                     );
                 }
             }
+            BatchFileOutcome::Skipped => {
+                // Skips are informational, not diagnostics: stdout in
+                // normal/verbose mode, nothing on stderr, nothing in quiet
+                // mode beyond the summary.
+                if !cli.quiet {
+                    let relative_output = result
+                        .relative_output
+                        .as_ref()
+                        .expect("skipped items always have a destination");
+                    println!(
+                        "skip {} -> {} (exists)",
+                        result.relative_input.display(),
+                        relative_output.display()
+                    );
+                }
+            }
             BatchFileOutcome::Failed { category, message } => {
                 if !cli.quiet {
                     println!("fail {}: {category}", result.relative_input.display());
@@ -381,7 +418,33 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
     }
 
     let summary = &outcome.summary;
-    if cli.dry_run {
+    // The summary shape is a pure function of the flags: without
+    // `--skip-existing` it is byte-identical to the M8.2 four-count line, so
+    // existing parsers keep working; with the flag it gains a trailing
+    // skipped count.
+    if cli.skip_existing {
+        if cli.dry_run {
+            println!(
+                "dry-run: {} converted, {} failed, {} existing, {} ignored, {} skipped ({:.2}s)",
+                summary.converted,
+                summary.failed,
+                summary.existing,
+                summary.ignored,
+                summary.skipped,
+                elapsed.as_secs_f64()
+            );
+        } else {
+            println!(
+                "summary: {} converted, {} failed, {} existing, {} ignored, {} skipped ({:.2}s)",
+                summary.converted,
+                summary.failed,
+                summary.existing,
+                summary.ignored,
+                summary.skipped,
+                elapsed.as_secs_f64()
+            );
+        }
+    } else if cli.dry_run {
         println!(
             "dry-run: {} converted, {} failed, {} existing, {} ignored ({:.2}s)",
             summary.converted,

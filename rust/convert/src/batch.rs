@@ -22,8 +22,13 @@
 //!   (M4A) or `.aac` (ADTS). Batch mode never emits `.mp4` or `.adts`.
 //! - Duplicate destinations, including ASCII case-fold collisions, abort the
 //!   run before anything is converted.
-//! - Existing destinations are never overwritten; they count as failures for
-//!   the exit-code contract and are tallied separately as `existing`.
+//! - Existing destinations are never overwritten; by default they count as
+//!   failures for the exit-code contract and are tallied separately as
+//!   `existing`. With `skip_existing`, pre-existing destinations are skipped
+//!   instead: never decoded, never converted, never a failure, tallied as
+//!   `skipped`. Publication-time collisions (a destination appearing after
+//!   planning) are still enforced by the atomic hard link and surface as a
+//!   skip under `skip_existing`, as a failure otherwise.
 //! - Each file converts through the existing temporary-file and atomic
 //!   hard-link publication path, so no partial output can remain and a
 //!   concurrent winner is never replaced.
@@ -236,6 +241,10 @@ pub enum BatchFileOutcome {
     },
     /// Dry run: the destination is free and the file would be converted.
     Planned,
+    /// Skipped under `skip_existing`: the destination already existed when
+    /// checked, so the source was never decoded and nothing was written.
+    /// Never a conversion, never a failure.
+    Skipped,
     /// The file was not converted.
     Failed {
         /// Stable category (see [`category_for`], `UnreadableEntry`,
@@ -268,6 +277,11 @@ impl BatchFileResult {
             }
         )
     }
+
+    /// True when this item was skipped under `skip_existing`.
+    pub fn is_skipped(&self) -> bool {
+        matches!(&self.outcome, BatchFileOutcome::Skipped)
+    }
 }
 
 /// Final batch tallies.
@@ -275,12 +289,17 @@ impl BatchFileResult {
 pub struct BatchSummary {
     /// Files converted (real run) or plannable (dry run).
     pub converted: u64,
-    /// Files not converted, including `existing` refusals.
+    /// Files not converted, including `existing` refusals. Skips are never
+    /// counted here.
     pub failed: u64,
-    /// Subset of `failed`: destinations that already existed.
+    /// Subset of `failed`: destinations that already existed (only when
+    /// `skip_existing` is off; with it on, such files count as `skipped`).
     pub existing: u64,
     /// Skipped non-eligible entries.
     pub ignored: u64,
+    /// Files skipped under `skip_existing` because the destination already
+    /// existed. Never a conversion, never a failure.
+    pub skipped: u64,
 }
 
 /// Ordered results plus tallies.
@@ -369,12 +388,21 @@ pub fn plan_batch(
 /// - Dry runs create nothing and decode nothing; they report `Planned` for
 ///   free destinations and `Failed` (`OutputExists`) for taken ones.
 /// - Discovery failures are reported as failures in both modes.
+/// - With `skip_existing`, a destination that already exists is skipped: the
+///   source is never decoded, no temporary file is created, and the item
+///   counts as `skipped`, never as converted or failed. The pre-execution
+///   existence check is advisory only; enforcement stays with the atomic
+///   hard-link publication, so a destination appearing after planning still
+///   cannot be overwritten: a publication-time `OutputExists` becomes a skip
+///   under `skip_existing` and a failure otherwise. Every other error is a
+///   failure in both modes.
 ///
 /// Results are returned in deterministic input order with final tallies.
 pub fn execute_plan(
     plan: &BatchPlan,
     format: OutputFormat,
     dry_run: bool,
+    skip_existing: bool,
 ) -> Result<BatchOutcome, BatchError> {
     let output_root = if dry_run {
         plan.output_root.clone()
@@ -410,6 +438,7 @@ pub fn execute_plan(
     let mut converted = 0u64;
     let mut failed = 0u64;
     let mut existing = 0u64;
+    let mut skipped = 0u64;
 
     for (_, item) in work {
         let result = match item {
@@ -438,19 +467,29 @@ pub fn execute_plan(
                 if dry_run {
                     match fs::symlink_metadata(&destination) {
                         Ok(_) => {
-                            failed += 1;
-                            existing += 1;
-                            BatchFileResult {
-                                relative_input: entry.relative_input.clone(),
-                                relative_output: Some(entry.relative_output.clone()),
-                                outcome: BatchFileOutcome::Failed {
-                                    category: "OutputExists",
-                                    message: format!(
-                                        "output file already exists: {} \
-                                         (overwriting is not supported)",
-                                        entry.relative_output.display()
-                                    ),
-                                },
+                            let relative_output = Some(entry.relative_output.clone());
+                            if skip_existing {
+                                skipped += 1;
+                                BatchFileResult {
+                                    relative_input: entry.relative_input.clone(),
+                                    relative_output,
+                                    outcome: BatchFileOutcome::Skipped,
+                                }
+                            } else {
+                                failed += 1;
+                                existing += 1;
+                                BatchFileResult {
+                                    relative_input: entry.relative_input.clone(),
+                                    relative_output,
+                                    outcome: BatchFileOutcome::Failed {
+                                        category: "OutputExists",
+                                        message: format!(
+                                            "output file already exists: {} \
+                                             (overwriting is not supported)",
+                                            entry.relative_output.display()
+                                        ),
+                                    },
+                                }
                             }
                         }
                         Err(err) if err.kind() == io::ErrorKind::NotFound => {
@@ -477,6 +516,21 @@ pub fn execute_plan(
                         }
                     }
                 } else {
+                    // With `skip_existing`, a destination known to exist is
+                    // skipped before any decode, encode, or temp-file work.
+                    // This check is advisory: the atomic hard-link
+                    // publication below remains the enforcement point, so a
+                    // destination appearing afterwards still cannot be
+                    // overwritten.
+                    if skip_existing && fs::symlink_metadata(&destination).is_ok() {
+                        skipped += 1;
+                        results.push(BatchFileResult {
+                            relative_input: entry.relative_input.clone(),
+                            relative_output: Some(entry.relative_output.clone()),
+                            outcome: BatchFileOutcome::Skipped,
+                        });
+                        continue;
+                    }
                     if let Some(parent) = destination.parent() {
                         if let Err(err) = fs::create_dir_all(parent) {
                             // A concurrent batch may have created the
@@ -512,18 +566,35 @@ pub fn execute_plan(
                             }
                         }
                         Err(err) => {
-                            failed += 1;
                             let category = category_for(&err);
-                            if category == "OutputExists" {
-                                existing += 1;
-                            }
-                            BatchFileResult {
-                                relative_input: entry.relative_input.clone(),
-                                relative_output: Some(entry.relative_output.clone()),
-                                outcome: BatchFileOutcome::Failed {
-                                    category,
-                                    message: err.to_string(),
-                                },
+                            // A publication-time collision means the
+                            // destination appeared after planning (a
+                            // concurrent batch or an external write). The
+                            // hard link already refused the overwrite; under
+                            // `skip_existing` that outcome is a skip, never
+                            // a failure. Any other publication error stays a
+                            // failure: races are never inferred from generic
+                            // I/O errors.
+                            if category == "OutputExists" && skip_existing {
+                                skipped += 1;
+                                BatchFileResult {
+                                    relative_input: entry.relative_input.clone(),
+                                    relative_output: Some(entry.relative_output.clone()),
+                                    outcome: BatchFileOutcome::Skipped,
+                                }
+                            } else {
+                                failed += 1;
+                                if category == "OutputExists" {
+                                    existing += 1;
+                                }
+                                BatchFileResult {
+                                    relative_input: entry.relative_input.clone(),
+                                    relative_output: Some(entry.relative_output.clone()),
+                                    outcome: BatchFileOutcome::Failed {
+                                        category,
+                                        message: err.to_string(),
+                                    },
+                                }
                             }
                         }
                     }
@@ -540,6 +611,7 @@ pub fn execute_plan(
             failed,
             existing,
             ignored: plan.ignored.len() as u64,
+            skipped,
         },
     })
 }
