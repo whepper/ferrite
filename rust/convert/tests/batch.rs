@@ -1431,3 +1431,77 @@ fn cli_skip_existing_quiet_prints_only_the_summary() {
         "{lines:?}"
     );
 }
+
+#[test]
+fn stale_temporary_files_are_never_confused_with_outputs() {
+    // A crash orphan keeps the recognizable prefix but must neither block a
+    // later run nor be mistaken for a completed output.
+    let workspace = TempDir::new("batch-stale-tmp");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join(".aac-convert-99999-0.tmp"), b"partial").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    assert_eq!(plan.entries.len(), 1);
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
+    assert_eq!(outcome.summary.converted, 1);
+    assert_eq!(outcome.summary.failed, 0);
+    parse_mp4(&fs::read(output.join("a.m4a")).unwrap());
+    // Cleanup only removes files the run created itself: the stale file is
+    // left alone for manual removal.
+    assert_eq!(
+        fs::read(output.join(".aac-convert-99999-0.tmp")).unwrap(),
+        b"partial"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn read_only_output_subdirectory_fails_only_its_own_files() {
+    // Deterministic proxy for temporary-file creation failure: the batch must
+    // convert everything else, leave no destination or temp file behind for
+    // the failed entry, and report the failure accurately.
+    use std::os::unix::fs::PermissionsExt;
+
+    let workspace = TempDir::new("batch-readonly-out");
+    let input = workspace.join("in");
+    seed_file(&input, "good.flac", "stereo-48k-16.flac");
+    seed_file(&input, "sub/locked.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    let locked_dir = output.join("sub");
+    fs::create_dir_all(&locked_dir).unwrap();
+    fs::set_permissions(&locked_dir, fs::Permissions::from_mode(0o555)).unwrap();
+    let applicable = fs::write(locked_dir.join(".probe"), b"x").is_err();
+    fs::set_permissions(&locked_dir, fs::Permissions::from_mode(0o755)).unwrap();
+    if !applicable {
+        eprintln!("permissions are not enforced here; read-only test not applicable");
+        return;
+    }
+    fs::set_permissions(&locked_dir, fs::Permissions::from_mode(0o555)).unwrap();
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    assert_eq!(plan.entries.len(), 2);
+    let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
+    fs::set_permissions(&locked_dir, fs::Permissions::from_mode(0o755)).unwrap();
+
+    assert_eq!(outcome.summary.converted, 1);
+    assert_eq!(outcome.summary.failed, 1);
+    assert!(
+        outcome.results.iter().any(|result| matches!(
+            &result.outcome,
+            BatchFileOutcome::Failed {
+                category: "TempCreate",
+                ..
+            }
+        )),
+        "creation failure must be classified, not masked: {:?}",
+        outcome.results
+    );
+    assert!(output.join("good.m4a").is_file());
+    assert!(
+        !locked_dir.join("locked.m4a").exists(),
+        "no partial destination may appear"
+    );
+    assert_no_temp_files_anywhere(&output);
+}

@@ -141,12 +141,18 @@ cargo run -p aac-convert -- --skip-existing --dry-run album/ /tmp/out/
   pushes, streaming muxer); batch overhead is the sorted path list only.
   There is no parallel conversion.
 - **Temporary files.** Each file converts through a hidden
-  `.aac-convert-*.tmp` file in its destination directory, removed on failure
-  and atomically hard-linked to the destination on success. No partial output
-  remains on ordinary error paths. Only a kill (`SIGKILL`) or power loss can
-  orphan a temp file; orphans keep the recognizable prefix, are never valid
-  outputs, and are safe to delete. Destination filesystems must support hard
-  links (FAT/exFAT fail safely per file; there is no rename fallback).
+  `.aac-convert-<pid>-<seq>.tmp` file in its destination directory, removed
+  on ordinary error paths and atomically hard-linked to the destination on
+  success. No partial output remains after an ordinary (returned) error.
+  Abrupt termination — fatal signals, forced process kills, machine shutdown,
+  or power loss — runs no cleanup, since there is no signal handler: it can
+  leave an orphan temporary file behind. Orphans keep the recognizable
+  `.aac-convert-*.tmp` prefix, are never valid outputs (discovery only
+  collects `.flac` inputs; outputs are `.m4a`/`.aac`), never block or corrupt
+  a later run, and are safe to delete manually once no conversion is running.
+  They are deliberately never deleted automatically. Destination filesystems
+  must support hard links (FAT/exFAT fail safely per file; there is no rename
+  fallback).
 
 ## M4A structure and timing
 
