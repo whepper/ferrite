@@ -14,8 +14,13 @@
 //!
 //! The encoder's `i16` PCM interface is unchanged; 24-bit input is rejected
 //! until a conversion and dithering policy is approved.
+//!
+//! Directory batch conversion is available under [`batch`]: recursive
+//! discovery, deterministic planning, and sequential execution through the
+//! same per-file pipeline documented above.
 
 mod adts;
+pub mod batch;
 mod flac;
 mod gapless;
 mod m4a;

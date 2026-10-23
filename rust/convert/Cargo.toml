@@ -5,7 +5,7 @@ edition = "2021"
 # MSRV
 rust-version = "1.99.1"
 license = "FDK-AAC"
-description = "Single-file FLAC to AAC (ADTS or M4A) converter for the native FDK AAC encoder"
+description = "FLAC to AAC (ADTS or M4A) converter for the native FDK AAC encoder"
 
 [dependencies]
 aac = { version = "0.1.0", path = "..", default-features = false, features = ["aac_enc"] }

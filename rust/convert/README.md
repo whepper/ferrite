@@ -1,7 +1,7 @@
-# aac-convert — single-file FLAC to AAC (M4A or ADTS)
+# aac-convert — FLAC to AAC (M4A or ADTS), single file or directory batch
 
 `aac-convert` is a separate application crate around the existing `aac` encoder.
-It converts one FLAC file to one AAC-LC file:
+It converts 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC:
 
 - **M4A** — audio-only MP4 container, the intended user-facing output.
 - **ADTS** — engineering/test output, retained for encoder validation.
@@ -13,7 +13,7 @@ are handed to the muxer. The encoded audio is identical for both containers.
 
 ## Supported input
 
-- Native FLAC file, single file only.
+- Native FLAC files: one file, or a directory tree of files (batch mode).
 - 44.1 kHz or 48 kHz.
 - Mono or stereo.
 - 16-bit samples.
@@ -50,7 +50,82 @@ extension, keeps the historical ADTS default. The success message names the
 selected format.
 
 `--help`, `--version`, and `--` are supported. Exit codes: `0` success,
-`1` conversion failure, `2` command-line usage error.
+`1` conversion failure, `2` command-line usage error. Directory batch mode
+adds exit code `3` for fatal setup errors (see below).
+
+## Batch conversion (directory input)
+
+A directory input converts every discovered FLAC file sequentially into an
+output root, mirroring the input structure:
+
+```sh
+# Whole tree, M4A by default
+cargo run -p aac-convert -- album/ /tmp/out/
+
+# Explicit ADTS output
+cargo run -p aac-convert -- --format adts album/ /tmp/adts-out/
+
+# Top level only (no recursion)
+cargo run -p aac-convert -- --format adts --no-recursive album/ /tmp/adts-out/
+
+# Preview the plan without writing anything
+cargo run -p aac-convert -- --dry-run album/ /tmp/out/
+```
+
+- **Mode dispatch.** A regular file input converts one file (behavior above);
+  a directory input activates batch mode. The input's file type selects the
+  mode, never the output's.
+- **Traversal.** Recursive by default. `--no-recursive` converts only
+  top-level files (nested FLAC files are then tallied as ignored); if both
+  flags are given, the last one wins. Directory symlinks are never followed.
+  Symlinks to regular FLAC files are converted at the link's path. Hidden
+  files and directories are traversed like any other entry.
+- **Discovery.** File names with a `.flac` extension match case-insensitively
+  (`.flac`, `.FLAC`, …). All other entries — other extensions, extensionless
+  files, FIFOs, sockets, devices — are tallied as ignored, never failures.
+  Discovery and reporting order is deterministic: byte-sorted relative paths.
+- **Output mapping.** The input-relative directory structure is preserved,
+  the source stem is kept byte-for-byte (including case), and the extension
+  is replaced with lowercase `.m4a` (M4A, the batch default) or `.aac`
+  (explicit `--format adts`). Batch mode never emits `.mp4` or `.adts`.
+- **Preflight.** All destinations are mapped and checked before anything is
+  converted. Two inputs mapping to the same destination — including ASCII
+  case-fold collisions such as `A.flac`/`a.flac` — abort the run with nothing
+  converted. Identical input and output directories are refused. An output
+  root inside the input tree is permitted: outputs are `.m4a`/`.aac`, so they
+  are never rediscovered as inputs. `--dry-run` performs this planning and
+  the destination-collision checks while creating no files or directories and
+  decoding no audio.
+- **Existing outputs and safe reruns.** Existing destinations are never
+  overwritten, truncated, or replaced — they are reported as failures (and
+  tallied separately as `existing`), so rerunning a batch after fixing real
+  errors exits non-zero until every file is converted. There are no overwrite
+  or skip flags in this release.
+- **Progress and summary.** One line per file in processing order on stdout
+  (`ok <in> -> <out> (<frames> frames, <bytes> bytes)` or
+  `fail <in>: <category>`), failure details as `error: <in>: <message>` on
+  stderr, and always a final summary line:
+  `summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<elapsed>s)`
+  (`dry-run: …` for dry runs). `--verbose` adds per-file audio detail and
+  `ignore <path>` lines; `--quiet` prints only the summary on stdout while
+  keeping failure diagnostics on stderr.
+- **Exit codes.** `0`: at least one file converted (or a clean dry-run plan),
+  zero failures. `1`: batch completed with one or more per-file failures
+  (existing destinations count as failures). `2`: CLI usage error. `3`:
+  fatal setup — missing input, input that is neither file nor directory,
+  unreadable input root, empty directory, no eligible FLAC files, duplicate
+  destinations, or output-root creation failure.
+- **Sequential, bounded memory.** Files convert one at a time through the
+  same per-file pipeline as single-file conversion (8,000-frame encoder
+  pushes, streaming muxer); batch overhead is the sorted path list only.
+  There is no parallel conversion.
+- **Temporary files.** Each file converts through a hidden
+  `.aac-convert-*.tmp` file in its destination directory, removed on failure
+  and atomically hard-linked to the destination on success. No partial output
+  remains on ordinary error paths. Only a kill (`SIGKILL`) or power loss can
+  orphan a temp file; orphans keep the recognizable prefix, are never valid
+  outputs, and are safe to delete. Destination filesystems must support hard
+  links (FAT/exFAT fail safely per file; there is no rename fallback).
 
 ## M4A structure and timing
 
@@ -149,7 +224,8 @@ cargo test -p aac-convert
 The app tests use committed synthetic FLAC fixtures; no external encoder is
 needed. They verify ADTS output, M4A box structure and sample tables, payload
 equivalence between the two containers, integrity failures, output collisions,
-and concurrent publication. Ignored independent-decoder smoke tests for both
+concurrent publication, and sequential directory batch conversion (traversal,
+mapping, preflight, dry-run, exit codes, and cleanup). Ignored independent-decoder smoke tests for both
 ADTS and M4A can be run when `ffmpeg` is available:
 
 ```sh
@@ -158,8 +234,8 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 
 ## Scope limits
 
-- No directory traversal, batch conversion, metadata, cover art, ReplayGain,
-  resampling, downmixing, VBR 1–4, or parallel conversion.
+- No metadata, cover art, ReplayGain, resampling, downmixing, VBR 1–4, or
+  parallel conversion.
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
   CoreAudio decode paths; VLC and GUI players are unverified or approximate
