@@ -1,0 +1,17 @@
+# M7.5 feasibility spike only. This package is intentionally NOT a member of
+# the `rust/` workspace and must not become a production dependency without an
+# explicit decision.
+[package]
+name = "m4a-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+rust-version = "1.99.1"
+
+# Own workspace root so the parent workspace ignores this directory.
+[workspace]
+
+[dependencies]
+aac = { path = "../..", default-features = false, features = ["aac_enc"] }
+symphonia = { version = "0.6.1", default-features = false, features = ["flac"] }
+shiguredo_mp4 = "=2026.5.0"
