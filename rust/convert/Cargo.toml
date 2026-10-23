@@ -1,0 +1,18 @@
+[package]
+name = "aac-convert"
+version = "0.1.0"
+edition = "2021"
+# MSRV
+rust-version = "1.99.1"
+license = "FDK-AAC"
+description = "Single-file FLAC to AAC (ADTS or M4A) converter for the native FDK AAC encoder"
+
+[dependencies]
+aac = { version = "0.1.0", path = "..", default-features = false, features = ["aac_enc"] }
+symphonia = { version = "0.6.1", default-features = false, features = ["flac"] }
+# Pinned to the M7.5 feasibility-spike selection; zero dependencies, Apache-2.0.
+shiguredo_mp4 = "=2026.5.0"
+
+[[bin]]
+name = "aac-convert"
+path = "src/main.rs"
