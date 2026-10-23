@@ -143,19 +143,11 @@ pub fn max_scale_spec_into(
     }
 }
 
+#[cfg(test)]
 pub fn max_scale_spec(spectrum_q31: &[i32], offsets: &[u16], sfb_active: usize) -> Vec<i32> {
     let mut out = Vec::new();
     max_scale_spec_into(spectrum_q31, offsets, sfb_active, &mut out);
     out
-}
-
-/// Map float spectrum (stored domain) to Q31 ints by round-to-nearest.
-/// Single approximation point of the integer lane (see module docs).
-pub fn map_to_q31(spectrum: &[f64]) -> Vec<i32> {
-    spectrum
-        .iter()
-        .map(|&v| (v.round() as i64).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32)
-        .collect()
 }
 
 /// `CheckBandEnergyOptim` (`band_nrg.cpp:140-184`): scaled per-band energy
@@ -180,17 +172,6 @@ pub fn check_band_energy_into(
         }
         energies.push(tmp.wrapping_shl(1));
     }
-}
-
-pub fn check_band_energy(
-    spectrum_q31: &[i32],
-    max_scale: &[i32],
-    offsets: &[u16],
-    sfb_active: usize,
-) -> Vec<i32> {
-    let mut energies = Vec::new();
-    check_band_energy_into(spectrum_q31, max_scale, offsets, sfb_active, &mut energies);
-    energies
 }
 
 /// The `maxNrg` return of `CheckBandEnergyOptim` (`band_nrg.cpp:177-183`):
@@ -249,17 +230,6 @@ pub fn band_energy_short_into(
         let scale = (2 * (max_scale[b] - 3) - 1).clamp(-31, 31);
         energies[b] = scale_value_saturate(energies[b], -scale);
     }
-}
-
-pub fn band_energy_short(
-    spectrum_q31: &[i32],
-    max_scale: &[i32],
-    offsets: &[u16],
-    sfb_active: usize,
-) -> Vec<i32> {
-    let mut energies = Vec::new();
-    band_energy_short_into(spectrum_q31, max_scale, offsets, sfb_active, &mut energies);
-    energies
 }
 
 /// `CalcBandEnergyOptimLong` (`band_nrg.cpp:192-256`): per-band energies
@@ -336,27 +306,6 @@ pub fn band_energy_long_into(
         }
     }
     shift_bits
-}
-
-pub fn band_energy_long(
-    spectrum_q31: &[i32],
-    max_scale: &[i32],
-    offsets: &[u16],
-    sfb_active: usize,
-) -> (Vec<i32>, i32, Vec<f64>) {
-    let mut pre = Vec::new();
-    let mut energies = Vec::new();
-    let mut ld = Vec::new();
-    let shift_bits = band_energy_long_into(
-        spectrum_q31,
-        max_scale,
-        offsets,
-        sfb_active,
-        &mut pre,
-        &mut energies,
-        &mut ld,
-    );
-    (energies, shift_bits, ld)
 }
 
 /// `CalcBandNrgMSOpt` (`band_nrg.cpp:296-361`): mid/side band energies for
@@ -458,21 +407,9 @@ pub fn map_spectrum_to_q31(spectrum: &[f64], mdct_scale: i32) -> Vec<i32> {
 
 /// Q31-fraction log2: `log2(E/2^31)/64`, the float equivalent of C's
 /// `fLog2` up to its ~1e-9 Taylor error (gated by tests). Callers apply
-/// C's exact guard/correction rules around it; see `rescale_ld` and
-/// `long_recompute_ld`.
+/// C's exact guard/correction rules around it; see `rescale_ld_into`.
 fn log2frac(e: i32) -> f64 {
     (e as f64 / 2_147_483_648.0).log2() / 64.0
-}
-
-/// Log-domain of stored energies as Q31 fractions with `-1.0` sentinel.
-/// Use ONLY where C's Ld provably equals log2 of the current stored value
-/// (grouped/longout outputs via `LdDataVector`); the staged vectors below
-/// need their exact guard semantics instead.
-pub fn stored_ld(energies: &[i32]) -> Vec<f64> {
-    energies
-        .iter()
-        .map(|&e| if e <= 0 { -1.0 } else { log2frac(e) })
-        .collect()
 }
 
 /// Rescale-stage Ld (`CheckBandEnergyOptim` + `psy_main.cpp:379-394`):
@@ -491,40 +428,6 @@ pub fn rescale_ld_into(e_raw: &[i32], maxscale: &[i32], final_shift: i32, out: &
         ld += final_shift as f64 * 2.0 / 64.0;
         out.push(ld);
     }
-}
-
-pub fn rescale_ld(e_raw: &[i32], maxscale: &[i32], final_shift: i32) -> Vec<f64> {
-    let mut out = Vec::new();
-    rescale_ld_into(e_raw, maxscale, final_shift, &mut out);
-    out
-}
-
-/// TNS-long-recompute Ld (`CalcBandEnergyOptimLong`, `band_nrg.cpp:224-253`):
-/// from the PRE-shift recomputed energies with the underflow guard
-/// (`Ld - scaleDiff` only when it stays above `-1.0/2 + scaleDiff/2`,
-/// else exactly `-1.0`; the float `>>1` floor differs at most 1 LSB at the
-/// boundary, gated by tests), then the UNCONDITIONAL shiftBits correction
-/// (applied whenever the overflow branch ran, i.e. `shift_bits > 0`).
-/// NOTE: prefer `band_energy_long`, which computes this inline from the
-/// same accumulations; this helper exists for unit tests.
-pub fn long_recompute_ld(e_preshift: &[i32], maxscale: &[i32], shift_bits: i32) -> Vec<f64> {
-    e_preshift
-        .iter()
-        .zip(maxscale.iter())
-        .map(|(&e, &ms)| {
-            let scale_diff = (ms - 4) as f64 * 2.0 / 64.0;
-            let base = if e <= 0 { -1.0 } else { log2frac(e) };
-            let mut ld = if base >= (-0.5 + scale_diff / 2.0) {
-                base - scale_diff
-            } else {
-                -1.0
-            };
-            if shift_bits > 0 {
-                ld -= shift_bits as f64 * 2.0 / 64.0;
-            }
-            ld
-        })
-        .collect()
 }
 
 /// (`psy_main.cpp:669-687`). `is_short_element` mirrors the C

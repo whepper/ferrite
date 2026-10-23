@@ -54,8 +54,15 @@ pub enum EncodeError {
     Poisoned,                     // any use after a terminal error; no output
 }
 
-pub enum EncodeFailure { SkippedFrame { notes: Vec<String> }, CrashedFrame, QcFailed(QcError), FrameWrite(FrameError), BitWrite(BitEncError), Adts(AdtsError) }
+pub enum EncodeFailure {
+    SkippedFrame { notes: Vec<String> },
+    CrashedFrame { notes: Vec<String> },
+    QcFailed(QcError),
+    FrameWrite(FrameError),
+}
 ```
+
+`BitEncError` and `AdtsError` are not `EncodeFailure` variants. Both convert into `FrameError` at the S8 write boundary (`From<BitEncError> for FrameError` and `From<adts::AdtsError> for FrameError` in `frame.rs`), so a bit-writer or ADTS failure surfaces as `FrameWrite(FrameError)`. `AdtsError`, `BitEncError`, `FrameError`, and `QcError` remain publicly re-exported from `aac_enc::encoder` for callers that inspect the typed payload.
 
 No `Send`/`Sync`/threading/callback/async promises (verified: no globals or shared mutability in driver/config/pcm/rate — instance-owned state throughout; `Sync` specifically unverified and not offered). No other sample rates, layouts, profiles, or transports promised.
 
@@ -71,7 +78,7 @@ No `Send`/`Sync`/threading/callback/async promises (verified: no globals or shar
 | 6 | Repeated `flush` | `Err(AlreadyFinished)`, no output, state unchanged |
 | 7 | Input after successful flush | `Err(AlreadyFinished)`, no output, no state change |
 | 8 | Unaligned sample count | `Err(UnalignedInput)`, rejected before buffering (`pcm.rs:245` checks first) — **the only recoverable error**; correct re-push works |
-| 9 | Encoding/frame-emission failure (skip, crash, Qc/Frame/BitEnc/Adts error) | `Err(FrameFailed{..})`, in-call completed frames discarded with the count reported, encoder poisoned (`finished=true`); S8-write failures are terminal because frontend state already advanced past the frame — retry would double-advance and corrupt the stream |
+| 9 | Encoding/frame-emission failure (skip, crash, `QcError`, or `FrameError`; bit-writer/ADTS failures arrive as `FrameError`) | `Err(FrameFailed{..})`, in-call completed frames discarded with the count reported, encoder poisoned (`finished=true`); S8-write failures are terminal because frontend state already advanced past the frame — retry would double-advance and corrupt the stream |
 | 10 | Reuse after terminal error | `Err(Poisoned)`, no output, no state change |
 
 Crash policy decision (implementation gate, documented): on `crash != -1` the frame bytes are **discarded, not emitted** — a deliberate, explicit delta from the test driver (which emits-then-fails-loudly, `stream_driver.rs:1225-1231`). Rationale: emitting bytes alongside an error enables accidental duplicate/corrupt streams and violates "never emit after error". Numerics are unaffected on all validated corpora (crash never fires there — M5.g census proves it; the M6.1 hash gate enforces it).
@@ -92,7 +99,7 @@ Fixed by implementation (documented, not configurable): AAC-LC, VBR-5, afterburn
 - Terminal (poison; `is_finished()` true; further use → `Poisoned`): `FrameFailed` (all kinds), `AlreadyFinished` (state-preserving: finished stays finished), construction failures (no object).
 - No skipped frames, ever: `None`/notes from `step_frame` map to `FrameFailed::SkippedFrame`, never to silent continuation — the M5.j evidence-backed policy, now contractual.
 - No handle-and-continue: retry/fallback inside `qc_main_frame` is unchanged C-ported behavior; at the API boundary, any deviation from single-pass-clean is an error, not a recovery. (Validating a future handle-policy is release work, explicitly out of M6.1.)
-- Context preserved: `FrameFailed` carries frame index, completed count, notes, and the source error (`QcError`/`FrameError`/etc. via `EncodeFailure`); `Display`+`std::error::Error` impls required (existing enums already implement `Display`).
+- Context preserved: `FrameFailed` carries frame index, completed count, `notes` (on `SkippedFrame`/`CrashedFrame`), and the typed source error (`QcError` or `FrameError` via `EncodeFailure`; bit-writer and ADTS failures are carried as `FrameError`); `Display`+`std::error::Error` impls required (existing enums already implement `Display`).
 
 ## 6. Compatibility acceptance criteria (M6.1 gates)
 

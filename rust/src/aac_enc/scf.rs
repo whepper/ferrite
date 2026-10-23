@@ -249,7 +249,6 @@ pub struct ScfChannelOutput {
     pub global_gain: i32,
     pub quant_spec: Vec<i16>,
     pub mutated_spectrum: Vec<i32>,
-    pub sfb_dist: Vec<i32>,
 }
 
 /// `calcSfbRelevantLines` (`sf_estim.cpp:183-224`). Writes into the
@@ -1107,6 +1106,7 @@ pub struct ScfWorkspace {
 ///
 /// Convenience form that allocates a fresh [`ScfWorkspace`] per call;
 /// hot-path callers should use [`estimate_scale_factors_channel_reuse`].
+#[cfg(test)]
 pub fn estimate_scale_factors_channel(input: &mut ScfChannelInput<'_>) -> ScfChannelOutput {
     let mut ws = ScfWorkspace::default();
     estimate_channel_with_inv_ws(input, 2, &mut ws)
@@ -1405,7 +1405,6 @@ fn estimate_channel_with_inv_ws(
         global_gain: gain,
         quant_spec: quant,
         mutated_spectrum: spec,
-        sfb_dist: dist,
     }
 }
 

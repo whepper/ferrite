@@ -135,6 +135,7 @@ pub const BLOCK_SWITCH_OFFSET: usize = FRAME_LENGTH + 9 * FRAME_LENGTH / 16;
 /// Fresh samples visible before the transform (`2 * 1024 - 1600 = 448`).
 pub const PRE_COPY: usize = 2 * FRAME_LENGTH - BLOCK_SWITCH_OFFSET;
 /// Fresh samples staged after the transform (`1600 - 1024 = 576`).
+#[cfg(test)]
 pub const POST_COPY: usize = BLOCK_SWITCH_OFFSET - FRAME_LENGTH;
 /// MDCT lines per frame (1 x 1024 or 8 x 128).
 pub const MDCT_LINES: usize = FRAME_LENGTH;
@@ -185,6 +186,7 @@ impl ChannelTransform {
     }
 
     /// Transform ring (test inspection).
+    #[cfg(test)]
     pub fn ring(&self) -> &[f32; RING_LEN] {
         &self.ring
     }

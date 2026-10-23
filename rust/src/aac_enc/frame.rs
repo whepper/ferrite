@@ -225,13 +225,12 @@ pub const GLOBAL_GAIN_OFFSET: i32 = 100;
 /// `LOG_NORM_PCM` (`psy_const.h:161`).
 pub const LOG_NORM_PCM: i32 = -15;
 /// Window shapes (`psy_const.h:131-133`).
+#[cfg(test)]
 pub const SINE_WINDOW: i32 = 0;
 /// Kaiser-Bessel derived window.
 pub const KBD_WINDOW: i32 = 1;
 /// Low-overlap window (maps to KBD on write, `bitenc.cpp:201`).
 pub const LOL_WINDOW: i32 = 2;
-/// `TRANS_FAC = 8` (`psy_const.h:109`); short grouping field is 7 bits.
-pub const TRANS_FAC: i32 = 8;
 /// Fill outer widths (`bitenc.cpp:815-816`).
 pub const FILL_EL_COUNT_BITS: u8 = 4;
 /// Fill escape-count width.
@@ -245,6 +244,7 @@ pub const FILL_NIBBLE_BITS: u8 = 4;
 /// Fill byte for `EXT_FILL_DATA` (`bitenc.cpp:693`).
 pub const FILL_DATA_BYTE: u32 = 0xA5;
 /// Extension types (`FDK_audio.h:470-471`).
+#[cfg(test)]
 pub const EXT_FIL: u32 = 0x00;
 /// Fill-data extension type (the only global extension S8 emits).
 pub const EXT_FILL_DATA: u32 = 0x01;
@@ -1040,9 +1040,7 @@ fn write_fill_payload(ext_payload_bits: i32, w: &mut BitWriter) -> Result<u32, F
 /// Stripped `FDKaacEnc_WriteBitstream` (`bitenc.cpp:1182-1322`) for one
 /// single-element frame: element + global fill + `ID_END` + alignment.
 ///
-/// Returns the raw-data-block bits (== `total_bits` on success). The
-/// `frameBits == totalBits + globHdrBits` check is performed by
-/// [`write_raw_block_checked`] together with the transport header.
+/// Returns the raw-data-block bits (== `total_bits` on success).
 pub fn write_raw_block(input: &RawBlockInput<'_>, w: &mut BitWriter) -> Result<u32, FrameError> {
     check_supported_syntax(AOT_AAC_LC, 0, -1, 0)?;
     if input.elements.len() != 1 {
@@ -1087,20 +1085,6 @@ pub fn write_raw_block(input: &RawBlockInput<'_>, w: &mut BitWriter) -> Result<u
         return Err(FrameError::BadFrameLength("totalBits range"));
     }
     Ok(raw_bits)
-}
-
-/// Raw block plus transport-header accounting: verifies
-/// `frameBits == totalBits + globHdrBits` (`bitenc.cpp:1317-1319`).
-pub fn write_raw_block_checked(
-    input: &RawBlockInput<'_>,
-    w: &mut BitWriter,
-) -> Result<(u32, u32), FrameError> {
-    let raw = write_raw_block(input, w)?;
-    let frame = raw as i32 + input.glob_hdr_bits;
-    if frame != input.total_bits + input.glob_hdr_bits {
-        return Err(FrameError::BadFrameLength("frameBits check"));
-    }
-    Ok((raw, frame as u32))
 }
 
 /// Complete raw-data-block bytes for one frame (byte-aligned).

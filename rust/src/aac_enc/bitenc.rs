@@ -355,6 +355,7 @@ impl BitWriter {
     }
 
     /// `true` when no bit has been written.
+    #[cfg(test)]
     pub fn is_empty(&self) -> bool {
         self.bits == 0
     }
@@ -365,6 +366,7 @@ impl BitWriter {
     }
 
     /// Lowercase hex of [`BitWriter::used_bytes`] (oracle fixture format).
+    #[cfg(test)]
     pub fn to_hex(&self) -> String {
         let mut s = String::with_capacity(self.used_bytes().len() * 2);
         for b in self.used_bytes() {

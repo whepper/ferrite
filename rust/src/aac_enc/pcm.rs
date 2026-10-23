@@ -140,6 +140,7 @@ impl PcmFrame {
     }
 
     /// Number of channels in this frame.
+    #[cfg(test)]
     pub fn channel_count(&self) -> usize {
         self.channels.len()
     }
@@ -205,17 +206,14 @@ impl PcmFeeder {
         }
     }
 
-    /// Configured channel count.
-    pub fn channels(&self) -> u32 {
-        self.channels
-    }
-
     /// Encoder delay in samples per channel (1600 for 1024-sample frames).
+    #[cfg(test)]
     pub fn delay(&self) -> usize {
         self.delay
     }
 
     /// Buffered samples per channel not yet emitted as a frame.
+    #[cfg(test)]
     pub fn pending_per_channel(&self) -> usize {
         self.pending[0].len()
     }
@@ -226,11 +224,13 @@ impl PcmFeeder {
     }
 
     /// Zero samples appended during `finish`, per channel.
+    #[cfg(test)]
     pub fn zeros_appended(&self) -> u64 {
         self.zeros_appended
     }
 
     /// Whether `finish` has been called.
+    #[cfg(test)]
     pub fn is_finished(&self) -> bool {
         self.finished
     }

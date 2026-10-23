@@ -1234,6 +1234,7 @@ fn noise_count(sections: &[SectionInfo], noise_nrg: &[i32]) -> i32 {
 /// `dynBitCount` (`dyn_bits.cpp:437-465`) entry point. Convenience form
 /// that allocates a fresh [`BitCountScratch`] per call; hot-path callers
 /// use [`dyn_bit_count_reuse`].
+#[cfg(test)]
 pub fn dyn_bit_count(input: &BitCountInput<'_>) -> (SectionData, i32) {
     let mut scratch = BitCountScratch::default();
     dyn_bit_count_reuse(input, &mut scratch)

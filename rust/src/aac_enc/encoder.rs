@@ -9,10 +9,12 @@
 //! Validated scope (M6.0 contract): mono/stereo x 44.1/48 kHz x VBR-5 ADTS.
 //! Anything else is rejected at construction.
 
+pub use super::adts::AdtsError;
+pub use super::bitenc::BitEncError;
+pub use super::frame::FrameError;
+pub use super::rate::QcError;
 use super::config::{ConfigError, EncoderConfig};
-use super::frame::FrameError;
 use super::pcm::{FeederError, PcmFeeder, PcmFrame};
-use super::rate::QcError;
 use super::stream_driver::{StepError, StreamEncoder};
 
 /// One complete ADTS frame as emitted by the encoder.
@@ -209,6 +211,11 @@ impl Encoder {
     /// Returns one [`AdtsFrame`] per completed 1024-sample block, in order.
     /// Empty input is a successful no-op. Unaligned input is rejected before
     /// buffering (recoverable). Any encoding failure poisons the encoder.
+    ///
+    /// Provide bounded chunks rather than one whole-file buffer: the feeder
+    /// appends to per-channel buffers and drains from the front, so large
+    /// single pushes can cost roughly O(n²). A chunk target around 8,000
+    /// sample frames per channel is a reasonable starting point.
     pub fn push(&mut self, samples: &[i16]) -> Result<Vec<AdtsFrame>, EncodeError> {
         match self.state {
             Lifecycle::Open => {}

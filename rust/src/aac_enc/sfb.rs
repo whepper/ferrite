@@ -158,15 +158,8 @@ pub const PCM_QUANT_NOISE_Q31: i32 = 0x00547062;
 /// Threshold ratio: C_RATIO without the x16 headroom shift, i.e.
 /// `0x02940a10 / 2^35 = 10^(-29/10)` up to the float-literal rounding the
 /// Q31 constant was built from (`psy_configuration.h:117-118`).
+#[cfg(test)]
 pub const THRESHOLD_RATIO: f64 = 0x02940a10u32 as f64 / 34_359_738_368.0;
-/// Clip energy base (`0x773593ff / 2^31 ~= 0.9313`, `psy_configuration.cpp:596`).
-pub const CLIP_ENERGY: f64 = CLIP_ENERGY_Q31 as f64 / 2_147_483_648.0;
-/// PCM quantization noise density (`0x00547062 / 2^31`, `psy_configuration.cpp:329`).
-pub const PCM_QUANT_NOISE: f64 = PCM_QUANT_NOISE_Q31 as f64 / 2_147_483_648.0;
-/// Pre-echo remaining-threshold factor (`0x0148 / 2^15`, `psy_configuration.cpp:592`).
-pub const MIN_REMAINING_FACTOR: f64 = 0x0148u32 as f64 / 32_768.0;
-/// Pre-echo maximum increase factor (plain integer, `psy_configuration.cpp:591`).
-pub const MAX_INCREASE_FACTOR: i32 = 2;
 /// LFE lowpass line for long blocks (`psy_const.h:165`).
 pub const LFE_LOWPASS_LINE: usize = 12;
 /// Threshold-Ld floor applied to grouped/long outputs (`-33/64`,

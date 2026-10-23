@@ -465,6 +465,7 @@ pub struct PsyScratch {
 ///
 /// Convenience form that allocates a fresh [`PsyScratch`] per call;
 /// hot-path callers use [`process_pair_reuse`].
+#[cfg(test)]
 pub fn process_pair(
     left: &mut PsyChannel,
     right: Option<&mut PsyChannel>,

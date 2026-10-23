@@ -117,18 +117,6 @@ amm-info@iis.fraunhofer.de
 
 use super::tns::TnsChannel;
 
-/// Element types with distinct S1 static-bit layouts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ElementType {
-    /// Single-channel element (and LFE: same `node_aac_sce` list, same
-    /// 3-bit ID width, so identical counts).
-    Sce,
-    /// Channel-pair element.
-    Cpe,
-    /// Low-frequency element: counts like [`ElementType::Sce`].
-    Lfe,
-}
-
 /// MS digest (`interface.h:112`): `MS_NONE = 0, MS_SOME = 1, MS_ALL = 2`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MsDigest {

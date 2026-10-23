@@ -133,11 +133,6 @@ use super::sfb_tables::{
 pub const HI: usize = 0;
 /// Lower filter index.
 pub const LO: usize = 1;
-/// Maximum TNS order, LC long (`TNS_MAX_ORDER`).
-pub const TNS_MAX_ORDER: usize = 12;
-/// Short-block subblock count for TNS purposes.
-pub const TNS_WINDOWS_SHORT: usize = 8;
-
 /// LC max bands per sample rate, descending (mirrors
 /// `tnsMaxBandsTab1024`; traversal takes the first entry with
 /// `sampleRate >= entry`). Values are (long, short).
@@ -169,9 +164,7 @@ pub struct TnsConfig {
     pub start_band: [usize; 2],
     /// LPC start lines [HI, LO].
     pub start_line: [usize; 2],
-    /// LPC stop band/line.
-    pub stop_band: usize,
-    /// Stop line.
+    /// LPC stop line.
     pub stop_line: usize,
     /// Minimum prediction gain (x1000): [1437 HI, 1500 LO].
     pub thresh_on: [i32; 2],
@@ -237,7 +230,6 @@ impl TnsConfig {
             coef_res: if long { 4 } else { 3 },
             start_band: [band_hi, start_band_lo],
             start_line: [offsets[band_hi] as usize, start_line_lo],
-            stop_band,
             stop_line,
             thresh_on: [1437, 1500],
             limit_order: [max_order, max_order.saturating_sub(7)],

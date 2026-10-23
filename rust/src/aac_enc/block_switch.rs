@@ -319,6 +319,7 @@ impl BlockSwitch {
     }
 
     /// Whether the current frame holds an attack (pre-sync).
+    #[cfg(test)]
     pub fn has_attack(&self) -> bool {
         self.attack
     }

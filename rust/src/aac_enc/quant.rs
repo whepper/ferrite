@@ -268,6 +268,7 @@ fn fpow2(a: i32) -> i32 {
 /// `dzone_quant_enable`, computed once per band by the C reference at
 /// `quantize.cpp:120-131`) now lives in [`quantize_line_body`]; this
 /// wrapper computes it and delegates. Per-line arithmetic is unchanged.
+#[cfg(test)]
 pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;

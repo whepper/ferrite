@@ -110,16 +110,11 @@ use core::fmt;
 pub const ADTS_HEADER_BYTES: usize = 7;
 /// ADTS header length in bits for the configuration above.
 pub const ADTS_HEADER_BITS: u32 = 56;
-/// ADTS syncword, 12 bits (`tpenc_adts.cpp:220`).
-pub const ADTS_SYNCWORD: u16 = 0xFFF;
 /// Maximum frame length encodable in the 13-bit length field, in bytes;
 /// the field counts the header itself (`tpenc_adts.cpp:198,235`).
 pub const ADTS_MAX_FRAME_BYTES: usize = (1 << 13) - 1;
 /// Buffer-fullness value written for VBR frames (see module docs).
 pub const ADTS_VBR_BUFFER_FULLNESS: u16 = 0x7FF;
-/// MPEG audio ID for MPEG-4 (`adtsWrite_Init`, `tpenc_adts.cpp:163-167`,
-/// set via the `CC_MPEG_ID` flag).
-pub const ADTS_MPEG_ID_MPEG4: u8 = 0;
 /// ADTS profile field for AAC-LC: `aot - 1` (`tpenc_adts.cpp:170`).
 pub const ADTS_PROFILE_AAC_LC: u8 = 1;
 

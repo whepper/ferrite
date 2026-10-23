@@ -97,58 +97,24 @@ amm-info@iis.fraunhofer.de
 //! the `aac_enc` feature and shares the decoder's ungated `common` primitives
 //! by call only; decoder modules are never modified for encoder needs.
 //!
-//! Milestone M1 covers the parameter plane every later milestone builds on:
-//! [`config`] (stripped VBR-5 configuration), [`channel_map`] (channel modes
-//! and elements), and [`adts`] (ADTS framing). No DSP is ported here.
+//! The supported public surface is [`config`] (validated VBR-5
+//! configuration), [`channel_map`] (channel modes), and [`encoder`] (the
+//! owned pull-style encoder and its ADTS output).
 //!
-//! Milestone M2 adds the streaming frontend: [`pcm`] (PCM framing and
-//! lifecycle), [`block_switch`] (window-sequence decisions), and
-//! [`transform`] (forward MDCT with overlap staging).
-//!
-//! Milestone M4-S1 ports the `QCMainPrepare` front half: [`pe`]
-//! (form-factor and perceptual-entropy calculation) and [`static_bits`]
-//! (the `ChannelElementWrite(NULL)` static-bit count).
-//!
-//! Milestone M4-S2 ports VBR threshold adjustment: [`threshold_vbr`]
-//! (`AdaptThresholdsVBR` + the `AdjustThresholds` enFac add).
-//!
-//! Milestone M4-S3 ports the scalar quantizer primitives: [`quant`]
-//! (`quantizeLines`/`invQuantizeLines`/`QuantizeSpectrum`/`calcSfbDist`/
-//! `calcSfbQuantEnergyAndDist`) with tables in [`quant_tables`].
-//!
-//! Milestone M4-S4 ports scalefactor estimation and the afterburner:
-//! [`scf`] (`EstimateScaleFactors` with `invQuant == 2`).
-//!
-//! Milestone M4-S5 ports noiseless bit counting and sectioning:
-//! [`bitcount`] (`dynBitCount`/`noiselessCounter`/`scfCount`/
-//! `noiseCount` + the `bitCount`/`countValues` kernels) with tables in
-//! [`bitcount_tables`].
-//!
-//! Milestone M4-S6 ports the QC gain loop and VBR rate-control closure:
-//! [`rate`] (QC-init derivations, `AdjustBitrate`, bit distribution with
-//! `DistributeBits`, the gain loop with `reduceBitConsumption`/
-//! `crashRecovery`/`calcMaxValueInSfb`, VBR fill/finalize/reservoir).
-//!
-//! Milestone M4-S7 ports spectral and scalefactor bitstream encoding:
-//! [`bitenc`] (`codeValues`/`codeScalefactorDelta` plus the section /
-//! scalefactor / spectral payload writers) with code tables in
-//! [`bitenc_tables`].
-//!
-//! Milestone M4-S8 ports channel-element assembly and complete frame output:
-//! [`frame`] (write-mode `ChannelElementWrite`, stripped `WriteBitstream`
-//! tail and ADTS framing over the S5/S6/S7 artifacts).
+//! DSP, psychoacoustic, quantization, rate-control, and stream-orchestration
+//! modules are crate-internal implementation details.
 
-pub mod adts;
-pub mod bitcount;
+pub(crate) mod adts;
+pub(crate) mod bitcount;
 pub(crate) mod bitcount_tables;
-pub mod bitenc;
+pub(crate) mod bitenc;
 pub(crate) mod bitenc_tables;
-pub mod block_switch;
+pub(crate) mod block_switch;
 pub mod channel_map;
 pub mod config;
 pub mod encoder;
-pub mod energy;
-pub mod frame;
+pub(crate) mod energy;
+pub(crate) mod frame;
 pub(crate) mod intensity;
 #[cfg(test)]
 pub(crate) mod m5a_decode;
@@ -158,22 +124,22 @@ pub(crate) mod m5b_measure;
 pub(crate) mod m5g_census;
 #[cfg(test)]
 pub(crate) mod m6_migration;
-pub mod pcm;
-pub mod pe;
+pub(crate) mod pcm;
+pub(crate) mod pe;
 #[cfg(test)]
 pub(crate) mod phase1b;
-pub mod psy;
+pub(crate) mod psy;
 // Init-time PSY/TNS configuration snapshots (production: needed by
 // `StreamEncoder::new` for table setup).
-pub mod psy_config;
+pub(crate) mod psy_config;
 pub(crate) mod q31;
-pub mod quant;
+pub(crate) mod quant;
 pub(crate) mod quant_tables;
-pub mod rate;
-pub mod scf;
-pub mod sfb;
+pub(crate) mod rate;
+pub(crate) mod scf;
+pub(crate) mod sfb;
 pub(crate) mod sfb_tables;
-pub mod static_bits;
+pub(crate) mod static_bits;
 // M6.1: production module. Test-only harnesses, fixtures, and census
 // instrumentation inside remain individually `#[cfg(test)]`-gated (verified
 // by `cargo build --features aac_enc` passing without test code); the
@@ -182,7 +148,7 @@ pub mod static_bits;
 pub(crate) mod stream_driver;
 #[cfg(test)]
 pub(crate) mod testdata;
-pub mod threshold_vbr;
-pub mod thresholds;
-pub mod tns;
-pub mod transform;
+pub(crate) mod threshold_vbr;
+pub(crate) mod thresholds;
+pub(crate) mod tns;
+pub(crate) mod transform;
