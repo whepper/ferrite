@@ -208,3 +208,105 @@ At audit completion:
 - No commit, amend, rebase, reset, stash, clean, or push was performed.
 - All audit builds, tests, decode outputs, and temporary scripts are outside the repository.
 - The MSRV policy amendment was made after this audit; it does not change the ADTS, M8, or test evidence recorded above.
+
+## 12. M6.6 CI automation (2026-10-23)
+
+M6.6 adds [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on a
+baseline of commit `0b3b1f9cad4d0b0e5990650f4782cdc3be9c6691`. This section is
+a follow-up to the 2026-10-21 audit; it does not change that audit's results
+or the M8 and `544/558` findings.
+
+### Tier A — required self-contained CI
+
+The workflow runs on pushes to `main` and pull requests targeting `main`. It
+uses GitHub-hosted `ubuntu-latest`, installs Rust `1.99.1` with
+`dtolnay/rust-toolchain`, uses `--locked` for Cargo, and runs from `rust/`. It
+has no cache dependency, artifact upload, or secret input. At authoring time
+the workflow was validated locally with `actionlint` and the commands below;
+no hosted GitHub run had been triggered before the workflow was committed.
+
+Required steps:
+
+```sh
+cargo build --locked
+cargo build --locked --features aac_enc
+cargo build --locked --no-default-features --features aac_enc
+cargo test --locked --features aac_enc --lib -- \
+  --skip m5a_decode_check \
+  --skip m55_streams_match_c_reference \
+  --skip phase1_frontend_agreement_sine_f5 \
+  --skip phase1e_sine_f5_band16_residue \
+  --skip phase1e_onset_f24_bands_causality \
+  --skip phase1f_multitone_f1_no_live_divergence \
+  --skip phase1f_stepdown_f1_no_live_divergence \
+  --skip phase1g_long_flips_residue \
+  --skip phase1i_sine44_f5_tier_b \
+  --skip phase1i_multitone_f5_tier_b \
+  --skip phase1_full_stream_parity \
+  --skip intensity_probe_c_oracle_parity \
+  --skip intensity_probe_wav_parity \
+  --skip intensity_probe_adts_decodes \
+  --skip m511_profile_loop
+cargo test --locked --features aac_enc --doc
+cargo test --locked --no-default-features --features aac_dec --lib
+cargo test --locked --no-default-features --features aac_dec --doc
+cargo package --locked -p aac
+```
+
+The excluded 15 tests require retained C artifacts, an external decoder, or
+opt-in environment variables:
+
+- nine Phase-1 oracle/reference tests;
+- `m5a_decode_check`;
+- `m55_streams_match_c_reference`;
+- three external IS probe tests;
+- the opt-in `m511_profile_loop`.
+
+The other ten Phase-1 tests use committed vectors and remain in the
+self-contained Tier A set. The self-contained result is **461 library tests
+plus 82 encoder doctests**; the decoder result is **256 library tests plus 81
+doctests**. The workflow does not hardcode these counts: any test failure
+fails the job. The numbers are the local reference results from the M6.6
+validation, not a gate that ignores additional tests.
+
+### Tier B — full release validation, not automated
+
+The complete encoder release suite remains a trusted release-environment job,
+not a GitHub-hosted default. It requires:
+
+```sh
+AAC_DEC_BIN=/path/to/aac-dec
+M55_C_DIR=/path/to/m55-c-aac
+PHASE1_ORACLE_DIR=/path/to/phase1-oracle
+PHASE1_C_DIR=/path/to/phase1-c-aac
+PHASE1_OUT=/path/to/writable/output
+```
+
+With those artifacts available, the complete suite was validated locally at
+**476 passed, 0 failed; 82 doctests passed**. The CI workflow deliberately
+does not claim that full result: missing Tier B artifacts are a blocked
+release check, not a Tier A pass. No download URL, credential, checked-in
+binary, or unlicensed artifact mechanism is introduced.
+
+### Formatting and lint
+
+`.github/workflows/ci.yml` has a separate `lint-informational` job. It attempts
+to install `rustfmt` and `clippy` for Rust 1.99.1 and runs:
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --locked --features aac_enc --all-targets
+```
+
+That job is explicitly non-gating. The repository has documented pre-existing
+formatting drift and a non-clean Clippy baseline; CI must not turn those into
+a repository-wide failure. The required Tier A job does not depend on these
+checks, and no claim of complete formatting or lint coverage is made.
+
+### Release-status boundary
+
+Tier A proves that a clean checkout can build, test, and package the
+self-contained encoder/decoder configurations. It does **not** approve the
+broader M8 corpus, close the M8 provenance decision, or validate the
+unsupported `544/558` historical claim. M8 remains `PROVISIONAL`, and any
+release statement must retain that finding.

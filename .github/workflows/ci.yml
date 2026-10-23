@@ -1,0 +1,110 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  build-and-test:
+    name: Build and self-contained tests (Rust 1.99.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Build default configuration
+        run: cargo build --locked
+
+      - name: Build encoder configuration
+        run: cargo build --locked --features aac_enc
+
+      - name: Build encoder-only configuration
+        run: cargo build --locked --no-default-features --features aac_enc
+
+      # These 15 tests require external C artifacts, a retained decoder, or
+      # opt-in environment variables. The other phase1 tests use committed
+      # vectors and remain in the self-contained Tier A set.
+      - name: Run self-contained encoder tests
+        run: |
+          cargo test --locked --features aac_enc --lib -- \
+            --skip m5a_decode_check \
+            --skip m55_streams_match_c_reference \
+            --skip phase1_frontend_agreement_sine_f5 \
+            --skip phase1e_sine_f5_band16_residue \
+            --skip phase1e_onset_f24_bands_causality \
+            --skip phase1f_multitone_f1_no_live_divergence \
+            --skip phase1f_stepdown_f1_no_live_divergence \
+            --skip phase1g_long_flips_residue \
+            --skip phase1i_sine44_f5_tier_b \
+            --skip phase1i_multitone_f5_tier_b \
+            --skip phase1_full_stream_parity \
+            --skip intensity_probe_c_oracle_parity \
+            --skip intensity_probe_wav_parity \
+            --skip intensity_probe_adts_decodes \
+            --skip m511_profile_loop
+
+      - name: Run encoder doctests
+        run: cargo test --locked --features aac_enc --doc
+
+      - name: Run decoder tests
+        run: cargo test --locked --no-default-features --features aac_dec --lib
+
+      - name: Run decoder doctests
+        run: cargo test --locked --no-default-features --features aac_dec --doc
+
+      - name: Verify package contents
+        run: cargo package --locked -p aac
+
+  lint-informational:
+    name: Formatting and Clippy (informational, non-gating)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Install optional Rust components
+        run: rustup component add rustfmt clippy
+
+      # Both checks have known pre-existing repository drift. This job is an
+      # informational baseline only; it is not a required release gate.
+      - name: Check formatting (informational)
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (informational)
+        run: cargo clippy --locked --features aac_enc --all-targets
