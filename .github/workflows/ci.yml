@@ -80,6 +80,29 @@ jobs:
       - name: Verify package contents
         run: cargo package --locked -p aac
 
+  aac-convert:
+    name: Build and test conversion app (Rust 1.99.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Build conversion app
+        run: cargo build --locked -p aac-convert
+
+      - name: Test conversion app
+        run: cargo test --locked -p aac-convert
+
   # Formatting and Clippy are informational baselines only. Both report
   # known pre-existing repository drift and do not determine the workflow
   # result. They run as separate jobs so that a formatting failure cannot
