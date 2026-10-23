@@ -80,8 +80,12 @@ jobs:
       - name: Verify package contents
         run: cargo package --locked -p aac
 
-  lint-informational:
-    name: Formatting and Clippy (informational, non-gating)
+  # Formatting and Clippy are informational baselines only. Both report
+  # known pre-existing repository drift and do not determine the workflow
+  # result. They run as separate jobs so that a formatting failure cannot
+  # skip Clippy.
+  format-informational:
+    name: Formatting (informational, non-gating)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -93,18 +97,33 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust 1.99.1
+      - name: Install Rust 1.99.1 with rustfmt
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.99.1
+          components: rustfmt
 
-      - name: Install optional Rust components
-        run: rustup component add rustfmt clippy
-
-      # Both checks have known pre-existing repository drift. This job is an
-      # informational baseline only; it is not a required release gate.
       - name: Check formatting (informational)
         run: cargo fmt --all -- --check
+
+  clippy-informational:
+    name: Clippy (informational, non-gating)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1 with Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.99.1
+          components: clippy
 
       - name: Run Clippy (informational)
         run: cargo clippy --locked --features aac_enc --all-targets
