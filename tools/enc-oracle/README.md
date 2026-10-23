@@ -53,22 +53,34 @@ c++ -std=c++11 -O2 \
 ## Fixtures and runs
 
 ```sh
+# 15 deterministic fixture WAVs. m6-stress-stereo-48k is required by the
+# S6/S7/S8 selections further down (see "Regeneration map").
 python3 tools/enc-oracle/make_fixtures.py "$BLD"
+# One oracle dump per fixture carries the M2/M3 blocks and the S1..S8
+# blocks, but the two parser families expect different file names:
+#   extract_testdata.py -> <stem>.oracle.txt
+#   extract_s1..s8.py   -> <stem>.s1.txt
+# Run the oracle once and keep both names; each parser reads only its own
+# blocks, so the content is interchangeable.
 for f in m2-onset-stereo-48k m2-stepdown-stereo-48k m2-click-mono-48k \
          m2-edge-mono-48k m2-silence-stereo-48k m2-sine-stereo-48k \
          m2-impulse-mono-48k m3-multitone-stereo-48k m3-sweep-stereo-48k \
          m3-noise-mono-48k m3-tonal-noise-stereo-48k \
-         m3-quiet-sine-stereo-48k m3-sine-stereo-441k m3-onset-stereo-441k; do
+         m3-quiet-sine-stereo-48k m3-sine-stereo-441k m3-onset-stereo-441k \
+         m6-stress-stereo-48k; do
   "$BLD/enc_oracle" "$BLD/$f.wav" "$BLD/$f.oracle.txt"
+  cp "$BLD/$f.oracle.txt" "$BLD/$f.s1.txt"
 done
-# Init-time config for all 12 LC rates x both VBR-5 operating points:
+# Init-time config for all 12 LC rates x both VBR-5 operating points. This
+# transcript is also the argument that makes extract_tables.py emit the
+# SPREAD_* tables (see "Generated table extractors"):
 "$BLD/enc_oracle" --configs > "$BLD/configs-all.txt"
-# Committed testdata:
+# Committed M2/M3 testdata + config snapshots (reads <stem>.oracle.txt):
 python3 tools/enc-oracle/extract_testdata.py "$BLD" "$BLD/testdata"
-python3 tools/enc-oracle/extract_tables.py   # regenerates sfb_tables.rs
-# Committed S1 testdata (M4-S1 selection; run the oracle first as above,
-# outputs are `<stem>.s1.txt` when the binary is built from the current
-# enc_oracle.cpp — the S1 stage always runs):
+# Committed SFB/TNS tables. Without the configs transcript the regenerated
+# file would lack SPREAD_LONG/SPREAD_SHORT and would not compile:
+python3 tools/enc-oracle/extract_tables.py "$BLD/configs-all.txt"
+# Committed S1 testdata (M4-S1 selection; reads <stem>.s1.txt):
 python3 tools/enc-oracle/extract_s1.py "$BLD" "$BLD/s1test"
 # S1 re-validation (3 fresh runs; every committed S1 output line must be
 # byte-identical, SPEC wobble confined to FF-inactive bands):
@@ -159,6 +171,108 @@ python3 tools/enc-oracle/extract_testdata.py --cfg-only \
 
 Extra stems are additive. Expected outputs are byte-identical to the committed
 `rust/src/aac_enc/testdata/cfg_*.txt` files (M5.e/M6.4 record the hashes).
+
+## Extraction requirements
+
+These are Python 3 scripts whose imports are standard library only (`os`,
+`sys`, `re`, `struct`, `wave`, `math`, `collections`); no packages need to be
+installed. No script declares or checks a minimum interpreter version. The
+bytecode cache in `__pycache__/` is tagged `cpython-315`, but that records only
+which interpreter produced it.
+
+Run every command from the **repository root**. `extract_tables.py`,
+`extract_quant_tables.py`, `extract_bitcount_tables.py` and
+`extract_bitenc_tables.py` resolve `cpp/...` and `rust/...` paths relative to
+the current directory, and `validate_s1.py` reads
+`rust/src/aac_enc/testdata/cfg_*.txt` the same way. `make_fixtures.py` called
+without a target directory writes its WAVs into this directory instead of a
+scratch directory.
+
+Writes go to the target directory passed to `make_fixtures.py`,
+`extract_testdata.py` and `extract_s1.py`..`extract_s8.py` (with the
+`make_fixtures.py` default noted above), except for the four table extractors,
+which always rewrite tracked files under `rust/src/aac_enc/`.
+`validate_s1.py`..`validate_s8.py` write nothing.
+
+## Regeneration map
+
+Extracted vectors go to the `<testdata-dir>` you pass; the committed copies
+live in `rust/src/aac_enc/testdata/`.
+
+| Script | Committed outputs | Consumed by |
+|---|---|---|
+| `extract_testdata.py` | `seq_*`, `mdct_*`, `ring_*`, `psy_*`, `rxx_*`, `ms_*`, `cfg_*` | `testdata.rs` (`:137`, `:156`, `:168`, `:669`, `:726`, `:750`); `cfg_*` is production data embedded with `include_str!` in `psy_config.rs:21-24` |
+| `extract_s1.py` .. `extract_s8.py` | `qc1_*` .. `qc8_*`, `qc6init_*` | `testdata.rs` (`load_s1` .. `load_s8`; reads at `:951`, `:1192`, `:1465`, `:1651`, `:1829`, `:2075`, `:2308`, `:2381`); `qc6init_*` at `:2163` |
+| `extract_tables.py [configs]` | `rust/src/aac_enc/sfb_tables.rs` | `sfb.rs:119` (`SFB_TABLES`, `SPREAD_LONG`, `SPREAD_SHORT`), `tns.rs:128-129` (TNS constants, `INV_SQRT_TAB`) |
+| `extract_quant_tables.py <qprobe-txt>` | `rust/src/aac_enc/quant_tables.rs` | `quant.rs` |
+| `extract_bitcount_tables.py <bctables-txt>` | `rust/src/aac_enc/bitcount_tables.rs` | `bitcount.rs`, `bitenc.rs` |
+| `extract_bitenc_tables.py <s7probe-txt>` | `rust/src/aac_enc/bitenc_tables.rs` | `bitenc.rs` |
+
+`make_fixtures.py` produces the fixture WAVs and writes no committed file;
+`validate_s1.py`..`validate_s8.py` produce no files.
+
+The `qc*` vectors are read by encoder test modules (`frame.rs`, `quant.rs`,
+`scf.rs`, `rate.rs`, `bitenc.rs`, `pe.rs`, `static_bits.rs`, `phase1b.rs`),
+always through the `testdata.rs` loaders listed above.
+
+Fixture coverage differs by stage and is defined by the `S*_PLAN` dictionaries:
+S1..S5 select 14 fixture stems, while S6..S8 add `m6-stress-stereo-48k` (15).
+The M2/M3 extraction in `extract_testdata.py` selects its own 14 stems and
+never reads `m6-stress-stereo-48k`, so that dump is needed only by S6..S8 — but
+it must exist before `extract_s6.py`, `extract_s7.py` or `extract_s8.py` is
+run.
+
+## Regenerating committed vectors
+
+**Do not blindly regenerate the per-frame vectors.** Full re-extraction is not
+a byte-reproducibility gate. The M6.4 record
+(`docs/aac-enc-m6-clean-checkout-reproducibility.md` §4) reports 149 of 160
+files byte-identical on a full run; the 11 differences are `psy_*` files whose
+only differing line is `GSPEC`, which carries non-deterministic C scratch
+values in inactive spectrum regions. The S1 `SPEC` field has the same class of
+wobble, confined to FF-inactive bands, which is what `validate_s1.py` checks.
+Both are known non-determinism, not drift to correct.
+
+The supported deterministic path is config-only regeneration (see
+"Config-only regeneration" above): it rewrites no per-frame vector and has been
+verified byte-identical for all four `cfg_*.txt` snapshots.
+
+When vectors genuinely must be refreshed, run the oracle three times and pass
+all three directories to `validate_s1.py`..`validate_s8.py` before extracting,
+so the committed lines are known to be run-to-run stable. Each validator checks
+the frames listed in its own `S*_PLAN`, plus the three `S6INIT` lines in
+`validate_s6.py`.
+
+### Unresolved: stress fixtures for S1/S2/S4/S5
+
+`rust/src/aac_enc/testdata/qc1_stress-stereo_f5.txt`,
+`qc2_stress-stereo_f5.txt`, `qc4_stress-stereo_f5.txt` and
+`qc5_stress-stereo_f5.txt` are committed and are read by tests
+(`frame.rs:1422-1429`, `phase1b.rs:135-138`), but the current `S1_PLAN`,
+`S2_PLAN`, `S4_PLAN` and `S5_PLAN` do not list `m6-stress-stereo-48k`, so those
+four files cannot be regenerated by the current scripts. `S6_PLAN`,
+`S7_PLAN` and `S8_PLAN` do include it, and `qc3` has no stress fixture. This is
+a known tooling gap, not a documented workflow; it is recorded here so a future
+refresh does not silently drop the files.
+
+## Generated table extractors
+
+All four table extractors rewrite **tracked** Rust source
+(`rust/src/aac_enc/{sfb,quant,bitcount,bitenc}_tables.rs`). Run them only when
+a table regeneration is intended, and review `git diff` before using the
+result. The committed files are labelled `@generated` and must not be edited by
+hand.
+
+`extract_tables.py` takes an optional second argument: the `--configs`
+transcript. The committed `sfb_tables.rs` contains `SPREAD_LONG`/`SPREAD_SHORT`
+(`:698`), which are only appended when that argument is supplied; running the
+script without it produces a file that `sfb.rs:119` cannot compile against.
+Pass `"$BLD/configs-all.txt"` as shown above.
+
+The quantizer, bit-count and Huffman extractors cross-check every value against
+an independent parse of `cpp/libAACenc/src/aacEnc_rom.cpp` and abort on
+mismatch. Their docstrings direct you to run `cargo fmt` afterwards, because
+they emit fixed chunking; the committed files are script output plus rustfmt.
 
 ## Output format
 
@@ -398,6 +512,23 @@ against an independent parse of `cpp/libAACenc/src/aacEnc_rom.cpp`
 (all eight tables are plain hex/decimal initializers, so source text
 is exact) — any mismatch aborts. The scf-DPCM table is NOT duplicated:
 S5 reuses `pe::bit_count_scf_delta`.
+
+```sh
+c++ -std=c++11 -O2 \
+  -I cpp/libAACenc/src -I cpp/libFDK/include -I cpp/libSYS/include \
+  -I cpp/libMpegTPEnc/include -I . \
+  tools/enc-oracle/bitcount_probe.cpp \
+  -L "$BLD" -lfdk-aac -Wl,-rpath,"$BLD" \
+  -o "$BLD/bitcount_probe"
+"$BLD/bitcount_probe" > "$BLD/bctables.txt"
+python3 tools/enc-oracle/extract_bitcount_tables.py "$BLD/bctables.txt"
+```
+
+`bitcount_probe` takes no arguments and prints to stdout, so it is built and
+run like the other probes. Unlike `qprobe_quant.txt`, `s7probe.txt` and
+`scfunit.txt`, **no `bctables` transcript is committed** under
+`rust/src/aac_enc/testdata/`; the probe has to be rebuilt and run before this
+extractor can be used.
 
 ## S6 stage output format
 
