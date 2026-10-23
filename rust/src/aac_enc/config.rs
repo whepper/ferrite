@@ -103,6 +103,8 @@ amm-info@iis.fraunhofer.de
 use super::channel_map::ChannelMode;
 use core::fmt;
 
+use super::adts::{sample_rate_index, AdtsError};
+
 /// Audio object type: AAC-LC only (`aacenc_lib.cpp:557-560`).
 pub const AOT_AAC_LC: u32 = 2;
 /// Bitrate mode: VBR 5 only (`aacenc_lib.cpp:561-563`).
@@ -241,6 +243,47 @@ impl EncoderConfig {
             .expect("channel count validated at construction")
     }
 
+    /// Two-byte AudioSpecificConfig for this AAC-LC configuration.
+    ///
+    /// The bytes are `audioObjectType = 2` (AAC-LC), the sampling-frequency
+    /// index from the encoder's authoritative rate table, the channel
+    /// configuration from [`ChannelMode::channel_config`], and a
+    /// `GASpecificConfig` with `frameLengthFlag = 0` (1024-sample frames),
+    /// `dependsOnCoreCoder = 0`, and `extensionFlag = 0` — exactly the
+    /// configuration this encoder implements.
+    ///
+    /// This is an out-of-band configuration for raw AAC access units; it is
+    /// not the ADTS header. ADTS transport remains unchanged.
+    ///
+    /// # Errors
+    ///
+    /// [`AdtsError::UnsupportedSampleRate`] or
+    /// [`AdtsError::InvalidChannelConfig`] if the configuration cannot be
+    /// expressed in the two-byte form. [`EncoderConfig::new`] already rejects
+    /// such values, so a successfully constructed configuration returns
+    /// `Ok`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use aac::aac_enc::config::EncoderConfig;
+    ///
+    /// let stereo_48k = EncoderConfig::stereo_48k_adts();
+    /// assert_eq!(stereo_48k.audio_specific_config().unwrap(), [0x11, 0x90]);
+    /// ```
+    pub fn audio_specific_config(self) -> Result<[u8; 2], AdtsError> {
+        let freq_idx = sample_rate_index(self.sample_rate)?;
+        let channel_config = self.channel_mode().channel_config();
+        if channel_config == 0 || channel_config > 15 {
+            return Err(AdtsError::InvalidChannelConfig(self.channel_mode()));
+        }
+        let aot = AOT_AAC_LC as u8;
+        Ok([
+            (aot << 3) | (freq_idx >> 1),
+            ((freq_idx & 1) << 7) | ((channel_config as u8) << 3),
+        ])
+    }
+
     /// Nominal bitrate in bit/s: per-channel VBR-5 table entry times the
     /// effective (non-LFE) channel count (`FDKaacEnc_GetVBRBitrate`,
     /// `aacenc.cpp:216-246`). Stereo gives 192 000, mono 112 000.
@@ -364,5 +407,57 @@ mod tests {
             ConfigError::UnsupportedFrameLength(960).to_string(),
             "unsupported frame length: 960"
         );
+    }
+
+    #[test]
+    fn audio_specific_config_matches_m75_cases() {
+        let stereo_48k = EncoderConfig::new(48000, 2, 1024, TransportType::Adts).unwrap();
+        assert_eq!(stereo_48k.audio_specific_config(), Ok([0x11, 0x90]));
+
+        let mono_441k = EncoderConfig::new(44100, 1, 1024, TransportType::Adts).unwrap();
+        assert_eq!(mono_441k.audio_specific_config(), Ok([0x12, 0x08]));
+
+        let mono_48k = EncoderConfig::new(48000, 1, 1024, TransportType::Adts).unwrap();
+        assert_eq!(mono_48k.audio_specific_config(), Ok([0x11, 0x88]));
+
+        let stereo_441k = EncoderConfig::new(44100, 2, 1024, TransportType::Adts).unwrap();
+        assert_eq!(stereo_441k.audio_specific_config(), Ok([0x12, 0x10]));
+    }
+
+    #[test]
+    fn audio_specific_config_covers_rate_table() {
+        // (rate, expected 2-byte ASC for mono); sfi 0..=11, channel config 1.
+        let expected = [
+            (96000, [0x10, 0x08]),
+            (88200, [0x10, 0x88]),
+            (64000, [0x11, 0x08]),
+            (48000, [0x11, 0x88]),
+            (44100, [0x12, 0x08]),
+            (32000, [0x12, 0x88]),
+            (24000, [0x13, 0x08]),
+            (22050, [0x13, 0x88]),
+            (16000, [0x14, 0x08]),
+            (12000, [0x14, 0x88]),
+            (11025, [0x15, 0x08]),
+            (8000, [0x15, 0x88]),
+        ];
+        for (rate, asc) in expected {
+            let cfg = EncoderConfig::new(rate, 1, 1024, TransportType::Adts).unwrap();
+            assert_eq!(cfg.audio_specific_config(), Ok(asc), "{rate} Hz");
+        }
+    }
+
+    #[test]
+    fn audio_specific_config_covers_channel_configs() {
+        for channels in 1..=8u32 {
+            let cfg = EncoderConfig::new(48000, channels, 1024, TransportType::Adts).unwrap();
+            let asc = cfg.audio_specific_config().unwrap();
+            assert_eq!(asc[0], 0x11, "{channels} channels: AOT/SFI");
+            assert_eq!(
+                asc[1] & 0x78,
+                ((cfg.channel_mode().channel_config() as u8) << 3) & 0x78,
+                "{channels} channels: channel configuration"
+            );
+        }
     }
 }

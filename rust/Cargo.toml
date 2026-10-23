@@ -39,6 +39,7 @@ overflow-checks = true
 
 [workspace]
 members = [
+    "convert",
     "framework",
     "ffi",
 ]

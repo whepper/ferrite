@@ -14,6 +14,12 @@ This folder includes function wrappers that connect the C bindings to the Rust m
 
 This directory features a Rust example framewok, called (`aac_decoder`).
 
+### `convert`
+
+This directory contains the `aac-convert` application, a single-file
+FLAC-to-M4A (or ADTS) conversion tool around the existing encoder. See
+`convert/README.md` for supported input, decoder rationale, and usage.
+
 ## Testing
 
 ### Unit Tests

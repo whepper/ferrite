@@ -127,6 +127,9 @@ pub enum AdtsError {
     InvalidChannelConfig(ChannelMode),
     /// Frame (payload + 7-byte header) exceeds the 13-bit field.
     FrameTooLarge(usize),
+    /// A frame byte sequence does not satisfy the encoder's ADTS framing
+    /// invariant (used by [`AdtsFrame::raw_payload`](super::encoder::AdtsFrame::raw_payload)).
+    MalformedFrame(&'static str),
 }
 
 impl fmt::Display for AdtsError {
@@ -140,6 +143,9 @@ impl fmt::Display for AdtsError {
             }
             AdtsError::FrameTooLarge(len) => {
                 write!(f, "ADTS frame too large: {len} bytes")
+            }
+            AdtsError::MalformedFrame(what) => {
+                write!(f, "malformed ADTS frame: {what}")
             }
         }
     }
@@ -274,6 +280,14 @@ mod tests {
         assert_eq!(
             encode_header(ChannelMode::Stereo, 48000, max_payload + 1),
             Err(AdtsError::FrameTooLarge(ADTS_MAX_FRAME_BYTES + 1))
+        );
+    }
+
+    #[test]
+    fn malformed_frame_error_is_descriptive() {
+        assert_eq!(
+            AdtsError::MalformedFrame("bad syncword").to_string(),
+            "malformed ADTS frame: bad syncword"
         );
     }
 }

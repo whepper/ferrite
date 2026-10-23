@@ -98,8 +98,9 @@ amm-info@iis.fraunhofer.de
 //! by call only; decoder modules are never modified for encoder needs.
 //!
 //! The supported public surface is [`config`] (validated VBR-5
-//! configuration), [`channel_map`] (channel modes), and [`encoder`] (the
-//! owned pull-style encoder and its ADTS output).
+//! configuration and its AAC-LC AudioSpecificConfig), [`channel_map`] (channel
+//! modes), and [`encoder`] (the owned pull-style encoder, its ADTS output, and
+//! the borrowed raw access-unit payload).
 //!
 //! DSP, psychoacoustic, quantization, rate-control, and stream-orchestration
 //! modules are crate-internal implementation details.

@@ -22,6 +22,17 @@ pub struct AdtsFrame {
     pub frame_index: u32,  // 0-based position in the stream
 }
 
+impl AdtsFrame {
+    /// Borrowed raw AAC access-unit payload (7-byte ADTS header excluded).
+    /// Re-validates the framing invariant; malformed bytes → AdtsError.
+    pub fn raw_payload(&self) -> Result<&[u8], AdtsError>;
+}
+
+impl EncoderConfig {
+    /// Two-byte AAC-LC AudioSpecificConfig derived from this configuration.
+    pub fn audio_specific_config(self) -> Result<[u8; 2], AdtsError>;
+}
+
 pub struct Encoder { /* feeder + inner encoder state + finished/poison flags + counter (all owned, no globals) */ }
 
 impl Encoder {
@@ -131,3 +142,30 @@ Fixed by implementation (documented, not configurable): AAC-LC, VBR-5, afterburn
 - HEAD `53481f3af2e5b3fc78ce02ca3fc0af8aaf3b4e91`, branch `main` — unchanged.
 - Final `git status --short`: 41 lines = 40-line baseline + this report; all other lines verified identical; index empty (0 staged).
 - No source, test, fixture, configuration, report, or generated-file changes of any kind; no executions, builds, or benchmarks — the sole filesystem effect is this new file. D-021 untouched.
+
+## 10. M7.6 additive accessors (raw payload and ASC)
+
+Added without changing encoded bytes, transport, delay, or flush behavior:
+
+- `AdtsFrame::raw_payload(&self) -> Result<&[u8], AdtsError>` returns a borrowed
+  view starting at the first byte of the `raw_data_block`; it excludes the
+  7-byte ADTS header, performs no copy, and re-checks the framing invariant
+  (MPEG-4 ADTS, layer 0, no CRC, AAC-LC, declared length == buffer length,
+  exactly one raw block). Because `AdtsFrame::bytes` is a public field, this
+  validation is required: a mutated or truncated frame yields
+  `AdtsError::MalformedFrame` rather than arbitrary payload bytes.
+- `EncoderConfig::audio_specific_config(self) -> Result<[u8; 2], AdtsError>`
+  returns the two-byte AAC-LC ASC: AOT 2, the sampling-frequency index from the
+  encoder's rate table, the channel configuration from
+  `ChannelMode::channel_config()`, and `GASpecificConfig` with
+  `frameLengthFlag = 0`, `dependsOnCoreCoder = 0`, `extensionFlag = 0`. Known
+  values: 48 kHz stereo `11 90`, 44.1 kHz mono `12 08`.
+
+ADTS output remains the transport: `TransportType::Raw` is still rejected by
+`Encoder::new`, and `AdtsFrame::bytes` is unchanged.
+
+Tail padding is **not** exposed. It is derivable by callers from the public
+contract — output frame count is `ceil((source_frames + 1600) / 1024)`, so
+padding is `frames * 1024 - source_frames - 1600` — but the encoder does not
+store the source sample count after `flush`. Adding an authoritative accessor
+would require new state; it is not added here.

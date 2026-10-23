@@ -8,14 +8,22 @@
 //!
 //! Validated scope (M6.0 contract): mono/stereo x 44.1/48 kHz x VBR-5 ADTS.
 //! Anything else is rejected at construction.
+//!
+//! M7.6 adds two non-behavioral accessors: [`AdtsFrame::raw_payload`] (a
+//! borrowed view of the AAC access unit with the ADTS header removed) and
+//! [`EncoderConfig::audio_specific_config`] (the two-byte AAC-LC
+//! AudioSpecificConfig). Encoded bytes, transport selection, delay, and flush
+//! behavior are unchanged.
 
 pub use super::adts::AdtsError;
 pub use super::bitenc::BitEncError;
-pub use super::frame::FrameError;
-pub use super::rate::QcError;
 use super::config::{ConfigError, EncoderConfig};
+pub use super::frame::FrameError;
 use super::pcm::{FeederError, PcmFeeder, PcmFrame};
+pub use super::rate::QcError;
 use super::stream_driver::{StepError, StreamEncoder};
+
+use super::adts::{ADTS_HEADER_BYTES, ADTS_PROFILE_AAC_LC};
 
 /// One complete ADTS frame as emitted by the encoder.
 #[derive(Debug, Clone)]
@@ -24,6 +32,71 @@ pub struct AdtsFrame {
     pub bytes: Vec<u8>,
     /// 0-based position of this frame in the stream.
     pub frame_index: u32,
+}
+
+impl AdtsFrame {
+    /// Borrow the raw AAC access-unit payload, excluding the 7-byte ADTS
+    /// header.
+    ///
+    /// The returned slice starts at the first byte of the `raw_data_block`.
+    /// It is a view into [`bytes`](Self::bytes); nothing is copied or
+    /// re-encoded. Because `bytes` is a public field, this accessor re-checks
+    /// the framing invariant before returning: MPEG-4 ADTS, layer 0, no CRC,
+    /// AAC-LC profile, a declared frame length equal to the buffer length, and
+    /// exactly one raw data block. A mutated or truncated frame is rejected
+    /// with [`AdtsError::MalformedFrame`] instead of returning arbitrary bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use aac::aac_enc::config::{EncoderConfig, TransportType};
+    /// use aac::aac_enc::encoder::Encoder;
+    ///
+    /// let cfg = EncoderConfig::new(48000, 1, 1024, TransportType::Adts).unwrap();
+    /// let mut encoder = Encoder::new(cfg).unwrap();
+    /// let frames = encoder.push(&vec![0i16; 2048]).unwrap();
+    /// let frame = &frames[0];
+    /// let payload = frame.raw_payload().unwrap();
+    /// assert_eq!(payload, &frame.bytes[7..]);
+    /// assert!(!payload.is_empty());
+    /// ```
+    pub fn raw_payload(&self) -> Result<&[u8], AdtsError> {
+        let bytes = &self.bytes;
+        if bytes.len() <= ADTS_HEADER_BYTES {
+            return Err(AdtsError::MalformedFrame(
+                "frame contains no AAC payload after the header",
+            ));
+        }
+        if bytes[0] != 0xFF || bytes[1] & 0xF0 != 0xF0 {
+            return Err(AdtsError::MalformedFrame("bad syncword"));
+        }
+        if bytes[1] & 0x08 != 0 {
+            return Err(AdtsError::MalformedFrame("not MPEG-4 ADTS"));
+        }
+        if bytes[1] & 0x06 != 0 {
+            return Err(AdtsError::MalformedFrame("nonzero ADTS layer"));
+        }
+        if bytes[1] & 0x01 != 1 {
+            return Err(AdtsError::MalformedFrame("CRC-protected ADTS frame"));
+        }
+        if (bytes[2] >> 6) & 0x03 != ADTS_PROFILE_AAC_LC {
+            return Err(AdtsError::MalformedFrame("not AAC-LC profile"));
+        }
+        let declared = ((usize::from(bytes[3] & 0x03)) << 11)
+            | (usize::from(bytes[4]) << 3)
+            | (usize::from(bytes[5]) >> 5);
+        if declared != bytes.len() {
+            return Err(AdtsError::MalformedFrame(
+                "frame_length field does not match buffer length",
+            ));
+        }
+        if bytes[6] & 0x03 != 0 {
+            return Err(AdtsError::MalformedFrame(
+                "multiple raw data blocks in one ADTS frame",
+            ));
+        }
+        Ok(&bytes[ADTS_HEADER_BYTES..])
+    }
 }
 
 /// Terminal failure of one encoding step. Every variant poisons the encoder;
@@ -621,6 +694,79 @@ mod tests {
             idx += 1;
         }
         assert_eq!(idx, 7, "5000 samples + delay pad at 48k mono");
+    }
+
+    #[test]
+    fn raw_payload_borrows_bytes_after_adts_header() {
+        let mut enc = Encoder::new(stereo48()).unwrap();
+        let frames = enc.push(&vec![0i16; 4096]).unwrap();
+        assert_eq!(frames.len(), 2);
+
+        let mut payload_total = 0;
+        let mut adts_total = 0;
+        for frame in &frames {
+            let payload = frame.raw_payload().unwrap();
+            assert_eq!(payload, &frame.bytes[ADTS_HEADER_BYTES..]);
+            assert_eq!(
+                payload.as_ptr(),
+                frame.bytes[ADTS_HEADER_BYTES..].as_ptr(),
+                "payload must be a borrowed view, not a copy"
+            );
+            assert!(!payload.is_empty());
+            payload_total += payload.len();
+            adts_total += frame.bytes.len();
+        }
+        assert_eq!(payload_total + ADTS_HEADER_BYTES * frames.len(), adts_total);
+    }
+
+    #[test]
+    fn raw_payload_rejects_malformed_frames() {
+        let mut enc = Encoder::new(mono48()).unwrap();
+        let valid = enc.push(&vec![0i16; 2048]).unwrap().remove(0);
+
+        let mut header_only = valid.clone();
+        header_only.bytes.truncate(ADTS_HEADER_BYTES);
+        assert!(matches!(
+            header_only.raw_payload(),
+            Err(AdtsError::MalformedFrame(_))
+        ));
+
+        let mut truncated = valid.clone();
+        truncated.bytes.pop();
+        assert!(matches!(
+            truncated.raw_payload(),
+            Err(AdtsError::MalformedFrame(_))
+        ));
+
+        let mut bad_sync = valid.clone();
+        bad_sync.bytes[0] = 0;
+        assert!(matches!(
+            bad_sync.raw_payload(),
+            Err(AdtsError::MalformedFrame("bad syncword"))
+        ));
+
+        let mut crc = valid.clone();
+        crc.bytes[1] &= !0x01;
+        assert!(matches!(
+            crc.raw_payload(),
+            Err(AdtsError::MalformedFrame("CRC-protected ADTS frame"))
+        ));
+
+        let mut profile = valid.clone();
+        profile.bytes[2] &= 0x3F;
+        assert!(matches!(
+            profile.raw_payload(),
+            Err(AdtsError::MalformedFrame("not AAC-LC profile"))
+        ));
+
+        let mut blocks = valid.clone();
+        blocks.bytes[6] |= 0x01;
+        assert!(matches!(
+            blocks.raw_payload(),
+            Err(AdtsError::MalformedFrame(_))
+        ));
+
+        assert!(valid.raw_payload().is_ok());
     }
 
     // M6.0 lifecycle 9+10 at the encoder level: the terminal state rejects all
