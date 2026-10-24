@@ -5,7 +5,7 @@ a **native Rust AAC-LC encoder derived from the FDK AAC codebase**,
 accompanied by the **`aac-convert`** conversion application. (Ferrite is a
 working name; trademark, package-name, and domain availability have not
 been cleared. The selected encoder package/library name is
-`ferrite-aac` / `ferrite_aac` (implemented as a separate pending change);
+`ferrite-aac` / `ferrite_aac`;
 `aac-convert` is unchanged. The repository rename to `whepper/ferrite` is
 complete.)
 
@@ -27,6 +27,11 @@ complete.)
 
 See `rust/README.md` for the crate layout and `rust/convert/README.md`
 for `aac-convert` usage, options, and metadata behavior.
+
+Repository layout: `rust/` is the production workspace; `docs/` is indexed
+in `docs/README.md`; `cpp/`, the root C helpers, `tools/`, and `test/` are
+reference/oracle infrastructure (see `tools/enc-oracle/README.md`); CI is
+defined in `.github/workflows/ci.yml`.
 
 ## Relationship to FDK AAC
 
@@ -53,7 +58,8 @@ provenance (see "Licensing" below).
 
 ## Build and test
 
-All commands run from `rust/` (the Cargo workspace root). Minimum
+All commands run from `rust/` (the Cargo workspace root); from the
+repository root, run `cd rust` first. Minimum
 supported Rust version: **1.99.1**.
 
 ```sh
@@ -66,7 +72,10 @@ cargo fmt --all -- --check
 
 CI (`.github/workflows/ci.yml`) runs these plus doctests, `cargo package`,
 and informational clippy checks — no C/C++ compilation and no external
-audio tools required.
+audio tools required. The C reference/oracle workflow in
+`tools/enc-oracle/README.md` is manual-only, runs from the repository root
+against a separately built reference library, and is never required for
+normal Rust validation or CI.
 
 ## Production vs reference tooling
 
@@ -116,6 +125,8 @@ audio tools required.
   quality/divergence reports.
 
 ## Key documents
+
+Start from `docs/README.md` for the maintained-vs-historical index.
 
 - `docs/aac-enc-migration-spec.md` — encoder migration specification and
   float-native thesis (§5).
