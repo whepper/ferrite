@@ -14,7 +14,7 @@ Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>
                    <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
-using the native FDK AAC VBR-5 encoder. 24-bit FLAC input is converted to
+using the native Ferrite Rust AAC-LC encoder (VBR-5, derived from FDK AAC). 24-bit FLAC input is converted to
 16-bit PCM before encoding (one warning per file); other bit depths are
 rejected.
 

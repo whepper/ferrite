@@ -12,7 +12,7 @@ following into the `aac-convert` binary except where noted.
 
 | Package | Version | License field | Evidence |
 |---|---|---|---|
-| `aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` (custom, non-SPDX) | `rust/Cargo.toml`; full Fraunhofer text in file headers and `rust/NOTICE` |
+| `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` (custom, non-SPDX) | `rust/Cargo.toml`; full Fraunhofer text in file headers and `rust/NOTICE` |
 | `aac-convert` (this application) | 0.1.0 | `FDK-AAC` (custom, non-SPDX) | `rust/convert/Cargo.toml` |
 
 The FDK-AAC license text (see `NOTICE` at the repository root and
@@ -30,6 +30,7 @@ already covered in any given case is an open question for review.
 |---|---|---|---|
 | `symphonia` (+ `symphonia-bundle-flac`, `symphonia-common`, `symphonia-core`, `symphonia-metadata`; FLAC features only) | 0.6.1 | `MPL-2.0` | `LICENSE` in each crate |
 | `shiguredo_mp4` | 2026.5.0 | `Apache-2.0` | `LICENSE` |
+| `ebur128` (direct; R128 loudness analysis) | 0.1.10 | `MIT` | `LICENSE` |
 
 ## Transitive dependencies (linked)
 
@@ -37,7 +38,10 @@ already covered in any given case is an open question for review.
 |---|---|---|
 | `arrayvec` | 0.7.8 | `MIT OR Apache-2.0` |
 | `bitflags` | 2.13.2 | `MIT OR Apache-2.0` |
+| `bitflags` | 1.3.2 (via `ebur128`) | `MIT/Apache-2.0` (texts: `LICENSE-MIT`, `LICENSE-APACHE`) |
 | `bytemuck` | 1.25.2 | `Zlib OR Apache-2.0 OR MIT` (texts: `LICENSE-ZLIB`, `LICENSE-APACHE`, `LICENSE-MIT`) |
+| `dasp_frame` (via `ebur128`) | 0.11.0 | `MIT OR Apache-2.0` |
+| `dasp_sample` (via `ebur128`) | 0.11.0 | `MIT OR Apache-2.0` |
 | `either` | 1.19.0 | `MIT OR Apache-2.0` |
 | `itertools` | 0.10.5 | `MIT/Apache-2.0` |
 | `lazy_static` | 1.5.1 | `MIT OR Apache-2.0` |
