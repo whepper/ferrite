@@ -32,11 +32,34 @@ The files are intentionally tiny:
 | `tagged-cover-multi-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus back-cover JPEG then front-cover PNG and `title`; the front PNG must win |
 | `cover-jpeg-48k-24.flac` | Same audio as `stereo-48k-24.flac` plus front-cover JPEG and `title`; 24-bit precision warning must lead cover behavior |
 | `cover-unsupported-48k-24.flac` | Same audio as `stereo-48k-24.flac` plus front-cover GIF and `title`; asserts the full warning order (precision → text tags → cover) with no `covr` |
+| `loud-tone-48k-16.flac` | Stereo 48 kHz 5 s 440 Hz sine, peak 4096: measurable loudness, positive gain without clipping risk (L3) |
+| `loud-quiet-48k-16.flac` | Stereo 48 kHz 5 s 880 Hz sine, peak 1024: quieter second album member (L3 album aggregation) |
+| `loud-clip-48k-16.flac` | Stereo 48 kHz 5 s quiet 440 Hz sine (peak 1638) with one 29491 spike at 2.5 s: positive gain with genuine clipping risk, adjusted down (L3 clipping protection) |
+| `loud-silence-48k-16.flac` | Stereo 48 kHz 2 s digital silence: unmeasurable, loudness atoms omitted with warnings (L3 incomplete-album rule) |
+| `loud-mono-441k-16.flac` | Mono 44.1 kHz 5 s 440 Hz sine, peak 4096: rate/channel lattice for analysis (L3) |
+| `loud-tagged-48k-16.flac` | Same audio as `loud-tone-48k-16.flac` plus `title`/`artist` Vorbis comments and the front-cover JPEG copied from `tagged-cover-jpeg-48k-16.flac`: text + `covr` + loudness `ilst` coexistence and ordering (L3) |
 
 Regenerate with:
 
 ```sh
 python3 generate.py
+```
+
+Then re-apply tags and cover art to `loud-tagged-48k-16.flac` (offline
+`mutagen` on the committed inputs only; never a build or runtime
+dependency):
+
+```sh
+cp loud-tone-48k-16.flac loud-tagged-48k-16.flac
+python3 -c "
+from mutagen.flac import FLAC
+src = FLAC('tagged-cover-jpeg-48k-16.flac')
+dst = FLAC('loud-tagged-48k-16.flac')
+dst['title'] = ['Loud Title']
+dst['artist'] = ['Loud Artist']
+dst.add_picture(src.pictures[0])
+dst.save()
+"
 ```
 
 `md5-mismatch-stereo-48k-16.flac` and `no-md5-stereo-48k-16.flac` intentionally

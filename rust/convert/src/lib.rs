@@ -27,6 +27,7 @@ mod adts;
 pub mod batch;
 mod flac;
 mod gapless;
+pub(crate) mod loudness;
 mod m4a;
 pub(crate) mod meta;
 mod output;
@@ -348,7 +349,7 @@ pub fn convert_file_with_format(
     output: &Path,
     format: OutputFormat,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, format, None, true).map(|(summary, _, _)| summary)
+    convert_inner(input, output, format, None, true, None).map(|(summary, _, _)| summary)
 }
 
 /// Convert one FLAC file to ADTS or M4A with explicit metadata control.
@@ -359,13 +360,46 @@ pub fn convert_file_with_format(
 /// no-op for ADTS output, which never carries tags. The returned
 /// [`TagDiagnostics`] report mapped atoms, unmapped keys, and warnings for
 /// the converted file; warnings never change the success outcome.
+///
+/// Single-file M4A conversions with tags run the loudness pre-pass for the
+/// degenerate one-member album before converting (no second publication).
 pub fn convert_file_with_format_and_tags(
     input: &Path,
     output: &Path,
     format: OutputFormat,
     write_tags: bool,
 ) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
-    convert_inner(input, output, format, None, write_tags)
+    let loudness = if matches!(format, OutputFormat::M4a) && write_tags {
+        Some(loudness::analyze_single(input))
+    } else {
+        None
+    };
+    convert_inner(input, output, format, None, write_tags, loudness.as_ref())
+        .map(|(summary, _, diagnostics)| (summary, diagnostics))
+}
+
+/// Convert one FLAC file with explicit metadata control plus precomputed
+/// loudness atoms (batch loudness pre-pass).
+///
+/// Behaves like [`convert_file_with_format_and_tags`], except the loudness
+/// atoms and warnings are supplied by the caller (album pre-pass) instead of
+/// being analyzed for a degenerate one-member album. `None` writes no
+/// loudness atoms; M4A conversions with tags and `None` behave exactly like
+/// the pre-loudness converter.
+pub(crate) fn convert_file_with_format_tags_and_loudness(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    write_tags: bool,
+    loudness: Option<&loudness::FileLoudness>,
+) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
+    if matches!(format, OutputFormat::M4a) && write_tags {
+        debug_assert!(
+            loudness.is_some(),
+            "batch M4A conversions with tags always carry pre-pass loudness"
+        );
+    }
+    convert_inner(input, output, format, None, write_tags, loudness)
         .map(|(summary, _, diagnostics)| (summary, diagnostics))
 }
 
@@ -399,8 +433,16 @@ pub fn convert_file_m4a_experiment(
     output: &Path,
     experiment: GaplessExperiment,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, OutputFormat::M4a, Some(experiment), true)
-        .map(|(summary, _, _)| summary)
+    let loudness = Some(loudness::analyze_single(input));
+    convert_inner(
+        input,
+        output,
+        OutputFormat::M4a,
+        Some(experiment),
+        true,
+        loudness.as_ref(),
+    )
+    .map(|(summary, _, _)| summary)
 }
 
 fn convert_inner(
@@ -409,6 +451,7 @@ fn convert_inner(
     format: OutputFormat,
     experiment: Option<GaplessExperiment>,
     write_tags: bool,
+    loudness: Option<&loudness::FileLoudness>,
 ) -> Result<(ConversionSummary, u64, TagDiagnostics), ConvertError> {
     let paths = output::resolve_paths(input, output)?;
     let mut source = flac::FlacSource::open(&paths.input)?;
@@ -502,6 +545,21 @@ fn convert_inner(
             )
         }
     };
+    // Precomputed loudness atoms (batch album pre-pass or the degenerate
+    // one-member single-file pass) extend the tag list after text atoms and
+    // cover art (L2 ilst order). Loudness warnings follow tag/cover warnings.
+    // ADTS and `--no-tags` conversions never carry loudness.
+    let mut tag_ilst = tag_ilst;
+    if let Some(precomputed) = loudness {
+        debug_assert!(
+            is_m4a && write_tags,
+            "loudness atoms are M4A-with-tags only"
+        );
+        tag_ilst.extend(precomputed.atoms.iter().cloned());
+        diagnostics
+            .warnings
+            .extend(precomputed.warnings.iter().cloned());
+    }
     // 24-bit sources reach the encoder as 16-bit PCM via the decode path's
     // truncation. One notice per converted file, up front, in single-file
     // and batch runs alike (`convert_inner` runs once per file, never per

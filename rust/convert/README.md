@@ -241,8 +241,8 @@ Rules (G0 §2, authoritative):
   atom with a warning, never a failure.
 - `date` wins over `year` for `©day`; the atom is written at most once and
   stored verbatim (no reformatting).
-- All text atoms use M4A data type UTF-8. No integer, boolean, or freeform
-  atoms are written in this release.
+- All text atoms use M4A data type UTF-8. No integer or boolean text atoms
+  are written (loudness freeform atoms are documented under Loudness below).
 - Deferred or unknown keys (BPM, compilation, sort fields, grouping, lyrics,
   MusicBrainz IDs, ISRC, label, catalogue number, barcode, `encoder`, and
   anything else outside the table) are ignored for output, counted in the
@@ -274,6 +274,29 @@ text tags, ordered after text-tag warnings (and after the 24-bit precision
 notice, if present). `--no-tags` omits cover art and its warnings; ADTS
 output never carries cover art and is byte-identical with or without
 pictures.
+
+## Loudness
+
+M4A output carries native ReplayGain 2.0 and iTunes Sound Check loudness
+metadata, analyzed from the source FLAC PCM with the `ebur128` R128
+implementation (HISTOGRAM mode) at a fixed **−18.0 LUFS** reference:
+
+- `REPLAYGAIN_TRACK_GAIN` / `REPLAYGAIN_TRACK_PEAK` (`"±X.XX dB"`, `"%.6f"`),
+  `REPLAYGAIN_ALBUM_GAIN` / `REPLAYGAIN_ALBUM_PEAK`, and `iTunNORM`,
+  all as UTF-8 freeform (`----`) atoms with `mean com.apple.iTunes`.
+- The `iTunNORM` value derives from the clipping-adjusted track gain with
+  round-half-even integer conversion, matching the original workflow.
+- Albums are source-parent directories. Track and album gains use
+  Easy-mode-equivalent positive-only clipping protection, applied
+  independently and never below `+0.00 dB`; measured peaks are written
+  verbatim and AAC samples are never modified.
+- Silence (or otherwise unmeasurable input) omits loudness atoms with a
+  warning; an album with any unanalyzable member omits album-level atoms
+  with an album-level warning, never a subset result presented as complete.
+- Loudness atoms are appended after text tags and cover art; loudness
+  warnings follow tag and cover warnings (after the 24-bit precision
+  notice, if present). `--no-tags`, ADTS, and dry-run skip analysis
+  entirely; analysis failures warn and the audio conversion still succeeds.
 
 ## Experimental edit list (opt-in research)
 

@@ -62,6 +62,14 @@ def wav_to_flac(wav: pathlib.Path, flac: pathlib.Path) -> None:
     wav.unlink()
 
 
+def sine_frames(rate: int, seconds: float, freq: float, peak: int):
+    """Stereo 440/880 Hz-style sine generator: deterministic integer PCM."""
+    total = int(rate * seconds)
+    for i in range(total):
+        sample = int(peak * math.sin(2.0 * math.pi * freq * i / rate))
+        yield (sample, sample)
+
+
 def main() -> None:
     write_wav(
         "stereo-48k-16.wav",
@@ -134,6 +142,57 @@ def main() -> None:
     no_md5 = bytearray(source)
     no_md5[streaminfo_md5_offset : streaminfo_md5_offset + 16] = b"\0" * 16
     (HERE / "no-md5-stereo-48k-16.flac").write_bytes(no_md5)
+
+    # Loudness fixtures (L3): 5-second synthetic tones so R128 gating blocks
+    # clear (the 0.25 s fixtures above are unmeasurable by construction).
+    write_wav(
+        "loud-tone-48k-16.wav",
+        48000,
+        2,
+        16,
+        sine_frames(48000, 5.0, 440.0, 4096),
+    )
+    wav_to_flac(HERE / "loud-tone-48k-16.wav", HERE / "loud-tone-48k-16.flac")
+
+    write_wav(
+        "loud-quiet-48k-16.wav",
+        48000,
+        2,
+        16,
+        sine_frames(48000, 5.0, 880.0, 1024),
+    )
+    wav_to_flac(HERE / "loud-quiet-48k-16.wav", HERE / "loud-quiet-48k-16.flac")
+
+    def clip_frames():
+        # Quiet 440 Hz sine (peak 1638) with one near-full-scale spike pair at
+        # 2.5 s: positive gain with genuine clipping risk (adjusted, not zero).
+        total = 48000 * 5
+        for i in range(total):
+            sample = int(1638 * math.sin(2.0 * math.pi * 440.0 * i / 48000))
+            if i == 120000:
+                sample = 29491
+            yield (sample, sample)
+
+    write_wav("loud-clip-48k-16.wav", 48000, 2, 16, clip_frames())
+    wav_to_flac(HERE / "loud-clip-48k-16.wav", HERE / "loud-clip-48k-16.flac")
+
+    write_wav(
+        "loud-silence-48k-16.wav",
+        48000,
+        2,
+        16,
+        ((0, 0) for _ in range(48000 * 2)),
+    )
+    wav_to_flac(HERE / "loud-silence-48k-16.wav", HERE / "loud-silence-48k-16.flac")
+
+    write_wav(
+        "loud-mono-441k-16.wav",
+        44100,
+        1,
+        16,
+        ((int(4096 * math.sin(2.0 * math.pi * 440.0 * i / 44100)),) for i in range(44100 * 5)),
+    )
+    wav_to_flac(HERE / "loud-mono-441k-16.wav", HERE / "loud-mono-441k-16.flac")
 
 
 if __name__ == "__main__":

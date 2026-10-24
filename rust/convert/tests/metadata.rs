@@ -74,8 +74,17 @@ fn core_tags_round_trip_stereo() {
         "{:?}",
         diagnostics.unmapped
     );
-    // Fully tagged but imageless: the S1.3 cover slot reports `missing cover`.
-    assert_eq!(diagnostics.warnings, ["missing cover"]);
+    // Fully tagged but imageless: the S1.3 cover slot reports `missing cover`,
+    // then L3 loudness warnings (the 0.25 s fixture is unmeasurable).
+    assert_eq!(
+        diagnostics.warnings,
+        [
+            "missing cover",
+            "loudness: no measurable signal: omitting loudness tags for this track",
+            "loudness: album is incomplete (unanalyzable: tagged-core-48k-16.flac): \
+             omitting album-level loudness tags",
+        ]
+    );
 
     let bytes = fs::read(&output).unwrap();
     assert_eq!(summary.output_bytes, bytes.len() as u64);
@@ -716,8 +725,17 @@ fn batch_tags_flow_through_outcome() {
                 if result.relative_input.ends_with("core.flac") {
                     assert_eq!(tags.mapped, 10, "{:?}", result.relative_input);
                     assert!(tags.unmapped.is_empty());
-                    // Fully tagged but imageless (S1.3 cover slot).
-                    assert_eq!(tags.warnings, ["missing cover"]);
+                    // Fully tagged but imageless (S1.3 cover slot), then L3
+                    // loudness warnings (0.25 s fixtures are unmeasurable).
+                    assert_eq!(
+                        tags.warnings,
+                        [
+                            "missing cover",
+                            "loudness: no measurable signal: omitting loudness tags for this track",
+                            "loudness: album is incomplete (unanalyzable: core.flac, plain.flac): \
+                             omitting album-level loudness tags",
+                        ]
+                    );
                 } else {
                     assert_eq!(tags.mapped, 0, "{:?}", result.relative_input);
                     assert!(tags.warnings.iter().any(|w| w.contains("title")));

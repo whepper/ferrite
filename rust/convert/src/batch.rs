@@ -33,8 +33,10 @@
 //!   hard-link publication path, so no partial output can remain and a
 //!   concurrent winner is never replaced.
 //! - Execution is strictly sequential with the same per-file bounded-memory
-//!   profile as single-file conversion. No new dependencies are used
-//!   (`std::fs` traversal with an explicit stack; no recursion).
+//!   profile as single-file conversion. M4A runs with tags add one streaming
+//!   loudness pre-pass over source PCM (`ebur128`, one packet at a time, no
+//!   whole-file buffering) before any publication; traversal itself uses only
+//!   `std::fs` with an explicit stack (no recursion).
 
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -42,8 +44,10 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::loudness;
 use crate::{
-    convert_file_with_format_and_tags, AudioProperties, ConvertError, OutputFormat, TagDiagnostics,
+    convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, OutputFormat,
+    TagDiagnostics,
 };
 
 /// Reason recorded for an ignored directory symlink (verbose reporting).
@@ -423,6 +427,13 @@ pub fn execute_plan(
 /// output carries user metadata atoms (`true`) or gapless signalling only
 /// (`false`, the `--no-tags` CLI behavior). The flag is a no-op for ADTS
 /// output, which never carries tags, and for dry runs, which never read tags.
+///
+/// M4A runs with tags first run the loudness pre-pass: every planned source
+/// (converted or retained under `skip_existing`) is analyzed through the
+/// album-grouped R128 pipeline, and each conversion carries only its own
+/// precomputed loudness atoms. The pre-pass reads sources only — no outputs
+/// are published until the conversion pass, so single-publication and
+/// no-replace behavior are unchanged.
 pub fn execute_plan_with_tags(
     plan: &BatchPlan,
     format: OutputFormat,
@@ -465,6 +476,21 @@ pub fn execute_plan_with_tags(
     let mut failed = 0u64;
     let mut existing = 0u64;
     let mut skipped = 0u64;
+
+    // Loudness pre-pass (M4A with tags, real runs only): analyze every
+    // planned source grouped into albums by source-parent directory before
+    // any conversion publishes. Retained members participate through their
+    // readable sources; analysis never modifies retained outputs.
+    let loudness = if matches!(format, OutputFormat::M4a) && !dry_run && write_tags {
+        let members = plan
+            .entries
+            .iter()
+            .map(|entry| (entry.relative_input.clone(), entry.input.clone()))
+            .collect::<Vec<_>>();
+        Some(loudness::analyze_album(&members))
+    } else {
+        None
+    };
 
     for (_, item) in work {
         let result = match item {
@@ -578,11 +604,14 @@ pub fn execute_plan_with_tags(
                             }
                         }
                     }
-                    match convert_file_with_format_and_tags(
+                    match convert_file_with_format_tags_and_loudness(
                         &entry.input,
                         &destination,
                         format,
                         write_tags,
+                        loudness
+                            .as_ref()
+                            .and_then(|map| map.get(&entry.relative_input)),
                     ) {
                         Ok((summary, tags)) => {
                             converted += 1;

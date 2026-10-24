@@ -111,9 +111,14 @@ fn jpeg_cover_round_trip() {
         "{:?}",
         diagnostics.unmapped
     );
-    // Valid cover: no cover warnings at all.
+    // Valid cover: no cover warnings at all (loudness warnings, which name
+    // the fixture file, are out of scope for this assertion).
     assert!(
-        !diagnostics.warnings.iter().any(|w| w.contains("cover")),
+        !diagnostics
+            .warnings
+            .iter()
+            .filter(|w| !w.starts_with("loudness:"))
+            .any(|w| w.contains("cover")),
         "{:?}",
         diagnostics.warnings
     );
@@ -276,7 +281,11 @@ fn front_cover_beats_earlier_back_cover() {
     )
     .unwrap();
     assert!(
-        !diagnostics.warnings.iter().any(|w| w.contains("cover")),
+        !diagnostics
+            .warnings
+            .iter()
+            .filter(|w| !w.starts_with("loudness:"))
+            .any(|w| w.contains("cover")),
         "{:?}",
         diagnostics.warnings
     );
@@ -436,15 +445,21 @@ fn cover_24bit_combined_reports_precision_first() {
     assert_eq!(summary.encoded_frames, 3);
 
     // Required order: (1) precision notice, (2) text-tag warnings,
-    // (3) cover-art warnings. The fixture has a valid cover, so no cover
-    // warnings appear — but tag warnings do (only `title` is set).
+    // (3) cover-art warnings, (4) loudness warnings (L3: short fixtures are
+    // unmeasurable, so loudness warns after cover warnings). The fixture has
+    // a valid cover, so no cover warnings appear — but tag warnings do (only
+    // `title` is set).
     assert!(
         diagnostics.warnings[0].starts_with("24-bit FLAC input is converted"),
         "{:?}",
         diagnostics.warnings
     );
     assert!(
-        !diagnostics.warnings.iter().any(|w| w.contains("cover")),
+        !diagnostics
+            .warnings
+            .iter()
+            .filter(|w| !w.starts_with("loudness:"))
+            .any(|w| w.contains("cover")),
         "valid cover must warn about nothing: {:?}",
         diagnostics.warnings
     );
@@ -467,9 +482,10 @@ fn cover_24bit_combined_reports_precision_first() {
 
 #[test]
 fn cover_24bit_unsupported_reports_full_warning_order() {
-    // F1: all three warning categories in one conversion, asserted in exact
-    // order: (1) precision notice, (2) text-tag warnings in slot order,
-    // (3) cover-art warnings in selection order.
+    // F1: all warning categories in one conversion, asserted in exact order:
+    // (1) precision notice, (2) text-tag warnings in slot order,
+    // (3) cover-art warnings in selection order, (4) loudness warnings (L3:
+    // short fixtures are unmeasurable, so loudness warns last).
     let directory = TempDir::new("cover-24bit-order");
     let output = directory.join("cover.m4a");
     let (summary, diagnostics) = convert_file_with_format_and_tags(
@@ -497,6 +513,9 @@ fn cover_24bit_unsupported_reports_full_warning_order() {
             "missing comment",
             "unsupported cover image format: skipped",
             "missing cover",
+            "loudness: no measurable signal: omitting loudness tags for this track",
+            "loudness: album is incomplete (unanalyzable: cover-unsupported-48k-24.flac): \
+             omitting album-level loudness tags",
         ]
     );
     // Audio converts successfully with no covr atom.
