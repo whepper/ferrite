@@ -12,6 +12,6 @@ rust-version = "1.99.1"
 [workspace]
 
 [dependencies]
-aac = { path = "../..", default-features = false, features = ["aac_enc"] }
+ferrite-aac = { path = "../..", default-features = false, features = ["aac_enc"] }
 symphonia = { version = "0.6.1", default-features = false, features = ["flac"] }
 shiguredo_mp4 = "=2026.5.0"

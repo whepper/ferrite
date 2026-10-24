@@ -266,7 +266,7 @@ impl EncoderConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_enc::config::EncoderConfig;
+    /// use ferrite_aac::aac_enc::config::EncoderConfig;
     ///
     /// let stereo_48k = EncoderConfig::stereo_48k_adts();
     /// assert_eq!(stereo_48k.audio_specific_config().unwrap(), [0x11, 0x90]);

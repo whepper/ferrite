@@ -779,7 +779,7 @@ impl<'a> ElementList<'a> {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::{
+    /// use ferrite_aac::common::{
     ///     aot::AudioObjectType,
     ///     bs_syntax::ElementList,
     ///     flags::{self, ChannelFlags},
@@ -854,7 +854,7 @@ impl<'a> ElementList<'a> {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::{
+    /// use ferrite_aac::common::{
     ///     aot::AudioObjectType,
     ///     bs_syntax::ElementList,
     ///     flags::{self, ChannelFlags},
@@ -877,7 +877,7 @@ impl<'a> ElementList<'a> {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::{
+    /// use ferrite_aac::common::{
     ///     aot::AudioObjectType,
     ///     bs_syntax::ElementList,
     ///     flags::{self, ChannelFlags},

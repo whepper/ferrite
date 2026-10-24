@@ -199,7 +199,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_ANALYSIS_SUBBANDS * (2 * QMF_NO_POLY);
     /// let mut qmf = QmfFilterBank::new(len_filter_states);
@@ -288,7 +288,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_SYNTHESIS_SUBBANDS * (2 * QMF_NO_POLY);
     /// let gain = 0.5_f32;
@@ -340,7 +340,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_ANALYSIS_SUBBANDS * (2 * QMF_NO_POLY);
     /// let num_subbands = u8::try_from(QMF_MAX_ANALYSIS_SUBBANDS / 2).unwrap();
@@ -581,7 +581,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_ANALYSIS_SUBBANDS * (2 * QMF_NO_POLY);
     /// let num_subbands = QMF_MAX_ANALYSIS_SUBBANDS / 2;
@@ -655,7 +655,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_ANALYSIS_SUBBANDS * (2 * QMF_NO_POLY);
     /// let num_subbands = QMF_MAX_ANALYSIS_SUBBANDS / 2;
@@ -1015,7 +1015,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_SYNTHESIS_SUBBANDS * (2 * QMF_NO_POLY - 1);
     /// let num_lf_subbands = u8::try_from(QMF_MAX_SYNTHESIS_SUBBANDS / 2).unwrap();
@@ -1089,7 +1089,7 @@ impl QmfFilterBank {
     ///
     /// # Examples
     /// ```
-    /// use aac::common::qmf::*;
+    /// use ferrite_aac::common::qmf::*;
     ///
     /// let len_filter_states = QMF_MAX_SYNTHESIS_SUBBANDS * (2 * QMF_NO_POLY - 1);
     /// let num_lf_subbands = u8::try_from(QMF_MAX_SYNTHESIS_SUBBANDS / 2).unwrap();

@@ -78,7 +78,7 @@ jobs:
         run: cargo test --locked --no-default-features --features aac_dec --doc
 
       - name: Verify package contents
-        run: cargo package --locked -p aac
+        run: cargo package --locked -p ferrite-aac
 
   aac-convert:
     name: Build and test conversion app (Rust 1.99.1)

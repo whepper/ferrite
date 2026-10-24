@@ -179,7 +179,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::PcmLimiter;
+    /// use ferrite_aac::td_limiter::limiter::PcmLimiter;
     /// const CHANNELS: usize = 1;
     /// const SAMPLERATE: u32 = 8000;
     /// const NUM_SAMPLES: usize = 64;
@@ -437,7 +437,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -483,7 +483,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -547,7 +547,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -607,7 +607,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -645,7 +645,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -694,7 +694,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;
@@ -730,7 +730,7 @@ impl PcmLimiter {
     /// # Examples
     ///
     /// ```
-    /// use aac::td_limiter::limiter::*;
+    /// use ferrite_aac::td_limiter::limiter::*;
     ///
     /// let max_attack_ms = TDLIMIT_MAX_ATTACK_MS;
     /// let max_channels = 8;

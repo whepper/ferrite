@@ -300,8 +300,8 @@ impl AacDrcChannelData {
 ///
 /// # Examples
 /// ```
-/// use aac::aac_dec::drc::{AacDrcData, AacDrcParams, AacDrcPayloadType};
-/// use aac::common::{
+/// use ferrite_aac::aac_dec::drc::{AacDrcData, AacDrcParams, AacDrcPayloadType};
+/// use ferrite_aac::common::{
 ///     audio_channel_type::AudioChannelType,
 ///     bitstream::{Bitstream, Mode},
 /// };
@@ -1006,8 +1006,8 @@ impl AacDrcData {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::drc::{AacDrcData, AacDrcParams};
-    /// use aac::common::audio_channel_type::AudioChannelType;
+    /// use ferrite_aac::aac_dec::drc::{AacDrcData, AacDrcParams};
+    /// use ferrite_aac::common::audio_channel_type::AudioChannelType;
     ///
     /// const NUM_CH: usize = 1;
     /// let act: [AudioChannelType; NUM_CH] = [AudioChannelType::Front; NUM_CH];

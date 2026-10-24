@@ -91,14 +91,14 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-use aac::aac_dec::config::Config;
-use aac::aac_dec::drc::AacDrcParameterHandling;
-use aac::aac_dec::error_codes::AacDecoderError;
-use aac::aac_dec::params::LimiterMode;
-use aac::aac_dec::params::Param;
-use aac::aac_dec::params::Params;
-use aac::common::flags::ACFlags;
-use aac::pcm_dmx::DualChannelMode;
+use ferrite_aac::aac_dec::config::Config;
+use ferrite_aac::aac_dec::drc::AacDrcParameterHandling;
+use ferrite_aac::aac_dec::error_codes::AacDecoderError;
+use ferrite_aac::aac_dec::params::LimiterMode;
+use ferrite_aac::aac_dec::params::Param;
+use ferrite_aac::aac_dec::params::Params;
+use ferrite_aac::common::flags::ACFlags;
+use ferrite_aac::pcm_dmx::DualChannelMode;
 
 /// AAC decoder setting parameters
 #[repr(C)]

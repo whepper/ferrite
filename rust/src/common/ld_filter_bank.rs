@@ -209,7 +209,7 @@ fn mult_e2_dinv_f(
 ///
 /// # Examples
 /// ```
-/// use aac::common::ld_filter_bank;
+/// use ferrite_aac::common::ld_filter_bank;
 ///
 /// let mut data = [0.0_f32; 480];
 /// let mut out = [0.0_f32; 480];

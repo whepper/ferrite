@@ -102,21 +102,21 @@ pub struct AAC_DECODER_INSTANCE {}
 
 // Re-exports
 pub use crate::aac_dec::params::ParamBind as AACDEC_PARAM;
-pub use aac::aac_dec::AacDecoderError as AAC_DECODER_ERROR;
-pub use aac::aac_dec::AacDrcParameterHandling as AAC_DRC_DEFAULT_PRESENTATION_MODE_OPTIONS;
-pub use aac::aac_dec::AacDrcPresentationMode;
-pub use aac::aac_dec::AacMdProfile as AAC_MD_PROFILE;
-pub use aac::aac_dec::AudioChannelType as AUDIO_CHANNEL_TYPE;
-pub use aac::aac_dec::AudioObjectType as AUDIO_OBJECT_TYPE;
-pub use aac::aac_dec::ChannelElementId as MP4_ELEMENT_ID;
-pub use aac::aac_dec::ChannelOrder as CHANNEL_ORDER;
-pub use aac::aac_dec::TransportType as TRANSPORT_TYPE;
-pub use aac::aac_dec::{MetadataInfo, OutputInfo, StreamInfo};
-pub use aac::aac_dec::{MAX_ANC_ELEMENTS, MAX_CHANNELS, MAX_CONF_SIZE, TRANSPORTDEC_INBUF_SIZE};
+pub use ferrite_aac::aac_dec::AacDecoderError as AAC_DECODER_ERROR;
+pub use ferrite_aac::aac_dec::AacDrcParameterHandling as AAC_DRC_DEFAULT_PRESENTATION_MODE_OPTIONS;
+pub use ferrite_aac::aac_dec::AacDrcPresentationMode;
+pub use ferrite_aac::aac_dec::AacMdProfile as AAC_MD_PROFILE;
+pub use ferrite_aac::aac_dec::AudioChannelType as AUDIO_CHANNEL_TYPE;
+pub use ferrite_aac::aac_dec::AudioObjectType as AUDIO_OBJECT_TYPE;
+pub use ferrite_aac::aac_dec::ChannelElementId as MP4_ELEMENT_ID;
+pub use ferrite_aac::aac_dec::ChannelOrder as CHANNEL_ORDER;
+pub use ferrite_aac::aac_dec::TransportType as TRANSPORT_TYPE;
+pub use ferrite_aac::aac_dec::{MetadataInfo, OutputInfo, StreamInfo};
+pub use ferrite_aac::aac_dec::{MAX_ANC_ELEMENTS, MAX_CHANNELS, MAX_CONF_SIZE, TRANSPORTDEC_INBUF_SIZE};
 
 // Imports
 use crate::aac_dec::params::ParamBind;
-use aac::aac_dec::{
+use ferrite_aac::aac_dec::{
     AacDecoderError, AacDecoderInstance, AacDrcParameterHandling, AacMdProfile, ChannelOrder,
     ConcealmentMethod, DrcEffectTypeRequest, DualChannelMode, LimiterMode, Param, TransportType,
 };
@@ -834,7 +834,7 @@ pub unsafe extern "C" fn aacDecoder_Drain(
 
 #[cfg(test)]
 mod tests {
-    use aac::aac_dec::{
+    use ferrite_aac::aac_dec::{
         aacdecoder::AacDecoder, drc::AacDrcParams, params::Params, AacDecoderInstance,
     };
 

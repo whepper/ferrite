@@ -887,7 +887,7 @@ dit_fft!(512, 512);
 ///
 /// # Examples
 /// ```
-/// use aac::common::fft;
+/// use ferrite_aac::common::fft;
 /// use num_complex::Complex;
 ///
 /// const N: usize = 4;

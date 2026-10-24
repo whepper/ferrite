@@ -8,8 +8,8 @@
 //!
 //! - `S`: source sample-frames, counted from successfully decoded PCM.
 //! - `N`: emitted AAC access units, counted as frames are written.
-//! - `L`: AAC frame length from [`EncoderConfig::frame_length`](aac::aac_enc::config::EncoderConfig::frame_length).
-//! - `D`: encoder delay from [`EncoderConfig::encoder_delay`](aac::aac_enc::config::EncoderConfig::encoder_delay).
+//! - `L`: AAC frame length from [`EncoderConfig::frame_length`](ferrite_aac::aac_enc::config::EncoderConfig::frame_length).
+//! - `D`: encoder delay from [`EncoderConfig::encoder_delay`](ferrite_aac::aac_enc::config::EncoderConfig::encoder_delay).
 //! - `P = N * L - S - D`: tail padding.
 //!
 //! No gapless playback is claimed. See the crate README for the validation
@@ -386,8 +386,8 @@ mod tests {
         // The table above must reflect the encoder, not just the formula: drive
         // the public `Encoder` with exact sample counts and check the emitted
         // frame count, then check the accounting accepts the observed pair.
-        use aac::aac_enc::config::{EncoderConfig, TransportType};
-        use aac::aac_enc::encoder::Encoder;
+        use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType};
+        use ferrite_aac::aac_enc::encoder::Encoder;
 
         for source in [
             0, 1, 100, 448, 449, 500, 1023, 1024, 1025, 2048, 3000, 12_000,

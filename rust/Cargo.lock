@@ -3,24 +3,11 @@
 version = 4
 
 [[package]]
-name = "aac"
-version = "0.1.0"
-dependencies = [
- "arrayvec",
- "bitflags 2.13.2",
- "itertools",
- "num-complex",
- "paste",
- "rustversion",
- "zerocopy",
-]
-
-[[package]]
 name = "aac-convert"
 version = "0.1.0"
 dependencies = [
- "aac",
  "ebur128",
+ "ferrite-aac",
  "shiguredo_mp4",
  "symphonia",
 ]
@@ -29,7 +16,7 @@ dependencies = [
 name = "aac_ffi"
 version = "0.1.0"
 dependencies = [
- "aac",
+ "ferrite-aac",
  "itertools",
  "num-complex",
 ]
@@ -38,8 +25,8 @@ dependencies = [
 name = "aac_framework"
 version = "0.1.0"
 dependencies = [
- "aac",
  "aac_ffi",
+ "ferrite-aac",
  "hound",
  "itertools",
  "num-complex",
@@ -107,6 +94,19 @@ name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
+
+[[package]]
+name = "ferrite-aac"
+version = "0.1.0"
+dependencies = [
+ "arrayvec",
+ "bitflags 2.13.2",
+ "itertools",
+ "num-complex",
+ "paste",
+ "rustversion",
+ "zerocopy",
+]
 
 [[package]]
 name = "hound"

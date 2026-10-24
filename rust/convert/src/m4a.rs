@@ -16,8 +16,8 @@ use std::num::NonZeroU16;
 use std::num::NonZeroU32;
 use std::path::Path;
 
-use aac::aac_enc::config::EncoderConfig;
-use aac::aac_enc::encoder::{AdtsError, AdtsFrame};
+use ferrite_aac::aac_enc::config::EncoderConfig;
+use ferrite_aac::aac_enc::encoder::{AdtsError, AdtsFrame};
 use shiguredo_mp4::boxes::{AudioSampleEntryFields, EsdsBox, Mp4aBox, SampleEntry};
 use shiguredo_mp4::descriptors::{
     DecoderConfigDescriptor, DecoderSpecificInfo, EsDescriptor, SlConfigDescriptor,

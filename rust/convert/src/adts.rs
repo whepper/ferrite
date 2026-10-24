@@ -1,4 +1,4 @@
-use aac::aac_enc::encoder::AdtsFrame;
+use ferrite_aac::aac_enc::encoder::AdtsFrame;
 
 use crate::{AudioProperties, ConvertError};
 

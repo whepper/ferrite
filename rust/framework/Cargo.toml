@@ -16,7 +16,7 @@ required-features = ["aac_dec"]
 
 [dependencies]
 aac_ffi = {path = "../ffi"}
-aac = {path = ".."}
+ferrite-aac = {path = ".."}
 num-complex = "0.4.6"
 hound = "3.5.1"
 itertools = "0.10.5"

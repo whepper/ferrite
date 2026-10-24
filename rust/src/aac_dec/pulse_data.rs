@@ -112,8 +112,8 @@ const NUM_MAX_LINES: usize = 4;
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::{channel_info::IcsInfo, pulse_data::PulseData};
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::aac_dec::{channel_info::IcsInfo, pulse_data::PulseData};
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// let mut spectral_data = vec![0; 1024];
 /// let bit_buffer = vec![0; 2];

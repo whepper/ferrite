@@ -1,6 +1,6 @@
 rust_ffi_static {
-    name: "libaac",
-    crate_name: "aac",
+    name: "libferrite_aac",
+    crate_name: "ferrite_aac",
 
     vendor_available: true,
     clippy_lints: "android",

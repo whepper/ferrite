@@ -251,8 +251,8 @@ impl JointStereoData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{channel_info::IcsInfo, ms_stereo::JointStereoData};
-    /// use aac::common::{
+    /// use ferrite_aac::aac_dec::{channel_info::IcsInfo, ms_stereo::JointStereoData};
+    /// use ferrite_aac::common::{
     ///     bitstream::Bitstream,
     ///     bitstream::Mode,
     ///     flags::{self, ACFlags},
@@ -340,7 +340,7 @@ impl JointStereoData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{
+    /// use ferrite_aac::aac_dec::{
     ///     channel_info::IcsInfo, constants::MAX_FRAMESIZE, ms_stereo::JointStereoData,
     /// };
     /// let mut jsd = JointStereoData::new(true);

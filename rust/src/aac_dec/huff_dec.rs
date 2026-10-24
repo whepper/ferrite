@@ -612,8 +612,8 @@ static AAC_CODE_BOOK_DESCRIPTION_TABLE: [HuffmanDecoder; 13] = [
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::huff_dec::HuffmanDecoder;
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::aac_dec::huff_dec::HuffmanDecoder;
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// let mut decoded_buffer = vec![0; 16];
 /// let bit_buffer = vec![0; 8];

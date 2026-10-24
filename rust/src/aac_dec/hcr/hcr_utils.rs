@@ -115,7 +115,7 @@ const LEFT_OFFSET: u32 = 12;
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::hcr::carry_bit_to_branch_value;
+/// use ferrite_aac::aac_dec::hcr::carry_bit_to_branch_value;
 ///
 /// let carry_bit = true;
 /// let tree_node = 0x000FFF47;

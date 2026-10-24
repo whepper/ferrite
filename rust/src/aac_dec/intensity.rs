@@ -113,8 +113,8 @@ use itertools::{izip, Itertools};
 ///
 /// # Examples
 /// ```
-/// use aac::aac_dec::intensity::*;
-/// use aac::aac_dec::{channel_info::IcsInfo, constants, utils};
+/// use ferrite_aac::aac_dec::intensity::*;
+/// use ferrite_aac::aac_dec::{channel_info::IcsInfo, constants, utils};
 ///
 /// let ics_info: IcsInfo = Default::default();
 /// let code_book = [utils::CBTYPE_INTENSITY_HCB; constants::MAX_WINS_X_SFBS];

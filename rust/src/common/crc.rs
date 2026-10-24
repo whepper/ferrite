@@ -217,7 +217,7 @@ impl CrcInfo {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::crc::CrcInfo;
+    /// use ferrite_aac::common::crc::CrcInfo;
     ///
     /// let mut crc_info = CrcInfo::new();
     /// let poly = 0x8005;
@@ -267,7 +267,7 @@ impl CrcInfo {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::crc::CrcInfo;
+    /// use ferrite_aac::common::crc::CrcInfo;
     ///
     /// let mut crc_info = CrcInfo::new();
     /// crc_info.reset();
@@ -304,8 +304,8 @@ impl CrcInfo {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::bitstream::{Bitstream, Mode};
-    /// use aac::common::crc::CrcInfo;
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::common::crc::CrcInfo;
     ///
     /// // Precondition: There has to be a valid Bitstream instance.
     /// let buffer = vec![0; 8];
@@ -341,8 +341,8 @@ impl CrcInfo {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::bitstream::{Bitstream, Mode};
-    /// use aac::common::crc::CrcInfo;
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::common::crc::CrcInfo;
     ///
     /// // Precondition, should have a valid Bitstream instance.
     /// let buffer = vec![0; 64];
@@ -568,7 +568,7 @@ impl CrcInfo {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::crc::CrcInfo;
+    /// use ferrite_aac::common::crc::CrcInfo;
     ///
     /// let mut crc_info = CrcInfo::new();
     /// let poly = 0x8005;

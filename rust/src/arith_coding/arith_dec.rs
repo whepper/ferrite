@@ -239,8 +239,8 @@ impl ArithDecoderData {
     ///
     /// # Examples
     /// ```
-    /// use aac::arith_coding::arith_dec::ArithDecoderData;
-    /// use aac::common::{bitstream::Bitstream, bitstream::Mode, flags};
+    /// use ferrite_aac::arith_coding::arith_dec::ArithDecoderData;
+    /// use ferrite_aac::common::{bitstream::Bitstream, bitstream::Mode, flags};
     ///
     /// // Precondition, should have a valid Bitstream instance
     /// // Refer respective components for instance creation, read/write methods

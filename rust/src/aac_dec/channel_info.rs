@@ -128,9 +128,9 @@ impl Default for BlockType {
 /// a bitstream.
 ///
 /// ```
-/// use aac::aac_dec::channel_info::IcsInfo;
-/// use aac::aac_dec::sr_info::SamplingRateInfo;
-/// use aac::common::{
+/// use ferrite_aac::aac_dec::channel_info::IcsInfo;
+/// use ferrite_aac::aac_dec::sr_info::SamplingRateInfo;
+/// use ferrite_aac::common::{
 ///     bitstream::{Bitstream, Mode},
 ///     flags::ACFlags,
 /// };

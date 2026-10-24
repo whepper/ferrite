@@ -116,8 +116,8 @@ const NQ_MAX: u8 = 36;
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
-/// use aac::aac_dec::lpd::lpc::apply_abs_weighting;
+/// use ferrite_aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
+/// use ferrite_aac::aac_dec::lpd::lpc::apply_abs_weighting;
 ///
 /// let mut output_buff = [0.0_f32; M_LP_FILTER_ORDER];
 /// let input_buff = [0.0_f32; M_LP_FILTER_ORDER];
@@ -146,8 +146,8 @@ pub fn apply_abs_weighting(w_a: &mut [f32], a: &[f32]) {
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
-/// use aac::aac_dec::lpd::lpc::conceal;
+/// use ferrite_aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
+/// use ferrite_aac::aac_dec::lpd::lpc::conceal;
 ///
 /// let mut lsp = vec![[0.0_f32; M_LP_FILTER_ORDER]; 5];
 /// // Precondition: should have valid data in `lpc4_lsf`, if `first_lpd_flag` is false.
@@ -227,9 +227,9 @@ pub fn conceal(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
-/// use aac::aac_dec::lpd::lpc::decode_avq;
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
+/// use ferrite_aac::aac_dec::lpd::lpc::decode_avq;
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// // Precondition: should have a valid Bitstream instance in reader mode.
 /// let buffer = vec![0; 64];
@@ -303,8 +303,8 @@ pub fn decode_avq(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
-/// use aac::aac_dec::lpd::lpc::lsp_to_lpc;
+/// use ferrite_aac::aac_dec::lpd::constants::M_LP_FILTER_ORDER;
+/// use ferrite_aac::aac_dec::lpd::lpc::lsp_to_lpc;
 ///
 /// let mut output_buff = [0.0_f32; M_LP_FILTER_ORDER];
 /// let input_buff = [0.0_f32; M_LP_FILTER_ORDER];
@@ -351,10 +351,10 @@ pub fn lsp_to_lpc(lsp: &[f32], a: &mut [f32]) {
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::lpd::common::LpdMode;
-/// use aac::aac_dec::lpd::constants::{M_LP_FILTER_ORDER, NB_DIV};
-/// use aac::aac_dec::lpd::lpc::read;
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::aac_dec::lpd::common::LpdMode;
+/// use ferrite_aac::aac_dec::lpd::constants::{M_LP_FILTER_ORDER, NB_DIV};
+/// use ferrite_aac::aac_dec::lpd::lpc::read;
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// // Precondition: should have a valid Bitstream instance in reader mode.
 /// let buffer = vec![0; 64];

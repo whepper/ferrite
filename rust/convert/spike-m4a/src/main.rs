@@ -18,8 +18,8 @@ use std::num::NonZeroU16;
 use std::num::NonZeroU32;
 use std::path::Path;
 
-use aac::aac_enc::config::{EncoderConfig, TransportType, AOT_AAC_LC};
-use aac::aac_enc::encoder::{AdtsFrame, Encoder};
+use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType, AOT_AAC_LC};
+use ferrite_aac::aac_enc::encoder::{AdtsFrame, Encoder};
 use shiguredo_mp4::boxes::{
     AudioSampleEntryFields, EdtsBox, ElstBox, ElstEntry, EsdsBox, Mp4aBox, SampleEntry,
 };

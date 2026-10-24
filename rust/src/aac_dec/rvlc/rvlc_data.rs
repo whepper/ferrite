@@ -128,9 +128,9 @@ impl RvlcData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::channel_info::IcsInfo;
-    /// use aac::aac_dec::{constants::MAX_WINS_X_SFBS, pns::PnsData, rvlc::RvlcData};
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::channel_info::IcsInfo;
+    /// use ferrite_aac::aac_dec::{constants::MAX_WINS_X_SFBS, pns::PnsData, rvlc::RvlcData};
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// // Precondition: should have a valid Bitstream and IcsInfo instance.
     /// // Refer respective components for instance creation, read/write methods.
@@ -203,8 +203,8 @@ impl RvlcData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{channel_info::IcsInfo, constants::MAX_WINS_X_SFBS, rvlc::RvlcData};
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::{channel_info::IcsInfo, constants::MAX_WINS_X_SFBS, rvlc::RvlcData};
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// // Precondition: should have a valid Bitstream and IcsInfo instance.
     /// // Refer respective components for instance creation, read/write methods.
@@ -238,7 +238,7 @@ impl RvlcData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::rvlc::RvlcData;
+    /// use ferrite_aac::aac_dec::rvlc::RvlcData;
     ///
     /// let mut rvlc_data_left = RvlcData::new();
     /// let mut rvlc_data_right = RvlcData::new();

@@ -4,7 +4,7 @@
 
 ### `src`
 
-This directory contains the Rust source files for the `aac` crate.
+This directory contains the Rust source files for the `ferrite_aac` crate.
 
 ### `ffi`
 

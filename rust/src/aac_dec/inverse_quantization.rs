@@ -116,11 +116,11 @@ use itertools::{izip, Itertools};
 ///
 /// # Examples
 /// ```
-/// use aac::aac_dec::{
+/// use ferrite_aac::aac_dec::{
 ///     channel_info::IcsInfo, constants::MAX_WINS_X_SFBS,
 ///     inverse_quantization::inverse_quantize_spectral_data, utils,
 /// };
-/// use aac::common::quantize::MAX_QUANTIZED_VALUE;
+/// use ferrite_aac::common::quantize::MAX_QUANTIZED_VALUE;
 ///
 /// // input data
 /// let mut quant_spectrum: Vec<i16> = Vec::new();

@@ -91,7 +91,7 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-use aac::aac_dec::*;
+use ferrite_aac::aac_dec::*;
 use std::{fs::File, io::Read, process::exit};
 
 struct BsDescr {

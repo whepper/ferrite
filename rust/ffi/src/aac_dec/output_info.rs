@@ -91,7 +91,7 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-use aac::aac_dec::{MetadataInfo, OutputInfo, StreamInfo};
+use ferrite_aac::aac_dec::{MetadataInfo, OutputInfo, StreamInfo};
 
 /// Returns a default `OutputInfo` instance.
 ///

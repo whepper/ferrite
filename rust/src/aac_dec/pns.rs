@@ -174,7 +174,7 @@ impl PnsData {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::pns::*;
+    /// use ferrite_aac::aac_dec::pns::*;
     ///
     /// let mut pns: PnsData = Default::default();
     /// pns.init();
@@ -195,7 +195,7 @@ impl PnsData {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::{channel_info::*, pns::*};
+    /// use ferrite_aac::aac_dec::{channel_info::*, pns::*};
     ///
     /// let mut pns: PnsData = Default::default();
     /// let mut pns_ic: PnsInterChannelData = Default::default();
@@ -333,7 +333,7 @@ impl PnsInterChannelData {
     /// Re-init PNS InterChannel data
     /// # Examples
     /// ```
-    /// use aac::aac_dec::pns::*;
+    /// use ferrite_aac::aac_dec::pns::*;
     ///
     /// let mut pns_ic: PnsInterChannelData = Default::default();
     /// pns_ic.init();
@@ -353,7 +353,7 @@ impl PnsInterChannelData {
     ///   for both channels of a channel pair.
     /// # Examples
     /// ```
-    /// use aac::aac_dec::{channel_info::*, pns::*};
+    /// use ferrite_aac::aac_dec::{channel_info::*, pns::*};
     ///
     /// let scf_bands = 50;
     /// let mut ms_used_buff = vec![0_u8; scf_bands]; // will store the output

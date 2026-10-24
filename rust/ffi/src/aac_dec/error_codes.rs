@@ -91,7 +91,7 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-use aac::aac_dec::error_codes::AacDecoderError;
+use ferrite_aac::aac_dec::error_codes::AacDecoderError;
 
 #[repr(C)]
 pub enum CAacDecoderError {

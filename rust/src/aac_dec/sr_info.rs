@@ -625,7 +625,7 @@ static SFB_OFFSET_TABLES: [[SfbInfo; 13]; 5] = [
 /// Get an instance of SamplingRateInfo
 ///
 /// ```
-/// use aac::aac_dec::sr_info::SamplingRateInfo;
+/// use ferrite_aac::aac_dec::sr_info::SamplingRateInfo;
 ///
 /// let mut sr_info = SamplingRateInfo::new();
 /// sr_info.init(1024, 3, 48000);

@@ -240,7 +240,7 @@ impl TnsData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::tns::TnsData;
+    /// use ferrite_aac::aac_dec::tns::TnsData;
     ///
     /// let mut tns_data = TnsData::default();
     /// tns_data.reset();
@@ -266,8 +266,8 @@ impl TnsData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::tns::TnsData;
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::tns::TnsData;
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// // Precondition, should have a valid Bitstream instance in reader mode
     /// let buffer = vec![0; 8];
@@ -295,10 +295,10 @@ impl TnsData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{
+    /// use ferrite_aac::aac_dec::{
     ///     tns::TnsData, channel_info::IcsInfo, error_codes::AacDecoderError
     /// };
-    /// use aac::common::{bitstream::Bitstream, bitstream::Mode, flags::{ACFlags, self}};
+    /// use ferrite_aac::common::{bitstream::Bitstream, bitstream::Mode, flags::{ACFlags, self}};
     ///
     /// // Precondition, should have a valid Bitstream and IcsInfo instance
     /// // Refer respective components for instance creation, read/write methods
@@ -429,10 +429,10 @@ impl TnsData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{
+    /// use ferrite_aac::aac_dec::{
     ///     tns::TnsData, channel_info::IcsInfo, error_codes::AacDecoderError
     /// };
-    /// use aac::common::{bitstream::Bitstream, bitstream::Mode, flags::{ACFlags, self}};
+    /// use ferrite_aac::common::{bitstream::Bitstream, bitstream::Mode, flags::{ACFlags, self}};
     ///
     /// // Precondition, should have a valid Bitstream and IcsInfo instance
     /// // Refer respective components for instance creation, read/write methods
@@ -495,8 +495,8 @@ impl TnsData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{tns::TnsData, channel_info::IcsInfo};
-    /// use aac::common::flags::{ACFlags, self};
+    /// use ferrite_aac::aac_dec::{tns::TnsData, channel_info::IcsInfo};
+    /// use ferrite_aac::common::flags::{ACFlags, self};
     ///
     /// // Precondition, should have a valid IcsInfo instance
     /// // Refer IcsInfo component for instance creation, get methods

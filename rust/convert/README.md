@@ -1,6 +1,6 @@
 # aac-convert — FLAC to AAC (M4A or ADTS), single file or directory batch
 
-`aac-convert` is a separate application crate around the existing `aac` encoder.
+`aac-convert` is a separate application crate around the existing `ferrite-aac` encoder.
 It converts 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC;
 24-bit FLAC is accepted with a per-file precision warning (reduced to 16-bit
 PCM before encoding):
@@ -377,9 +377,10 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 ## Distribution
 
 There is no standalone `cargo package` for `aac-convert`: its path
-dependency on the workspace-local, unpublished `aac` crate cannot resolve
-against the public registry (crates.io offers only 0.0.0, which does not
-satisfy the required `^0.1.0`), and publishing `aac` is out of scope. The supported distribution
+dependency on the workspace-local, unpublished `ferrite-aac` crate cannot
+resolve against the public registry (the package is unpublished, so no
+version satisfies the required `^0.1.0`), and publishing `ferrite-aac` is
+out of scope. The supported distribution
 model is a **workspace source bundle built with the pinned toolchain**:
 
 ```sh
@@ -399,7 +400,7 @@ Apache/MIT/BSD attributions, AAC patent authorization).
 ## Release follow-ups
 
 - Standalone `cargo package`/`cargo publish` for `aac-convert` remains
-  unsupported while `aac` is an unpublished path dependency; use the
+  unsupported while `ferrite-aac` is an unpublished path dependency; use the
   workspace-bundle model above.
 - The `THIRD-PARTY-NOTICES.md` inventory still needs human/legal sign-off
   before distributing binaries.

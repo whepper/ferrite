@@ -121,7 +121,7 @@ impl Default for Mode {
 /// # Examples
 ///
 /// ```
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// let mut bitstream_writer = Bitstream::new(8, Mode::Writer);
 /// bitstream_writer.write(0b1011_0001, 8);

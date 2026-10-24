@@ -123,7 +123,7 @@ use num_complex::Complex;
 /// * Overlap window size is 512
 ///
 /// ```
-/// use aac::common::mdct::Mdct;
+/// use ferrite_aac::common::mdct::Mdct;
 /// use num_complex::Complex;
 ///
 /// let mut output: &mut [f32] = &mut [0.0; 1024]; // buffer for output time samples

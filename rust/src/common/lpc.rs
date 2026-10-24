@@ -121,7 +121,7 @@ pub enum FilterDirection {
 ///
 /// # Examples
 /// ```
-/// use aac::common::lpc::*;
+/// use ferrite_aac::common::lpc::*;
 /// use std::convert::TryInto;
 ///
 /// const N: usize = 16;

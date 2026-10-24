@@ -416,7 +416,7 @@ impl AacDecoderInstance {
     }
 
     /// Returns true if the AU concealment byte sequence is found in the given bitstream. See
-    /// `aac::aac_dec::conceal::conceal_constants::A_CONCEAL_AU`.
+    /// `ferrite_aac::aac_dec::conceal::conceal_constants::A_CONCEAL_AU`.
     fn is_concealment_au(bs: &mut Bitstream) -> bool {
         if bs.valid_bits() >= (8 * A_CONCEAL_AU.len()) as isize {
             let mut is_conceal_au = true;

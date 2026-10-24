@@ -127,8 +127,8 @@ impl ChannelMapDescriptor {
     /// # Examples
     ///
     /// ```
-    /// use aac::common::channel_map_descr::ChannelMapDescriptor;
-    /// use aac::common::channel_order::ChannelOrder;
+    /// use ferrite_aac::common::channel_map_descr::ChannelMapDescriptor;
+    /// use ferrite_aac::common::channel_order::ChannelOrder;
     ///
     /// let mut channel_map_descr = ChannelMapDescriptor::new();
     /// let map_info_tab = None;

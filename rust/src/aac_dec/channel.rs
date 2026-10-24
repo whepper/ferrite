@@ -360,8 +360,8 @@ impl ChannelElement {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::channel::ChannelElement;
-    /// use aac::common::flags::ChannelFlags;
+    /// use ferrite_aac::aac_dec::channel::ChannelElement;
+    /// use ferrite_aac::common::flags::ChannelFlags;
     ///
     /// let mut ch_el = ChannelElement::new();
     /// ch_el.insert_flags(ChannelFlags::USAC_NOISE | ChannelFlags::USAC_PVC);
@@ -376,8 +376,8 @@ impl ChannelElement {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::channel::ChannelElement;
-    /// use aac::common::flags::ChannelFlags;
+    /// use ferrite_aac::aac_dec::channel::ChannelElement;
+    /// use ferrite_aac::common::flags::ChannelFlags;
     ///
     /// let mut ch_el = ChannelElement::new();
     /// ch_el.insert_flags(ChannelFlags::USAC_NOISE | ChannelFlags::USAC_PVC);
@@ -391,8 +391,8 @@ impl ChannelElement {
     ///
     /// # Examples
     /// ```
-    /// use aac::aac_dec::channel::ChannelElement;
-    /// use aac::common::flags::ChannelFlags;
+    /// use ferrite_aac::aac_dec::channel::ChannelElement;
+    /// use ferrite_aac::common::flags::ChannelFlags;
     ///
     /// let mut ch_el = ChannelElement::new();
     /// ch_el.insert_flags(ChannelFlags::USAC_NOISE | ChannelFlags::USAC_PVC);

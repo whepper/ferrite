@@ -49,8 +49,8 @@ impl AdtsFrame {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_enc::config::{EncoderConfig, TransportType};
-    /// use aac::aac_enc::encoder::Encoder;
+    /// use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType};
+    /// use ferrite_aac::aac_enc::encoder::Encoder;
     ///
     /// let cfg = EncoderConfig::new(48000, 1, 1024, TransportType::Adts).unwrap();
     /// let mut encoder = Encoder::new(cfg).unwrap();
@@ -223,8 +223,8 @@ enum Lifecycle {
 /// Encode one second of mono 48 kHz silence and collect the ADTS stream:
 ///
 /// ```
-/// use aac::aac_enc::config::{EncoderConfig, TransportType};
-/// use aac::aac_enc::encoder::Encoder;
+/// use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType};
+/// use ferrite_aac::aac_enc::encoder::Encoder;
 ///
 /// let cfg = EncoderConfig::new(48000, 1, 1024, TransportType::Adts).unwrap();
 /// let mut encoder = Encoder::new(cfg).unwrap();

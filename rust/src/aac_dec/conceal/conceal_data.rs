@@ -153,9 +153,9 @@ impl ConcealmentData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{conceal::{ConcealmentData, AacDecoderRenderMode}, lpd::LpdData,
+    /// use ferrite_aac::aac_dec::{conceal::{ConcealmentData, AacDecoderRenderMode}, lpd::LpdData,
     /// channel_info::IcsInfo, sr_info::SamplingRateInfo};
-    /// use aac::common::flags::{ACFlags, self};
+    /// use ferrite_aac::common::flags::{ACFlags, self};
     ///
     /// // Precondition, should have a valid data with all instances.
     /// // Refer ConcelmentData, IcsInfo, LpdData, SamplingRateInfo
@@ -228,8 +228,8 @@ impl ConcealmentData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::conceal::{ConcealmentData, ConcealmentParams};
-    /// use aac::common::flags::{ACFlags, self};
+    /// use ferrite_aac::aac_dec::conceal::{ConcealmentData, ConcealmentParams};
+    /// use ferrite_aac::common::flags::{ACFlags, self};
     ///
     /// // Precondition, should have a valid data with instances.
     /// // Refer ConcelmentData, ConcealmentParams and it's methods.
@@ -299,8 +299,8 @@ impl ConcealmentData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::conceal::{ConcealmentData, ConcealmentParams};
-    /// use aac::common::flags;
+    /// use ferrite_aac::aac_dec::conceal::{ConcealmentData, ConcealmentParams};
+    /// use ferrite_aac::common::flags;
     ///
     /// // Precondition, should have a valid instance with data.
     /// // Refer `ConcelmentData` and its methods.

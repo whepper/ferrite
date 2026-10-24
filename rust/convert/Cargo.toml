@@ -8,7 +8,7 @@ license = "FDK-AAC"
 description = "FLAC to AAC (ADTS or M4A) converter for the native Ferrite Rust AAC encoder"
 
 [dependencies]
-aac = { version = "0.1.0", path = "..", default-features = false, features = ["aac_enc"] }
+ferrite-aac = { version = "0.1.0", path = "..", default-features = false, features = ["aac_enc"] }
 # Pinned to the L3 evidence-phase selection; pure Rust, no C toolchain on the
 # default build path. MIT. See docs/aac-convert-l3-prep-report.md Gate 1.
 ebur128 = "=0.1.10"

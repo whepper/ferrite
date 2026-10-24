@@ -129,8 +129,8 @@ impl HcrData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{channel_info::IcsInfo, constants::MAX_WINS_X_SFBS, hcr::HcrData};
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::{channel_info::IcsInfo, constants::MAX_WINS_X_SFBS, hcr::HcrData};
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// // Precondition, should have a valid Bitstream and IcsInfo instance
     /// // Refer respective components for instance creation, read/write methods
@@ -290,8 +290,8 @@ impl HcrData {
     /// # Examples
     ///
     /// ```
-    /// use aac::aac_dec::{constants, hcr::HcrData};
-    /// use aac::common::{
+    /// use ferrite_aac::aac_dec::{constants, hcr::HcrData};
+    /// use ferrite_aac::common::{
     ///     bitstream::{Bitstream, Mode},
     ///     bs_element_id::ChannelElementId,
     /// };

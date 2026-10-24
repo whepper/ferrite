@@ -14,7 +14,7 @@ crate-type = ["lib"]
 [dependencies]
 itertools = "0.10.5"
 num-complex = "0.4.6"
-aac = {path = ".."}
+ferrite-aac = {path = ".."}
 
 [features]
 default = ["aac_dec"]

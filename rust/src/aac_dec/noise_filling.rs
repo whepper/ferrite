@@ -125,9 +125,9 @@ static NOISE_LEVEL_TAB: [f32; 8] = [
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::channel_info::IcsInfo;
-/// use aac::aac_dec::constants::{MAX_SFB_SHORT, MAX_WINDOWS};
-/// use aac::aac_dec::noise_filling;
+/// use ferrite_aac::aac_dec::channel_info::IcsInfo;
+/// use ferrite_aac::aac_dec::constants::{MAX_SFB_SHORT, MAX_WINDOWS};
+/// use ferrite_aac::aac_dec::noise_filling;
 ///
 /// // Precondition, should have a valid IcsInfo instance
 /// // Refer respective components for instance creation methods

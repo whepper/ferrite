@@ -352,7 +352,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::tp_dec::{PceCompareResult, ProgramConfig};
+    /// use ferrite_aac::tp_dec::{PceCompareResult, ProgramConfig};
     /// let mut first_pce = ProgramConfig::new();
     /// first_pce.init();
     /// let second_pce = ProgramConfig::new();
@@ -432,7 +432,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::tp_dec::ProgramConfig;
+    /// use ferrite_aac::tp_dec::ProgramConfig;
     /// let mut pce = ProgramConfig::new();
     /// pce.init();
     /// let channel_config = 12;
@@ -812,7 +812,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
+    /// use ferrite_aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
     /// let mut pce = ProgramConfig::new();
     /// pce.init();
     /// let channel_config = 12;
@@ -881,7 +881,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
+    /// use ferrite_aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
     /// let mut pce = ProgramConfig::new();
     /// let element_type = ChannelElementId::Cce;
     /// let tag = 2;
@@ -943,7 +943,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
+    /// use ferrite_aac::{common::bs_element_id::ChannelElementId, tp_dec::ProgramConfig};
     /// let mut pce = ProgramConfig::new();
     /// let channel_config = 5;
     /// let result = pce.get_default_mpeg_config(channel_config);
@@ -1011,7 +1011,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::tp_dec::ProgramConfig;
+    /// use ferrite_aac::tp_dec::ProgramConfig;
     /// let mut pce = ProgramConfig::new();
     /// let index = pce.get_channel_map_index();
     /// assert!(index == 0);
@@ -1116,7 +1116,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::{
+    /// use ferrite_aac::{
     ///     aac_dec::constants::MAX_CHANNELS, common::audio_channel_type::AudioChannelType,
     ///     tp_dec::ProgramConfig,
     /// };
@@ -1230,7 +1230,7 @@ impl ProgramConfig {
     /// # Examples
     ///
     /// ```
-    /// use aac::{
+    /// use ferrite_aac::{
     ///     common::bitstream::{Bitstream, Mode},
     ///     tp_dec::ProgramConfig,
     /// };

@@ -328,7 +328,7 @@ pub fn frequency_to_time(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::{block::init_code_book_data, channel_info::IcsInfo, constants};
+/// use ferrite_aac::aac_dec::{block::init_code_book_data, channel_info::IcsInfo, constants};
 ///
 /// let ics_info = IcsInfo::new();
 /// let mut code_book = vec![0_u8; constants::MAX_WINS_X_SFBS];
@@ -421,8 +421,8 @@ pub fn read_ac_spectral_data(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::{block::read_section_data, channel_info::IcsInfo, constants, hcr::HcrData};
-/// use aac::common::{
+/// use ferrite_aac::aac_dec::{block::read_section_data, channel_info::IcsInfo, constants, hcr::HcrData};
+/// use ferrite_aac::common::{
 ///     bitstream::{Bitstream, Mode},
 ///     flags::ACFlags,
 /// };
@@ -557,10 +557,10 @@ pub fn read_section_data(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::{
+/// use ferrite_aac::aac_dec::{
 ///     block::read_scalefactor_data, channel_info::IcsInfo, constants, pns::PnsData,
 /// };
-/// use aac::common::{
+/// use ferrite_aac::common::{
 ///     bitstream::{Bitstream, Mode},
 ///     flags::ACFlags,
 /// };
@@ -673,8 +673,8 @@ pub fn read_scalefactor_data(
 /// # Examples
 ///
 /// ```
-/// use aac::aac_dec::{block::read_spectral_data, channel_info::IcsInfo, constants};
-/// use aac::common::bitstream::{Bitstream, Mode};
+/// use ferrite_aac::aac_dec::{block::read_spectral_data, channel_info::IcsInfo, constants};
+/// use ferrite_aac::common::bitstream::{Bitstream, Mode};
 ///
 /// let bit_buffer = vec![0; 8];
 /// let mut bs_reader = Bitstream::new(bit_buffer.len(), Mode::Reader);

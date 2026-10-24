@@ -1,7 +1,7 @@
 //! Single-file FLAC to AAC conversion (ADTS or M4A).
 //!
 //! This crate is deliberately a thin application around the existing
-//! `aac::aac_enc` encoder. It accepts one 16-bit FLAC file at 44.1 kHz or
+//! `ferrite_aac::aac_enc` encoder. It accepts one 16-bit FLAC file at 44.1 kHz or
 //! 48 kHz, mono or stereo, and writes either an ADTS stream or an audio-only
 //! M4A container.
 //!
@@ -37,8 +37,8 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use aac::aac_enc::config::{ConfigError, EncoderConfig, TransportType, FRAME_LENGTH};
-use aac::aac_enc::encoder::{AdtsError, AdtsFrame, EncodeError, Encoder};
+use ferrite_aac::aac_enc::config::{ConfigError, EncoderConfig, TransportType, FRAME_LENGTH};
+use ferrite_aac::aac_enc::encoder::{AdtsError, AdtsFrame, EncodeError, Encoder};
 use shiguredo_mp4::mux::MuxError;
 
 /// Target number of sample frames per encoder push.

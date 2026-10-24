@@ -768,11 +768,11 @@ impl FacData {
     /// Appyly ALFD gains to FAC data.
     ///
     /// ```
-    /// use aac::aac_dec::lpd::common::LpdMode;
-    /// use aac::aac_dec::lpd::constants::*;
-    /// use aac::aac_dec::lpd::fac::FacData;
-    /// use aac::aac_dec::*;
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::lpd::common::LpdMode;
+    /// use ferrite_aac::aac_dec::lpd::constants::*;
+    /// use ferrite_aac::aac_dec::lpd::fac::FacData;
+    /// use ferrite_aac::aac_dec::*;
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// let buffer = vec![0; 8];
     /// let mut bs = Bitstream::new(buffer.len(), Mode::Reader);
@@ -1030,11 +1030,11 @@ impl FacData {
     /// Read FAC parameters from bitstream.
     ///
     /// ```
-    /// use aac::aac_dec::lpd::common::LpdMode;
-    /// use aac::aac_dec::lpd::constants::*;
-    /// use aac::aac_dec::lpd::fac::FacData;
-    /// use aac::aac_dec::*;
-    /// use aac::common::bitstream::{Bitstream, Mode};
+    /// use ferrite_aac::aac_dec::lpd::common::LpdMode;
+    /// use ferrite_aac::aac_dec::lpd::constants::*;
+    /// use ferrite_aac::aac_dec::lpd::fac::FacData;
+    /// use ferrite_aac::aac_dec::*;
+    /// use ferrite_aac::common::bitstream::{Bitstream, Mode};
     ///
     /// let buffer = vec![0; 8];
     /// let mut bs = Bitstream::new(buffer.len(), Mode::Reader);
