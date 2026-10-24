@@ -1282,6 +1282,24 @@ mod tests {
     }
 
     #[test]
+    fn s8_static_agreement_accepts_post_crash_static() {
+        // Track-09 frame-7303 regression numbers (stereo `MS_SOME`,
+        // `maxSfbPerGroup` 47 -> 45): the S8 write emits 11982 element bits
+        // with 11844 dynamic bits, i.e. 138 static bits. The pre-crash S1
+        // count (140, MS mask under 47 bands) must fail; the post-crash
+        // recount (138, mask under 45 bands) must pass. This pins the
+        // exact discrepancy the crash-recovery recount repair resolves.
+        assert_eq!(
+            check_static_agreement(11982, 140, 11844),
+            Err(FrameError::StaticMismatch {
+                emitted: 138,
+                counted: 140
+            })
+        );
+        assert!(check_static_agreement(11982, 138, 11844).is_ok());
+    }
+
+    #[test]
     fn s8_rejects_unsupported_syntax_and_elements() {
         let ch = ChannelFrameInput {
             block_type: BLOCK_LONG,

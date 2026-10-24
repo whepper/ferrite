@@ -142,10 +142,11 @@ pub enum EncodeFailure {
     /// policy trip, low-overlap shape, or an untyped write-path failure
     /// without a typed error).
     SkippedFrame { notes: Vec<String> },
-    /// Crash-marked frame (`crash != -1` in the frame snapshot): any bytes
-    /// are discarded, never emitted. The driver currently returns no bytes
-    /// for these frames (they skip before S8), so this is a typed
-    /// classification of the finding, not an emit-then-fail path.
+    /// Crash-marked frame (`crash != -1` in the frame snapshot) that
+    /// produced no bytes, or bytes accompanied by diagnostic notes:
+    /// nothing is emitted. A crash-recovered frame with bytes and no
+    /// notes/errors emits (FDK parity); only the unrecovered or
+    /// note-carrying combinations reach this variant.
     CrashedFrame { notes: Vec<String> },
     /// Rate-control failure (`iterations` exhausted or bit-reservoir short).
     QcFailed(QcError),
@@ -392,9 +393,10 @@ impl Encoder {
 
 /// Fail-closed mapping from one `step_frame` outcome to the API contract.
 /// Pure function (no encoder state): unit-testable without forcing the
-/// encoder. Ordering is deliberate — a typed error or a crash marker always
-/// wins, and any notes-with-bytes combination discards, so neither can ever
-/// emit.
+/// encoder. Ordering is deliberate — a typed error always wins; a crash
+/// marker without bytes discards; notes-with-bytes discards; a clean frame
+/// (including a crash-recovered frame that emitted bytes with no notes)
+/// emits.
 fn map_outcome(
     frame_index: u32,
     bytes: Option<Vec<u8>>,
@@ -405,8 +407,10 @@ fn map_outcome(
     match (bytes, step_error, crash, notes.is_empty()) {
         (_, Some(StepError::Qc(e)), _, _) => Err(EncodeFailure::QcFailed(e)),
         (_, Some(StepError::Frame(e)), _, _) => Err(EncodeFailure::FrameWrite(e)),
-        // Crash-marked frame: never emitted, whatever bytes were produced.
-        (_, None, c, _) if c != -1 => Err(EncodeFailure::CrashedFrame { notes }),
+        // Crash-marked frame with no bytes: discarded (crash recovery that
+        // could not produce output; the driver now emits recoverable crash
+        // frames instead of returning None for them).
+        (None, None, c, _) if c != -1 => Err(EncodeFailure::CrashedFrame { notes }),
         (None, None, _, _) => Err(EncodeFailure::SkippedFrame { notes }),
         // Defensive: notes on a frame that produced bytes are disqualifying.
         (Some(_), None, _, false) => Err(EncodeFailure::CrashedFrame { notes }),
@@ -610,8 +614,9 @@ mod tests {
         let ok = map_outcome(7, Some(vec![0xFF]), None, -1, Vec::new()).unwrap();
         let f = ok.expect("emits");
         assert_eq!(f.frame_index, 7);
-        // Crash-marked frame (snapshot crash >= 0): discarded, never emitted,
-        // even if a hypothetical producer supplied bytes.
+        // Crash-marked frame without bytes: discarded. (Bytes with a crash
+        // marker plus notes are still discarded below; bytes with a crash
+        // marker and no notes — a recovered crash frame — emit, per FDK.)
         for bytes in [None, Some(vec![0xFF])] {
             let err = map_outcome(
                 3,
@@ -622,9 +627,12 @@ mod tests {
             );
             assert!(
                 matches!(err, Err(EncodeFailure::CrashedFrame { .. })),
-                "crash marker must map to CrashedFrame, got {err:?}"
+                "crash marker with notes must map to CrashedFrame, got {err:?}"
             );
         }
+        // Crash-recovered frame: bytes, no error, no notes — emits.
+        let ok = map_outcome(7303, Some(vec![0xFF]), None, 45, Vec::new()).unwrap();
+        assert_eq!(ok.expect("crash-recovered frame emits").frame_index, 7303);
         // Notes + bytes without a crash marker are still disqualifying.
         let err = map_outcome(
             3,

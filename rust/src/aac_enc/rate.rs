@@ -214,7 +214,7 @@ use super::bitcount::{
     CODE_BOOK_PNS_NO,
 };
 use super::q31::{fdiv_norm, fdiv_norm_e, fmult, fmult_add_div2, fmult_i, schur_div};
-use super::static_bits::{static_bits_cpe, static_bits_sce, MsDigest};
+use super::static_bits::{ms_mask_bits, static_bits_cpe, static_bits_sce, MsDigest};
 use super::tns::TnsChannel;
 
 /// `MIN_BUFSIZE_PER_EFF_CHAN = 6144` (`aacenc.h:111`).
@@ -1033,8 +1033,9 @@ pub fn reduce_bit_consumption(
 /// Drops `max_sfb` from the top until `savedBits >= bits_to_save` (side
 /// info reclaimed per emptied section via the S5 side-info tables), then
 /// rebalances `static_bits_used`/`el_granted`/`frame_granted`/`frame_max_dyn`
-/// through `recount(wipeout)` — the `ChannelElementWrite(NULL)` recount,
-/// with cleared tools/TNS iff every band was dropped (`sfb == 0`).
+/// through `recount(wipeout, surv_max_sfb)` — the `ChannelElementWrite(NULL)`
+/// recount under the surviving band count (MS mask included), with cleared
+/// tools/TNS iff every band was dropped (`sfb == 0`).
 /// Returns the surviving `maxSfbPerGroup` (shared by all channels, like C).
 #[allow(clippy::too_many_arguments)]
 pub fn crash_recovery(
@@ -1050,7 +1051,7 @@ pub fn crash_recovery(
     el_granted: &mut i32,
     frame_granted: &mut i32,
     frame_max_dyn: &mut i32,
-    recount: &dyn Fn(bool) -> i32,
+    recount: &dyn Fn(bool, usize) -> i32,
 ) -> usize {
     use super::bitcount_tables::{SIDE_INFO_TAB_LONG, SIDE_INFO_TAB_SHORT};
     let n_channels = quant.len();
@@ -1106,7 +1107,7 @@ pub fn crash_recovery(
     for m in max_sfb.iter_mut() {
         *m = sfb as usize;
     }
-    let stat_new = recount(sfb == 0);
+    let stat_new = recount(sfb == 0, sfb as usize);
     let saved = *static_bits_used - stat_new;
     *static_bits_used -= saved;
     *el_granted += saved;
@@ -1514,8 +1515,12 @@ pub fn qc_main_frame(
     let mut passes = Vec::new();
     let mut outer_guard = 0i32;
     // Static recount for crash recovery (`ChannelElementWrite(NULL)`
-    // mirror over `static_bits`; `wipeout` clears tools+TNS).
-    let recount = |wipeout: bool| -> i32 {
+    // mirror over `static_bits`, run after `maxSfbPerGroup` was reduced
+    // like C `crashRecovery :1484-1486`). `surv_max_sfb` is the surviving
+    // band count: the MS mask is recounted under it (fewer mask bits when
+    // `digest == MS_SOME`), and `wipeout` (full-band drop, `sfb == 0`)
+    // clears tools+TNS exactly like C `:1470-1473`.
+    let recount = |wipeout: bool, surv_max_sfb: usize| -> i32 {
         let tns0;
         let tns1;
         let (t0, t1): (&TnsChannel, &TnsChannel) = if wipeout {
@@ -1529,8 +1534,17 @@ pub fn qc_main_frame(
         };
         let (digest, bands) = if wipeout {
             (MsDigest::None, 0)
+        } else if input.ms_digest == MsDigest::Some {
+            (
+                input.ms_digest,
+                ms_mask_bits(
+                    input.channels[0].sfb_cnt,
+                    input.channels[0].sfb_per_group,
+                    surv_max_sfb,
+                ),
+            )
         } else {
-            (input.ms_digest, input.ms_bands)
+            (input.ms_digest, 0)
         };
         let s0 = input.channels[0].block_type == BLOCK_SHORT;
         if n_channels == 2 {
@@ -2351,6 +2365,177 @@ mod tests {
             out.total_bits <= 1200,
             "crashed frame fits the buffer, got {}",
             out.total_bits
+        );
+    }
+
+    #[test]
+    fn crash_recovery_recounts_ms_mask_under_surviving_sfb() {
+        use crate::aac_enc::bitcount::SectionInfo;
+        use std::cell::Cell;
+        // Long-block stereo, one group of 8 coded SFBs (4 lines each, all
+        // nonzero) with an `MS_SOME` digest: the mask costs one bit per
+        // band, so dropping the top band must shrink static by exactly 1.
+        let offsets: Vec<i32> = (0..=8).map(|i| i * 4).collect();
+        let offs = vec![offsets.clone(), offsets.clone()];
+        let quant: Vec<Vec<i16>> = vec![vec![1i16; 32], vec![1i16; 32]];
+        let one_section = || SectionData {
+            block_type: 0,
+            no_of_groups: 1,
+            sfb_cnt: 8,
+            max_sfb_per_group: 8,
+            sfb_per_group: 8,
+            sections: vec![SectionInfo {
+                code_book: 1,
+                sfb_start: 0,
+                sfb_cnt: 8,
+                section_bits: 0,
+            }],
+            side_info_bits: 0,
+            huffman_bits: 0,
+            scalefac_bits: 0,
+            noise_nrg_bits: 0,
+            first_scf: 0,
+        };
+        let mut sections = vec![one_section(), one_section()];
+        let mut max_sfb = vec![8usize, 8];
+        let tns = TnsChannel::default();
+        let stat_pre = static_bits_cpe(
+            true,
+            false,
+            false,
+            MsDigest::Some,
+            ms_mask_bits(8, 8, 8),
+            &tns,
+            &tns,
+        );
+        let mut el_static = stat_pre;
+        let mut el_granted = 1000i32;
+        let mut frame_granted = 1000i32;
+        let mut frame_max_dyn = 1000i32;
+        let seen_surv = Cell::new(usize::MAX);
+        // Mirrors the `qc_main_frame` recount closure: static under the
+        // surviving band count, tools/TNS cleared only on full wipeout.
+        let recount = |wipeout: bool, surv: usize| -> i32 {
+            assert!(!wipeout, "partial drop must not wipe tools/TNS");
+            seen_surv.set(surv);
+            static_bits_cpe(
+                true,
+                false,
+                false,
+                MsDigest::Some,
+                ms_mask_bits(8, 8, surv),
+                &tns,
+                &tns,
+            )
+        };
+        let surv = crash_recovery(
+            &quant,
+            &mut sections,
+            &mut max_sfb,
+            8,
+            8,
+            &offs,
+            &[false, false],
+            1,
+            &mut el_static,
+            &mut el_granted,
+            &mut frame_granted,
+            &mut frame_max_dyn,
+            &recount,
+        );
+        // Exactly the top band drops; the survivor is shared (like C) and
+        // is what the recount ran under.
+        assert_eq!(surv, 7);
+        assert_eq!(max_sfb, vec![7usize, 7]);
+        assert_eq!(seen_surv.get(), 7);
+        for ch in 0..2 {
+            assert_eq!(sections[ch].sections.len(), 1);
+            assert_eq!(sections[ch].sections[0].sfb_start, 0);
+            assert_eq!(sections[ch].sections[0].sfb_cnt, 7);
+        }
+        // Static rebalanced by exactly the MS-mask shrinkage (8 -> 7).
+        let stat_post = static_bits_cpe(
+            true,
+            false,
+            false,
+            MsDigest::Some,
+            ms_mask_bits(8, 8, 7),
+            &tns,
+            &tns,
+        );
+        assert_eq!(stat_pre - stat_post, 1, "one mask bit per dropped band");
+        assert_eq!(el_static, stat_post);
+        let saved = stat_pre - stat_post;
+        assert_eq!(el_granted, 1000 + saved);
+        assert_eq!(frame_granted, 1000 + saved);
+        assert_eq!(frame_max_dyn, 1000 + saved);
+    }
+
+    #[test]
+    fn s6_crash_stereo_ms_some_recounts_static_consistently() {
+        use crate::aac_enc::bitcount::BLOCK_SHORT;
+        // Starved stereo frame with a live M/S mask: forces crash recovery
+        // with `MS_SOME`, then checks the rebalanced static against an
+        // independent recount under the surviving `maxSfbPerGroup`.
+        let s1 = testdata::load_s1("multitone-stereo", 1);
+        let (digest, _) = s1.msd.clone().expect("stereo S1 frame needs MSD");
+        assert_eq!(digest, 1, "fixture must be MS_SOME, got {digest}");
+        let s4 = testdata::load_s4("multitone-stereo", 1);
+        let s5 = testdata::load_s5("multitone-stereo", 1);
+        let init = testdata::load_s6init("stereo-48k");
+        let tns = TnsChannel::default();
+        let tns_defaults = [tns.clone(), tns.clone()];
+        let (input, _) = build_frame_input("multitone-stereo", &s1, &s4, &s5, &init, &tns_defaults);
+        let mut input = input;
+        input.max_bits_per_frame = 400;
+        input.max_bits_el = 400;
+        let s6 = testdata::load_s6("multitone-stereo", 1);
+        let mut dist = forge_dist(&init, &s6.gstate);
+        let mut qc = QcState {
+            bit_res_tot: 400,
+            bit_res_tot_max: 400,
+            padding_rest: 0,
+            bc_scratch: Default::default(),
+        };
+        let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
+            .expect("starvation frame converges via crash");
+        let last = out.passes.last().unwrap();
+        assert!(last.crash >= 0, "crash recovery must run");
+        let surv = out.final_max_sfb[0];
+        assert!(
+            out.final_max_sfb.iter().all(|&m| m == surv),
+            "survivor shared across channels"
+        );
+        assert!(surv < s5.ch[0].geo_max, "maxSfbPerGroup must drop");
+        // Independent recount under the survivor (C NULL-recount mirror):
+        // blank TNS matches the test inputs; MS mask under `surv`.
+        let tns_blank = TnsChannel::default();
+        let s0 = input.channels[0].block_type == BLOCK_SHORT;
+        let s1s = input.channels[1].block_type == BLOCK_SHORT;
+        let bands = ms_mask_bits(
+            input.channels[0].sfb_cnt,
+            input.channels[0].sfb_per_group,
+            surv,
+        );
+        let expected_static =
+            static_bits_cpe(true, s0, s1s, MsDigest::Some, bands, &tns_blank, &tns_blank);
+        assert_eq!(
+            out.static_bits_used, expected_static,
+            "post-crash static must match the MS-included recount"
+        );
+        assert!(
+            out.total_bits <= 400,
+            "crashed frame fits the buffer, got {}",
+            out.total_bits
+        );
+        assert_eq!(
+            out.total_bits,
+            out.static_bits_used
+                + out.used_dyn_bits
+                + out.tot_fill_bits
+                + out.align_bits
+                + GLOBAL_EXT_BITS,
+            "total-identity under crash"
         );
     }
 

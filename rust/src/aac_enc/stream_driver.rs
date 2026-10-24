@@ -37,9 +37,8 @@
 //! 8. `estimate_scale_factors_channel` (S4 inv=2) on the S3-contract
 //!    spectrum (inactive bands zeroed).
 //! 9. `calc_max_value_in_sfb` + `dyn_bit_count` (S5).
-//! 10. `qc_main_frame` (S6 gain loop; single-pass expected on corpus —
-//!    any retry/crash is a loud finding and the frame is skipped, never
-//!    force-fit).
+//! 10. `qc_main_frame` (S6 gain loop; crash recovery emits with reduced
+//!    `maxSfbPerGroup` per FDK — multi-pass retry remains a loud skip).
 //! 11. `build_raw_block` + `build_adts_frame` (S8 + transport).
 //!
 //! Flush: the driver steps `ceil((S + 1600) / 1024)` frames with zero
@@ -51,8 +50,9 @@
 //! - Frontend integers carry float residue (`assert_q31_close` scale); MS/PE
 //!   decisions at exact boundaries may flip vs C. Classification separates
 //!   this from structural divergence.
-//! - IS/PNS/retries/crash/large-fill paths are asserted absent per frame;
+//! - IS/PNS/multi-pass-retry/large-fill paths are asserted absent per frame;
 //!   hitting one is a `Class::Unsupported` finding, not a silent fallback.
+//!   Crash recovery is the exception: it emits with reduced bandwidth per FDK.
 
 use super::adts::ADTS_HEADER_BITS;
 use super::bitcount::{dyn_bit_count_reuse, BitCountInput, NO_NOISE_PNS};
@@ -1364,10 +1364,17 @@ impl StreamEncoder {
             return (None, snap);
         }
         if snap.crash != -1 {
-            snap.notes.push(format!(
-                "gain-loop crash recovery (maxSfb reduced) crash={}",
-                snap.crash
-            ));
+            // Crash recovery (FDK `qc_main.cpp:1141-1158` + `crashRecovery`):
+            // the gain loop reduced `maxSfbPerGroup` and re-quantized under
+            // it, and `qc_main_frame` returned converged output within
+            // budget. Like the C encoder, emit the frame with reduced
+            // bandwidth instead of failing: `final_max_sfb`,
+            // `final_sections`, `final_gains`, and `final_quants` below are
+            // already the post-crash values, and `qc_out.static_bits_used`
+            // is the post-crash recount (MS mask included; tools/TNS cleared
+            // only on full wipeout, `sfb == 0`).
+            // `snap.crash` records the event; no blocking note is pushed so
+            // the frame proceeds to S8.
         }
         // Final-pass QC results (M5.18): the gain loop's own last
         // quantization is reused instead of re-deriving it. Equivalence
@@ -1386,8 +1393,9 @@ impl StreamEncoder {
         //     buffer is the `vec![0i16; len]` initialization (quantize
         //     never visits those bands), which equals the q == 0 result of
         //     quantizing the zeroed spectrum. Frames with multi-pass gain
-        //     loops or crash recovery emit no stream bytes here (loud
-        //     skip), and the argument above covers them regardless.
+        //     loops emit no stream bytes here (loud skip); crash-recovery
+        //     frames emit with reduced `maxSfbPerGroup` per FDK, and the
+        //     argument above covers them regardless.
         let final_max: Vec<usize> = qc_out.final_max_sfb.clone();
         let final_quants: Vec<Vec<i16>> = qc_out.final_quants;
         let final_qmaxs: Vec<Vec<u32>> = qc_out.final_qmaxs;
@@ -1466,7 +1474,13 @@ impl StreamEncoder {
                 }
             }
         };
-        if let Err(e) = check_static_agreement(el_bits, s1static, qc_out.used_dyn_bits) {
+        // Post-crash static is the QC-updated value: crash recovery recounts
+        // static under the surviving `maxSfbPerGroup` (MS mask included),
+        // like C `crashRecovery :1484-1498`. Without crash this equals
+        // `s1static` (the recount is the only static mutator), so corpus
+        // behavior is unchanged.
+        let static_expected = qc_out.static_bits_used;
+        if let Err(e) = check_static_agreement(el_bits, static_expected, qc_out.used_dyn_bits) {
             snap.notes.push(format!("static agreement: {e:?}"));
             snap.step_error = Some(StepError::Frame(e));
             return (None, snap);
