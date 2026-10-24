@@ -6,7 +6,7 @@ default-run = "aac_decoder"
 # MSRV
 rust-version = "1.99.1"
 license = "FDK-AAC"
-description = "Fraunhofer FDK AAC Codec Library in Rust - Framework"
+description = "Example decoder application for the native Rust Ferrite AAC library"
 keywords = ["aac", "audio", "codec", "decoder", "fdk"]
 
 [[bin]]

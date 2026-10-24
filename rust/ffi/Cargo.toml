@@ -5,7 +5,7 @@ edition = "2021"
 # MSRV
 rust-version = "1.99.1"
 license = "FDK-AAC"
-description = "Fraunhofer FDK AAC Codec Library in Rust - FFI"
+description = "Native Rust AAC decoder FFI derived from Fraunhofer FDK AAC (Ferrite)"
 keywords = ["aac", "audio", "codec", "decoder", "fdk"]
 
 [lib]
