@@ -100,7 +100,7 @@ audio tools required.
   `license = "FDK-AAC"` identifier. Whether to add a `license-file`
   pointer (and to which NOTICE text, per package) was deferred pending
   confirmation of the authoritative text per package — see
-  `docs/ferrite-phase-1-report.md`.
+  `docs/archive/ferrite-phase-1-report.md`.
 
 ## Limitations and deferred work (not implemented)
 
@@ -108,7 +108,7 @@ audio tools required.
   optimization, and true-peak analysis are deferred to their own
   milestones — not started here.
 - Loudness tagging follows the finalized L2 design; the L3 closeout audit
-  (`docs/aac-convert-l3-closeout-audit.md`, PASS WITH FINDINGS) lists two
+  (`docs/archive/aac-convert-l3-closeout-audit.md`, PASS WITH FINDINGS) lists two
   test-coverage follow-ups (absolute calibration test, partial-rerun
   identity test) and one ruling awaiting owner acknowledgment
   (mixed-layout album handling).
@@ -122,7 +122,7 @@ audio tools required.
 - `docs/aac-enc-m6-api-contract.md` — production encoder API contract.
 - `rust/convert/README.md` — `aac-convert` usage and metadata reference.
 - `docs/aac-convert-l2-loudness-integration-design.md` — finalized
-  loudness design; `docs/aac-convert-l3-*.md` — evidence and audit trail.
-- `docs/repository-modernization-audit.md` — modernization roadmap and
+  loudness design; `docs/archive/aac-convert-l3-*.md` — evidence and audit trail.
+- `docs/archive/repository-modernization-audit.md` — modernization roadmap and
   naming evaluation (source of the Ferrite working identity).
 - `docs/research/d021/` — read-only divergence evidence archive.
