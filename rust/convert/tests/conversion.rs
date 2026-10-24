@@ -5,8 +5,9 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 
 use aac_convert::{
-    convert_file, convert_file_m4a_experiment, convert_file_with_format, AudioProperties,
-    ConvertError, GaplessExperiment, OutputFormat,
+    convert_file, convert_file_m4a_experiment, convert_file_with_format,
+    convert_file_with_format_and_tags, AudioProperties, ConvertError, GaplessExperiment,
+    OutputFormat,
 };
 use common::{
     fixture, mp4_audio_specific_config, mp4_chunk_offsets, mp4_elst, mp4_itunsmpb, mp4_mdhd,
@@ -74,13 +75,83 @@ fn converts_supported_mono_441k_fixture() {
 }
 
 #[test]
-fn rejects_24_bit_input_without_writing_output() {
-    let directory = TempDir::new("reject-24");
+fn accepts_24_bit_input_with_truncation_warning() {
+    let directory = TempDir::new("accept-24");
     let output = directory.join("out.aac");
-    let err = convert_file(&fixture("stereo-48k-24.flac"), &output).unwrap_err();
-    assert!(matches!(err, ConvertError::UnsupportedBitDepth(24)));
-    assert!(!output.exists());
+    let (summary, diagnostics) = convert_file_with_format_and_tags(
+        &fixture("stereo-48k-24.flac"),
+        &output,
+        OutputFormat::Adts,
+        true,
+    )
+    .unwrap();
+    assert_eq!(summary.properties.bits_per_sample, 24);
+    assert_eq!(summary.encoded_frames, 3);
+    // Exactly one warning, up front: the precision notice, not tag noise
+    // (ADTS carries no tags).
+    assert_eq!(
+        diagnostics.warnings,
+        [
+            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
+          precision is discarded"
+        ]
+    );
+    assert!(output.is_file());
     assert!(temp_output_files(directory.path()).is_empty());
+}
+
+#[test]
+fn accepts_24_bit_m4a_with_warning_and_gapless() {
+    let directory = TempDir::new("accept-24-m4a");
+    let output = directory.join("out.m4a");
+    let (summary, diagnostics) = convert_file_with_format_and_tags(
+        &fixture("stereo-48k-24.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+    )
+    .unwrap();
+    assert_eq!(summary.properties.bits_per_sample, 24);
+    assert_eq!(summary.encoded_frames, 3);
+
+    // The precision notice leads; tag warnings for the (tagless) fixture follow.
+    assert_eq!(
+        diagnostics.warnings[0],
+        "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
+         precision is discarded"
+    );
+    assert!(
+        diagnostics.warnings.iter().any(|w| w.contains("title")),
+        "{:?}",
+        diagnostics.warnings
+    );
+
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    assert_eq!(&bytes[8..12], b"M4A ");
+    assert_eq!(mp4_mdhd(&bytes, root.require("mdhd")), (48_000, 3 * 1024));
+    assert!(temp_output_files(directory.path()).is_empty());
+}
+
+#[test]
+fn rejects_corrupt_24_bit_md5_without_publishing_output() {
+    // Same STREAMINFO-first layout as the 16-bit MD5 fixtures: `fLaC` magic,
+    // 4-byte header, MD5 at byte 26. Flipping one bit must fail verification.
+    let directory = TempDir::new("md5-24");
+    let input = directory.join("input.flac");
+    let mut bytes = fs::read(fixture("stereo-48k-24.flac")).unwrap();
+    assert_eq!(&bytes[0..4], b"fLaC");
+    bytes[26] ^= 0xFF;
+    fs::write(&input, &bytes).unwrap();
+
+    let output = directory.join("out.aac");
+    let err = convert_file(&input, &output).unwrap_err();
+    assert!(matches!(err, ConvertError::DecodeFailed));
+    assert!(!output.exists());
+    assert!(
+        temp_output_files(directory.path()).is_empty(),
+        "temporary output was not cleaned up"
+    );
 }
 
 #[test]

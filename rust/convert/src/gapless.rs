@@ -137,14 +137,17 @@ impl GaplessAccounting {
     }
 
     /// Complete `udta` box (`udta > meta > ilst > ---- > mean/name/data`)
-    /// carrying the [`itunsmpb_value`](Self::itunsmpb_value), ready to append
-    /// to `moov.unknown_boxes`.
+    /// carrying [`itunsmpb_value`](Self::itunsmpb_value) plus optional extra
+    /// `ilst` children, ready to append to `moov.unknown_boxes`.
     ///
     /// Fixed skeleton bytes replicate Apple `afconvert` output: `meta`
     /// version/flags 0, `hdlr` handler `mdir`, `mean` prefix plus
     /// `com.apple.iTunes`, `name` prefix plus `iTunSMPB`, `data` type 1
     /// (UTF-8) and locale 0. Only the `data` payload varies per file.
-    pub(crate) fn udta_box(self) -> Result<UnknownBox, AccountingError> {
+    pub(crate) fn udta_box_with_tags(
+        self,
+        extra_ilst_children: &[Vec<u8>],
+    ) -> Result<UnknownBox, AccountingError> {
         /// `meta` child `hdlr` payload, verbatim from Apple output: FullBox
         /// version/flags 0, pre_defined 0, handler `mdir`, then Apple's fixed
         /// trailing bytes. Carries no per-file values.
@@ -202,7 +205,18 @@ impl GaplessAccounting {
         freeform.extend_from_slice(&data);
         let freeform = boxed(b"----", &freeform)?;
 
-        let ilst = boxed(b"ilst", &freeform)?;
+        let mut ilst_payload = freeform;
+        for child in extra_ilst_children {
+            let new_len = ilst_payload
+                .len()
+                .checked_add(child.len())
+                .ok_or(AccountingError::Overflow)?;
+            if new_len > u32::MAX as usize - 8 {
+                return Err(AccountingError::Overflow);
+            }
+            ilst_payload.extend_from_slice(child);
+        }
+        let ilst = boxed(b"ilst", &ilst_payload)?;
 
         let mut meta_payload = Vec::with_capacity(
             4usize
@@ -226,7 +240,10 @@ impl GaplessAccounting {
 }
 
 /// Serialize one complete box (8-byte header plus payload) with checked sizes.
-fn boxed(tag: &[u8; 4], payload: &[u8]) -> Result<Vec<u8>, AccountingError> {
+///
+/// Shared by gapless signalling and user metadata (`crate::meta`); both paths
+/// fail closed with [`AccountingError::Overflow`] instead of truncating.
+pub(crate) fn boxed(tag: &[u8; 4], payload: &[u8]) -> Result<Vec<u8>, AccountingError> {
     let size = u32::try_from(
         payload
             .len()
@@ -479,7 +496,7 @@ mod tests {
             Err(AccountingError::InvalidParameter)
         );
         assert_eq!(
-            over_delay.udta_box(),
+            over_delay.udta_box_with_tags(&[]),
             Err(AccountingError::InvalidParameter),
             "box assembly must propagate the layout bound"
         );
@@ -504,7 +521,7 @@ mod tests {
     #[test]
     fn udta_box_nests_mean_name_and_data() {
         let accounting = GaplessAccounting::compute(3000, 5, FRAME_LENGTH, DELAY).unwrap();
-        let udta = accounting.udta_box().unwrap();
+        let udta = accounting.udta_box_with_tags(&[]).unwrap();
         assert_eq!(udta.box_type, BoxType::Normal(*b"udta"));
         // udta payload is the complete meta box; walk the nesting manually.
         let meta = &udta.payload;

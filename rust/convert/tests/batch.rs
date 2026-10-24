@@ -362,9 +362,9 @@ fn existing_destinations_fail_without_touching_sentinels() {
 fn mixed_valid_and_broken_inputs_convert_what_can_convert() {
     let workspace = TempDir::new("batch-mixed");
     let input = workspace.join("in");
-    // Sorted order: bad-bitdepth, broken, good — failures first exercise
+    // Sorted order: bad-channels, broken, good — failures first exercise
     // isolation before the later valid file converts.
-    seed_file(&input, "a-bitdepth.flac", "stereo-48k-24.flac");
+    seed_file(&input, "a-channels.flac", "three-channel-48k-16.flac");
     seed_file(&input, "b-truncated.flac", "truncated-stereo-48k-16.flac");
     seed_file(&input, "c-good.flac", "stereo-48k-16.flac");
 
@@ -384,15 +384,56 @@ fn mixed_valid_and_broken_inputs_convert_what_can_convert() {
     }
     assert_eq!(categories.len(), 2);
     assert!(
-        categories.contains(&"UnsupportedBitDepth"),
+        categories.contains(&"UnsupportedChannels"),
         "{categories:?}"
     );
     assert!(categories.contains(&"DecodeFailed"), "{categories:?}");
 
     assert!(output.join("c-good.m4a").is_file());
-    assert!(!output.join("a-bitdepth.m4a").exists());
+    assert!(!output.join("a-channels.m4a").exists());
     assert!(!output.join("b-truncated.m4a").exists());
     assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn mixed_16_and_24_bit_batch_converts_both_with_targeted_warning() {
+    // The warning routes through per-file diagnostics identically for M4A
+    // and ADTS output.
+    for format in [OutputFormat::M4a, OutputFormat::Adts] {
+        let workspace = TempDir::new("batch-mixed-depth");
+        let input = workspace.join("in");
+        seed_file(&input, "plain.flac", "stereo-48k-16.flac");
+        seed_file(&input, "deep.flac", "stereo-48k-24.flac");
+        let output = workspace.join("out");
+
+        let plan = plan_batch(&input, &output, format, true).unwrap();
+        assert_eq!(plan.entries.len(), 2);
+        let outcome = execute_plan(&plan, format, false, false).unwrap();
+        assert_eq!(outcome.summary.converted, 2);
+        assert_eq!(outcome.summary.failed, 0);
+
+        for result in &outcome.results {
+            match &result.outcome {
+                BatchFileOutcome::Converted {
+                    properties, tags, ..
+                } => {
+                    let precision = tags
+                        .warnings
+                        .iter()
+                        .filter(|w| w.contains("24-bit FLAC input"))
+                        .count();
+                    if properties.bits_per_sample == 24 {
+                        assert!(result.relative_input.ends_with("deep.flac"));
+                        assert_eq!(precision, 1, "{tags:?}");
+                    } else {
+                        assert_eq!(precision, 0, "{tags:?}");
+                    }
+                }
+                other => panic!("unexpected outcome: {other:?}"),
+            }
+        }
+        assert_no_temp_files_anywhere(&output);
+    }
 }
 
 #[test]
@@ -780,7 +821,7 @@ fn cli_batch_partial_failure_exits_one_with_fail_lines() {
     let workspace = TempDir::new("cli-batch-partial");
     let input = workspace.join("in");
     seed_file(&input, "good.flac", "stereo-48k-16.flac");
-    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
     let output = workspace.join("out");
 
     let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
@@ -789,7 +830,7 @@ fn cli_batch_partial_failure_exits_one_with_fail_lines() {
     assert!(
         lines
             .iter()
-            .any(|l| l == "fail bad.flac: UnsupportedBitDepth"),
+            .any(|l| l == "fail bad.flac: UnsupportedChannels"),
         "{lines:?}"
     );
     assert!(
@@ -807,8 +848,93 @@ fn cli_batch_partial_failure_exits_one_with_fail_lines() {
     );
     let stderr = String::from_utf8_lossy(&result.stderr).into_owned();
     assert!(stderr.contains("bad.flac"), "{stderr}");
-    assert!(stderr.contains("unsupported bit depth 24"), "{stderr}");
+    assert!(stderr.contains("unsupported channel count 3"), "{stderr}");
     assert!(output.join("good.m4a").is_file());
+}
+
+#[test]
+fn cli_batch_24_bit_warns_once_per_affected_file() {
+    let workspace = TempDir::new("cli-batch-24");
+    let input = workspace.join("in");
+    seed_file(&input, "plain.flac", "stereo-48k-16.flac");
+    seed_file(&input, "deep.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    // Exactly one precision notice naming the 24-bit file — not one per PCM
+    // chunk, and none for the 16-bit file. (Tag warnings for both files may
+    // also be present; they are out of scope for this assertion.)
+    let precision: Vec<&str> = stderr
+        .lines()
+        .filter(|line| line.contains("24-bit FLAC input is converted to 16-bit PCM"))
+        .collect();
+    assert_eq!(precision.len(), 1, "{stderr}");
+    assert!(precision[0].contains("deep.flac"), "{stderr}");
+    assert!(output.join("plain.m4a").is_file());
+    assert!(output.join("deep.m4a").is_file());
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn cli_batch_24_bit_dry_run_emits_no_warning() {
+    let workspace = TempDir::new("cli-batch-24-dryrun");
+    let input = workspace.join("in");
+    seed_file(&input, "deep.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--dry-run",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    // Dry runs never decode, so the precision warning must not appear.
+    assert!(
+        String::from_utf8_lossy(&result.stderr).is_empty(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!output.exists(), "dry run must create nothing");
+}
+
+#[test]
+fn cli_batch_24_bit_no_tags_still_warns_about_precision() {
+    let workspace = TempDir::new("cli-batch-24-notags");
+    let input = workspace.join("in");
+    seed_file(&input, "deep.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--no-tags",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    // The precision notice is not a tag warning: `--no-tags` suppresses tag
+    // warnings but must preserve it.
+    let precision: Vec<&str> = stderr
+        .lines()
+        .filter(|line| line.contains("24-bit FLAC input is converted to 16-bit PCM"))
+        .collect();
+    assert_eq!(precision.len(), 1, "{stderr}");
+    assert!(
+        !stderr.contains("missing title"),
+        "tag warnings must stay suppressed: {stderr}"
+    );
+    assert!(output.join("deep.m4a").is_file());
 }
 
 #[test]
@@ -911,7 +1037,7 @@ fn cli_batch_quiet_prints_only_the_summary() {
     );
 
     // Quiet mode still reports failures on stderr and exits 1.
-    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
     let output2 = workspace.join("out2");
     let result = run_cli(&[
         "--quiet",
@@ -1120,7 +1246,7 @@ fn skip_existing_does_not_hide_unrelated_failures() {
     let workspace = TempDir::new("skip-failure");
     let input = workspace.join("in");
     seed_file(&input, "done.flac", "stereo-48k-16.flac");
-    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
     let output = workspace.join("out");
     fs::create_dir_all(&output).unwrap();
     fs::write(output.join("done.m4a"), b"sentinel").unwrap();
@@ -1134,7 +1260,7 @@ fn skip_existing_does_not_hide_unrelated_failures() {
         outcome.results.iter().any(|result| matches!(
             &result.outcome,
             BatchFileOutcome::Failed {
-                category: "UnsupportedBitDepth",
+                category: "UnsupportedChannels",
                 ..
             }
         )),
@@ -1308,7 +1434,7 @@ fn cli_skip_existing_mixed_run_converts_missing_and_reports_failures() {
     let input = workspace.join("in");
     seed_file(&input, "done.flac", "stereo-48k-16.flac");
     seed_file(&input, "todo.flac", "mono-441k-16.flac");
-    seed_file(&input, "bad.flac", "stereo-48k-24.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
     let output = workspace.join("out");
     fs::create_dir_all(&output).unwrap();
     fs::write(output.join("done.m4a"), b"sentinel").unwrap();
@@ -1335,7 +1461,7 @@ fn cli_skip_existing_mixed_run_converts_missing_and_reports_failures() {
     assert!(
         lines
             .iter()
-            .any(|l| l == "fail bad.flac: UnsupportedBitDepth"),
+            .any(|l| l == "fail bad.flac: UnsupportedChannels"),
         "{lines:?}"
     );
     assert!(

@@ -42,7 +42,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::{convert_file_with_format, AudioProperties, ConvertError, OutputFormat};
+use crate::{
+    convert_file_with_format_and_tags, AudioProperties, ConvertError, OutputFormat, TagDiagnostics,
+};
 
 /// Reason recorded for an ignored directory symlink (verbose reporting).
 pub const SYMLINKED_DIR_REASON: &str = "symlinked dir, not followed";
@@ -86,6 +88,7 @@ pub fn category_for(error: &ConvertError) -> &'static str {
         ConvertError::AudioSpecificConfig(..) => "AudioSpecificConfig",
         ConvertError::Muxer(..) => "Muxer",
         ConvertError::GaplessSignalling(..) => "GaplessSignalling",
+        ConvertError::Metadata(..) => "Metadata",
         ConvertError::Finalize(..) => "Finalize",
         ConvertError::Publish(..) => "Publish",
     }
@@ -238,6 +241,8 @@ pub enum BatchFileOutcome {
         bytes: u64,
         /// Input audio properties.
         properties: AudioProperties,
+        /// User-metadata diagnostics for the converted file.
+        tags: TagDiagnostics,
     },
     /// Dry run: the destination is free and the file would be converted.
     Planned,
@@ -384,9 +389,11 @@ pub fn plan_batch(
 ///
 /// - Real runs create the output root (fatal [`BatchError`] on failure),
 ///   then convert each entry in plan order through
-///   [`convert_file_with_format`](crate::convert_file_with_format).
-/// - Dry runs create nothing and decode nothing; they report `Planned` for
-///   free destinations and `Failed` (`OutputExists`) for taken ones.
+///   [`convert_file_with_format_and_tags`](crate::convert_file_with_format_and_tags)
+///   with user metadata writing enabled.
+/// - Dry runs create nothing and decode nothing (and never read tags); they
+///   report `Planned` for free destinations and `Failed` (`OutputExists`)
+///   for taken ones.
 /// - Discovery failures are reported as failures in both modes.
 /// - With `skip_existing`, a destination that already exists is skipped: the
 ///   source is never decoded, no temporary file is created, and the item
@@ -398,11 +405,30 @@ pub fn plan_batch(
 ///   failure in both modes.
 ///
 /// Results are returned in deterministic input order with final tallies.
+///
+/// This wrapper writes user metadata for M4A output. Use
+/// [`execute_plan_with_tags`] to omit user metadata atoms (`--no-tags`).
 pub fn execute_plan(
     plan: &BatchPlan,
     format: OutputFormat,
     dry_run: bool,
     skip_existing: bool,
+) -> Result<BatchOutcome, BatchError> {
+    execute_plan_with_tags(plan, format, dry_run, skip_existing, true)
+}
+
+/// Execute a plan with explicit user-metadata control.
+///
+/// Behaves like [`execute_plan`], except `write_tags` selects whether M4A
+/// output carries user metadata atoms (`true`) or gapless signalling only
+/// (`false`, the `--no-tags` CLI behavior). The flag is a no-op for ADTS
+/// output, which never carries tags, and for dry runs, which never read tags.
+pub fn execute_plan_with_tags(
+    plan: &BatchPlan,
+    format: OutputFormat,
+    dry_run: bool,
+    skip_existing: bool,
+    write_tags: bool,
 ) -> Result<BatchOutcome, BatchError> {
     let output_root = if dry_run {
         plan.output_root.clone()
@@ -552,8 +578,13 @@ pub fn execute_plan(
                             }
                         }
                     }
-                    match convert_file_with_format(&entry.input, &destination, format) {
-                        Ok(summary) => {
+                    match convert_file_with_format_and_tags(
+                        &entry.input,
+                        &destination,
+                        format,
+                        write_tags,
+                    ) {
+                        Ok((summary, tags)) => {
                             converted += 1;
                             BatchFileResult {
                                 relative_input: entry.relative_input.clone(),
@@ -562,6 +593,7 @@ pub fn execute_plan(
                                     frames: summary.encoded_frames,
                                     bytes: summary.output_bytes,
                                     properties: summary.properties,
+                                    tags,
                                 },
                             }
                         }
@@ -942,6 +974,7 @@ mod tests {
             (ConvertError::InputNotFile(input.clone()), "InputNotFile"),
             (ConvertError::DecodeFailed, "DecodeFailed"),
             (ConvertError::UnsupportedBitDepth(24), "UnsupportedBitDepth"),
+            (ConvertError::Metadata("could not read tags"), "Metadata"),
             (ConvertError::OutputExists(input.clone()), "OutputExists"),
             (ConvertError::SamePath(input.clone()), "SamePath"),
         ];

@@ -1,7 +1,9 @@
 # aac-convert — FLAC to AAC (M4A or ADTS), single file or directory batch
 
 `aac-convert` is a separate application crate around the existing `aac` encoder.
-It converts 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC:
+It converts 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC;
+24-bit FLAC is accepted with a per-file precision warning (reduced to 16-bit
+PCM before encoding):
 
 - **M4A** — audio-only MP4 container, the intended user-facing output.
 - **ADTS** — engineering/test output, retained for encoder validation.
@@ -16,13 +18,15 @@ are handed to the muxer. The encoded audio is identical for both containers.
 - Native FLAC files: one file, or a directory tree of files (batch mode).
 - 44.1 kHz or 48 kHz.
 - Mono or stereo.
-- 16-bit samples.
+- 16-bit samples, or 24-bit samples (reduced to 16-bit PCM with a warning;
+  see below).
 
-24-bit FLAC is rejected with an explicit error. The encoder's public PCM
-interface is `i16`; no conversion or dithering policy is approved yet, so
-silently truncating 24-bit input would be incorrect. Other sample rates,
-channel counts, and bit depths are also rejected; there is no resampling or
-downmixing.
+24-bit FLAC input is accepted with an explicit per-file warning: the decoder
+reduces each sample to its top 16 bits (truncation, no rounding or dithering)
+before AAC encoding, so a maximum error of one 16-bit LSB per sample applies
+and low-order source precision is discarded. Sample rates, channel counts,
+and bit depths outside the supported sets are rejected; there is no
+resampling or downmixing.
 
 Integrity verification uses the FLAC StreamInfo MD5 when one is present. A
 present-but-mismatched checksum fails the conversion without publishing output.
@@ -42,12 +46,18 @@ cargo run -p aac-convert -- input.flac output.aac
 # Explicit override (wins over the extension)
 cargo run -p aac-convert -- --format m4a input.flac output.aac
 cargo run -p aac-convert -- --format adts input.flac output.m4a
+
+# M4A without user metadata
+cargo run -p aac-convert -- --no-tags input.flac output.m4a
 ```
 
 `--format` accepts `m4a` or `adts`. Without it, `.m4a` and `.mp4` select M4A;
 every other extension, including `.aac`, `.adts`, unknown extensions, and no
 extension, keeps the historical ADTS default. The success message names the
 selected format.
+
+`--no-tags` omits user metadata from M4A output (see Metadata); it is accepted
+for ADTS output as a no-op.
 
 `--help`, `--version`, and `--` are supported. Exit codes: `0` success,
 `1` conversion failure, `2` command-line usage error. Directory batch mode
@@ -76,6 +86,9 @@ cargo run -p aac-convert -- --skip-existing album/ /tmp/out/
 
 # Preview what a rerun would convert or skip
 cargo run -p aac-convert -- --skip-existing --dry-run album/ /tmp/out/
+
+# Batch M4A output without user metadata
+cargo run -p aac-convert -- --no-tags album/ /tmp/out/
 ```
 
 - **Mode dispatch.** A regular file input converts one file (behavior above);
@@ -125,9 +138,12 @@ cargo run -p aac-convert -- --skip-existing --dry-run album/ /tmp/out/
   `summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<elapsed>s)`
   (`dry-run: …` for dry runs). With `--skip-existing` the summary gains a
   trailing skipped count (`…, <ignored> ignored, <skipped> skipped (…)`).
-  `--verbose` adds per-file audio detail and
-  `ignore <path>` lines; `--quiet` prints only the summary on stdout while
-  keeping failure diagnostics on stderr.
+  `--verbose` adds per-file audio detail,
+  per-file `tags <in>: <n> mapped, <m> unmapped` lines and
+  `unmapped <in>: <key>` lines (see Metadata),
+  and `ignore <path>` lines; `--quiet` prints only the summary on stdout while
+  keeping failure diagnostics on stderr. Tag warnings are printed as
+  `warning: <in>: <message>` on stderr in every mode.
 - **Exit codes.** `0`: at least one file converted (or a clean dry-run plan),
   zero failures — including a valid batch in which every file was skipped via
   `--skip-existing`. `1`: batch completed with one or more per-file failures
@@ -195,6 +211,70 @@ but it is not written by default: FFmpeg honors it except for very short
 streams (which decode empty), and CoreAudio ignores it. Do not claim
 universal gapless playback.
 
+## Metadata
+
+M4A output carries the G0-approved core Vorbis-comment text tags read from
+the source FLAC file:
+
+| Vorbis key | M4A atom |
+|---|---|
+| `title` | `©nam` |
+| `artist` | `©ART` |
+| `album` | `©alb` |
+| `tracknumber` | `trkn` (track number and total) |
+| `discnumber` | `disk` (disc number and total) |
+| `albumartist` | `aART` |
+| `date`, then `year` | `©day` |
+| `genre` | `©gen` |
+| `composer` | `©wrt` |
+| `comment` | `©cmt` |
+
+Rules (G0 §2, authoritative):
+
+- Keys match ASCII case-insensitively; values are trimmed; the stored value
+  is the trimmed value. Empty or whitespace-only values are treated as absent.
+- Single-valued atoms use the first non-empty value. Missing values produce
+  a per-file `warning:` line on stderr; conversion still succeeds.
+- `tracknumber`/`discnumber` accept `N` or `N/M` (whitespace around `/` is
+  tolerated); totals fall back to `tracktotal`/`totaltracks` and
+  `disctotal`/`totaldiscs`, else `0` (unknown). Unparseable numbers skip the
+  atom with a warning, never a failure.
+- `date` wins over `year` for `©day`; the atom is written at most once and
+  stored verbatim (no reformatting).
+- All text atoms use M4A data type UTF-8. No integer, boolean, or freeform
+  atoms are written in this release.
+- Deferred or unknown keys (BPM, compilation, sort fields, grouping, lyrics,
+  MusicBrainz IDs, ISRC, label, catalogue number, barcode, `encoder`, and
+  anything else outside the table) are ignored for output, counted in the
+  verbose-only `unmapped` diagnostic, and never an error.
+
+`--no-tags` omits user metadata from M4A output (gapless `iTunSMPB` signalling
+and `M4A ` brands stay); it is accepted for ADTS output as a no-op. ADTS
+output never carries tags. Tags never alter the AAC audio: M4A payloads are
+byte-identical with or without tags, and gapless signalling is unchanged.
+
+## Cover art
+
+M4A output embeds at most one JPEG or PNG image as a `covr` atom (appended
+after the text atoms), selected deterministically from the source FLAC
+pictures:
+
+1. Front-cover pictures first.
+2. Other typed pictures (e.g. back cover, including `Other`) second.
+3. Untyped pictures (legacy `COVERART` comments, unknown picture types) last.
+4. Encounter order within each tier.
+
+Only JPEG (MP4 data type 13) and PNG (type 14) are embedded, detected by
+magic bytes; the declared MIME type is never trusted and images are never
+decoded. The per-image limit is 16 MiB. Invalid, unsupported, oversized, or
+absent artwork is reported with a per-file `warning:` line and never fails
+an otherwise valid conversion; oversized candidates fall through to the
+next eligible picture. Cover outcomes use the same warning mechanism as
+text tags, ordered after text-tag warnings (and after the 24-bit precision
+notice, if present). `--no-tags` omits cover art and its warnings; ADTS
+output never carries cover art and is byte-identical with or without
+pictures.
+
 ## Experimental edit list (opt-in research)
 
 The library exposes `convert_file_m4a_experiment` with a `GaplessExperiment`
@@ -261,8 +341,10 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 
 ## Scope limits
 
-- No metadata, cover art, ReplayGain, resampling, downmixing, VBR 1–4, or
-  parallel conversion.
+- Core Vorbis-comment text tags and single JPEG/PNG cover art are supported
+  for M4A (see Metadata). Still out of scope: multi-image galleries,
+  loudness (ReplayGain/SoundCheck) tags, resampling,
+  downmixing, VBR 1–4, and parallel conversion.
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
   CoreAudio decode paths; VLC and GUI players are unverified or approximate

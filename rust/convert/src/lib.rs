@@ -9,11 +9,15 @@
 //! engineering/test format. M4A uses `shiguredo_mp4`'s streaming muxer with
 //! the encoder's raw access-unit payload and AudioSpecificConfig, plus
 //! `iTunSMPB` gapless signalling with the Apple-style brand so honoring
-//! decoders present exactly the source audio. No edit list is written and the
-//! duration fields keep the encoded-stream timeline; see the README.
+//! decoders present exactly the source audio. M4A additionally carries the
+//! G0-approved core Vorbis-comment text tags (title, artist, album, track and
+//! disc numbers with totals, album artist, date/year, genre, composer,
+//! comment); ADTS carries no tags. No edit list is written and the duration
+//! fields keep the encoded-stream timeline; see the README.
 //!
-//! The encoder's `i16` PCM interface is unchanged; 24-bit input is rejected
-//! until a conversion and dithering policy is approved.
+//! The encoder's `i16` PCM interface is unchanged; 24-bit input is reduced
+//! to 16-bit PCM by truncation in the decode path, with a per-file warning
+//! disclosing the discarded low-order precision (see the README).
 //!
 //! Directory batch conversion is available under [`batch`]: recursive
 //! discovery, deterministic planning, and sequential execution through the
@@ -24,6 +28,7 @@ pub mod batch;
 mod flac;
 mod gapless;
 mod m4a;
+pub(crate) mod meta;
 mod output;
 
 use std::error::Error as StdError;
@@ -103,6 +108,25 @@ pub struct ConversionSummary {
     pub output_bytes: u64,
 }
 
+/// Per-file user-metadata diagnostics for an M4A conversion.
+///
+/// Counts what the G0 core-9 mapping produced for one input: mapped atoms
+/// actually written, unmapped (deferred or unknown) keys seen, and warnings
+/// for missing or invalid values. Warnings never fail the conversion.
+/// ADTS conversions and `--no-tags` M4A conversions report no mapped atoms;
+/// `--no-tags` additionally suppresses warnings while unmapped keys are
+/// still counted.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TagDiagnostics {
+    /// Number of M4A metadata atoms written (`0`–`10`).
+    pub mapped: usize,
+    /// Distinct unmapped Vorbis keys seen, lowercased and sorted.
+    pub unmapped: Vec<String>,
+    /// Per-file warnings for missing, empty, or invalid values, plus the
+    /// 24-bit precision-reduction notice when the source exceeds 16 bits.
+    pub warnings: Vec<String>,
+}
+
 /// Failure of a single-file conversion.
 #[derive(Debug)]
 pub enum ConvertError {
@@ -146,6 +170,12 @@ pub enum ConvertError {
     AudioSpecificConfig(AdtsError),
     /// The MP4 muxer rejected a sample or could not finalize the container.
     Muxer(MuxError),
+    /// M4A user metadata could not be read or serialized.
+    ///
+    /// Tag values that are merely missing, empty, or unparseable are warnings,
+    /// never this error. This variant covers phase failures such as an
+    /// unreadable comment block or an unserializable tag set.
+    Metadata(&'static str),
     /// M4A gapless signalling failed.
     GaplessSignalling(&'static str),
     /// The temporary file could not be flushed or synced.
@@ -180,8 +210,7 @@ impl fmt::Display for ConvertError {
             ),
             Self::UnsupportedBitDepth(bits) => write!(
                 f,
-                "unsupported bit depth {bits}; only 16-bit FLAC input is supported in this milestone \
-                 (24-bit conversion is deferred)"
+                "unsupported bit depth {bits}; only 16-bit and 24-bit FLAC input is supported"
             ),
             Self::DecodeFailed => write!(
                 f,
@@ -220,6 +249,9 @@ impl fmt::Display for ConvertError {
             Self::GaplessSignalling(reason) => {
                 write!(f, "M4A gapless signalling failed ({reason})")
             }
+            Self::Metadata(reason) => {
+                write!(f, "could not write M4A metadata ({reason})")
+            }
             Self::Finalize(_, _) => write!(f, "could not finalize the output file"),
             Self::Publish(_, _) => write!(
                 f,
@@ -256,9 +288,12 @@ impl AudioProperties {
         if !matches!(self.channels, 1 | 2) {
             return Err(ConvertError::UnsupportedChannels(self.channels));
         }
-        // The public encoder interface is `i16`. A 24-bit conversion/dithering
-        // policy is not approved yet, so reject rather than silently truncate.
-        if self.bits_per_sample != 16 {
+        // The public encoder interface is `i16`. 24-bit input is accepted
+        // through the existing decode path, which truncates left-justified
+        // samples to their top 16 bits (see `FlacSource::next_pcm`); a
+        // per-file warning discloses the precision reduction at conversion
+        // time. Anything else is rejected rather than silently truncated.
+        if !matches!(self.bits_per_sample, 16 | 24) {
             return Err(ConvertError::UnsupportedBitDepth(self.bits_per_sample));
         }
         Ok(())
@@ -270,6 +305,11 @@ impl AudioProperties {
 /// This keeps the original M7.3 behavior. Use
 /// [`convert_file_with_format`] to select M4A.
 ///
+/// Per-file warnings (tag issues, the 24-bit precision notice, cover-art
+/// outcomes) are not returned by this function; use
+/// [`convert_file_with_format_and_tags`] to inspect them. Only the precision
+/// notice can arise here, as ADTS output never carries tags or cover art.
+///
 /// The destination is written through a temporary file in its parent
 /// directory and published by an atomic hard link only after decoding, encoder
 /// flush, output validation, file flush, and sync have succeeded. The hard link
@@ -280,7 +320,7 @@ pub fn convert_file(input: &Path, output: &Path) -> Result<ConversionSummary, Co
     convert_file_with_format(input, output, OutputFormat::Adts)
 }
 
-/// Convert one FLAC file to ADTS or M4A.
+/// Convert one FLAC file to ADTS or M4A, writing user metadata by default.
 ///
 /// M4A writes an audio-only ISO BMFF file with one AAC-LC `mp4a` track. The
 /// encoder still runs in its existing ADTS mode; each frame's validated raw
@@ -290,17 +330,43 @@ pub fn convert_file(input: &Path, output: &Path) -> Result<ConversionSummary, Co
 /// so decoders that honor it present exactly the source audio; no edit list
 /// is written and the `mdhd`/`tkhd`/`mvhd` durations keep the full
 /// encoded-stream timeline (see the crate README for the evidence and the
-/// duration-display consequence).
+/// duration-display consequence). M4A additionally carries the G0-approved
+/// core Vorbis-comment text tags; ADTS carries no tags.
 ///
 /// Output publication is identical for both formats: a same-directory
 /// temporary file is flushed, synced, and hard-linked to the destination,
 /// which fails atomically if the destination already exists.
+///
+/// Use [`convert_file_with_format_and_tags`] to omit user metadata or to
+/// inspect per-file tag diagnostics.
+///
+/// Per-file warnings (tag issues, the 24-bit precision notice, cover-art
+/// outcomes) are not returned by this function; use
+/// [`convert_file_with_format_and_tags`] to inspect them.
 pub fn convert_file_with_format(
     input: &Path,
     output: &Path,
     format: OutputFormat,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, format, None).map(|(summary, _)| summary)
+    convert_inner(input, output, format, None, true).map(|(summary, _, _)| summary)
+}
+
+/// Convert one FLAC file to ADTS or M4A with explicit metadata control.
+///
+/// Behaves like [`convert_file_with_format`], except `write_tags` selects
+/// whether M4A output carries user metadata atoms (`true`) or gapless
+/// signalling only (`false`, the `--no-tags` CLI behavior). The flag is a
+/// no-op for ADTS output, which never carries tags. The returned
+/// [`TagDiagnostics`] report mapped atoms, unmapped keys, and warnings for
+/// the converted file; warnings never change the success outcome.
+pub fn convert_file_with_format_and_tags(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    write_tags: bool,
+) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
+    convert_inner(input, output, format, None, write_tags)
+        .map(|(summary, _, diagnostics)| (summary, diagnostics))
 }
 
 /// Experimental M4A signalling switch (M7.9 prototype, retained for research).
@@ -325,12 +391,16 @@ pub struct GaplessExperiment {
 /// except the output additionally carries one `edts`/`elst` entry. Extension
 /// dispatch, [`convert_file`], and [`convert_file_with_format`] semantics are
 /// unchanged.
+///
+/// Per-file warnings are not returned by this function; use
+/// [`convert_file_with_format_and_tags`] to inspect them.
 pub fn convert_file_m4a_experiment(
     input: &Path,
     output: &Path,
     experiment: GaplessExperiment,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, OutputFormat::M4a, Some(experiment)).map(|(summary, _)| summary)
+    convert_inner(input, output, OutputFormat::M4a, Some(experiment), true)
+        .map(|(summary, _, _)| summary)
 }
 
 fn convert_inner(
@@ -338,7 +408,8 @@ fn convert_inner(
     output: &Path,
     format: OutputFormat,
     experiment: Option<GaplessExperiment>,
-) -> Result<(ConversionSummary, u64), ConvertError> {
+    write_tags: bool,
+) -> Result<(ConversionSummary, u64, TagDiagnostics), ConvertError> {
     let paths = output::resolve_paths(input, output)?;
     let mut source = flac::FlacSource::open(&paths.input)?;
     let properties = source.properties();
@@ -403,7 +474,48 @@ fn convert_inner(
             experiment.map_or(false, |experiment| experiment.edit_list),
         )),
     };
-    let output_bytes = sink.finish(gapless)?;
+    // User metadata is read after integrity verification so corrupt or
+    // tagless inputs keep today's failure semantics, and tag errors can
+    // never resurrect a failed decode. ADTS never reads tags.
+    let (tag_ilst, mut diagnostics) = match (is_m4a, write_tags) {
+        (false, _) => (Vec::new(), TagDiagnostics::default()),
+        (true, true) => {
+            let set = meta::read_tags(&paths.input, true)?;
+            let diagnostics = TagDiagnostics {
+                mapped: set.mapped_count(),
+                unmapped: set.unmapped.clone(),
+                warnings: set.warnings.clone(),
+            };
+            (set.ilst_children()?, diagnostics)
+        }
+        (true, false) => {
+            // `--no-tags`: report what was seen but write nothing and warn
+            // about nothing. Cover art is not selected either.
+            let set = meta::read_tags(&paths.input, false).unwrap_or_default();
+            (
+                Vec::new(),
+                TagDiagnostics {
+                    mapped: 0,
+                    unmapped: set.unmapped,
+                    warnings: Vec::new(),
+                },
+            )
+        }
+    };
+    // 24-bit sources reach the encoder as 16-bit PCM via the decode path's
+    // truncation. One notice per converted file, up front, in single-file
+    // and batch runs alike (`convert_inner` runs once per file, never per
+    // PCM chunk); dry runs never reach here. This is not a tag warning, so
+    // `--no-tags` does not suppress it, and ADTS output carries it too.
+    if properties.bits_per_sample == 24 {
+        diagnostics.warnings.insert(
+            0,
+            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order \
+             source precision is discarded"
+                .to_string(),
+        );
+    }
+    let output_bytes = sink.finish(gapless, &tag_ilst)?;
     sink.publish(&paths.output)?;
     Ok((
         ConversionSummary {
@@ -412,6 +524,7 @@ fn convert_inner(
             output_bytes,
         },
         source_frames,
+        diagnostics,
     ))
 }
 
@@ -481,16 +594,19 @@ impl Sink {
     ///
     /// `gapless` carries validated accounting plus the experimental edit-list
     /// switch for M4A output; `None` (ADTS) keeps the historical behavior.
-    /// M4A output without accounting is a broken internal invariant and fails
-    /// closed instead of writing unsignalled output.
+    /// `tag_ilst` holds complete `ilst` child boxes appended after the
+    /// `iTunSMPB` item; it is empty for ADTS, untagged, and `--no-tags`
+    /// conversions. M4A output without accounting is a broken internal
+    /// invariant and fails closed instead of writing unsignalled output.
     fn finish(
         &mut self,
         gapless: Option<(gapless::GaplessAccounting, bool)>,
+        tag_ilst: &[Vec<u8>],
     ) -> Result<u64, ConvertError> {
         match self {
             Self::Adts { written, .. } => Ok(*written),
             Self::M4a(writer) => match gapless {
-                Some((accounting, edit_list)) => writer.finish(&accounting, edit_list),
+                Some((accounting, edit_list)) => writer.finish(&accounting, edit_list, tag_ilst),
                 None => Err(ConvertError::GaplessSignalling(
                     "missing gapless accounting for M4A output",
                 )),
@@ -577,5 +693,32 @@ mod tests {
         }
         assert_eq!(OutputFormat::Adts.to_string(), "ADTS");
         assert_eq!(OutputFormat::M4a.to_string(), "M4A");
+    }
+
+    #[test]
+    fn validate_accepts_only_16_and_24_bit() {
+        for bits in [16u32, 24] {
+            AudioProperties {
+                sample_rate: 48_000,
+                channels: 2,
+                bits_per_sample: bits,
+            }
+            .validate()
+            .unwrap();
+        }
+        // Focused rejection coverage without binary fixtures: 8/12/20/32-bit
+        // FLAC reaches the same gate and must keep failing closed.
+        for bits in [8u32, 12, 20, 32] {
+            match (AudioProperties {
+                sample_rate: 48_000,
+                channels: 2,
+                bits_per_sample: bits,
+            })
+            .validate()
+            {
+                Err(ConvertError::UnsupportedBitDepth(got)) => assert_eq!(got, bits),
+                other => panic!("bits={bits}: expected UnsupportedBitDepth, got {other:?}"),
+            }
+        }
     }
 }

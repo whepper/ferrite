@@ -4,17 +4,19 @@ use std::io;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use aac_convert::batch::{execute_plan, plan_batch, BatchFileOutcome};
-use aac_convert::{convert_file_with_format, OutputFormat};
+use aac_convert::batch::{execute_plan_with_tags, plan_batch, BatchFileOutcome};
+use aac_convert::{convert_file_with_format_and_tags, OutputFormat};
 
 const USAGE: &str = "\
-Usage: aac-convert [--format adts|m4a] <input.flac> <output>
+Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>
        aac-convert [--format m4a|adts] [--recursive|--no-recursive] [--dry-run]
-                   [--skip-existing] [-v|--verbose] [-q|--quiet]
+                   [--skip-existing] [--no-tags] [-v|--verbose] [-q|--quiet]
                    <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
-using the native FDK AAC VBR-5 encoder.
+using the native FDK AAC VBR-5 encoder. 24-bit FLAC input is converted to
+16-bit PCM before encoding (one warning per file); other bit depths are
+rejected.
 
 A regular file input converts one file; a directory input converts every
 discovered FLAC file sequentially, mirroring the input structure.
@@ -31,6 +33,7 @@ extension (.m4a or .aac). Traversal is recursive by default; --no-recursive
 converts only top-level files (last of the two flags wins). --dry-run prints
 the plan without writing anything. --skip-existing skips destinations that
 already exist instead of failing on them; it never overwrites anything.
+--no-tags omits user metadata from M4A output (accepted for ADTS as a no-op).
 -v/--verbose adds per-file detail;
 -q/--quiet prints only the final summary (conflicts with --verbose).
 
@@ -88,6 +91,7 @@ struct Cli {
     recursive: Option<bool>,
     dry_run: bool,
     skip_existing: bool,
+    no_tags: bool,
     verbose: bool,
     quiet: bool,
     input: PathBuf,
@@ -101,6 +105,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
     let mut recursive = None;
     let mut dry_run = false;
     let mut skip_existing = false;
+    let mut no_tags = false;
     let mut verbose = false;
     let mut quiet = false;
     let mut options_done = false;
@@ -157,6 +162,11 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     index += 1;
                     continue;
                 }
+                Some("--no-tags") => {
+                    no_tags = true;
+                    index += 1;
+                    continue;
+                }
                 Some("-v" | "--verbose") => {
                     verbose = true;
                     index += 1;
@@ -193,6 +203,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
         recursive,
         dry_run,
         skip_existing,
+        no_tags,
         verbose,
         quiet,
         input: PathBuf::from(positional.remove(0)),
@@ -289,8 +300,12 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
     let format = cli
         .explicit_format
         .unwrap_or_else(|| OutputFormat::from_output_path(&cli.output));
-    let summary =
-        convert_file_with_format(&cli.input, &cli.output, format).map_err(CliError::Conversion)?;
+    let (summary, diagnostics) =
+        convert_file_with_format_and_tags(&cli.input, &cli.output, format, !cli.no_tags)
+            .map_err(CliError::Conversion)?;
+    for warning in &diagnostics.warnings {
+        eprintln!("warning: {}: {warning}", cli.input.display());
+    }
     println!(
         "converted {} -> {} ({} AAC frames, {} bytes, {})",
         cli.input.display(),
@@ -317,8 +332,9 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         .map_err(|err| CliError::Setup(err.to_string()))?;
 
     let start = std::time::Instant::now();
-    let outcome = execute_plan(&plan, format, cli.dry_run, cli.skip_existing)
-        .map_err(|err| CliError::Setup(err.to_string()))?;
+    let outcome =
+        execute_plan_with_tags(&plan, format, cli.dry_run, cli.skip_existing, !cli.no_tags)
+            .map_err(|err| CliError::Setup(err.to_string()))?;
     let elapsed = start.elapsed();
 
     let mode = if recursive { "recursive" } else { "top-level" };
@@ -346,6 +362,24 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
                     None => println!("ignore {}", ignored.relative.display()),
                 }
             }
+            // Tag diagnostics mirror the `ignore` lines: verbose-only, in
+            // processing order, after the ignore tally. Dry runs never read
+            // tags, so they report nothing here.
+            if !cli.dry_run {
+                for result in &outcome.results {
+                    if let BatchFileOutcome::Converted { tags, .. } = &result.outcome {
+                        println!(
+                            "tags {}: {} mapped, {} unmapped",
+                            result.relative_input.display(),
+                            tags.mapped,
+                            tags.unmapped.len()
+                        );
+                        for key in &tags.unmapped {
+                            println!("unmapped {}: {key}", result.relative_input.display());
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -355,7 +389,11 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
                 frames,
                 bytes,
                 properties,
+                tags,
             } => {
+                for warning in &tags.warnings {
+                    eprintln!("warning: {}: {warning}", result.relative_input.display());
+                }
                 if !cli.quiet {
                     let relative_output = result
                         .relative_output

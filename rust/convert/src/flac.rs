@@ -94,7 +94,10 @@ impl FlacSource {
     /// Decode the next audio packet into interleaved `i16` PCM.
     ///
     /// Returns `false` at end of stream. The destination vector is replaced
-    /// with exactly the samples from one decoded packet.
+    /// with exactly the samples from one decoded packet. Samples wider than
+    /// 16 bits arrive left-justified from the decoder and are truncated to
+    /// their top 16 bits by Symphonia's conversion; callers disclose that
+    /// reduction (see `AudioProperties::validate`).
     pub(crate) fn next_pcm(&mut self, pcm: &mut Vec<i16>) -> Result<bool, ConvertError> {
         loop {
             let packet = match self.format.next_packet() {
@@ -177,12 +180,86 @@ mod tests {
     }
 
     #[test]
-    fn rejects_24_bit_input() {
-        let err = match FlacSource::open(&fixture("stereo-48k-24.flac")) {
-            Ok(_) => panic!("24-bit input was accepted"),
-            Err(err) => err,
-        };
-        assert!(matches!(err, ConvertError::UnsupportedBitDepth(24)));
+    fn accepts_24_bit_input_truncated_to_top_16_bits() {
+        let mut source = FlacSource::open(&fixture("stereo-48k-24.flac")).unwrap();
+        assert_eq!(
+            source.properties(),
+            AudioProperties {
+                sample_rate: 48_000,
+                channels: 2,
+                bits_per_sample: 24,
+            }
+        );
+
+        let mut pcm = Vec::new();
+        let mut all = Vec::new();
+        while source.next_pcm(&mut pcm).unwrap() {
+            all.extend_from_slice(&pcm);
+        }
+        source.verify().unwrap();
+
+        // Fixture signal: (i * 1000 - 500000, 500000 - i * 1000), i in 0..1000.
+        // Truncation keeps the top 16 bits (arithmetic >> 8, floor): hand-computed.
+        assert_eq!(all.len(), 1000 * 2);
+        assert_eq!(&all[0..4], &[-1954, 1953, -1950, 1949]);
+    }
+
+    #[test]
+    fn truncates_24_bit_boundary_values_exactly() {
+        let mut source = FlacSource::open(&fixture("boundary-48k-24.flac")).unwrap();
+        assert_eq!(source.properties().bits_per_sample, 24);
+
+        let mut pcm = Vec::new();
+        let mut all = Vec::new();
+        while source.next_pcm(&mut pcm).unwrap() {
+            all.extend_from_slice(&pcm);
+        }
+        source.verify().unwrap();
+
+        // Hand-computed literals for the crafted 24-bit vector (see
+        // fixtures/README.md): arithmetic right shift by 8, floor for
+        // negatives, exact at both full-scale extremes.
+        assert_eq!(
+            &all[0..16],
+            &[
+                32767, -32768, // 0x7FFFFF, -0x800000
+                -1, 0, // -1, 1
+                0, 0, // silence
+                0, 1, // 255, 256
+                -1, -1, // -256, -255
+                4660, -4661, // 0x123456, -0x123456
+                32767, -32767, // 2^23 - 256, -(2^23 - 256)
+                -32768, 32766, // -(2^23 - 255), 2^23 - 257
+            ]
+        );
+        // Ramp (i * 257, -(i * 257)), i in 0..64: channel order and breadth.
+        assert_eq!(all.len(), (8 + 64) * 2);
+        for (i, pair) in all[16..].chunks_exact(2).enumerate() {
+            let v = (i as i32) * 257;
+            assert_eq!(pair[0], (v >> 8) as i16, "left ramp sample {i}");
+            assert_eq!(pair[1], ((-v) >> 8) as i16, "right ramp sample {i}");
+        }
+    }
+
+    #[test]
+    fn accepts_mono_24_bit_input() {
+        let mut source = FlacSource::open(&fixture("mono-441k-24.flac")).unwrap();
+        assert_eq!(
+            source.properties(),
+            AudioProperties {
+                sample_rate: 44_100,
+                channels: 1,
+                bits_per_sample: 24,
+            }
+        );
+
+        let mut pcm = Vec::new();
+        let mut frames = 0usize;
+        while source.next_pcm(&mut pcm).unwrap() {
+            frames += pcm.len();
+        }
+        source.verify().unwrap();
+        assert_eq!(frames, 1000);
     }
 
     #[test]

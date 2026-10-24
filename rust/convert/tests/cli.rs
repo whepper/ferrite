@@ -13,7 +13,10 @@ fn help_succeeds() {
     let output = Command::new(binary()).arg("--help").output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Usage: aac-convert [--format adts|m4a] <input.flac> <output>"));
+    assert!(
+        stdout.contains("Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>")
+    );
+    assert!(stdout.contains("--no-tags"));
     assert!(stdout.contains("16-bit"));
     assert!(stdout.contains("--format m4a"));
 }
@@ -50,14 +53,43 @@ fn conversion_failure_is_nonzero_and_actionable() {
     let directory = TempDir::new("cli-failure");
     let output = directory.join("out.aac");
     let result = Command::new(binary())
-        .arg(fixture("stereo-48k-24.flac"))
+        .arg(fixture("three-channel-48k-16.flac"))
         .arg(&output)
         .output()
         .unwrap();
     assert_eq!(result.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&result.stderr);
-    assert!(stderr.contains("unsupported bit depth 24"));
+    assert!(stderr.contains("unsupported channel count 3"));
     assert!(!output.exists());
+}
+
+#[test]
+fn accepts_24_bit_with_single_precision_warning() {
+    let directory = TempDir::new("cli-24bit");
+    let output = directory.join("out.aac");
+    let result = Command::new(binary())
+        .arg(fixture("stereo-48k-24.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    // ADTS carries no tags: exactly one stderr line, the precision notice
+    // (`warning: <input>: <message>` per CLI convention).
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert_eq!(stderr.lines().count(), 1, "{stderr}");
+    assert!(stderr.starts_with("warning: "), "{stderr}");
+    assert!(
+        stderr.contains(
+            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
+             precision is discarded"
+        ),
+        "{stderr}"
+    );
+    assert!(output.is_file());
 }
 
 #[test]

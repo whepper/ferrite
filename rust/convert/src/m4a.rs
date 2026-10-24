@@ -106,19 +106,22 @@ impl M4aWriter {
         Ok(())
     }
 
-    /// Finalize the container with `iTunSMPB` gapless signalling and return
-    /// the final file size.
+    /// Finalize the container with `iTunSMPB` gapless signalling plus optional
+    /// user metadata, and return the final file size.
     ///
     /// The encoded AAC samples are preserved untouched: only the `moov`
     /// metadata is re-encoded, appending the `iTunSMPB` `udta` item (and an
     /// `edts`/`elst` entry when the experimental `edit_list` switch is set)
     /// and rewriting the `ftyp` brand to the Apple-style `M4A` set CoreAudio
-    /// requires. The rewritten `moov` must be the final box so growth only
-    /// extends the file; anything else fails without publishing.
+    /// requires. `extra_ilst` holds complete `ilst` child boxes (M4A text
+    /// atoms) appended after the `iTunSMPB` item; an empty slice writes
+    /// gapless signalling only. The rewritten `moov` must be the final box
+    /// so growth only extends the file; anything else fails without publishing.
     pub(crate) fn finish(
         &mut self,
         accounting: &GaplessAccounting,
         edit_list: bool,
+        extra_ilst: &[Vec<u8>],
     ) -> Result<u64, ConvertError> {
         let finalized = self.muxer.finalize().map_err(ConvertError::Muxer)?;
         let mut moov_offset = None;
@@ -160,7 +163,7 @@ impl M4aWriter {
         }
         moov.unknown_boxes.push(
             accounting
-                .udta_box()
+                .udta_box_with_tags(extra_ilst)
                 .map_err(|err| ConvertError::GaplessSignalling(err.message()))?,
         );
         let rewritten = moov

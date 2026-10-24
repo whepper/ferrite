@@ -385,3 +385,113 @@ pub fn mp4_itunsmpb(bytes: &[u8], root: &Mp4BoxInfo) -> String {
     assert_eq!(&data[0..4], &[0x00, 0x00, 0x00, 0x01], "data must be UTF-8");
     String::from_utf8(data[8..].to_vec()).expect("iTunSMPB value must be UTF-8")
 }
+
+/// Raw children of an `ilst` box as `(4-byte type, full box bytes)` in file
+/// order.
+///
+/// Types are raw bytes because text atoms use Latin-1 `©` (`0xA9`), which is
+/// not valid UTF-8 on its own. Children must tile the `ilst` payload exactly.
+pub fn mp4_ilst_children(bytes: &[u8], ilst: &Mp4BoxInfo) -> Vec<([u8; 4], Vec<u8>)> {
+    let mut children = Vec::new();
+    let mut offset = ilst.payload_start();
+    while offset < ilst.end {
+        assert!(offset + 8 <= ilst.end, "truncated ilst child at {offset}");
+        let size = u32::from_be_bytes(bytes[offset..offset + 4].try_into().unwrap()) as usize;
+        assert!(
+            size >= 8 && offset + size <= ilst.end,
+            "bad ilst child size at {offset}"
+        );
+        let mut kind = [0u8; 4];
+        kind.copy_from_slice(&bytes[offset + 4..offset + 8]);
+        children.push((kind, bytes[offset..offset + size].to_vec()));
+        offset += size;
+    }
+    assert_eq!(offset, ilst.end, "ilst children must tile exactly");
+    children
+}
+
+/// Text values of every `ilst` child with the given 4-byte type
+/// (for example `b"\xa9nam"`).
+///
+/// Asserts each `data` box carries the UTF-8 type marker and returns the
+/// decoded strings in file order.
+pub fn mp4_ilst_text(bytes: &[u8], ilst: &Mp4BoxInfo, name: &[u8; 4]) -> Vec<String> {
+    let mut values = Vec::new();
+    for (kind, child) in mp4_ilst_children(bytes, ilst) {
+        if &kind != name {
+            continue;
+        }
+        // Each child after its 8-byte atom header holds `data` boxes:
+        // size(4) + type 'data'(4) + data-type(4) + locale(4) + value.
+        let mut offset = 8;
+        while offset < child.len() {
+            assert!(offset + 16 <= child.len(), "truncated data box in {name:?}");
+            let size = u32::from_be_bytes(child[offset..offset + 4].try_into().unwrap()) as usize;
+            assert_eq!(&child[offset + 4..offset + 8], b"data");
+            assert!(size >= 16 && offset + size <= child.len());
+            assert_eq!(
+                &child[offset + 8..offset + 12],
+                &[0, 0, 0, 1],
+                "data must be UTF-8"
+            );
+            assert_eq!(&child[offset + 12..offset + 16], &[0, 0, 0, 0]);
+            values.push(
+                String::from_utf8(child[offset + 16..offset + size].to_vec())
+                    .expect("tag value must be UTF-8"),
+            );
+            offset += size;
+        }
+    }
+    values
+}
+
+/// Cover image of the `ilst` child `covr`: `(data-type, raw image bytes)`.
+///
+/// Asserts the single-`data`-box layout with locale 0 (`13` = JPEG,
+/// `14` = PNG), mirroring mutagen's `__render_cover`. Returns `None` when
+/// the atom is absent.
+pub fn mp4_ilst_cover(bytes: &[u8], ilst: &Mp4BoxInfo) -> Option<(u32, Vec<u8>)> {
+    for (kind, child) in mp4_ilst_children(bytes, ilst) {
+        if &kind != b"covr" {
+            continue;
+        }
+        assert!(child.len() >= 24, "covr atom too short");
+        assert_eq!(&child[12..16], b"data");
+        let data_type = u32::from_be_bytes(child[16..20].try_into().unwrap());
+        assert_eq!(
+            &child[20..24],
+            &[0, 0, 0, 0],
+            "cover data must have locale 0"
+        );
+        return Some((data_type, child[24..].to_vec()));
+    }
+    None
+}
+/// Track/disc tuple of the `ilst` child with the given 4-byte type.
+///
+/// Accepts the 8-byte `trkn` value (`00 00 N N M M 00 00`) and the 6-byte
+/// `disk` value (`00 00 N N M M`), mirroring mutagen's pair layouts.
+/// Returns `None` when the atom is absent.
+pub fn mp4_ilst_pair(bytes: &[u8], ilst: &Mp4BoxInfo, name: &[u8; 4]) -> Option<(u16, u16)> {
+    for (kind, child) in mp4_ilst_children(bytes, ilst) {
+        if &kind != name {
+            continue;
+        }
+        assert!(child.len() >= 24, "pair atom too short for {name:?}");
+        assert_eq!(&child[12..16], b"data");
+        assert_eq!(
+            &child[16..20],
+            &[0, 0, 0, 0],
+            "pair data must be IMPLICIT typed"
+        );
+        let value = &child[24..];
+        assert!(
+            value.len() == 8 || value.len() == 6,
+            "unexpected pair value length for {name:?}"
+        );
+        let number = u16::from_be_bytes(value[2..4].try_into().unwrap());
+        let total = u16::from_be_bytes(value[4..6].try_into().unwrap());
+        return Some((number, total));
+    }
+    None
+}
