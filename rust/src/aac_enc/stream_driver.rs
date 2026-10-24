@@ -4604,6 +4604,110 @@ mod m52_tests {
             );
         }
     }
+
+    /// Crash recovery emits a valid ADTS frame end to end (track-09
+    /// mechanism on synthetic input).
+    ///
+    /// Deterministic full-scale mono white noise (xorshift32, fixed seed)
+    /// exceeds the VBR bit budget past max gain iterations on an early
+    /// frame and enters gain-loop crash recovery. The test proves all
+    /// three: recovery was entered (`crash != -1` observed), the recovered
+    /// frame reached emission (bytes with no notes/errors, through both
+    /// `step_frame` and the public [`Encoder`] path with dense frame
+    /// indices), and the emitted bytes are structurally valid ADTS
+    /// (syncword, MPEG-4 ID, AAC-LC profile, 48 kHz index, mono channel
+    /// configuration, consistent frame length, real payload).
+    #[test]
+    fn crash_recovered_frame_emits_valid_adts() {
+        use crate::aac_enc::encoder::Encoder;
+        use std::cell::Cell;
+        // MPEG-4 Audio constants, independent of the implementation:
+        // profile = AOT-1 (2 = AAC-LC -> 1), 48 kHz index 3, mono config 1.
+        const ADTS_PROFILE_AAC_LC: u8 = 1;
+        const ADTS_SFI_48000: u8 = 3;
+        const ADTS_CHANCFG_MONO: u8 = 1;
+        let rng = Cell::new(0x12345678u32);
+        let mut sample = || {
+            let mut r = rng.get();
+            r ^= r << 13;
+            r ^= r >> 17;
+            r ^= r << 5;
+            rng.set(r);
+            (r >> 16) as i16
+        };
+        const NFRAMES: usize = 40;
+        let mut mono = Vec::with_capacity(NFRAMES * 1024);
+        for _ in 0..NFRAMES * 1024 {
+            mono.push(sample());
+        }
+        // Driver leg: observe recovery and emission directly.
+        let cfg = EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap();
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut frames = feeder.push_interleaved(&mono).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+        let mut enc = StreamEncoder::new(48000, 1);
+        let mut recovered: Vec<(u32, Vec<u8>)> = Vec::new();
+        for (f, fr) in frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (bytes, snap) = enc.step_frame(f as u32, &fresh);
+            assert!(
+                snap.step_error.is_none(),
+                "f={f}: unexpected typed step error {:?}",
+                snap.step_error
+            );
+            if snap.crash != -1 {
+                let b = m52_emit_or_fail(bytes, &snap.notes, "crash-synth", f)
+                    .unwrap_or_else(|e| panic!("recovered frame not emitted: {e}"));
+                recovered.push((f as u32, b));
+            }
+        }
+        assert!(
+            !recovered.is_empty(),
+            "synthetic input must enter crash recovery at least once"
+        );
+        // Public-API leg: the same PCM through `Encoder` succeeds with
+        // dense frame indices, so nothing was skipped or poisoned.
+        let mut api =
+            Encoder::new(EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap())
+                .unwrap();
+        let mut out = api.push(&mono).expect("push succeeds");
+        out.extend(api.flush().expect("flush succeeds"));
+        assert!(!out.is_empty(), "no output frames");
+        for (i, fr) in out.iter().enumerate() {
+            assert_eq!(fr.frame_index, i as u32, "dense frame indices");
+        }
+        // Every recovered frame is present in the public output with
+        // identical bytes and a structurally valid ADTS header.
+        for (crash_frame, crash_bytes) in &recovered {
+            let api_frame = out
+                .iter()
+                .find(|fr| fr.frame_index == *crash_frame)
+                .unwrap_or_else(|| {
+                    panic!("recovered frame {crash_frame} present in public output")
+                });
+            assert_eq!(
+                api_frame.bytes, *crash_bytes,
+                "public path emits exactly the recovered driver bytes"
+            );
+            // ADTS validity on the recovered frame (header + real payload).
+            let b = crash_bytes;
+            assert!(
+                b.len() > 7,
+                "recovered frame carries payload, got {} bytes",
+                b.len()
+            );
+            assert_eq!(b[0], 0xFF, "syncword high byte");
+            assert_eq!(b[1], 0xF1, "sync tail + MPEG-4 ID + no protection");
+            assert_eq!((b[2] >> 6) & 0x3, ADTS_PROFILE_AAC_LC, "AAC-LC profile");
+            assert_eq!((b[2] >> 2) & 0xF, ADTS_SFI_48000, "48 kHz index");
+            let chan_cfg = ((b[2] & 0x1) << 2) | ((b[3] >> 6) & 0x3);
+            assert_eq!(chan_cfg, ADTS_CHANCFG_MONO, "mono channel configuration");
+            let frame_len =
+                (((b[3] & 0x3) as usize) << 11) | ((b[4] as usize) << 3) | ((b[5] as usize) >> 5);
+            assert_eq!(frame_len, b.len(), "declared length matches emitted bytes");
+            assert_eq!(b[6] & 0x3, 0, "single raw data block");
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
