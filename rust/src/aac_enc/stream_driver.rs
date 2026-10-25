@@ -5238,6 +5238,9 @@ mod is_integration_tests {
     #[test]
     fn intensity_probe_wav_parity() {
         let Ok(path) = std::env::var("IS_PROBE_WAV") else {
+            // Tier-B status marker (see rust/tools/tierb-report.sh): this
+            // probe performed no validation. Visible with `--nocapture`.
+            println!("TIERB_SKIP intensity_probe_wav_parity missing_env=IS_PROBE_WAV");
             return;
         };
         let pcm = read_wav_16(&path);
@@ -5411,6 +5414,19 @@ mod is_integration_tests {
         // decoder `aCodeBook` indices are not used for short-block comparison.
         let (Ok(path), Ok(oracle)) = (std::env::var("IS_PROBE_WAV"), std::env::var("IS_C_ORACLE"))
         else {
+            // Tier-B status marker (see rust/tools/tierb-report.sh): this
+            // probe performed no validation. Visible with `--nocapture`.
+            let mut missing = Vec::new();
+            if std::env::var("IS_PROBE_WAV").is_err() {
+                missing.push("IS_PROBE_WAV");
+            }
+            if std::env::var("IS_C_ORACLE").is_err() {
+                missing.push("IS_C_ORACLE");
+            }
+            println!(
+                "TIERB_SKIP intensity_probe_c_oracle_parity missing_env={}",
+                missing.join(",")
+            );
             return;
         };
         let probe = std::path::Path::new(&path)
@@ -5749,6 +5765,11 @@ mod m511_tests {
     #[test]
     fn m511_profile_loop() {
         if std::env::var("M511_PROFILE").is_err() {
+            // Tier-B status marker (see rust/tools/tierb-report.sh): this
+            // probe performed no validation. Visible with `--nocapture`.
+            // (Normally this workload is not selected at all; the marker
+            // covers direct invocations without the opt-in variable.)
+            println!("TIERB_SKIP m511_profile_loop missing_env=M511_PROFILE");
             return;
         }
         let want = std::env::var("M511_FIXTURE").unwrap_or_else(|_| "music-stereo".to_string());

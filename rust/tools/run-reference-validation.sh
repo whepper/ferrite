@@ -25,9 +25,16 @@
 # What it does, in order: validate checkout (check-reference.sh) ->
 # build reference lib + helpers (cmake) -> build enc_oracle (documented
 # flags, reference root as CWD) -> fixtures + oracle dumps -> C-encoded
-# reference outputs -> preflight-validation.sh --require -> the 15 Tier-B
+# reference outputs -> preflight-validation.sh --require -> the Tier-B
 # Rust tests (one cargo invocation per test, exact paths) -> config-only
 # extraction byte-compared against committed cfg_*.txt.
+#
+# Per-test results distinguish PASS, SKIP (probe opt-in inputs absent; the
+# probe printed a TIERB_SKIP marker and validated nothing), and FAIL. A
+# SKIP is never counted as passed: any skipped selected test ends the run
+# INCOMPLETE (exit 2), naming the probe and the missing input. The M511
+# profiling workload is genuinely optional and joins the inventory only
+# when M511_PROFILE is set.
 #
 # Full oracle re-extraction and encoded-payload bit identity are
 # deliberately NOT part of this driver: their determinism has not been
@@ -126,6 +133,9 @@ fi
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || \
     fail "cannot resolve script directory"
+# PASS/SKIP/FAIL classification shared with test-tierb-report.sh.
+. "$SCRIPT_DIR/tierb-report.sh" || \
+    fail "cannot load tierb-report.sh beside $0"
 FERRITE_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd -P) || \
     fail "cannot resolve Ferrite root"
 # Single source for scratch paths; plain $TMPDIR is unset on some systems
@@ -340,10 +350,12 @@ cat "$LOGDIR/preflight.log"
 
 # ---- Stage 6: Tier-B tests, one exact invocation each ----
 # Inventory mirrors the CI Tier-A skip list; --exact full paths avoid any
-# reliance on multi-filter OR semantics. IS_*/M511_* honor their own
-# opt-in variables (unset here: they execute and return immediately).
-# The per-test ok-line check depends on libtest's `test <path> ... ok`
-# format; a format change fails loudly as INCOMPLETE (fail-safe, not silent).
+# reliance on multi-filter OR semantics. The per-test cargo invocation
+# passes --nocapture so TIERB_SKIP markers (probes whose opt-in inputs are
+# absent) reach the log; tierb_classify maps each test to PASS, SKIP, or
+# FAIL, and a SKIP never counts as passed. M511_* stays genuinely
+# optional: the profiling workload joins the inventory only when
+# M511_PROFILE is set.
 TIER_B="aac_enc::m5a_decode::m5a_tests::m5a_decode_check
 aac_enc::stream_driver::m52_tests::m55_streams_match_c_reference
 aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5
@@ -357,17 +369,24 @@ aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b
 aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity
 aac_enc::stream_driver::is_integration_tests::intensity_probe_c_oracle_parity
 aac_enc::stream_driver::is_integration_tests::intensity_probe_wav_parity
-aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes
+aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes"
+if [ -n "${M511_PROFILE-}" ]; then
+    TIER_B="$TIER_B
 aac_enc::stream_driver::m511_tests::m511_profile_loop"
+fi
 
 EXPECTED=$(printf '%s\n' $TIER_B | grep -c .)
 [ "$EXPECTED" -gt 0 ] || fail "Tier-B inventory is empty"
 ran=0
+passed=0
+skipped=0
 failed=0
+skip_details=""
 : >"$LOGDIR/tests.log"
 for t in $TIER_B; do
     ran=$((ran + 1))
     printf '%s: [%d/%d] %s\n' "$prog" "$ran" "$EXPECTED" "$t"
+    seg_from=$(wc -l <"$LOGDIR/tests.log")
     if ! (
         cd "$FERRITE_ROOT/rust" && \
         FDK_REF_DIR="$REF_DIR" \
@@ -375,24 +394,45 @@ for t in $TIER_B; do
         PHASE1_C_DIR="$OUT_DIR/cref" \
         M55_C_DIR="$OUT_DIR/m55" \
         AAC_DEC_BIN="$REF_BUILD/aac-dec" \
-        cargo test --locked --features aac_enc --lib -- --exact "$t" \
+        cargo test --locked --features aac_enc --lib -- --exact "$t" --nocapture \
             >>"$LOGDIR/tests.log" 2>&1
     ); then
-        printf '%s: FAILED %s (see %s/tests.log)\n' "$prog" "$t" "$LOGDIR" >&2
-        failed=$((failed + 1))
+        cargo_rc=1
     else
-        if ! grep -q "^test $t ... ok$" "$LOGDIR/tests.log"; then
-            printf '%s: INCOMPLETE %s (no ok line in %s/tests.log)\n' \
-                "$prog" "$t" "$LOGDIR" >&2
-            failed=$((failed + 1))
-        fi
+        cargo_rc=0
     fi
+    seg="$LOGDIR/tierb-seg.log"
+    tail -n +"$((seg_from + 1))" "$LOGDIR/tests.log" >"$seg" || \
+        fail "cannot slice per-test log segment for $t"
+    verdict=$(tierb_classify "$t" "$seg" "$cargo_rc")
+    case "$verdict" in
+        PASS)
+            passed=$((passed + 1))
+            ;;
+        SKIP*)
+            skipped=$((skipped + 1))
+            skip_details="${skip_details}  SKIP $t ${verdict#SKIP }
+"
+            ;;
+        *)
+            printf '%s: FAILED %s (see %s/tests.log)\n' "$prog" "$t" "$LOGDIR" >&2
+            failed=$((failed + 1))
+            ;;
+    esac
 done
 if [ "$ran" -ne "$EXPECTED" ]; then
     fail "Tier-B selection incomplete: ran $ran, expected $EXPECTED"
 fi
-if [ "$failed" -ne 0 ]; then
+tierb_summarize "$passed" "$skipped" "$failed" "$EXPECTED"
+summary_rc=$?
+if [ -n "$skip_details" ]; then
+    printf '%s: skipped (not executed), reasons:\n%s' "$prog" "$skip_details" >&2
+fi
+if [ "$summary_rc" -eq 1 ]; then
     fail "$failed of $ran Tier-B tests failed; see $LOGDIR/tests.log"
+fi
+if [ "$summary_rc" -eq 2 ]; then
+    fail "Tier-B INCOMPLETE: $skipped of $ran selected tests skipped (not executed); provision the missing opt-in inputs and re-run (exit 2)" 2
 fi
 printf '%s: Tier-B tests: %d/%d passed\n' "$prog" "$ran" "$EXPECTED"
 
