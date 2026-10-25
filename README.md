@@ -20,17 +20,20 @@ complete.)
     2.0 + `iTunNORM` loudness metadata (fixed −18.0 LUFS reference).
   - `aac_ffi` — decoder-only C ABI; `aac_framework` — example decoder
     binary. The encoder has no FFI surface.
-- The repository also retains the upstream Fraunhofer FDK AAC C/C++ tree
-  (`cpp/` and related build files) **solely as a reference oracle and for
-  provenance** — it is not compiled, linked, or executed by any production
-  Rust build (see "Production vs reference tooling" below).
+- The upstream Fraunhofer FDK AAC C/C++ implementation is **not
+  vendored here**: it lives only in the private reference repository
+  (`whepper/fdk-aac-reference`, pinned revision in
+  `docs/reference/fdk-aac-reference-revision.txt`) and is used **solely as
+  a reference oracle** — it is not compiled, linked, or executed by any
+  production Rust build (see "Production vs reference tooling" below).
 
 See `rust/README.md` for the crate layout and `rust/convert/README.md`
 for `aac-convert` usage, options, and metadata behavior.
 
 Repository layout: `rust/` is the production workspace; `docs/` is indexed
-in `docs/README.md`; `cpp/`, the root C helpers, `tools/`, and `test/` are
-reference/oracle infrastructure (see `tools/enc-oracle/README.md`); CI is
+in `docs/README.md`; `tools/` holds oracle/benchmark provenance tooling;
+reference validation builds and runs the external pinned checkout
+(`rust/tools/run-reference-validation.sh`, manual workflow only); CI is
 defined in `.github/workflows/ci.yml`.
 
 ## Relationship to FDK AAC
@@ -72,37 +75,39 @@ cargo fmt --all -- --check
 
 CI (`.github/workflows/ci.yml`) runs these plus doctests, `cargo package`,
 and informational clippy checks — no C/C++ compilation and no external
-audio tools required. The C reference/oracle workflow in
-`tools/enc-oracle/README.md` is manual-only, runs from the repository root
-against a separately built reference library, and is never required for
-normal Rust validation or CI.
+audio tools required. Reference validation
+(`rust/tools/run-reference-validation.sh`, manual workflow
+`reference-validation.yml`) builds and runs the external pinned reference
+checkout, and is never required for normal Rust validation or CI.
 
 ## Production vs reference tooling
 
 - **Production:** everything `cargo` builds in `rust/`. The production
   dependency closure is pure Rust (notably no FFmpeg, no `rsgain`, no C
   compiler on the default build path).
-- **Reference/oracle (manual use only, never production):** the `cpp/`
-  tree, `aac-enc.c`/`aac-dec.c`, `tools/enc-oracle/`,
-  `tools/c-enc-bench/`, and the legacy `test/` scripts — used to validate
-  Rust behavior against the original implementation. System `ffmpeg`,
-  `ffprobe`, and `mutagen` are used only offline (fixture generation;
-  `#[ignore]`d advisory tests skip cleanly without them).
+- **Reference/oracle (manual use only, never production):** the external
+  pinned checkout (`whepper/fdk-aac-reference`) plus the in-repo
+  `tools/enc-oracle/` provenance scripts and the `rust/tools/` validation
+  driver — used to validate Rust behavior against the original
+  implementation. System `ffmpeg`, `ffprobe`, and `mutagen` are used only
+  offline (fixture generation; `#[ignore]`d advisory tests skip cleanly
+  without them).
 
 ## Licensing, attribution, NOTICE guidance
 
-- FDK-derived code (the `cpp/` tree and the Rust sources carrying FDK
-  license headers) is subject to the **Fraunhofer FDK AAC Codec Library for
-  Android** license terms, including the patent-licensing notice pointing
-  to Via Licensing. **Do not remove FDK license headers or NOTICE files.**
-- Which NOTICE applies: the root `NOTICE` (© 1995–2018) covers the
-  upstream C/C++ tree; `rust/NOTICE` (© 2025) is the copy carried with the
-  Rust port whose source files bear that header. They differ only in the
+- FDK-derived code (the Rust sources carrying FDK license headers; the
+  upstream C tree now lives only in the private reference repository) is
+  subject to the **Fraunhofer FDK AAC Codec Library for Android** license
+  terms, including the patent-licensing notice pointing to Via Licensing.
+  **Do not remove FDK license headers or NOTICE files.**
+- Which NOTICE applies: the root `NOTICE` (© 1995–2018) records the upstream
+  license text; `rust/NOTICE` (© 2025) is the copy carried with the Rust
+  port whose source files bear that header. They differ only in the
   copyright year line; both are retained intentionally.
-- Separately, small C reference/tooling helpers carry their own regimes:
-  `aac-enc.c` is Apache-2.0 (Martin Storsjo); the SHA-1 helpers (`sha1.*`)
-  are BSD (Paul E. Jones). This does not alter the FDK-derived licensing
-  obligations above.
+- Separately, small C reference/tooling helpers in the external reference
+  checkout carry their own regimes (`aac-enc.c` is Apache-2.0
+  (Martin Storsjo); the SHA-1 helpers are BSD (Paul E. Jones)). This does
+  not alter the FDK-derived licensing obligations above.
 - Renaming the product to Ferrite does not remove any attribution or
   licensing obligation.
 - Open question for review: Cargo manifests declare the custom
