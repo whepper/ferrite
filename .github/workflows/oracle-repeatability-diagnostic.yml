@@ -1,0 +1,230 @@
+name: oracle-repeatability-diagnostic
+
+# Temporary diagnostic: is the band-31 MS mask discrepancy from run
+# 40187547026 stable across repeated enc_oracle executions on x86_64 Linux?
+#
+# This workflow answers same-target repeatability ONLY. It changes no test
+# contract, proves nothing about cross-target causality, and must be removed
+# in a separate cleanup step once the owner has reviewed the evidence.
+# Manual dispatch only; never runs on push or pull request.
+
+on:
+  workflow_dispatch:
+
+# Minimum permissions: contents:read for checking out this repository.
+# actions:write is required only by the diagnostic-results upload step (the
+# explicitly restricted token above would otherwise deny it). No other
+# permission is granted.
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: oracle-repeatability-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Oracle repeatability diagnostic (manual, temporary)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out Ferrite
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Read pinned reference SHA
+        id: pin
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -u
+          pin_file=docs/reference/fdk-aac-reference-revision.txt
+          pin=$(sed -n 's/^Pinned commit: `\([0-9a-f][0-9a-f]*\)`.*/\1/p' "$pin_file" | head -n 1)
+          case "$pin" in
+            ''|*[!0-9a-f]*)
+              echo "error: malformed pin file (no 'Pinned commit: \`<sha>\`' line): $pin_file" >&2
+              exit 1
+              ;;
+          esac
+          [ "${#pin}" -eq 40 ] || {
+            echo "error: malformed pin (expected 40-hex revision): $pin_file" >&2
+            exit 1
+          }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+          printf 'pinned reference SHA: %s\n' "$pin"
+
+      # Genuine x86_64 Linux is required: the question is sub-ULP
+      # floating-point/codegen behavior, so emulation is not acceptable.
+      - name: Verify runner architecture and tools
+        run: |
+          set -u
+          arch=$(uname -m)
+          printf 'runner arch: %s\n' "$arch"
+          [ "$arch" = "x86_64" ] || {
+            echo "error: expected x86_64 runner, got $arch" >&2
+            exit 1
+          }
+          for t in git c++ cmake python3 sha256sum; do
+            command -v "$t" >/dev/null 2>&1 || {
+              echo "error: required tool missing: $t" >&2
+              exit 1
+            }
+          done
+          uname -a
+          c++ --version | head -n 1
+          cmake --version | head -n 1
+          python3 --version
+
+      # Sole consumer of the private-repository credential. The token never
+      # leaves this step: persist-credentials is false, and later steps
+      # receive only the checked-out directory path, never the secret.
+      # Workspace-relative path: the pinned actions/checkout implementation
+      # rejects paths outside $GITHUB_WORKSPACE.
+      - name: Check out pinned reference (private)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          repository: whepper/fdk-aac-reference
+          ref: ${{ steps.pin.outputs.sha }}
+          token: ${{ secrets.FDK_REF_READ_TOKEN }}
+          path: .ref-diag/fdk-aac-reference
+          persist-credentials: false
+
+      - name: Validate reference checkout identity
+        working-directory: ${{ github.workspace }}
+        run: rust/tools/check-reference.sh --ref-dir "${{ github.workspace }}/.ref-diag/fdk-aac-reference"
+
+      # Same configuration as the failing hosted run: Release and
+      # BUILD_PROGRAMS=ON, no new architecture-specific or fast-math flags.
+      # The compiler is whatever the runner provides by default (GNU 13.3.0
+      # on the failing run); its identity is recorded below, not assumed.
+      - name: Build reference library
+        run: |
+          set -u
+          cmake -S "${{ github.workspace }}/.ref-diag/fdk-aac-reference" \
+            -B "${{ runner.temp }}/diag-ref-build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_PROGRAMS=ON
+          cmake --build "${{ runner.temp }}/diag-ref-build" -j 8
+
+      # Exact enc_oracle build from run-reference-validation.sh stage 2
+      # (documented flags, reference root as working directory).
+      - name: Build enc_oracle
+        working-directory: ${{ github.workspace }}/.ref-diag/fdk-aac-reference
+        run: |
+          set -u
+          c++ -std=c++11 -O2 \
+            -I cpp/libAACenc/src -I cpp/libFDK/include -I cpp/libSYS/include \
+            -I cpp/libMpegTPEnc/include -I . \
+            tools/enc-oracle/enc_oracle.cpp wavreader.c \
+            -L "${{ runner.temp }}/diag-ref-build" -lfdk-aac \
+            -Wl,-rpath,"${{ runner.temp }}/diag-ref-build" \
+            -o "${{ runner.temp }}/diag-ref-build/enc_oracle"
+
+      # Fixture generated ONCE, hashed, and reused unchanged for all three
+      # oracle runs. Same generator invocation as the validation driver.
+      - name: Generate fixture once and record provenance
+        run: |
+          set -u
+          mkdir -p "${{ runner.temp }}/diag-fixtures" "${{ runner.temp }}/diag-results"
+          python3 "${{ github.workspace }}/.ref-diag/fdk-aac-reference/tools/enc-oracle/make_fixtures.py" \
+            "${{ runner.temp }}/diag-fixtures"
+          sha256sum "${{ runner.temp }}/diag-fixtures/m3-multitone-stereo-48k.wav" \
+            | tee "${{ runner.temp }}/diag-results/fixture.sha256"
+          git -C "${{ github.workspace }}/.ref-diag/fdk-aac-reference" rev-parse HEAD \
+            | tee "${{ runner.temp }}/diag-results/refrev.txt"
+          sha256sum "${{ runner.temp }}/diag-ref-build/enc_oracle" \
+            | tee "${{ runner.temp }}/diag-results/enc_oracle.sha256"
+          {
+            echo "runner: $(uname -a)"
+            echo "arch: $(uname -m)"
+            c++ --version | head -n 1
+            cmake --version | head -n 1
+            python3 --version
+          } | tee "${{ runner.temp }}/diag-results/toolchain.txt"
+
+      # Same oracle invocation as the validation driver, three independent
+      # runs into separate directories (mirrors the driver's .oracle.txt
+      # then .s1.txt staging so the parsed file matches the Tier-B input).
+      - name: Run oracle three times
+        run: |
+          set -u
+          for i in 1 2 3; do
+            d="${{ runner.temp }}/diag-runs/run$i"
+            mkdir -p "$d"
+            "${{ runner.temp }}/diag-ref-build/enc_oracle" \
+              "${{ runner.temp }}/diag-fixtures/m3-multitone-stereo-48k.wav" \
+              "$d/m3-multitone-stereo-48k.oracle.txt"
+            cp "$d/m3-multitone-stereo-48k.oracle.txt" \
+              "$d/m3-multitone-stereo-48k.s1.txt"
+            sha256sum "$d/m3-multitone-stereo-48k.s1.txt" \
+              | tee "${{ runner.temp }}/diag-results/run$i.sha256"
+          done
+
+      # Byte-compare the full outputs, then extract the frame-5 MSD digest
+      # and 45-band mask from each. A difference here is a repeatability
+      # finding, not a workflow failure: this step exits 0 either way so the
+      # report and hashes are always uploaded.
+      - name: Compare outputs and extract MSD masks
+        run: |
+          set -u
+          R="${{ runner.temp }}/diag-runs"
+          python3 - "$R" "${{ runner.temp }}/diag-results" <<'EOF'
+          import hashlib, sys
+          runs, masks, digests = {}, {}, {}
+          for i in (1, 2, 3):
+              p = f"{sys.argv[1]}/run{i}/m3-multitone-stereo-48k.s1.txt"
+              data = open(p, 'rb').read()
+              runs[i] = hashlib.sha256(data).hexdigest()
+              lines = data.decode().split('\n')
+              start = next(n for n, ln in enumerate(lines)
+                           if ln.strip() == 'S1FRAME f=5')
+              for ln in lines[start:]:
+                  t = ln.strip()
+                  if t == 'S1FRAME f=6':
+                      break
+                  if t.startswith('MSD '):
+                      nums = [int(w) for w in t[len('MSD '):].split()]
+                      digests[i], masks[i] = nums[0], nums[1:]
+                      break
+          out = [f"run{i} sha256: {runs[i]}" for i in (1, 2, 3)]
+          out.append(f"byte-identical: {runs[1] == runs[2] == runs[3]}")
+          out.append(f"digest: {digests[1]} {digests[2]} {digests[3]}")
+          for i in (1, 2, 3):
+              out.append(f"run{i} mask: {' '.join(map(str, masks[i]))}")
+              out.append(f"run{i} band31: {masks[i][31]}")
+          out.append(f"band31 stable: {masks[1][31] == masks[2][31] == masks[3][31]}")
+          open(f"{sys.argv[2]}/msd-compare.txt", 'w').write('\n'.join(out) + '\n')
+          print('\n'.join(out))
+          EOF
+          if ! cmp -s "$R/run1/m3-multitone-stereo-48k.s1.txt" \
+                       "$R/run2/m3-multitone-stereo-48k.s1.txt" || \
+             ! cmp -s "$R/run1/m3-multitone-stereo-48k.s1.txt" \
+                       "$R/run3/m3-multitone-stereo-48k.s1.txt"; then
+            echo "--- differing byte offsets (first 30) ---" \
+              | tee "${{ runner.temp }}/diag-results/bytediff.txt"
+            cmp -l "$R/run1/m3-multitone-stereo-48k.s1.txt" \
+                   "$R/run2/m3-multitone-stereo-48k.s1.txt" \
+              | head -n 30 | tee -a "${{ runner.temp }}/diag-results/bytediff.txt" || true
+            cmp -l "$R/run1/m3-multitone-stereo-48k.s1.txt" \
+                   "$R/run3/m3-multitone-stereo-48k.s1.txt" \
+              | head -n 30 | tee -a "${{ runner.temp }}/diag-results/bytediff.txt" || true
+          else
+            echo "full dumps byte-identical across all three runs" \
+              | tee "${{ runner.temp }}/diag-results/bytediff.txt"
+          fi
+
+      # Report only: metadata, hashes, masks, and bounded diff excerpts.
+      # Never the reference checkout, build tree, binaries, the WAV fixture,
+      # or full oracle dumps. Retention is intentionally short.
+      - name: Upload diagnostic results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact v4.6.2
+        with:
+          name: oracle-repeatability-results
+          path: ${{ runner.temp }}/diag-results
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Clean scratch directories
+        if: always()
+        run: rm -rf "${{ github.workspace }}/.ref-diag" "${{ runner.temp }}/diag-ref-build" "${{ runner.temp }}/diag-fixtures" "${{ runner.temp }}/diag-runs" "${{ runner.temp }}/diag-results"
