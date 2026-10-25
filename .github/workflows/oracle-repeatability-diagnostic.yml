@@ -232,18 +232,20 @@ jobs:
               "${{ runner.temp }}/diag-results/commit-vs-fresh.txt" <<'EOF'
           import sys
           tdir, dump_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
-          def committed(fname):
+          def committed(fname, want):
               d = {}
               for ln in open(f"{tdir}/{fname}").read().split('\n'):
                   t = ln.strip()
                   if not t or '=' in t.split(' ')[0]:
                       continue
                   tag, _, rest = t.partition(' ')
-                  if tag.isupper():
+                  if tag in want:
                       d[tag] = [int(w) for w in rest.split()]
               return d
-          psy = [committed(f"psy_multitone-stereo_f5_ch{c}.txt") for c in (0, 1)]
-          ms = committed("ms_multitone-stereo_f5.txt")
+          psy = [committed(f"psy_multitone-stereo_f5_ch{c}.txt",
+                           {'NRG', 'NRGLD', 'THR', 'TLD'}) for c in (0, 1)]
+          ms = committed("ms_multitone-stereo_f5.txt",
+                         {'MSM0', 'MSS0', 'MSMLD0', 'MSSLD0'})
           lines = open(dump_path).read().split('\n')
           start = next(n for n, ln in enumerate(lines)
                        if ln.strip() == 'S1FRAME f=5')
