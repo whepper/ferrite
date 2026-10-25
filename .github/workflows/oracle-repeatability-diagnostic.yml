@@ -213,6 +213,72 @@ jobs:
               | tee "${{ runner.temp }}/diag-results/bytediff.txt"
           fi
 
+      # Compares the exact MS-decision operands: PTHLD/PENLD carry the
+      # per-channel threshold/energy Ld inputs and MSMLD0/MSSLD0 the
+      # mid/side Ld inputs consumed by the strict pnmsLdData > pnlrLdData
+      # comparison (ms_stereo.cpp); NRG/SENL and MSM0/MSS0 are compared as
+      # upstream context (linear energies are not decision operands).
+      # Committed files are read, never written. Any difference is a
+      # finding, not a failure: this step exits 0 once the report exists.
+      - name: Compare committed vectors with fresh dump
+        run: |
+          set -u
+          sha256sum "${{ github.workspace }}/rust/src/aac_enc/testdata/psy_multitone-stereo_f5_ch0.txt" \
+                    "${{ github.workspace }}/rust/src/aac_enc/testdata/psy_multitone-stereo_f5_ch1.txt" \
+                    "${{ github.workspace }}/rust/src/aac_enc/testdata/ms_multitone-stereo_f5.txt" \
+            | tee "${{ runner.temp }}/diag-results/committed.sha256"
+          python3 - "${{ github.workspace }}/rust/src/aac_enc/testdata" \
+              "${{ runner.temp }}/diag-runs/run1/m3-multitone-stereo-48k.s1.txt" \
+              "${{ runner.temp }}/diag-results/commit-vs-fresh.txt" <<'EOF'
+          import sys
+          tdir, dump_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+          def committed(fname):
+              d = {}
+              for ln in open(f"{tdir}/{fname}").read().split('\n'):
+                  t = ln.strip()
+                  if not t or '=' in t.split(' ')[0]:
+                      continue
+                  tag, _, rest = t.partition(' ')
+                  if tag.isupper():
+                      d[tag] = [int(w) for w in rest.split()]
+              return d
+          psy = [committed(f"psy_multitone-stereo_f5_ch{c}.txt") for c in (0, 1)]
+          ms = committed("ms_multitone-stereo_f5.txt")
+          lines = open(dump_path).read().split('\n')
+          start = next(n for n, ln in enumerate(lines)
+                       if ln.strip() == 'S1FRAME f=5')
+          blocks = {}
+          for ln in lines[start:]:
+              t = ln.strip()
+              if t == 'S1FRAME f=6':
+                  break
+              for tag in ('PENLD ', 'PTHLD ', 'SENL ', 'MSM0 ', 'MSS0 ',
+                          'MSMLD0 ', 'MSSLD0 '):
+                  if t.startswith(tag):
+                      blocks.setdefault(tag.strip(), []).append(
+                          [int(w) for w in t[len(tag):].split()])
+                      break
+          rep = []
+          def cmp(name, a, b):
+              assert len(a) == len(b) == 45, f"{name} span {len(a)}/{len(b)}"
+              diffs = [i for i in range(45) if a[i] != b[i]]
+              rep.append(f"{name}: {'identical' if not diffs else f'{len(diffs)} diffs at {diffs}'}")
+              for i in diffs:
+                  rep.append(f"  band {i}: committed={a[i]} fresh={b[i]}")
+              return diffs
+          for c in (0, 1):
+              cmp(f"ch{c} NRGLD vs PENLD", psy[c]['NRGLD'], blocks['PENLD'][c])
+              cmp(f"ch{c} TLD vs PTHLD", psy[c]['TLD'], blocks['PTHLD'][c])
+              cmp(f"ch{c} NRG vs SENL", psy[c]['NRG'], blocks['SENL'][c])
+          for tag in ('MSM0', 'MSS0', 'MSMLD0', 'MSSLD0'):
+              cmp(f"{tag} committed vs fresh", ms[tag], blocks[tag][0])
+          rep.append("band31: committed-mask=1 fresh-mask=0 "
+                     "(Tier-B run 40187547026; diagnostic 40192237807 stable 0/0/0)")
+          open(out_path, 'w').write('\n'.join(rep) + '\n')
+          print('\n'.join(rep))
+          EOF
+          echo "--- commit-vs-fresh above (exit 0 by design) ---"
+
       # Report only: metadata, hashes, masks, and bounded diff excerpts.
       # Never the reference checkout, build tree, binaries, the WAV fixture,
       # or full oracle dumps. Retention is intentionally short.
