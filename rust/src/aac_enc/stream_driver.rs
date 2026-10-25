@@ -5496,6 +5496,36 @@ mod is_integration_tests {
         }
     }
 
+    // Expected (frame, band) positions of every counted scale mismatch,
+    // in loop order (frame ascending, band ascending). Captured from the
+    // retained-oracle evidence run (F05; 74 tuples, all retained in the
+    // Tier-B log via IS_SCALE_MISMATCH records) — values are deliberately
+    // NOT pinned here, only positions. Tighter than the frame allowlist
+    // plus count pins: a same-count mismatch on a different band now fails.
+    // Positions (not values) because the magnitudes ride on upstream
+    // float-residue operands; exact-value pins would overfit. Not yet
+    // confirmed against the pinned-reference Tier-B environment: if that
+    // run disagrees, suspect this pin before suspecting the port.
+    fn expected_scale_positions(probe: &str) -> Vec<(u32, u32)> {
+        match probe {
+            "noise-like-in-phase" => vec![(1, 15), (2, 39), (19, 36), (33, 36), (56, 36)],
+            "noise-like-out-phase" => vec![(95, 18)],
+            "tones-in-phase" => {
+                let mut v: Vec<(u32, u32)> = (7..=88).step_by(3).map(|f| (f, 13)).collect();
+                v.extend(
+                    [(95, 16), (95, 18), (95, 20), (95, 21), (95, 26), (95, 27), (95, 28), (95, 29), (95, 31), (95, 32)],
+                );
+                v
+            }
+            "tones-out-phase" => {
+                let mut v: Vec<(u32, u32)> = (7..=88).step_by(3).map(|f| (f, 13)).collect();
+                v.extend([(95, 14), (95, 16)]);
+                v
+            }
+            _ => Vec::new(),
+        }
+    }
+
     fn expected_scale_compared(probe: &str) -> usize {
         match probe {
             "noise-like-in-phase" => 2046,
@@ -5616,6 +5646,12 @@ mod is_integration_tests {
         let mut band_mismatches = 0usize;
         let mut scale_cmp = 0usize;
         let mut scale_mismatch = 0usize;
+        // Evidence capture (diagnostic only; assertions below unchanged):
+        // every counted mismatch as (frame, band, C, Rust), plus bands
+        // where both sides select IS but only Rust carries a nonzero
+        // scale (currently invisible to every pin).
+        let mut scale_records: Vec<(u32, u32, i32, i32)> = Vec::new();
+        let mut zero_c_records: Vec<(u32, u32, i32)> = Vec::new();
         for i in 0..n {
             let cs = band_indices(&c_sets[i]);
             let rs = snaps[i]
@@ -5654,17 +5690,38 @@ mod is_integration_tests {
 
             if let Some(cap) = snaps[i].ms_cap.as_ref() {
                 for (b, &book) in cap.is_book.iter().enumerate() {
+                    let rust_scale = snaps[i].is_scale_values.get(b).copied().unwrap_or(0);
                     if book != 0 && c_iss.get(i).and_then(|v| v.get(b)).copied().unwrap_or(0) != 0 {
                         scale_cmp += 1;
-                        if snaps[i].is_scale_values.get(b).copied().unwrap_or(0) != c_iss[i][b] {
+                        if rust_scale != c_iss[i][b] {
                             assert!(
                                 known_scale_frame(&probe, i as u32),
                                 "{probe} f={i} b={b}: unexpected intensity-scale mismatch C={} Rust={}",
                                 c_iss[i][b],
-                                snaps[i].is_scale_values.get(b).copied().unwrap_or(0)
+                                rust_scale
                             );
                             scale_mismatch += 1;
+                            // Diagnostic record: diff is Rust-minus-C.
+                            let c = c_iss[i][b];
+                            let diff = rust_scale.wrapping_sub(c);
+                            println!(
+                                "IS_SCALE_MISMATCH {probe} f={i} b={b} C={c} Rust={rust_scale} diff={diff} adiff={}",
+                                diff.unsigned_abs()
+                            );
+                            scale_records.push((i as u32, b as u32, c, rust_scale));
                         }
+                    } else if book != 0
+                        && c_sets.get(i).and_then(|v| v.get(b)).copied().unwrap_or(0) != 0
+                        && c_iss.get(i).and_then(|v| v.get(b)).copied().unwrap_or(0) == 0
+                        && rust_scale != 0
+                    {
+                        // Both sides select IS in this band (Rust book and
+                        // C ISB nonzero) but only Rust carries a nonzero
+                        // scale. Band sets agree, so this is invisible to
+                        // every existing pin; record it separately without
+                        // changing the comparison counts.
+                        println!("IS_SCALE_ZERO_C {probe} f={i} b={b} C=0 Rust={rust_scale}");
+                        zero_c_records.push((i as u32, b as u32, rust_scale));
                     }
                 }
             }
@@ -5708,6 +5765,13 @@ mod is_integration_tests {
             expected_scale_mismatches(&probe),
             "{probe}: scale mismatch count changed"
         );
+        let scale_positions: Vec<(u32, u32)> =
+            scale_records.iter().map(|&(f, b, _, _)| (f, b)).collect();
+        assert_eq!(
+            scale_positions,
+            expected_scale_positions(&probe),
+            "{probe}: scale mismatch positions changed"
+        );
         let msd_mismatch = (0..n).filter(|&i| snaps[i].digest != c_msd[i]).count();
         let expected_msd = usize::from(probe == "narrowband-in-phase");
         assert_eq!(
@@ -5725,6 +5789,11 @@ mod is_integration_tests {
 
         println!(
             "IS_C_PARITY {probe}: frames={n} exact={exact_frames} known_frontend_boundary={boundary_frames} unresolved_tail={tail_frames} band_set_mismatches={band_mismatches} C_bands={c_total} R_bands={r_total} msd_mismatch={msd_mismatch} scale_compared={scale_cmp} scale_mismatch={scale_mismatch}"
+        );
+        println!(
+            "IS_SCALE_SUMMARY {probe}: compared={scale_cmp} mismatches={} zero_c_nonzero_rust={}",
+            scale_records.len(),
+            zero_c_records.len()
         );
     }
 
