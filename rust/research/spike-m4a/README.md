@@ -11,7 +11,7 @@ path, and what gapless signaling would cost.
 ## How to run
 
 ```sh
-cd rust/convert/spike-m4a
+cd rust/research/spike-m4a
 CARGO_TARGET_DIR=$TMPDIR/m75-target cargo run --release -- \
   ../../convert/tests/fixtures/stereo-48k-16.flac /tmp/out.m4a
 ```
