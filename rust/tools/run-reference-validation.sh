@@ -369,7 +369,8 @@ aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b
 aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity
 aac_enc::stream_driver::is_integration_tests::intensity_probe_c_oracle_parity
 aac_enc::stream_driver::is_integration_tests::intensity_probe_wav_parity
-aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes"
+aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes
+aac_enc::stream_driver::m52_tests::crash_recovered_stream_decodes"
 if [ -n "${M511_PROFILE-}" ]; then
     TIER_B="$TIER_B
 aac_enc::stream_driver::m511_tests::m511_profile_loop"

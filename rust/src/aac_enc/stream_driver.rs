@@ -4669,6 +4669,29 @@ mod m52_tests {
         }
     }
 
+    /// Deterministic crash-recovery trigger: full-scale mono white noise
+    /// (xorshift32, fixed seed), 48 kHz, 40 frames. Exceeds the VBR bit
+    /// budget past max gain iterations on an early frame and enters
+    /// gain-loop crash recovery. Shared by the ADTS-header regression and
+    /// the independent-decode regression so both prove the same path.
+    fn crash_synth_mono_48k() -> Vec<i16> {
+        let rng = std::cell::Cell::new(0x12345678u32);
+        let mut sample = || {
+            let mut r = rng.get();
+            r ^= r << 13;
+            r ^= r >> 17;
+            r ^= r << 5;
+            rng.set(r);
+            (r >> 16) as i16
+        };
+        const NFRAMES: usize = 40;
+        let mut mono = Vec::with_capacity(NFRAMES * 1024);
+        for _ in 0..NFRAMES * 1024 {
+            mono.push(sample());
+        }
+        mono
+    }
+
     /// Crash recovery emits a valid ADTS frame end to end (track-09
     /// mechanism on synthetic input).
     ///
@@ -4684,26 +4707,12 @@ mod m52_tests {
     #[test]
     fn crash_recovered_frame_emits_valid_adts() {
         use crate::aac_enc::encoder::Encoder;
-        use std::cell::Cell;
         // MPEG-4 Audio constants, independent of the implementation:
         // profile = AOT-1 (2 = AAC-LC -> 1), 48 kHz index 3, mono config 1.
         const ADTS_PROFILE_AAC_LC: u8 = 1;
         const ADTS_SFI_48000: u8 = 3;
         const ADTS_CHANCFG_MONO: u8 = 1;
-        let rng = Cell::new(0x12345678u32);
-        let mut sample = || {
-            let mut r = rng.get();
-            r ^= r << 13;
-            r ^= r >> 17;
-            r ^= r << 5;
-            rng.set(r);
-            (r >> 16) as i16
-        };
-        const NFRAMES: usize = 40;
-        let mut mono = Vec::with_capacity(NFRAMES * 1024);
-        for _ in 0..NFRAMES * 1024 {
-            mono.push(sample());
-        }
+        let mono = crash_synth_mono_48k();
         // Driver leg: observe recovery and emission directly.
         let cfg = EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap();
         let mut feeder = PcmFeeder::new(cfg);
@@ -4771,6 +4780,118 @@ mod m52_tests {
             assert_eq!(frame_len, b.len(), "declared length matches emitted bytes");
             assert_eq!(b[6] & 0x3, 0, "single raw data block");
         }
+    }
+
+    /// Tier-B independent decode of the deterministic crash-recovery
+    /// stream (same trigger as [`crash_recovered_frame_emits_valid_adts`]).
+    ///
+    /// Recovery proof: the driver leg observes `crash != -1` frames on
+    /// this exact PCM, and every such frame index is present in the dense
+    /// public-API stream that is written to disk — so the decoded audio
+    /// necessarily includes recovered payload, not just clean frames.
+    /// Decoding reuses the `m5a_decode` harness contract (decoder exit 0
+    /// AND empty stderr — `aac-dec` returns 0 even on mid-stream
+    /// failure — deterministic repeat decode, WAV structure and
+    /// frame/sample accounting).
+    ///
+    /// Without `AAC_DEC_BIN` the test reports TIERB_SKIP and validates
+    /// nothing (Tier-B always provisions the decoder; ordinary CI has no
+    /// decoder and must not require one).
+    #[test]
+    fn crash_recovered_stream_decodes() {
+        use crate::aac_enc::encoder::Encoder;
+        use crate::aac_enc::m5a_decode::m5a_tests::{dec_bin, parse_wav, run_decode};
+        if std::env::var("AAC_DEC_BIN").is_err() {
+            // Tier-B status marker (see rust/tools/tierb-report.sh): this
+            // probe performed no validation. Visible with `--nocapture`.
+            println!("TIERB_SKIP crash_recovered_stream_decodes missing_env=AAC_DEC_BIN");
+            return;
+        }
+        const STEM: &str = "crash-synth-mono-48k";
+        let mono = crash_synth_mono_48k();
+        // Driver leg: prove recovery was entered on this PCM.
+        let cfg = EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap();
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut frames = feeder.push_interleaved(&mono).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+        let mut enc = StreamEncoder::new(48000, 1);
+        let mut crashed = Vec::new();
+        for (f, fr) in frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (_bytes, snap) = enc.step_frame(f as u32, &fresh);
+            assert!(
+                snap.step_error.is_none(),
+                "f={f}: unexpected typed step error {:?}",
+                snap.step_error
+            );
+            if snap.crash != -1 {
+                crashed.push(f as u32);
+            }
+        }
+        assert!(
+            !crashed.is_empty(),
+            "synthetic input must enter crash recovery at least once"
+        );
+        // Public-API leg: the complete stream to decode.
+        let mut api =
+            Encoder::new(EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap())
+                .unwrap();
+        let mut out = api.push(&mono).expect("push succeeds");
+        out.extend(api.flush().expect("flush succeeds"));
+        assert!(!out.is_empty(), "no output frames");
+        for (i, fr) in out.iter().enumerate() {
+            assert_eq!(fr.frame_index, i as u32, "dense frame indices");
+        }
+        for &c in &crashed {
+            assert!(
+                (c as usize) < out.len(),
+                "recovered frame {c} present in decoded public stream"
+            );
+        }
+        let mut bytes = Vec::new();
+        for fr in &out {
+            bytes.extend_from_slice(&fr.bytes);
+        }
+        // Encode-side framing parses exactly (local header walk).
+        let lens = split_lens(&bytes);
+        assert_eq!(lens.len(), out.len(), "{STEM}: parsed frame count");
+        assert_eq!(lens.iter().sum::<usize>(), bytes.len(), "{STEM}: lens sum");
+        // Decode twice; the harness asserts exit 0, empty stderr, non-empty.
+        let dir =
+            std::env::temp_dir().join(format!("crash-recovery-decode-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("mkdir decode dir");
+        let aac = dir.join("crash.aac");
+        std::fs::write(&aac, &bytes).expect("write aac");
+        let bin = dec_bin();
+        assert!(bin.is_file(), "AAC_DEC_BIN={bin:?} is not a file");
+        let wav1 = dir.join("crash.dec1.wav");
+        let wav2 = dir.join("crash.dec2.wav");
+        let d1 = run_decode(&bin, &aac, &wav1, STEM, 1);
+        let d2 = run_decode(&bin, &aac, &wav2, STEM, 2);
+        assert_eq!(d1, d2, "{STEM}: repeated decode differs");
+        // WAV structure and frame/sample accounting (mirrors m5a_decode).
+        let (info, _) = parse_wav(&d1, STEM);
+        assert_eq!(info.ch as usize, 1, "{STEM}: channel count");
+        assert_eq!(info.sr, 48000, "{STEM}: sample rate");
+        assert_eq!(info.bits, 16, "{STEM}: bits per sample");
+        assert!(info.data_len > 0, "{STEM}: empty data chunk");
+        assert_eq!(info.data_len as usize % 2, 0, "{STEM}: frame-aligned data");
+        let data = &d1[44..];
+        assert!(data.iter().any(|&b| b != 0), "{STEM}: all-zero decoded output");
+        let samples_per_ch = info.data_len as usize / 2;
+        let granted = out.len() * 1024;
+        assert!(samples_per_ch < granted, "{STEM}: decoded exceeds granted");
+        let trim = granted - samples_per_ch;
+        assert!(
+            trim > 0 && trim < 4096,
+            "{STEM}: implied front-trim {trim} outside plausible window"
+        );
+        println!(
+            "CRASH_RECOVERY_DECODE {STEM}: aac_frames={} aac_bytes={} crashed={crashed:?} wav_bytes={} spc={granted}->{samples_per_ch} trim={trim} determinism=identical",
+            out.len(),
+            bytes.len(),
+            d1.len(),
+        );
     }
 }
 

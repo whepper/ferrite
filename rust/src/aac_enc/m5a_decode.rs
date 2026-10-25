@@ -10,7 +10,11 @@
 //! plus structural WAV validation. Process failures can never read as success.
 
 #[cfg(test)]
-mod m5a_tests {
+pub(crate) mod m5a_tests {
+    // Selected decoder-harness helpers (`dec_bin`, `run_decode`,
+    // `parse_wav`/`WavInfo`) are `pub(crate)` for reuse by the
+    // crash-recovery decode regression in `stream_driver::m52_tests`.
+    // The whole module stays `#[cfg(test)]`: no production exposure.
     use super::super::stream_driver;
     use std::path::{Path, PathBuf};
     use std::process::Command;
@@ -35,7 +39,7 @@ mod m5a_tests {
         std::env::temp_dir().join("m5a-decode")
     }
 
-    fn dec_bin() -> PathBuf {
+    pub(crate) fn dec_bin() -> PathBuf {
         std::env::var("AAC_DEC_BIN").map(PathBuf::from).expect(
             "M5.a: AAC_DEC_BIN env var must point at a prebuilt aac-dec binary; \
              build with: cmake -S . -B /tmp/m5a-build -DBUILD_PROGRAMS=ON \
@@ -71,14 +75,14 @@ mod m5a_tests {
         u32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]])
     }
 
-    struct WavInfo {
-        ch: u16,
-        sr: u32,
-        bits: u16,
-        data_len: u32,
+    pub(crate) struct WavInfo {
+        pub(crate) ch: u16,
+        pub(crate) sr: u32,
+        pub(crate) bits: u16,
+        pub(crate) data_len: u32,
     }
 
-    fn parse_wav(bytes: &[u8], stem: &str) -> (WavInfo, usize) {
+    pub(crate) fn parse_wav(bytes: &[u8], stem: &str) -> (WavInfo, usize) {
         assert!(bytes.len() >= 44, "{stem}: wav too short");
         assert_eq!(&bytes[0..4], b"RIFF", "{stem}: RIFF");
         assert_eq!(&bytes[8..12], b"WAVE", "{stem}: WAVE");
@@ -89,7 +93,7 @@ mod m5a_tests {
         (info, 44)
     }
 
-    fn run_decode(bin: &Path, aac: &Path, wav: &Path, stem: &str, run: u32) -> Vec<u8> {
+    pub(crate) fn run_decode(bin: &Path, aac: &Path, wav: &Path, stem: &str, run: u32) -> Vec<u8> {
         let out = Command::new(bin)
             .arg(aac)
             .arg(wav)
