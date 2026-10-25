@@ -201,13 +201,13 @@ amm-info@iis.fraunhofer.de
 //! - [Fact] `dZoneQuantEnable = 0` for LC (`qc_main.cpp:399-411` with
 //!   `isLowDelay = 0`); the `=1` path is ported (shared `k` selection)
 //!   but only probe-covered, never corpus-covered.
-//! - [Open] `q == -32768` slips every reference `|q| > MAX_QUANT` guard
-//!   (`fixabs_S` wraps) and then reads out of bounds in `invQuantizeLines`
-//!   (`specExp = 16 >= 14`). The port replicates the guard bit-exactly
-//!   (same branch taken) but panics loudly on the table index instead of
-//!   performing C's silent out-of-bounds read. Committed fixtures are
-//!   scanned to exclude the value; S6's `calcMaxValueInSfb` gate inherits
-//!   the same reference blind spot (recorded for S6, not fixed here).
+//! - [Fixed] `q == -32768` slipped every reference `|q| > MAX_QUANT` guard
+//!   (`fixabs_S` wraps) and then read out of bounds in `invQuantizeLines`
+//!   (`specExp = 16 >= 14`). The port widens to `i32` before `abs`, so the
+//!   sentinel takes the documented distortion-function early-out instead of
+//!   reaching `inv_quantize_line`. Committed fixtures are scanned to exclude
+//!   the value; S6's `calcMaxValueInSfb` gate asserts loudly on it (see
+//!   `rate.rs`), unchanged here.
 //!
 //! ## Valid input envelope
 //!
@@ -220,8 +220,8 @@ amm-info@iis.fraunhofer.de
 //! - inverse path: every line that reaches `invQuantizeLines` satisfies
 //!   `|q| <= MAX_QUANT` (the `specExp < 14` assert, `:204,240`);
 //!   larger magnitudes take the distortion-function early-out first and
-//!   never arrive here — except the single slipped `-32768` (see quirk
-//!   above), which committed fixtures exclude by scan.
+//!   never arrive here, including the former slipped `-32768` (see quirk
+//!   above), which committed fixtures additionally exclude by scan.
 
 use super::q31::{calc_ld_data, count_leading_bits, count_leading_zeros, fmult, shift_int};
 use super::quant_tables::{
@@ -441,9 +441,9 @@ fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
 /// any fresh `|q| > MAX_QUANT`, else inverse-quantizes and returns the
 /// Ld of the accumulated distortion.
 ///
-/// The guard uses wrapping 16-bit abs exactly like `fixabs_S`, so the
-/// single slipped value (`-32768`) takes the same branch as in C; the
-/// subsequent table index then panics loudly (see module docs).
+/// The guard widens to `i32` before `abs`, so the slipped reference
+/// value (`-32768`, which `fixabs_S`/`wrapping_abs` keeps negative) takes
+/// the documented early-out instead of reaching `inv_quantize_line`.
 /// `quant` receives the fresh quantized lines (C quantizes in place).
 ///
 /// M5.16: the band-invariant quantizer state (`quantizer`,
@@ -466,7 +466,12 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
     for (i, &s) in spec.iter().enumerate() {
         let q = quantize_line_body(quantizer, quantizer_shift, k, s);
         quant[i] = q;
-        if (q.wrapping_abs() as i32) > MAX_QUANT {
+        // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+        // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+        // (whose `specExp < 14` assert then panics). The reference
+        // `fixabs_S` has the same blind spot; here the sentinel takes the
+        // documented early-out instead.
+        if (q as i32).abs() > MAX_QUANT {
             return 0;
         }
         let inv = inv_quantize_line(gain, q);
@@ -485,7 +490,12 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
     let mut distortion: i32 = 0;
     for (i, &s) in spec.iter().enumerate() {
         let q = quant[i];
-        if (q.wrapping_abs() as i32) > MAX_QUANT {
+        // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+        // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+        // (whose `specExp < 14` assert then panics). The reference
+        // `fixabs_S` has the same blind spot; here the sentinel takes the
+        // documented early-out instead.
+        if (q as i32).abs() > MAX_QUANT {
             return (0, 0);
         }
         let inv = inv_quantize_line(gain, q);
@@ -662,7 +672,7 @@ mod tests {
 
     #[test]
     fn dist_max_quant_gate_exact() {
-        // The guard is a strict `> MAX_QUANT` on wrapping 16-bit abs
+        // The guard is a strict `> MAX_QUANT` on the widened magnitude
         // (quantize.cpp:327,373): 8191 passes through, 8192 early-outs.
         let spec = [0x10000000i32; 4];
         let (en, dist) = calc_sfb_quant_energy_and_dist(&spec, &[8191; 4], 0);
@@ -678,12 +688,28 @@ mod tests {
     }
 
     #[test]
+    fn dist_min_quant_takes_early_out() {
+        // `i16::MIN` widened to `i32` has magnitude 32768, so it takes the
+        // documented early-out instead of reaching `inv_quantize_line`
+        // (whose `specExp < 14` assert the old wrapping guard let it hit).
+        let spec = [0x10000000i32; 4];
+        assert_eq!(
+            calc_sfb_quant_energy_and_dist(&spec, &[i16::MIN, 0, 0, 0], 0),
+            (0, 0)
+        );
+        assert_eq!(
+            calc_sfb_quant_energy_and_dist(&[0], &[i16::MIN], 0),
+            (0, 0)
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "specExp envelope")]
     fn inv_quantize_out_of_envelope_panics_loudly() {
         // |q| > MAX_QUANT never reaches invQuantizeLines in the reference
-        // flow (the distortion guards catch it); the one slipped value
-        // (-32768) would OOB-read in C. The port panics instead — loud
-        // failure by design (see module docs).
+        // flow (the distortion guards catch it, including the former
+        // slipped value -32768, which would OOB-read in C). Direct calls
+        // above the envelope still panic — loud failure by design.
         let _ = inv_quantize_line(0, 8192);
     }
 
