@@ -1,0 +1,112 @@
+name: reference-validation
+
+# Manual Tier-B validation against the private FDK AAC reference checkout.
+#
+# This workflow is informational and independent of ci.yml: it never runs on
+# push or pull request, changes no required checks, and must not be given a
+# pull_request_target trigger (the private-checkout credential below must
+# never be exposed to untrusted fork code). The owner provisions
+# secrets.FDK_REF_READ_TOKEN out-of-band; until then this workflow fails
+# clearly at the private-checkout step.
+
+on:
+  workflow_dispatch:
+
+# Minimum permissions: contents:read for checking out this repository.
+# actions:write is required only by the log-artifact upload step (the
+# explicitly restricted token above would otherwise deny it). No other
+# permission is granted.
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: reference-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate against pinned FDK AAC reference (manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out Ferrite
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Read pinned reference SHA
+        id: pin
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -u
+          pin_file=docs/reference/fdk-aac-reference-revision.txt
+          pin=$(sed -n 's/^Pinned commit: `\([0-9a-f][0-9a-f]*\)`.*/\1/p' "$pin_file" | head -n 1)
+          case "$pin" in
+            ''|*[!0-9a-f]*)
+              echo "error: malformed pin file (no 'Pinned commit: \`<sha>\`' line): $pin_file" >&2
+              exit 1
+              ;;
+          esac
+          [ "${#pin}" -eq 40 ] || {
+            echo "error: malformed pin (expected 40-hex revision): $pin_file" >&2
+            exit 1
+          }
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+          printf 'pinned reference SHA: %s\n' "$pin"
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # dtolnay/rust-toolchain stable
+        with:
+          toolchain: 1.99.1
+
+      # Sole consumer of the private-repository credential. The token never
+      # leaves this step: persist-credentials is false, and later steps
+      # receive only the checked-out directory path, never the secret.
+      # A missing secret or denied access fails here without falling back
+      # to any other repository or revision.
+      # Workspace-relative on purpose: the pinned actions/checkout
+      # implementation rejects paths outside $GITHUB_WORKSPACE, while the
+      # driver only forbids *output/build* directories inside either
+      # repository — the checkout itself may live here. Scratch output
+      # stays under ${{ runner.temp }} (see the driver step).
+      - name: Check out pinned reference (private)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          repository: whepper/fdk-aac-reference
+          ref: ${{ steps.pin.outputs.sha }}
+          token: ${{ secrets.FDK_REF_READ_TOKEN }}
+          path: .ref/fdk-aac-reference
+          persist-credentials: false
+
+      - name: Validate reference checkout identity
+        working-directory: ${{ github.workspace }}
+        run: rust/tools/check-reference.sh --ref-dir "${{ github.workspace }}/.ref/fdk-aac-reference"
+
+      # The driver owns fixture generation, reference + oracle builds,
+      # encodes, preflight, the 15 Tier-B tests, and the four config byte
+      # comparisons. Test selection is not duplicated here. Scratch output
+      # stays outside both checkouts; nothing here writes tracked files.
+      - name: Run reference validation driver
+        working-directory: ${{ github.workspace }}
+        run: |
+          rust/tools/run-reference-validation.sh --validate \
+            --ref-dir "${{ github.workspace }}/.ref/fdk-aac-reference" \
+            --out-dir "${{ runner.temp }}/refval-out"
+
+      # Logs only: never the reference checkout, binaries, fixtures, oracle
+      # dumps, or generated AAC. Retention is intentionally short.
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact v4.6.2
+        with:
+          name: reference-validation-logs
+          path: ${{ runner.temp }}/refval-out/logs
+          if-no-files-found: warn
+          retention-days: 3
+
+      - name: Clean scratch directories
+        if: always()
+        run: rm -rf "${{ github.workspace }}/.ref/fdk-aac-reference" "${{ runner.temp }}/refval-out"
