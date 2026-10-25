@@ -85,6 +85,13 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: rust/tools/check-reference.sh --ref-dir "${{ github.workspace }}/.ref/fdk-aac-reference"
 
+      # The driver canonicalizes its default build directory
+      # ($OUT_DIR/ref-build) before creating a caller-supplied output
+      # directory, so the directory must already exist (the driver's own
+      # mktemp default creates it; an explicit --out-dir does not).
+      - name: Create validation output directory
+        run: mkdir -p "${{ runner.temp }}/refval-out"
+
       # The driver owns fixture generation, reference + oracle builds,
       # encodes, preflight, the 15 Tier-B tests, and the four config byte
       # comparisons. Test selection is not duplicated here. Scratch output
