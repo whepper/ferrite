@@ -1611,10 +1611,15 @@ mod phase1_tests {
     fn load_dump(path: &str) -> HashMap<u32, DumpFrame> {
         let mut out = HashMap::new();
         let mut cur: Option<u32> = None;
-        for ln in std::fs::read_to_string(path)
-            .expect("oracle dump readable")
-            .split('\n')
-        {
+        // Same missing-artifact contract as the dump_* readers above: these
+        // dumps live under $PHASE1_ORACLE_DIR and are explicit validation
+        // inputs, never silently skipped.
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
+        for ln in text.split('\n') {
             let ln = ln.trim();
             if ln.starts_with("FRAME ") {
                 let t: Vec<&str> = ln.split_whitespace().collect();
@@ -1745,10 +1750,36 @@ mod phase1_tests {
         std::env::var(key).unwrap_or_else(|_| default.to_string())
     }
 
+    /// Preflight for explicitly-requested oracle validation.
+    ///
+    /// Tier-B tests run only when invoked by name (ordinary CI skips them).
+    /// A missing artifact is a setup error, never a silent skip: fail loudly
+    /// naming the artifact, the variable that locates it, and how to supply
+    /// it. `rust/tools/preflight-validation.sh` performs the same checks
+    /// outside of `cargo test`.
+    fn require_validation_file(var: &str, path: &str, how: &str) -> String {
+        std::fs::read_to_string(path).unwrap_or_else(|_| {
+            panic!("reference validation artifact missing: {path} (from ${var}); {how}")
+        })
+    }
+
+    /// Byte-oriented variant of `require_validation_file` for encoded
+    /// reference outputs (ADTS is not valid UTF-8, so `read_to_string`
+    /// must not be used).
+    fn require_validation_bytes(var: &str, path: &str, how: &str) -> Vec<u8> {
+        std::fs::read(path).unwrap_or_else(|_| {
+            panic!("reference validation artifact missing: {path} (from ${var}); {how}")
+        })
+    }
+
     /// Parse the first int list for `tag` at/after S1FRAME f=`frame`
     /// (first channel block) from an oracle dump.
     fn dump_ints(path: &str, frame: u32, tag: &str) -> Vec<i32> {
-        let text = std::fs::read_to_string(path).expect("oracle dump readable");
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
         let lines: Vec<&str> = text.split('\n').collect();
         let start = lines
             .iter()
@@ -1986,7 +2017,11 @@ mod phase1_tests {
     /// Parse the element-level `MSD <digest> <mask bits>` line inside the
     /// `S1FRAME f=<frame>` block of an oracle dump.
     fn dump_msd(path: &str, frame: u32) -> (i32, Vec<i32>) {
-        let text = std::fs::read_to_string(path).expect("oracle dump readable");
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
         let lines: Vec<&str> = text.split('\n').collect();
         let start = lines
             .iter()
@@ -2457,7 +2492,11 @@ mod phase1_tests {
     /// Collect every `ISB` int line inside the `S1FRAME f=<frame>` block
     /// of an oracle dump (one per channel, in order).
     fn dump_isb(path: &str, frame: u32) -> Vec<Vec<i32>> {
-        let text = std::fs::read_to_string(path).expect("oracle dump readable");
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
         let lines: Vec<&str> = text.split('\n').collect();
         let start = lines
             .iter()
@@ -3229,7 +3268,11 @@ mod phase1_tests {
     /// `ch=N` second token (dropped when the count is one over 1024,
     /// mirroring `dump_ints`).
     fn dump_ch_vecs(path: &str, frame: u32, tag: &str) -> Vec<Vec<i32>> {
-        let text = std::fs::read_to_string(path).expect("oracle dump readable");
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
         let lines: Vec<&str> = text.split('\n').collect();
         let start = lines
             .iter()
@@ -3259,7 +3302,11 @@ mod phase1_tests {
 
     /// Parse `ATS pre=a,b,c,d` / `ATS post=...` inside an S1FRAME block.
     fn dump_ats(path: &str, frame: u32) -> ([i32; 4], [i32; 4]) {
-        let text = std::fs::read_to_string(path).expect("oracle dump readable");
+        let text = require_validation_file(
+            "PHASE1_ORACLE_DIR",
+            path,
+            "generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory",
+        );
         let lines: Vec<&str> = text.split('\n').collect();
         let start = lines
             .iter()
@@ -3756,6 +3803,14 @@ mod phase1_tests {
             "PHASE1_OUT",
             &format!("{}/phase1-report", std::env::temp_dir().to_string_lossy()),
         );
+        for (var, dir) in [("PHASE1_C_DIR", &c_dir), ("PHASE1_ORACLE_DIR", &o_dir)] {
+            assert!(
+                std::path::Path::new(dir).is_dir(),
+                "reference validation artifact missing: {dir} (from ${var}); \
+                 point {var} at the reference outputs (C-encoded ADTS for PHASE1_C_DIR, \
+                 oracle .s1.txt dumps per tools/enc-oracle/README.md for PHASE1_ORACLE_DIR)"
+            );
+        }
         std::fs::create_dir_all(&out_dir).expect("out dir");
         let mut report = String::new();
         report.push_str(&format!(
@@ -3860,8 +3915,11 @@ mod phase1_tests {
             }
             let n_stepped = snaps.len();
             // C reference.
-            let c_bytes =
-                std::fs::read(format!("{c_dir}/{stem}.aac")).expect("C reference readable");
+            let c_bytes = require_validation_bytes(
+                "PHASE1_C_DIR",
+                &format!("{c_dir}/{stem}.aac"),
+                "encode the phase-1 fixtures with the reference aac-enc into $PHASE1_C_DIR as <stem>.aac (see tools/enc-oracle/README.md)",
+            );
             let c_frames = split_adts(&c_bytes);
             // Oracle dump reference (diagnosis only).
             let dump = load_dump(&format!("{o_dir}/{stem}.s1.txt"));
@@ -4523,8 +4581,14 @@ mod m52_tests {
             let rep = m52_write_adts_stream(short, stem, sr, ch, &out_dir)
                 .unwrap_or_else(|e| panic!("{stem}: {e}"));
             assert!(rep.frames > 0 && rep.bytes > 7, "{stem}: empty");
-            let c_bytes = std::fs::read(format!("{c_dir}/{stem}.aac"))
-                .unwrap_or_else(|_| panic!("{stem}: C reference readable"));
+            let c_bytes = std::fs::read(format!("{c_dir}/{stem}.aac")).unwrap_or_else(|_| {
+                panic!(
+                    "reference validation artifact missing: {c_dir}/{stem}.aac (from $M55_C_DIR); \
+                     encode the M52 fixtures with the reference aac-enc into $M55_C_DIR as \
+                     <stem>.aac (see tools/enc-oracle/README.md), after validating the checkout \
+                     with rust/tools/check-reference.sh --ref-dir <ref>"
+                )
+            });
             let rust_bytes = std::fs::read(&rep.path).expect("read back");
             assert_eq!(rust_bytes.len(), rep.bytes, "{stem}: file length");
             let mut exact = 0u32;
