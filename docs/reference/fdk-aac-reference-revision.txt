@@ -1,0 +1,39 @@
+# Pinned FDK AAC reference revision
+
+Pinned commit: `f14ad40a574a4132df947d15e9fb14bee91cc8a5`
+Parent commit: `da00af1ca9624a213fb53c9ac52f6fec55e9b2af`
+Baseline subject: `Reference baseline: legacy FDK AAC implementation and oracle tooling`
+
+Status: locally validated reference revision. This is **not yet a
+published remote dependency** — no remote repository has been created,
+and nothing here fetches, pins via submodule, or integrates a remote.
+
+Purpose: identify exactly which legacy C/C++ FDK AAC implementation and
+oracle tooling future validation runs and audits use when checking
+Ferrite's native Rust implementation (encoder behavior, ROM/table
+provenance, regression outputs).
+
+Scope of the pinned revision: the legacy FDK AAC C/C++ tree (`cpp/`),
+root C encoder/decoder and test helpers (`aac-enc.c`, `aac-dec.c`,
+`test-encode-decode.c`, `wavreader.*`, `wavwriter.*`, `sha1.*`), CMake
+and Autotools build infrastructure (`CMakeLists.txt`, `Makefile.am`,
+`configure*`, `m4/`, `win32/`, related root build files), legacy
+`test/`, Android benchmark `tests/`, `tools/enc-oracle/`,
+`tools/c-enc-bench/`, and root `NOTICE` with related licensing,
+provenance, and Android/Soong metadata. Production Rust code,
+documentation, and CI remain in Ferrite and are not part of this
+revision.
+
+Known limitation: the table extractors (`extract_tables.py`,
+`extract_quant_tables.py`, `extract_bitenc_tables.py`,
+`extract_bitcount_tables.py`) currently assume sibling Ferrite paths
+for their outputs and license header source, so they are not yet
+standalone in a reference-only checkout. Oracle builds, oracle runs,
+fixture generation, and config-only extraction were validated
+independently; table regeneration still expects a Ferrite tree.
+
+Reproducibility note: full oracle re-extraction can exhibit documented
+GSPEC/inactive-band scratch nondeterminism (see
+`tools/enc-oracle/README.md`); only config-only regeneration is
+byte-gated. A single successful validation run does not imply full
+reproducibility.
