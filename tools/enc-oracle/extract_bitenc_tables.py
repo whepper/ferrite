@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Extract M4-S7 Huffman code tables from the C probe into Rust source.
 
-Usage: extract_bitenc_tables.py <s7probe-txt>   (repo root)
+Usage: extract_bitenc_tables.py [--rom PATH] [--out PATH] <s7probe-txt>   (repo root)
+
+Options (all CWD-relative defaults, preserved for repo-root runs):
+  --rom PATH   FDK ROM source (default: cpp/libAACenc/src/aacEnc_rom.cpp)
+  --out PATH   output Rust file (default: rust/src/aac_enc/bitenc_tables.rs)
 
 Reads the S7TABLES blocks of <s7probe-txt> (produced by bitenc_probe,
 which prints the exact integers the reference build uses) and writes
@@ -22,9 +26,36 @@ carried verbatim and never indexed by the encode path.
 import re
 import sys
 
-PROBE = sys.argv[1]
+PROBE = None
 ROM = "cpp/libAACenc/src/aacEnc_rom.cpp"
 OUT = "rust/src/aac_enc/bitenc_tables.rs"
+
+_ARGS = sys.argv[1:]
+while _ARGS and _ARGS[0].startswith("--"):
+    _opt = _ARGS[0]
+    if _opt in ("--rom", "--out"):
+        if len(_ARGS) < 2:
+            raise SystemExit(
+                "usage: extract_bitenc_tables.py [--rom PATH] [--out PATH] "
+                "<s7probe-txt>   (repo root)")
+        if _opt == "--rom":
+            ROM = _ARGS[1]
+        else:
+            OUT = _ARGS[1]
+        _ARGS = _ARGS[2:]
+    elif _opt.startswith("--rom="):
+        ROM = _opt[len("--rom="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--out="):
+        OUT = _opt[len("--out="):]
+        _ARGS = _ARGS[1:]
+    else:
+        raise SystemExit(f"unknown flag {_opt}; usage: extract_bitenc_tables.py "
+                         f"[--rom PATH] [--out PATH] <s7probe-txt>   (repo root)")
+if len(_ARGS) != 1:
+    raise SystemExit("usage: extract_bitenc_tables.py [--rom PATH] [--out PATH] "
+                     "<s7probe-txt>   (repo root)")
+PROBE = _ARGS[0]
 
 txt = open(PROBE).read().splitlines()
 

@@ -6,18 +6,71 @@ Tables are data, not algorithms: scripted extraction avoids transcription
 errors. Every emitted table is verified (counts match, widths sum to the
 transform length, values match the anchors in the migration spec).
 
-Usage: python3 tools/enc-oracle/extract_tables.py   (repo root)
+Usage: python3 tools/enc-oracle/extract_tables.py [options] [configs-transcript]   (repo root)
 Writes: rust/src/aac_enc/sfb_tables.rs  (GEN=1 keeps it reproducible)
+
+Options (all CWD-relative defaults, preserved for repo-root runs):
+  --rom PATH         FDK ROM source (default: cpp/libAACenc/src/aacEnc_rom.cpp)
+  --tns-src PATH     TNS source (default: cpp/libAACenc/src/aacenc_tns.cpp)
+  --fdk-tools-rom PATH  FDK tools ROM (default: cpp/libFDK/src/FDK_tools_rom.cpp)
+  --out PATH         output Rust file (default: rust/src/aac_enc/sfb_tables.rs)
+  --header-src PATH  license/header source (default: rust/src/aac_enc.rs)
 """
 import re
 import sys
 
 ROM = "cpp/libAACenc/src/aacEnc_rom.cpp"
 TNS_SRC = "cpp/libAACenc/src/aacenc_tns.cpp"
+FDK_TOOLS_ROM = "cpp/libFDK/src/FDK_tools_rom.cpp"
 OUT = "rust/src/aac_enc/sfb_tables.rs"
+HEADER_SRC = "rust/src/aac_enc.rs"
 
-if len(sys.argv) > 1:
-    CONFIGS = sys.argv[1]
+_ARGS = sys.argv[1:]
+while _ARGS and _ARGS[0].startswith("--"):
+    _opt = _ARGS[0]
+    if _opt in ("--rom", "--tns-src", "--fdk-tools-rom", "--out", "--header-src"):
+        if len(_ARGS) < 2:
+            raise SystemExit(
+                f"usage: extract_tables.py [--rom PATH] [--tns-src PATH] "
+                f"[--fdk-tools-rom PATH] [--out PATH] [--header-src PATH] "
+                f"[configs-transcript]   (repo root)")
+        if _opt == "--rom":
+            ROM = _ARGS[1]
+        elif _opt == "--tns-src":
+            TNS_SRC = _ARGS[1]
+        elif _opt == "--fdk-tools-rom":
+            FDK_TOOLS_ROM = _ARGS[1]
+        elif _opt == "--out":
+            OUT = _ARGS[1]
+        else:
+            HEADER_SRC = _ARGS[1]
+        _ARGS = _ARGS[2:]
+    elif _opt.startswith("--rom="):
+        ROM = _opt[len("--rom="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--tns-src="):
+        TNS_SRC = _opt[len("--tns-src="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--fdk-tools-rom="):
+        FDK_TOOLS_ROM = _opt[len("--fdk-tools-rom="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--out="):
+        OUT = _opt[len("--out="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--header-src="):
+        HEADER_SRC = _opt[len("--header-src="):]
+        _ARGS = _ARGS[1:]
+    else:
+        raise SystemExit(f"unknown flag {_opt}; usage: extract_tables.py "
+                         f"[--rom PATH] [--tns-src PATH] [--fdk-tools-rom PATH] "
+                         f"[--out PATH] [--header-src PATH] [configs-transcript]")
+
+if len(_ARGS) > 1:
+    raise SystemExit("usage: extract_tables.py [--rom PATH] [--tns-src PATH] "
+                     "[--fdk-tools-rom PATH] [--out PATH] [--header-src PATH] "
+                     "[configs-transcript]   (repo root)")
+if _ARGS:
+    CONFIGS = _ARGS[0]
 else:
     CONFIGS = None
 
@@ -151,7 +204,7 @@ L.append("")
 L.append("/// Inverse-square-root table for fixed-point TNS autocorrelation")
 L.append("/// normalization (`invSqrtNorm2`, 130 Q31 entries, verbatim).")
 invs_body = re.search(r"invSqrtTab\[[^\]]*\]\s*=\s*\{([^}]*)\}",
-                       open("cpp/libFDK/src/FDK_tools_rom.cpp").read(), re.S)
+                       open(FDK_TOOLS_ROM).read(), re.S)
 assert invs_body, "invSqrtTab not found"
 # Strip C comments: the trailing 0x3FC05F61 is commented out (130 live).
 invs_body = re.sub(r"/\*.*?\*/", "", invs_body.group(1), flags=re.S)
@@ -162,11 +215,15 @@ assert invs[0] == 0x5A827999
 L.append(f"pub(crate) const INV_SQRT_TAB: [i32; 130] = [{', '.join(str(v) for v in invs)}];")
 L.append("")
 
+# Read and validate the license/header text BEFORE opening OUT, so a
+# missing header source or anchor fails without truncating the output.
+anchor = "----------------------------------------------------------------------------- */"
+_parts = open(HEADER_SRC).read().split(anchor)
+assert len(_parts) == 2, f"header anchor missing in {HEADER_SRC}"
+header = _parts[0] + anchor + "\n"
 with open(OUT, "w") as f:
     # Reuse the standard FDK license header so the generated data file
     # carries the same provenance notice as every other source file.
-    anchor = "----------------------------------------------------------------------------- */"
-    header = open("rust/src/aac_enc.rs").read().split(anchor)[0] + anchor + "\n"
     f.write(header)
     f.write("\n".join(L))
 

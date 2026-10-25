@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Extract M4-S3 quantizer tables from the C probe into Rust source.
 
-Usage: extract_quant_tables.py <qprobe-txt>   (repo root)
+Usage: extract_quant_tables.py [--rom PATH] [--out PATH] [--header-src PATH] <qprobe-txt>   (repo root)
+
+Options (all CWD-relative defaults, preserved for repo-root runs):
+  --rom PATH         FDK ROM source (default: cpp/libAACenc/src/aacEnc_rom.cpp)
+  --out PATH         output Rust file (default: rust/src/aac_enc/quant_tables.rs)
+  --header-src PATH  license/header source (default: rust/src/aac_enc.rs)
 
 Reads the QPROBE tables block of <qprobe-txt> (produced by quant_probe,
 which prints the exact integers the reference build uses) and writes
@@ -24,9 +29,43 @@ import re
 import struct
 import sys
 
-QPROBE = sys.argv[1]
+QPROBE = None
 ROM = "cpp/libAACenc/src/aacEnc_rom.cpp"
 OUT = "rust/src/aac_enc/quant_tables.rs"
+HEADER_SRC = "rust/src/aac_enc.rs"
+
+_ARGS = sys.argv[1:]
+while _ARGS and _ARGS[0].startswith("--"):
+    _opt = _ARGS[0]
+    if _opt in ("--rom", "--out", "--header-src"):
+        if len(_ARGS) < 2:
+            raise SystemExit(
+                "usage: extract_quant_tables.py [--rom PATH] [--out PATH] "
+                "[--header-src PATH] <qprobe-txt>   (repo root)")
+        if _opt == "--rom":
+            ROM = _ARGS[1]
+        elif _opt == "--out":
+            OUT = _ARGS[1]
+        else:
+            HEADER_SRC = _ARGS[1]
+        _ARGS = _ARGS[2:]
+    elif _opt.startswith("--rom="):
+        ROM = _opt[len("--rom="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--out="):
+        OUT = _opt[len("--out="):]
+        _ARGS = _ARGS[1:]
+    elif _opt.startswith("--header-src="):
+        HEADER_SRC = _opt[len("--header-src="):]
+        _ARGS = _ARGS[1:]
+    else:
+        raise SystemExit(f"unknown flag {_opt}; usage: extract_quant_tables.py "
+                         f"[--rom PATH] [--out PATH] [--header-src PATH] "
+                         f"<qprobe-txt>   (repo root)")
+if len(_ARGS) != 1:
+    raise SystemExit("usage: extract_quant_tables.py [--rom PATH] [--out PATH] "
+                     "[--header-src PATH] <qprobe-txt>   (repo root)")
+QPROBE = _ARGS[0]
 
 txt = open(QPROBE).read().splitlines()
 
@@ -206,7 +245,9 @@ L.append(f"/// Dead-zone addend for dZoneQuantEnable=1 (ELD-only here): "
 L.append(f"pub(crate) const QUANT_K1: i32 = {ko};")
 
 anchor = "----------------------------------------------------------------------------- */"
-header = open("rust/src/aac_enc.rs").read().split(anchor)[0] + anchor + "\n"
+_parts = open(HEADER_SRC).read().split(anchor)
+assert len(_parts) == 2, f"header anchor missing in {HEADER_SRC}"
+header = _parts[0] + anchor + "\n"
 with open(OUT, "w") as f:
     f.write(header)
     f.write("\n".join(L) + "\n")
