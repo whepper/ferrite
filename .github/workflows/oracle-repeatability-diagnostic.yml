@@ -247,20 +247,47 @@ jobs:
           ms = committed("ms_multitone-stereo_f5.txt",
                          {'MSM0', 'MSS0', 'MSMLD0', 'MSSLD0'})
           lines = open(dump_path).read().split('\n')
-          start = next(n for n, ln in enumerate(lines)
-                       if ln.strip() == 'S1FRAME f=5')
-          blocks = {}
-          for ln in lines[start:]:
-              t = ln.strip()
-              if t == 'S1FRAME f=6':
-                  break
-              for tag in ('PENLD ', 'PTHLD ', 'SENL ', 'MSM0 ', 'MSS0 ',
-                          'MSMLD0 ', 'MSSLD0 '):
-                  if t.startswith(tag):
-                      blocks.setdefault(tag.strip(), []).append(
-                          [int(w) for w in t[len(tag):].split()])
-                      break
+          stripped = [ln.strip() for ln in lines]
+          # Frame delimiters: the M3 MS block for frame f is emitted in the
+          # same frame iteration BEFORE that frame's S1FRAME dump, so the
+          # frame-5 M3 MS block lies in (S1FRAME f=4, S1FRAME f=5), while
+          # the S1-stage blocks lie in [S1FRAME f=5, S1FRAME f=6).
+          def positions(label):
+              return [n for n, t in enumerate(stripped) if t == label]
+          p4, p5, p6 = (positions('S1FRAME f=4'), positions('S1FRAME f=5'),
+                        positions('S1FRAME f=6'))
+          assert len(p4) == 1, f"S1FRAME f=4 count {len(p4)} (expected 1)"
+          assert len(p5) == 1, f"S1FRAME f=5 count {len(p5)} (expected 1)"
+          assert len(p6) == 1, f"S1FRAME f=6 count {len(p6)} (expected 1)"
+          p4, p5, p6 = p4[0], p5[0], p6[0]
+          assert p4 < p5 < p6, f"delimiters out of order: {p4} {p5} {p6}"
           rep = []
+          rep.append(f"frame interval: S1FRAME f=4 @line {p4}, "
+                     f"S1FRAME f=5 @line {p5}, S1FRAME f=6 @line {p6}")
+          def collect(lo, hi, tags):
+              found = {}
+              for ln in lines[lo:hi]:
+                  t = ln.strip()
+                  for tag in tags:
+                      if t.startswith(tag):
+                          found.setdefault(tag.strip(), []).append(
+                              [int(w) for w in t[len(tag):].split()])
+                          break
+              return found
+          s1blocks = collect(p5, p6, ('PENLD ', 'PTHLD ', 'SENL '))
+          for tag in ('PENLD', 'PTHLD', 'SENL'):
+              assert len(s1blocks.get(tag, [])) == 2, \
+                  f"S1 {tag} occurrences {len(s1blocks.get(tag, []))} (expected 2, ch0+ch1)"
+          msblocks = collect(p4 + 1, p5, ('MSM0 ', 'MSS0 ',
+                                          'MSMLD0 ', 'MSSLD0 '))
+          for tag in ('MSM0', 'MSS0', 'MSMLD0', 'MSSLD0'):
+              assert len(msblocks.get(tag, [])) == 1, \
+                  f"M3 {tag} occurrences {len(msblocks.get(tag, []))} in (f=4, f=5) (expected 1)"
+          rep.append("S1 blocks: PENLD/PTHLD/SENL x2 channels; "
+                     "M3 MS blocks: MSM0/MSS0/MSMLD0/MSSLD0 x1 (frame 5)")
+          blocks = s1blocks
+          for tag in ('MSM0', 'MSS0', 'MSMLD0', 'MSSLD0'):
+              blocks[tag] = msblocks[tag]
           def cmp(name, a, b):
               assert len(a) == len(b) == 45, f"{name} span {len(a)}/{len(b)}"
               diffs = [i for i in range(45) if a[i] != b[i]]
