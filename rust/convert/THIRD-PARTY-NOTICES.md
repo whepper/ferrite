@@ -17,8 +17,9 @@ following into the `aac-convert` binary except where noted.
 | `aac_ffi` (decoder FFI) | 0.1.0 | `FDK-AAC` | `rust/ffi/Cargo.toml` |
 | `aac_framework` (example decoder) | 0.1.0 | `FDK-AAC` | `rust/framework/Cargo.toml` |
 
-The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest also
-sets `license-file = "LICENSE-FDK-AAC"` so Cargo source packages carry the
+The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
+`license = "FDK-AAC"` (the standard SPDX identifier) and also sets
+`license-file = "LICENSE-FDK-AAC"` so Cargo source packages carry the
 complete license text. The full text is retained in the root `NOTICE`,
 `rust/NOTICE`, and `rust/LICENSE-FDK-AAC`.
 
