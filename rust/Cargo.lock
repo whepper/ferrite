@@ -13,26 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aac_ffi"
-version = "0.1.0"
-dependencies = [
- "ferrite-aac",
- "itertools",
- "num-complex",
-]
-
-[[package]]
-name = "aac_framework"
-version = "0.1.0"
-dependencies = [
- "aac_ffi",
- "ferrite-aac",
- "hound",
- "itertools",
- "num-complex",
-]
-
-[[package]]
 name = "arrayvec"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -107,12 +87,6 @@ dependencies = [
  "rustversion",
  "zerocopy",
 ]
-
-[[package]]
-name = "hound"
-version = "3.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62adaabb884c94955b19907d60019f4e145d091c75345379e70d1ee696f7854f"
 
 [[package]]
 name = "itertools"

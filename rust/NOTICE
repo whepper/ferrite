@@ -1,6 +1,6 @@
 THIRD-PARTY MODIFIED VERSION NOTICE
 
-Product: Ferrite (native Rust AAC-LC encoder and AAC decoder)
+Product: Ferrite (native Rust AAC-LC encoder)
 Modified version of: Fraunhofer FDK AAC Codec Library for Android
 
 This is a Third-Party Modified Version of the Fraunhofer FDK AAC Codec

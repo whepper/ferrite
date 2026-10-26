@@ -1,17 +1,12 @@
 [alias]
-# Build all default binaries
-build_bins = "build --package aac_framework --bins"
-# Build decoder
-build_dec = "build --package aac_framework --no-default-features --features aac_dec --bin aac_decoder"
+# Build the encoder library and conversion app
+build_enc = "build --locked --features aac_enc"
+build_convert = "build --locked -p aac-convert"
 
 # Shorts for shorts
-bb = "build_bins"
-bd = "build_dec"
+be = "build_enc"
+bc = "build_convert"
 
-# Check all default binaries
-check_bins = "check --package aac_framework --bins"
-# Check decoder
-check_dec = "check --package aac_framework --no-default-features --features aac_dec --bin aac_decoder"
-
-# Run decoder
-run_dec = "run --package aac_framework --no-default-features --features aac_dec --bin aac_decoder"
+# Check the encoder library and conversion app
+check_enc = "check --locked --features aac_enc"
+check_convert = "check --locked -p aac-convert"

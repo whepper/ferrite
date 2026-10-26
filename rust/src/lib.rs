@@ -95,30 +95,13 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-//! xHE-AAC/AAC-ELDv2 codec
+//! Native Rust AAC-LC encoder (VBR-5, afterburner-on).
 
 #![expect(clippy::approx_constant)]
 #![expect(clippy::excessive_precision)]
 
-#[cfg(feature = "aac_dec")]
-pub mod aac_dec;
-#[cfg(feature = "aac_enc")]
 pub mod aac_enc;
-#[cfg(feature = "aac_dec")]
-pub mod arith_coding;
 pub mod common;
-#[cfg(feature = "aac_dec")]
-pub mod drc_dec;
-#[cfg(feature = "aac_dec")]
-pub mod pcm_dmx;
-#[cfg(feature = "aac_dec")]
-pub mod sac_dec;
-#[cfg(feature = "aac_dec")]
-pub mod sbr_dec;
-#[cfg(feature = "aac_dec")]
-pub mod td_limiter;
-#[cfg(feature = "aac_dec")]
-pub mod tp_dec;
 
 #[doc(hidden)]
 pub fn dummy_call() {

@@ -40,13 +40,10 @@ jobs:
       - name: Build default configuration
         run: cargo build --locked
 
-      - name: Build encoder configuration
-        run: cargo build --locked --features aac_enc
-
       - name: Build encoder-only configuration
         run: cargo build --locked --no-default-features --features aac_enc
 
-      # These 15 tests require external C artifacts, a retained decoder, or
+      # These 15 tests require external C artifacts, an external decoder, or
       # opt-in environment variables. The other phase1 tests use committed
       # vectors and remain in the self-contained Tier A set.
       - name: Run self-contained encoder tests
@@ -70,12 +67,6 @@ jobs:
 
       - name: Run encoder doctests
         run: cargo test --locked --features aac_enc --doc
-
-      - name: Run decoder tests
-        run: cargo test --locked --no-default-features --features aac_dec --lib
-
-      - name: Run decoder doctests
-        run: cargo test --locked --no-default-features --features aac_dec --doc
 
       - name: Verify package contents
         run: cargo package --locked -p ferrite-aac

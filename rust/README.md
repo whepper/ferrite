@@ -9,16 +9,8 @@ root `../README.md`.
 ### `src`
 
 This directory contains the Rust source files for the `ferrite-aac`
-(`ferrite_aac`) library, covering the AAC-LC encoder (`aac_enc` feature)
-plus the decoder and shared DSP/transport modules.
-
-### `ffi`
-
-This folder contains the decoder-only C ABI (`aac_ffi`). The `src` folder contains the Rust wrappers, while the `include` folder contains the C interface that utilizes them. The main API header file to include is `aacdecoder_lib.h`.
-
-### `framework`
-
-This directory contains the Rust example decoder application (`aac_decoder`, package `aac_framework`).
+(`ferrite_aac`) encoder library, covering the AAC-LC encoder (`aac_enc`
+feature) plus shared DSP/transport modules.
 
 ### `convert`
 
@@ -43,11 +35,11 @@ See the root `../README.md` (“Build and test”) and
   * `rustup install 1.99.1`
   * `rustup default 1.99.1`
 
-### Example: decoder application
+### Example: conversion application
 
-Build the package: `cargo build --package aac_framework --bin aac_decoder`
+Build the package: `cargo build --package aac-convert`
 
-To run the decoder, use: `target/debug/aac_decoder`
+To run the converter, use: `target/debug/aac-convert --help`
 
 ### How to Build the Documentation
 

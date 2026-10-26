@@ -12,14 +12,14 @@ complete.)
 ## What it is
 
 - `rust/` — Cargo workspace with the native Rust implementation:
-  - `ferrite-aac` (`ferrite_aac`) — AAC codec library: **AAC-LC encoder
-    (VBR-5 profile)** plus the AAC decoder and shared DSP/transport modules.
+  - `ferrite-aac` (`ferrite_aac`) — AAC-LC encoder library (**VBR-5
+    profile**) plus shared DSP/transport modules.
   - `aac-convert` — FLAC-to-AAC application: single-file and batch
     conversion to audio-only M4A or ADTS, with core Vorbis-comment tags,
     cover art, Apple `iTunSMPB` gapless signalling, and native ReplayGain
     2.0 + `iTunNORM` loudness metadata (fixed −18.0 LUFS reference).
-  - `aac_ffi` — decoder-only C ABI; `aac_framework` — example decoder
-    binary. The encoder has no FFI surface.
+  - The encoder has no FFI surface; there is no decoder crate in this
+    repository.
 - The upstream Fraunhofer FDK AAC C/C++ implementation is **not
   vendored here**: it lives only in the private reference repository
   (`whepper/fdk-aac-reference`, pinned revision in
@@ -106,7 +106,7 @@ checkout, and is never required for normal Rust validation or CI.
 - The codec crate manifest declares the standard SPDX identifier
   `license = "FDK-AAC"` and `license-file = "LICENSE-FDK-AAC"`. The
   dedicated file contains the complete FDK-AAC license for Cargo source
-  packages. The converter, decoder FFI, and framework manifests also use
+  packages. The converter manifest also uses
   `FDK-AAC`. Distribution bundles containing binaries must include the
   complete corresponding source and the license/notice documentation.
 - **Modified-version identification:** Ferrite is a “Third-Party Modified

@@ -14,8 +14,6 @@ following into the `aac-convert` binary except where noted.
 |---|---|---|---|
 | `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
 | `aac-convert` (this application) | 0.1.0 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
-| `aac_ffi` (decoder FFI) | 0.1.0 | `FDK-AAC` | `rust/ffi/Cargo.toml` |
-| `aac_framework` (example decoder) | 0.1.0 | `FDK-AAC` | `rust/framework/Cargo.toml` |
 
 The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
 `license = "FDK-AAC"` (the standard SPDX identifier) and also sets
@@ -89,7 +87,5 @@ confirm with legal review whether their texts must also ship.
 
 ## Out of scope for this inventory
 
-Sibling workspace members (`framework`, `ffi`) are listed above for license
-identity only; their full dependency graphs are not assessed here.
 Dev-dependencies are not part of the `aac-convert` release build and are not
 assessed here.

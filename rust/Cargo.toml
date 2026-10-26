@@ -6,9 +6,9 @@ edition = "2021"
 rust-version = "1.99.1"
 license = "FDK-AAC"
 license-file = "LICENSE-FDK-AAC"
-description = "Native Rust AAC codec library derived from Fraunhofer FDK AAC (Ferrite)"
+description = "Native Rust AAC-LC encoder derived from Fraunhofer FDK AAC (Ferrite)"
 readme = "README.md"
-keywords = ["aac", "audio", "codec", "decoder", "fdk"]
+keywords = ["aac", "audio", "codec", "encoder", "fdk"]
 
 [lib]
 crate-type = ["lib"]
@@ -25,8 +25,7 @@ zerocopy = "0.8.20"
 rustversion = "1.0.20"
 
 [features]
-default = ["aac_dec"]
-aac_dec = []
+default = ["aac_enc"]
 aac_enc = []
 
 # Cargo build profiles
@@ -40,6 +39,4 @@ overflow-checks = true
 [workspace]
 members = [
     "convert",
-    "framework",
-    "ffi",
 ]
