@@ -100,21 +100,28 @@ checkout, and is never required for normal Rust validation or CI.
   subject to the **Fraunhofer FDK AAC Codec Library for Android** license
   terms, including the patent-licensing notice pointing to Via Licensing.
   **Do not remove FDK license headers or NOTICE files.**
-- Which NOTICE applies: the root `NOTICE` (© 1995–2018) records the upstream
-  license text; `rust/NOTICE` (© 2025) is the copy carried with the Rust
-  port whose source files bear that header. They differ only in the
-  copyright year line; both are retained intentionally.
+- Which NOTICE applies: the root `NOTICE` (© 1995–2018) preserves the
+  upstream license text; `rust/NOTICE` carries the same complete license
+  text plus a prominent modified-version notice dated 2026-10-26. Both
+  are retained intentionally.
+- The codec crate's `rust/Cargo.toml` declares `license = "FDK-AAC"` and
+  `license-file = "LICENSE-FDK-AAC"`; this dedicated file contains the
+  complete FDK-AAC license for Cargo source packages. The converter,
+  decoder FFI, and framework manifests also use `FDK-AAC`. A separate
+  distribution bundle must include the complete source, this license text,
+  and `rust/NOTICE` with the modified-version notice alongside binaries.
+- **Modified-version identification:** Ferrite is a “Third-Party Modified
+  Version of the Fraunhofer FDK AAC Codec Library for Android.” The Rust
+  implementation/modifications are copyright © 2025–2026 Jeroen Steenvoorde.
+  Ferrite is not affiliated with or endorsed by Fraunhofer.
 - Separately, small C reference/tooling helpers in the external reference
   checkout carry their own regimes (`aac-enc.c` is Apache-2.0
   (Martin Storsjo); the SHA-1 helpers are BSD (Paul E. Jones)). This does
   not alter the FDK-derived licensing obligations above.
-- Renaming the product to Ferrite does not remove any attribution or
-  licensing obligation.
-- Open question for review: Cargo manifests declare the custom
-  `license = "FDK-AAC"` identifier. Whether to add a `license-file`
-  pointer (and to which NOTICE text, per package) was deferred pending
-  confirmation of the authoritative text per package — see
-  `docs/archive/ferrite-phase-1-report.md`.
+- The FDK-AAC license grants no patent license. Any applicable AAC patent
+  authorization must be assessed separately before distribution.
+- This documentation is not a legal opinion; the inventory and distribution
+  model require review before a public or commercial release.
 
 ## Limitations and deferred work (not implemented)
 
