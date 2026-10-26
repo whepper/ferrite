@@ -1,3 +1,7 @@
+//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+//! Codec Library for Android. Modifications and Rust implementation copyright
+//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
+//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
 //! Phase 1B isolated oracle-fed differential (test-only diagnostic).
 //!
 //! Feeds committed oracle S1/S2 vectors into the existing Rust S4 stage,

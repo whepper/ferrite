@@ -1,3 +1,7 @@
+//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+//! Codec Library for Android. Modifications and Rust implementation copyright
+//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
+//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
 //! M5.g branch-execution census (test-only; read-only observability).
 //!
 //! Drives the exact 19-stream M5.d inventory (15 M52 + 4 M55) through the

@@ -1,3 +1,7 @@
+//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+//! Codec Library for Android. Modifications and Rust implementation copyright
+//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
+//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
 //! M6.1 migration equality harness (test-only).
 //!
 //! First client of the production [`Encoder`](super::encoder::Encoder):

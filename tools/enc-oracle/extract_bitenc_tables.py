@@ -141,7 +141,11 @@ RUST = [
 ]
 
 with open(OUT, "w") as f:
-    f.write("""/* -----------------------------------------------------------------------------
+    f.write("""/* Ferrite: this file is part of a Third-Party Modified Version of the
+Fraunhofer FDK AAC Codec Library for Android. Modifications and Rust
+implementation copyright © 2025–2026 Jeroen Steenvoorde. Modification
+notice date: 2026-10-26. See rust/NOTICE for the full license text. */
+/* -----------------------------------------------------------------------------
 Software License for The Fraunhofer FDK AAC Codec Library for Android
 
 (c) Copyright 2026 Fraunhofer-Gesellschaft zur Foerderung der angewandten

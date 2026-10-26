@@ -1,3 +1,7 @@
+//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+//! Codec Library for Android. Modifications and Rust implementation copyright
+//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
+//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
 //! Production single-threaded AAC-LC VBR-5 encoder API.
 //!
 //! Owned, pull-style `Encoder` over the existing encoding pipeline. No
