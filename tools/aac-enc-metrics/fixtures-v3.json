@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "name": "ferrite-aac-vbr5-v3-objective-corpus",
+  "corpus_version": "V3",
+  "description": "Committed/derivable inputs for the AAC-LC VBR-5 C-vs-Rust objective metrics baseline. Measurement only; no perceptual claim.",
+  "corpus_member_count": 19,
+  "separate_probe_count": 1,
+  "baseline": {
+    "rust_source_commit": "3878c45a8b9d85956bf1b62b17897f94c41b2d6a",
+    "rust_source_subject": "test(ci): align MS diagnostic with frame five",
+    "rust_build_profile": "test/dev",
+    "rust_build_command": "cargo test --features aac_enc m58_corpus_validation -- --nocapture",
+    "rust_toolchain": "rustc/cargo 1.99.1",
+    "c_source_commit": "f14ad40a574a4132df947d15e9fb14bee91cc8a5",
+    "c_source_parent": "da00af1ca9624a213fb53c9ac52f6fec55e9b2af",
+    "c_build_type": "Release",
+    "c_cmake_options": [
+      "-DBUILD_PROGRAMS=ON",
+      "-DCMAKE_BUILD_TYPE=Release"
+    ],
+    "c_compiler": "Apple clang 21.0.0",
+    "cmake": "4.4.4",
+    "expected_c_binaries": {
+      "aac-enc": {
+        "sha256": "013e8acf2571486a008c0ece538489e36d7e796b84a6f927418e66fb2d15e5f5",
+        "role": "C AAC-LC VBR-5 encoder"
+      },
+      "aac-dec": {
+        "sha256": "f361ba89d372cb1b1a9175e673e6969ac6fc632428202cab02a31b3e3a21c0b8",
+        "role": "C FDK AAC decoder"
+      },
+      "libfdk-aac.2.0.4.dylib": {
+        "sha256": "a94ede263c3994abb2a6f0582d11b0346b8f76704219deed9f04bf0fb7d51a8e",
+        "role": "shared FDK AAC library loaded by the recorded macOS binaries"
+      }
+    }
+  },
+  "encoder_configuration": {
+    "codec": "AAC-LC",
+    "aot": 2,
+    "vbr_mode": 5,
+    "afterburner": true,
+    "pns": "off",
+    "transport": "ADTS",
+    "frame_length_samples": 1024,
+    "input_format": "pcm_s16le",
+    "channel_order": "WAV",
+    "c_cli": "aac-enc in.wav out.aac",
+    "rust_harness": "m58_corpus_validation"
+  },
+  "alignment": {
+    "nominal_lag_samples": 1600,
+    "search_half_width_samples": 32,
+    "channel_tolerance_samples": 1,
+    "nominal_tolerance_samples": 1,
+    "tie_epsilon": 1e-09,
+    "coarse_step_samples": 8,
+    "short_signal_threshold_samples": 48000,
+    "short_signal_coarse_step_samples": 1,
+    "refine_half_width_samples": 2,
+    "long_signal_refine_half_width_samples": 4,
+    "sign_convention": "positive lag means decoded[lag:] aligns with original[0:]",
+    "method": "Per channel, search integer lags in [nominal-half, nominal+half] by normalized cross-correlation. Use stride 1 for short signals and stride 8 for long signals. Refine the best coarse candidate at full rate over +/-2 samples for short signals and +/-4 samples for long signals; the long span covers the whole stride-8 cell. For stereo, require the two channel estimates to agree within +/-1 sample; select the nominal lag when both estimates are within +/-1 of nominal, otherwise select the joint best candidate. A best candidate at the search boundary, a score tie, no signal, a channel disagreement, or a selected lag outside nominal +/-1 is ambiguous and excludes the stream from quality metrics.",
+    "ambiguity_rules": [
+      "no_signal: no defined normalized correlation for any searched lag",
+      "search_boundary: best candidate equals the lower or upper search bound",
+      "score_tie: second-best separated candidate is within 1e-9 normalized correlation",
+      "channel_lag_disagreement: stereo channel estimates differ by more than 1 sample",
+      "outside_nominal_tolerance: selected lag differs from nominal by more than 1 sample"
+    ],
+    "delay_accounting": "The decoder CLI drops outputDelay once. The metric applies only the selected alignment lag to the decoded WAV; outputDelay is recorded but never subtracted again.",
+    "frame_mapping": "Not used in F04-B1. No causal AAC-frame-to-source-sample mapping is asserted."
+  },
+  "decoder_output_delay_samples": {
+    "48000": 1744,
+    "44100": 1685
+  },
+  "fixtures": [
+    {
+      "stem": "m2-silence-stereo-48k",
+      "generator_key": "silence-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "ede1f6dd33abfce7bb3a45ba79b0ab5f8baae692709dd32214a41da9af55ab13",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-sine-stereo-48k",
+      "generator_key": "sine-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "a7e8494adacb5bee5a18998e16994fa50b63291e47e31d862abe252484d71a17",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-onset-stereo-48k",
+      "generator_key": "onset-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "a8f58ee16f3afc38bbc03e7368b271b5a7ea13c3410262e35aeae854173b36e3",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-stepdown-stereo-48k",
+      "generator_key": "stepdown-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "4d4be7862efc968e0a5aeb5452022aba8dcef712111c0e2492c6c14472fc3f15",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-click-mono-48k",
+      "generator_key": "click-mono",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "samples_per_channel": 24000,
+      "duration_seconds": 0.5,
+      "input_sha256": "a5041d6075b477ccb0a092ce33ecea61417eaff29fc5992d66ba38ce21879404",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-impulse-mono-48k",
+      "generator_key": "impulse-mono",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "samples_per_channel": 9600,
+      "duration_seconds": 0.2,
+      "input_sha256": "5fe5ca86a0d7c98bd0b99641462d1477d363a27d07c63c8a035a89f5ecd8c025",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m2-edge-mono-48k",
+      "generator_key": "edge-mono",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "samples_per_channel": 12000,
+      "duration_seconds": 0.25,
+      "input_sha256": "8fd8bb5adb9e180da9b76c5ea3f05a313eb1715d9b78c477bc7f9cbd723f4fa6",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-multitone-stereo-48k",
+      "generator_key": "multitone-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "386e2887a14c8c1ae15b4f9e36860945fd6ba5f001b86414308aeb2675973735",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-sweep-stereo-48k",
+      "generator_key": "sweep-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "d13682fb3404464ff1ae49c5752c14d02c4fc844bf488e00b8575a2ae515486e",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-noise-mono-48k",
+      "generator_key": "noise-mono",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "samples_per_channel": 24000,
+      "duration_seconds": 0.5,
+      "input_sha256": "a03a4e7ec3f9d828c26bce19218492e308d263656af99208f2805569e6f580d6",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-tonal-noise-stereo-48k",
+      "generator_key": "tonal-noise-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 24000,
+      "duration_seconds": 0.5,
+      "input_sha256": "bf3a557a0f147565267fbac300833106c964f274cde198754635c1239d21ca9f",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-quiet-sine-stereo-48k",
+      "generator_key": "quiet-sine-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 48000,
+      "duration_seconds": 1.0,
+      "input_sha256": "084209fb79f4ba424358a75f6d5606bfdbbb1e0bde69b8e5d5072f86a06d9dbb",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m3-sine-stereo-441k",
+      "generator_key": "sine-stereo-44100",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 44100,
+      "channels": 2,
+      "samples_per_channel": 44100,
+      "duration_seconds": 1.0,
+      "input_sha256": "5577677e3ac706740df9ec1d56d8afde2773566fc4a078e86b9e56f8b634dd17",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "44k1-separate",
+      "eligibility": {
+        "gated_aggregate": false,
+        "reason": "44.1 kHz alignment gate in docs/aac-enc-benchmark-plan.md section 4a is not established; exploratory only"
+      }
+    },
+    {
+      "stem": "m3-onset-stereo-441k",
+      "generator_key": "onset-stereo-44100",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 44100,
+      "channels": 2,
+      "samples_per_channel": 44100,
+      "duration_seconds": 1.0,
+      "input_sha256": "d844a43592dbf51b94603765d3bf05bf6cda482d2c3bb7b8e99702a305eecefd",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "44k1-separate",
+      "eligibility": {
+        "gated_aggregate": false,
+        "reason": "44.1 kHz alignment gate in docs/aac-enc-benchmark-plan.md section 4a is not established; exploratory only"
+      }
+    },
+    {
+      "stem": "m6-stress-stereo-48k",
+      "generator_key": "stress-stereo",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs; tools/enc-oracle/make_fixtures.py",
+      "license": "generated-test-fixture",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 24000,
+      "duration_seconds": 0.5,
+      "input_sha256": "50b44b34f03b5747c9ad2c9973fab15791914409717802f500f8dd36b0f785bc",
+      "input_source": "generated:tools/enc-oracle/make_fixtures.py",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; deterministic corpus fixture; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m7-music-stereo-48k",
+      "generator_key": null,
+      "category": "licensed-music",
+      "provenance_status": "documented-license",
+      "provenance_source": "rust/src/aac_enc/testdata/m55-PROVENANCE.txt",
+      "license": "CC0-1.0",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 480000,
+      "duration_seconds": 10.0,
+      "input_sha256": "b49e10a1d3f51b80db1d4d1a1179afa9963570528042395df20be8e2193f3086",
+      "input_source": "committed:rust/src/aac_enc/testdata/m7-music-stereo-48k.wav",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; documented CC0 provenance; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m7-speech-pauses-stereo-48k",
+      "generator_key": null,
+      "category": "licensed-speech",
+      "provenance_status": "documented-license",
+      "provenance_source": "rust/src/aac_enc/testdata/m55-PROVENANCE.txt",
+      "license": "CC-BY-4.0",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 480000,
+      "duration_seconds": 10.0,
+      "input_sha256": "67d69a64fed23fe16ab666a9e1f02262afa78934363c69999728cadd9ec1a4d3",
+      "input_source": "committed:rust/src/aac_enc/testdata/m7-speech-pauses-stereo-48k.wav",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; documented CC BY 4.0 provenance; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m7-speech-clean-stereo-48k",
+      "generator_key": null,
+      "category": "licensed-speech",
+      "provenance_status": "documented-license",
+      "provenance_source": "rust/src/aac_enc/testdata/m55-PROVENANCE.txt",
+      "license": "CC-BY-4.0",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 480000,
+      "duration_seconds": 10.0,
+      "input_sha256": "3dfb7dcb0cd9f600f9ae66eb791df6d7c740c833218df88f1de73f87353346ff",
+      "input_source": "committed:rust/src/aac_enc/testdata/m7-speech-clean-stereo-48k.wav",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": true,
+        "reason": "48 kHz; documented CC BY 4.0 provenance; per-stream alignment gate is evaluated at run time"
+      }
+    },
+    {
+      "stem": "m8-music-eroica-stereo-48k",
+      "generator_key": null,
+      "category": "real-music",
+      "provenance_status": "provisional",
+      "provenance_source": "rust/src/aac_enc/testdata/m8-PROVENANCE.txt",
+      "license": "public-domain",
+      "corpus_member": true,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "samples_per_channel": 480000,
+      "duration_seconds": 10.0,
+      "input_sha256": "4413c8a41fe148192081c504ecfb5d69b5c7c4fc158cefff8b0dfadf8923986b",
+      "input_source": "committed:rust/src/aac_enc/testdata/m8-music-eroica-stereo-48k.wav",
+      "alignment_gate": "48k",
+      "eligibility": {
+        "gated_aggregate": false,
+        "reason": "m8 provenance status is PROVISIONAL and not owner-approved; exploratory only"
+      }
+    },
+    {
+      "stem": "m3-onset-mono-441k",
+      "generator_key": "onset-mono-44100",
+      "category": "synthetic",
+      "provenance_status": "deterministic-resynthesis",
+      "provenance_source": "rust/src/aac_enc/testdata.rs key onset-mono-44100; generated by rust test m5b_dump_inputs",
+      "license": "generated-test-fixture",
+      "corpus_member": false,
+      "sample_rate_hz": 44100,
+      "channels": 1,
+      "samples_per_channel": 44100,
+      "duration_seconds": 1.0,
+      "input_sha256": "df25ddc788ae280b21dce150caf47fb9f2781361d3016cf29aa91be4cf9a80c6",
+      "input_source": "generated:m5b_dump_inputs",
+      "input_path_hint": "${TMPDIR}/m5b-quality/inputs/onset-mono-44100.orig.wav",
+      "alignment_gate": "44k1-separate",
+      "eligibility": {
+        "gated_aggregate": false,
+        "reason": "separate mono/44.1 kHz probe; not part of the 19-fixture V3 corpus"
+      }
+    }
+  ]
+}
