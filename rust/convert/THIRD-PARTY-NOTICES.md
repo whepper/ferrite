@@ -10,18 +10,18 @@ following into the `aac-convert` binary except where noted.
 
 ## First-party code
 
-| Package | Version | License field | Evidence |
+| Package | Version | SPDX license | Evidence |
 |---|---|---|---|
 | `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
 | `aac-convert` (this application) | 0.1.0 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
 | `aac_ffi` (decoder FFI) | 0.1.0 | `FDK-AAC` | `rust/ffi/Cargo.toml` |
 | `aac_framework` (example decoder) | 0.1.0 | `FDK-AAC` | `rust/framework/Cargo.toml` |
 
-The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
-`license = "FDK-AAC"` (the standard SPDX identifier) and also sets
-`license-file = "LICENSE-FDK-AAC"` so Cargo source packages carry the
-complete license text. The full text is retained in the root `NOTICE`,
-`rust/NOTICE`, and `rust/LICENSE-FDK-AAC`.
+The standard SPDX identifier is `FDK-AAC`. The codec crate manifest
+declares `license = "FDK-AAC"` and `license-file = "LICENSE-FDK-AAC"`
+so Cargo source packages carry the complete license text. The full text is
+retained in the root `NOTICE`, `rust/NOTICE`, and
+`rust/LICENSE-FDK-AAC`.
 
 Ferrite is a **Third-Party Modified Version of the Fraunhofer FDK AAC Codec
 Library for Android**. The modified-version notice in `rust/NOTICE` is dated
