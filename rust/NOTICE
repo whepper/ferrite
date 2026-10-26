@@ -1,3 +1,27 @@
+THIRD-PARTY MODIFIED VERSION NOTICE
+
+Product: Ferrite (native Rust AAC-LC encoder and AAC decoder)
+Modified version of: Fraunhofer FDK AAC Codec Library for Android
+
+This is a Third-Party Modified Version of the Fraunhofer FDK AAC Codec
+Library for Android. Ferrite is not the original Fraunhofer FDK AAC Codec
+Library for Android and is not affiliated with, endorsed by, or sponsored
+by Fraunhofer-Gesellschaft or Fraunhofer IIS.
+
+Modifications and Rust implementation copyright © 2025–2026 Jeroen
+Steenvoorde.
+
+Modification notice date: 2026-10-26.
+
+SPDX-License-Identifier: FDK-AAC
+
+The FDK-AAC software license grants no patent license. Use of this software
+must be for purposes authorized by applicable patent licenses. See the full
+license text below; patent authorization is separate from software copyright
+licensing.
+
+---
+
 Software License for The Fraunhofer FDK AAC Codec Library for Android
 
 © Copyright 2025 Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung

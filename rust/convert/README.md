@@ -393,9 +393,13 @@ Requirements: Rust 1.99.1 (`rustup install 1.99.1`), dependency sources
 resolved from crates.io against the committed `rust/Cargo.lock`. No
 vendoring is needed. Do not publish either crate to a registry.
 
-Before distributing a binary, complete the notice/license review in
+Before distributing a binary, include the complete source bundle and
+`rust/NOTICE` (including the prominent modified-version notice dated
+2026-10-26), retain all dependency notices, and complete the review in
 `THIRD-PARTY-NOTICES.md` (FDK-AAC conditions, MPL-2.0 source availability,
-Apache/MIT/BSD attributions, AAC patent authorization).
+Apache/MIT/BSD attributions, and separate AAC patent authorization). Do not
+charge a copyright license fee for the FDK-derived codec, and do not imply
+Fraunhofer endorsement.
 
 ## Release follow-ups
 
