@@ -150,3 +150,112 @@ jobs:
 
       - name: Run Clippy (informational)
         run: cargo clippy --locked --features aac_enc --all-targets
+
+  # Independent decode validation. This job deliberately uses the historical
+  # Ferrite commit that the private FDK AAC reference was derived from, so no
+  # private-reference token or externally published decoder artifact is needed.
+  decode-validation:
+    name: Independent AAC decode validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Check out trusted decoder source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        with:
+          repository: whepper/ferrite
+          ref: da00af1ca9624a213fb53c9ac52f6fec55e9b2af
+          path: .decoder/reference
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify decoder source revision
+        working-directory: .decoder/reference
+        run: |
+          set -euo pipefail
+          expected=da00af1ca9624a213fb53c9ac52f6fec55e9b2af
+          actual=$(git rev-parse HEAD)
+          if [ "$actual" != "$expected" ]; then
+            printf 'error: decoder source is %s, expected %s\n' "$actual" "$expected" >&2
+            exit 1
+          fi
+          printf 'decoder source revision verified: %s\n' "$actual"
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # dtolnay/rust-toolchain stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Build independent decoder
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          for tool in cmake c++; do
+            command -v "$tool" >/dev/null 2>&1 || {
+              printf 'error: required tool missing: %s\n' "$tool" >&2
+              exit 1
+            }
+          done
+          cmake -S .decoder/reference -B .decoder/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_PROGRAMS=ON \
+            -DBUILD_SHARED_LIBS=OFF
+          cmake --build .decoder/build --target aac-dec -j 2
+          test -x .decoder/build/aac-dec
+          decoder_rev=$(git -C .decoder/reference rev-parse HEAD)
+          decoder_sha=$(sha256sum .decoder/build/aac-dec | awk '{print $1}')
+          {
+            printf '### Independent AAC decoder\n'
+            printf -- '- Source commit: %s\n' "$decoder_rev"
+            printf -- '- aac-dec SHA-256: %s\n' "$decoder_sha"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run decoder-backed tests
+        working-directory: rust
+        shell: bash
+        env:
+          AAC_DEC_BIN: ${{ github.workspace }}/.decoder/build/aac-dec
+          LOG_DIR: ${{ runner.temp }}/decode-validation-logs
+        run: |
+          set -euo pipefail
+          : "${AAC_DEC_BIN:?AAC_DEC_BIN is not set}"
+          if [ ! -f "$AAC_DEC_BIN" ] || [ ! -x "$AAC_DEC_BIN" ]; then
+            printf 'error: AAC_DEC_BIN=%s is missing or not executable\n' "$AAC_DEC_BIN" >&2
+            exit 1
+          fi
+          mkdir -p "$LOG_DIR"
+          run_test() {
+            local test_path=$1
+            local log=$2
+            if ! cargo test --locked --features aac_enc --lib -- \
+              --exact "$test_path" --nocapture >"$log" 2>&1; then
+              printf 'error: test failed: %s\n' "$test_path" >&2
+              cat "$log" >&2
+              return 1
+            fi
+          }
+          run_test \
+            aac_enc::stream_driver::m52_tests::crash_recovered_stream_decodes \
+            "$LOG_DIR/crash.log"
+          run_test \
+            aac_enc::m5a_decode::m5a_tests::m5a_decode_check \
+            "$LOG_DIR/m5a.log"
+          run_test \
+            aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes \
+            "$LOG_DIR/adts.log"
+          if ! bash "$GITHUB_WORKSPACE/rust/tools/check-decode-evidence.sh" \
+            "$LOG_DIR/crash.log" "$LOG_DIR/m5a.log" "$LOG_DIR/adts.log"; then
+            for log in "$LOG_DIR/crash.log" "$LOG_DIR/m5a.log" "$LOG_DIR/adts.log"; do
+              printf '### %s\n' "$log" >&2
+              cat "$log" >&2
+            done
+            exit 1
+          fi
+          grep -hE '^CRASH_RECOVERY_DECODE |^M5\.a ' \
+            "$LOG_DIR/crash.log" "$LOG_DIR/m5a.log" || true

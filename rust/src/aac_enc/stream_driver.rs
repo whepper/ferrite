@@ -5558,6 +5558,29 @@ mod is_integration_tests {
             .collect()
     }
 
+    /// The F05 scale check records, but does not count, bands where both
+    /// sides select IS and C's scale is zero while Rust's is nonzero.
+    /// Empty is the current accepted invariant; any entry is a new,
+    /// unpinned C/Rust difference that needs review.
+    fn assert_no_zero_c_records(probe: &str, records: &[(u32, u32, i32)]) {
+        assert!(
+            records.is_empty(),
+            "{probe}: unexpected C-zero/Rust-nonzero intensity scale(s) \
+             (C ISB != 0, C ISS == 0, Rust scale != 0): {records:?}"
+        );
+    }
+
+    #[test]
+    fn zero_c_record_guard_accepts_empty_records() {
+        assert_no_zero_c_records("synthetic", &[]);
+    }
+
+    #[test]
+    #[should_panic(expected = "synthetic: unexpected C-zero/Rust-nonzero intensity scale(s)")]
+    fn zero_c_record_guard_rejects_synthetic_entry() {
+        assert_no_zero_c_records("synthetic", &[(7, 13, 3)]);
+    }
+
     #[test]
     fn intensity_probe_c_oracle_parity() {
         // Environment-gated: the retained probe WAV and C oracle are outside
@@ -5772,6 +5795,9 @@ mod is_integration_tests {
             expected_scale_positions(&probe),
             "{probe}: scale mismatch positions changed"
         );
+        // C selected IS with a zero scale while Rust emitted a nonzero one:
+        // invisible to the mismatch count, so any entry is a new difference.
+        assert_no_zero_c_records(&probe, &zero_c_records);
         let msd_mismatch = (0..n).filter(|&i| snaps[i].digest != c_msd[i]).count();
         let expected_msd = usize::from(probe == "narrowband-in-phase");
         assert_eq!(
@@ -5908,6 +5934,10 @@ mod is_integration_tests {
     #[test]
     fn intensity_probe_adts_decodes() {
         let Ok(dec) = std::env::var("AAC_DEC_BIN") else {
+            // Tier-B status marker (see rust/tools/tierb-report.sh): the
+            // reporter relies on this marker to distinguish skipped
+            // validation from a successful test. Visible with `--nocapture`.
+            println!("TIERB_SKIP intensity_probe_adts_decodes missing_env=AAC_DEC_BIN");
             return;
         };
         let pcm = probe_pcm(true, false, false, false);
