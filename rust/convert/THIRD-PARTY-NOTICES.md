@@ -12,17 +12,27 @@ following into the `aac-convert` binary except where noted.
 
 | Package | Version | License field | Evidence |
 |---|---|---|---|
-| `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` (custom, non-SPDX) | `rust/Cargo.toml`; full Fraunhofer text in file headers and `rust/NOTICE` |
-| `aac-convert` (this application) | 0.1.0 | `FDK-AAC` (custom, non-SPDX) | `rust/convert/Cargo.toml` |
+| `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
+| `aac-convert` (this application) | 0.1.0 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
+| `aac_ffi` (decoder FFI) | 0.1.0 | `FDK-AAC` | `rust/ffi/Cargo.toml` |
+| `aac_framework` (example decoder) | 0.1.0 | `FDK-AAC` | `rust/framework/Cargo.toml` |
 
-The FDK-AAC license text (see `NOTICE` at the repository root and
-`rust/NOTICE`) conditions binary redistribution, among other things, on:
-retaining the complete license text in documentation/materials; making the
-complete source available free of charge; charging no copyright license fees;
-no Fraunhofer endorsement; prominent modification notices in modified
-versions. It grants **no patent license**; patent authorization must come
-through Via Licensing or the patent owners. Whether desktop distribution is
-already covered in any given case is an open question for review.
+The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest also
+sets `license-file = "LICENSE-FDK-AAC"` so Cargo source packages carry the
+complete license text. The full text is retained in the root `NOTICE`,
+`rust/NOTICE`, and `rust/LICENSE-FDK-AAC`.
+
+Ferrite is a **Third-Party Modified Version of the Fraunhofer FDK AAC Codec
+Library for Android**. The modified-version notice in `rust/NOTICE` is dated
+2026-10-26 and identifies the Ferrite/Rust modifications. The notice does not
+claim Fraunhofer affiliation or endorsement.
+
+The FDK-AAC license conditions binary redistribution, among other things,
+on retaining the complete license text in documentation/materials; making
+the complete source available free of charge; charging no copyright license
+fees; not implying Fraunhofer endorsement; and providing prominent
+modification notices. It grants **no patent license**; patent authorization
+must be assessed separately through Via Licensing or the patent owners.
 
 ## Direct third-party dependencies (linked)
 
