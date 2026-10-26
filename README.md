@@ -100,16 +100,15 @@ checkout, and is never required for normal Rust validation or CI.
   subject to the **Fraunhofer FDK AAC Codec Library for Android** license
   terms, including the patent-licensing notice pointing to Via Licensing.
   **Do not remove FDK license headers or NOTICE files.**
-- Which NOTICE applies: the root `NOTICE` (© 1995–2018) preserves the
-  upstream license text; `rust/NOTICE` carries the same complete license
-  text plus a prominent modified-version notice dated 2026-10-26. Both
-  are retained intentionally.
-- The codec crate's `rust/Cargo.toml` declares `license = "FDK-AAC"` and
-  `license-file = "LICENSE-FDK-AAC"`; this dedicated file contains the
-  complete FDK-AAC license for Cargo source packages. The converter,
-  decoder FFI, and framework manifests also use `FDK-AAC`. A separate
-  distribution bundle must include the complete source, this license text,
-  and `rust/NOTICE` with the modified-version notice alongside binaries.
+- The root `NOTICE` preserves the upstream license text. `rust/NOTICE`
+  carries the complete license text plus the prominent modified-version
+  notice dated 2026-10-26; retain both.
+- The codec crate manifest declares the standard SPDX identifier
+  `license = "FDK-AAC"` and `license-file = "LICENSE-FDK-AAC"`. The
+  dedicated file contains the complete FDK-AAC license for Cargo source
+  packages. The converter, decoder FFI, and framework manifests also use
+  `FDK-AAC`. Distribution bundles containing binaries must include the
+  complete corresponding source and the license/notice documentation.
 - **Modified-version identification:** Ferrite is a “Third-Party Modified
   Version of the Fraunhofer FDK AAC Codec Library for Android.” The Rust
   implementation/modifications are copyright © 2025–2026 Jeroen Steenvoorde.
