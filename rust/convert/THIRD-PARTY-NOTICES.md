@@ -84,6 +84,14 @@ confirm with legal review whether their texts must also ship.
 5. Do not publish crates to a registry; standalone `cargo package`/`cargo
    publish` for `aac-convert` remains unsupported (see `README.md`
    Distribution). The `FDK-AAC` value is the standard SPDX identifier.
+6. Distribute `aac-convert` as the workspace source bundle described in
+   `README.md` Distribution: the corresponding `ferrite-aac` source plus
+   `rust/LICENSE-FDK-AAC`, `rust/NOTICE`, and the applicable third-party
+   notices. The standalone `aac-convert` Cargo source archive is not the
+   supported complete distribution artifact; do not redistribute that
+   archive as though it independently contains all FDK-AAC licensing
+   materials for the supported model. This states project distribution
+   policy and is not a legal conclusion about any standalone archive.
 
 ## Out of scope for this inventory
 
