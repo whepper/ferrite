@@ -433,9 +433,7 @@ pub struct ChannelFrameInput<'a> {
     pub sfb_offsets: &'a [i32],
     /// S1 PNS/IS vectors (all-zero/`NO_NOISE_PNS` on corpus; live branches).
     pub noise_nrg: &'a [i32],
-    /// Intensity books (corpus-zero).
-    pub is_book: &'a [i32],
-    /// Intensity scales (corpus-zero).
+    /// Intensity scales (corpus-zero; books live in `SectionData.code_book`).
     pub is_scale: &'a [i32],
     /// `psyOutChannel.tnsInfo` decisions.
     pub tns: &'a TnsChannel,
@@ -458,8 +456,6 @@ pub struct ElementFrameInput<'a> {
     pub ms_mask: &'a [i32],
     /// One (SCE/LFE) or two (CPE) channels in element order.
     pub channels: Vec<ChannelFrameInput<'a>>,
-    /// S1 NULL-mode static count for this element (scaffolding agreement).
-    pub static_bits_expected: i32,
 }
 
 /// Stripped `WriteBitstream` inputs for the supported single-element frame.
@@ -470,10 +466,9 @@ pub struct RawBlockInput<'a> {
     pub tot_fill_bits: i32,
     /// S6 alignment (`alignBits` after finalize).
     pub align_bits: i32,
-    /// S6 `totalBits` (static + dyn + fill + align + ext + globalExt).
+    /// S6 `totalBits` (static + dyn + fill + align + ext + globalExt,
+    /// header excluded by design; ADTS framing is checked externally).
     pub total_bits: i32,
-    /// Transport header bits (56 for ADTS SCE/CPE; 0 for RAW).
-    pub glob_hdr_bits: i32,
     /// `maxBitsPerFrame` range gate (plan Q8).
     pub max_bits_per_frame: i32,
     /// `minBitsPerFrame` range gate (0 for VBR-5).
@@ -1317,7 +1312,6 @@ mod tests {
             max_value_in_sfb: &[0],
             sfb_offsets: &[0, 1],
             noise_nrg: &[0],
-            is_book: &[0],
             is_scale: &[0],
             tns: &blank_tns(),
             mdct_scale: 0,
@@ -1330,7 +1324,6 @@ mod tests {
             ms_digest: 0,
             ms_mask: &[],
             channels: Vec::new(),
-            static_bits_expected: 0,
         };
         let mut w = BitWriter::new(64);
         assert_eq!(
@@ -1346,7 +1339,6 @@ mod tests {
                     ms_digest: 0,
                     ms_mask: &[],
                     channels: Vec::new(),
-                    static_bits_expected: 0,
                 },
                 AOT_AAC_LC,
                 1,
@@ -1521,7 +1513,6 @@ mod tests {
                     max_value_in_sfb: &c5.qmax,
                     sfb_offsets: &c5.offsets,
                     noise_nrg: &c5.noise_nrg,
-                    is_book: &c5.is_book,
                     is_scale: &c5.is_scale,
                     tns: &tns_held[idx],
                     mdct_scale: side.mdct,
@@ -1535,7 +1526,6 @@ mod tests {
                 ms_digest,
                 ms_mask: &ms_mask_vec,
                 channels: ch_inputs,
-                static_bits_expected: s1.static_bits,
             };
             // Element assembly (level 1: side info + level 2: payloads).
             let mut w_el = BitWriter::new(8192);
@@ -1571,7 +1561,6 @@ mod tests {
                                 max_value_in_sfb: &c5.qmax,
                                 sfb_offsets: &c5.offsets,
                                 noise_nrg: &c5.noise_nrg,
-                                is_book: &c5.is_book,
                                 is_scale: &c5.is_scale,
                                 tns: &tns_held[idx],
                                 mdct_scale: side.mdct,
@@ -1579,12 +1568,10 @@ mod tests {
                         }
                         v
                     },
-                    static_bits_expected: s1.static_bits,
                 }],
                 tot_fill_bits: s6.totfill,
                 align_bits: s6.align,
                 total_bits: s6.total,
-                glob_hdr_bits: s6.glob_hdr,
                 max_bits_per_frame: max_bits,
                 min_bits_per_frame: 0,
             };

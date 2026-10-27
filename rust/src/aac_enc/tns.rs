@@ -589,7 +589,7 @@ fn merged_autocorr_fixed(spectrum_q31: &[i32], config: &TnsConfig) -> ([i64; 13]
     let rxx4_0 = calc_auto_corr_value(&pspec, idx3, idx4, 0, nsc4);
     let mut rxx1 = [0i64; 13];
     let mut rxx2 = [0i64; 13];
-    let mut fac1 = 0i64;
+    let fac1: i64;
     let mut sc_fac1 = -1;
     if rxx1_0 != 0 {
         fac1 = auto_corr_norm_fac(rxx1_0, -2 * sc1 + nsc1, &mut sc_fac1);

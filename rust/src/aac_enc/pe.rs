@@ -517,13 +517,14 @@ pub fn calc_weighting(
 }
 
 /// One channel's input for [`pe_calculation`]: post-decision vectors in
-/// the exact Q31 representation the C code consumes.
+/// the exact Q31 representation the C code consumes (spectrum enters only
+/// via the precomputed `form_factor_ld`, computed upstream with
+/// `form_factor`).
 pub struct PeChannelInput<'a> {
     pub energy_ld: &'a [i32],
     pub threshold_ld: &'a [i32],
     pub energy_linear: &'a [i32],
     pub form_factor_ld: &'a [i32],
-    pub spectrum_q31: &'a [i32],
     pub offsets: &'a [i32],
     pub sfb_cnt: usize,
     pub sfb_per_group: usize,
@@ -646,6 +647,7 @@ pub fn pe_calculation(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aac_enc::bitcount::NO_NOISE_PNS;
     use crate::aac_enc::testdata;
 
     /// Committed S1 corpus: (testdata short name, frame). Covers silence,
@@ -689,7 +691,6 @@ mod tests {
                 threshold_ld: &ch.pthld,
                 energy_linear: &ch.senl,
                 form_factor_ld: &ch.ff,
-                spectrum_q31: &ch.spec,
                 offsets: &ch.offsets,
                 sfb_cnt: ch.geo_cnt,
                 sfb_per_group: ch.geo_per,
@@ -786,6 +787,16 @@ mod tests {
                 assert!(*ch.offsets.last().expect("offsets") <= 1024);
                 assert_eq!(ch.isb.len(), ch.geo_cnt);
                 assert_eq!(ch.iss.len(), ch.geo_cnt);
+                // PNS-off parity: the encoder is configured with PNS
+                // disabled, so every committed S1 NOISE entry must equal
+                // the `NO_NOISE_PNS` sentinel the S5/bit-count path
+                // consumes (`bitcount.rs`, `stream_driver.rs`). Length is
+                // `sfbActive` in the oracle dump (not `geo_cnt`), so only
+                // the sentinel value is pinned here, non-vacuously.
+                assert!(!ch.noise.is_empty(), "{name} f{f} ch{c} noise non-empty");
+                for &n in &ch.noise {
+                    assert_eq!(n, NO_NOISE_PNS, "{name} f{f} ch{c} PNS-off");
+                }
                 // TNS windows match the block type.
                 let nwin = if ch.geo_seq == 2 { 8 } else { 1 };
                 assert_eq!(ch.tns.len(), nwin, "{name} f{f} ch{c} tns windows");
@@ -1034,7 +1045,6 @@ mod tests {
             threshold_ld: &[0],
             energy_linear: &[0],
             form_factor_ld: &[i32::MIN],
-            spectrum_q31: &[0, 0, 0, 0],
             offsets: &[0, 4],
             sfb_cnt: 1,
             sfb_per_group: 1,

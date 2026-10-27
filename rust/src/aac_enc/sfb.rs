@@ -479,6 +479,7 @@ fn bark_of_line(line: u32, sample_rate: u32, lines: usize) -> f64 {
 mod tests {
     use super::*;
     use crate::aac_enc::testdata;
+    use crate::aac_enc::tns::TnsConfig;
 
     fn cfg_long_48k() -> SfbConfig {
         SfbConfig::new(48000, BlockKind::Long, 96000, 19293, true, true).unwrap()
@@ -652,6 +653,78 @@ mod tests {
                 c.pch
             );
             assert!(cfg.allow_ms());
+            // TNS init parity: the same oracle TNSCFG block reproduced by
+            // `TnsConfig::new`. `tns_bitrate` follows production
+            // (`PsyTables::for_rate` / `Stream::new`): mono pch=112000 ->
+            // 112000, stereo pch=96000 -> 192000 total. All fixtures use
+            // bitrates above the 16 kbit/s `max_order -= 2` branch.
+            let tns_br = if c.pch == 96000 { 192000 } else { c.pch };
+            let tconf = TnsConfig::new(
+                c.sample_rate,
+                tns_br,
+                c.long,
+                cfg.offsets(),
+                cfg.sfb_active(),
+            );
+            assert_eq!(
+                tconf.active, c.tns.active,
+                "{} {} {} active",
+                c.sample_rate, c.pch, c.long
+            );
+            assert_eq!(
+                tconf.max_order as i32, c.tns.max_order,
+                "{} {} {} maxOrder",
+                c.sample_rate, c.pch, c.long
+            );
+            assert_eq!(
+                tconf.coef_res as i32, c.tns.coef_res,
+                "{} {} {} coefRes",
+                c.sample_rate, c.pch, c.long
+            );
+            assert_eq!(
+                [tconf.start_band[0] as i32, tconf.start_band[1] as i32],
+                c.tns.start_band,
+                "{} {} {} startBand",
+                c.sample_rate,
+                c.pch,
+                c.long
+            );
+            assert_eq!(
+                [tconf.start_line[0] as i32, tconf.start_line[1] as i32],
+                c.tns.start_line,
+                "{} {} {} startLine",
+                c.sample_rate,
+                c.pch,
+                c.long
+            );
+            assert_eq!(
+                tconf.stop_line as i32, c.tns.stop_line,
+                "{} {} {} stopLine",
+                c.sample_rate, c.pch, c.long
+            );
+            assert_eq!(
+                tconf.thresh_on, c.tns.thresh_on,
+                "{} {} {} threshOn",
+                c.sample_rate, c.pch, c.long
+            );
+            assert_eq!(
+                [tconf.limit_order[0] as i32, tconf.limit_order[1] as i32],
+                c.tns.limit_order,
+                "{} {} {} limitOrder",
+                c.sample_rate,
+                c.pch,
+                c.long
+            );
+            // `TnsConfig` stores `stop_line` but not `stop_band`; verify
+            // the fixture band indexes the computed stop line.
+            assert_eq!(
+                cfg.offsets()[c.tns.stop_band as usize] as i32,
+                c.tns.stop_line,
+                "{} {} {} stopBand indexes stopLine",
+                c.sample_rate,
+                c.pch,
+                c.long
+            );
         }
     }
 

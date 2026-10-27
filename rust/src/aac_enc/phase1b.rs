@@ -342,16 +342,15 @@ fn phase1b_isolated_differential() {
                     tns: &tns_defaults[ci],
                 });
             }
-            let (digest, bands) = match &s1.msd {
-                Some((d, mask)) => (MsDigest::from_i32(*d).expect("ms digest"), mask.len()),
-                None => (MsDigest::None, 0),
+            let digest = match &s1.msd {
+                Some((d, _)) => MsDigest::from_i32(*d).expect("ms digest"),
+                None => MsDigest::None,
             };
             let input = QcFrameInput {
                 channels,
                 no_red_pe: s1.pe[0],
                 static_bits: s1.static_bits,
                 ms_digest: digest,
-                ms_bands: bands,
                 glob_hdr_bits: 56,
                 max_bits_per_frame: init.max,
                 max_bits_el: init.maxbits_el,
@@ -365,7 +364,6 @@ fn phase1b_isolated_differential() {
             let mut qc = QcState {
                 bit_res_tot: init.max,
                 bit_res_tot_max: init.max,
-                padding_rest: 0,
                 bc_scratch: Default::default(),
             };
             match qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS) {

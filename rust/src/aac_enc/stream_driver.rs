@@ -561,7 +561,6 @@ pub(crate) struct StreamEncoder {
     b2e: i32,
     total_br: u32,
     padding_rest: i32,
-    avg_bits: i32,
     short_sp: usize,
     long_ac: usize,
     /// Mid/side log-energy history per channel (mirrors C
@@ -618,7 +617,7 @@ impl StreamEncoder {
         );
         let (b2m, b2e) = init_bits2pe_factor(false, false, init.ch_bitrate_el, channels as i32);
         let dist = distribute_state_init(init.mean_pe);
-        let qc = QcState::new(init.max_bits, sample_rate as i32);
+        let qc = QcState::new(init.max_bits);
         let _ = cfg;
         Self {
             sample_rate,
@@ -644,7 +643,6 @@ impl StreamEncoder {
             b2e,
             total_br,
             padding_rest: sample_rate as i32,
-            avg_bits: avg0,
             short_sp,
             long_ac,
             stale_ms_ld: (0..channels).map(|_| vec![0i32; 64]).collect(),
@@ -1082,7 +1080,6 @@ impl StreamEncoder {
                 threshold_ld: &c.t_ld,
                 energy_linear: &c.e_stored,
                 form_factor_ld: &c.ff,
-                spectrum_q31: &c.spec_q31,
                 offsets: &c.offsets,
                 sfb_cnt: c.cnt,
                 sfb_per_group: c.per,
@@ -1274,11 +1271,6 @@ impl StreamEncoder {
 
         // --- S6: QC gain loop ---
         let ms_digest = MsDigest::from_i32(digest).expect("ms digest range");
-        let ms_bands = if ms_digest == MsDigest::Some {
-            ms_mask_bits(live[0].cnt, live[0].per, max_common)
-        } else {
-            0
-        };
         let qc_inputs: Vec<QcChannelInput> = live
             .iter()
             .enumerate()
@@ -1302,7 +1294,6 @@ impl StreamEncoder {
             no_red_pe: pe.data.pe,
             static_bits: s1static,
             ms_digest,
-            ms_bands,
             glob_hdr_bits: ADTS_HEADER_BITS as i32,
             max_bits_per_frame: self.init.max_bits,
             max_bits_el: self.init.max_bits_el,
@@ -1310,14 +1301,13 @@ impl StreamEncoder {
             max_bit_fac: self.init.max_bit_fac,
             bit_res_mode: BitResMode::Full,
         };
-        let (avg, rest) = adjust_bitrate(
+        let (_, rest) = adjust_bitrate(
             self.padding_rest,
             self.total_br as i32,
             self.sample_rate as i32,
             FRAME_LENGTH as i32,
         );
         self.padding_rest = rest;
-        self.avg_bits = avg;
         // No `catch_unwind` here by design: a gain-loop envelope violation
         // aborts the run (frame in the harness log) and the encoder is
         // discarded, so no later frame can observe the partially mutated
@@ -1453,7 +1443,6 @@ impl StreamEncoder {
                     max_value_in_sfb: &final_qmaxs[ch],
                     sfb_offsets: &live[ch].offsets,
                     noise_nrg: &noise,
-                    is_book: &books[ch],
                     is_scale: &scales[ch],
                     tns: &live[ch].tns,
                     mdct_scale: live[ch].mdct_scale,
@@ -1466,7 +1455,6 @@ impl StreamEncoder {
                 ms_digest: digest,
                 ms_mask: ms_mask_ref,
                 channels: channels_probe,
-                static_bits_expected: s1static,
             };
             let mut w_el = BitWriter::new(8192);
             match channel_element_write(&el_probe, 2, 0, -1, &mut w_el) {
@@ -1502,7 +1490,6 @@ impl StreamEncoder {
                 max_value_in_sfb: &final_qmaxs[ch],
                 sfb_offsets: &live[ch].offsets,
                 noise_nrg: &noise,
-                is_book: &books[ch],
                 is_scale: &scales[ch],
                 tns: &live[ch].tns,
                 mdct_scale: live[ch].mdct_scale,
@@ -1515,14 +1502,12 @@ impl StreamEncoder {
             ms_digest: digest,
             ms_mask: ms_mask_ref,
             channels: channels_owned,
-            static_bits_expected: s1static,
         };
         let raw_input = RawBlockInput {
             elements: vec![el_owned],
             tot_fill_bits: qc_out.tot_fill_bits,
             align_bits: qc_out.align_bits,
             total_bits: qc_out.total_bits,
-            glob_hdr_bits: ADTS_HEADER_BITS as i32,
             max_bits_per_frame: self.init.max_bits,
             min_bits_per_frame: 0,
         };
@@ -2089,16 +2074,16 @@ mod phase1_tests {
     /// favors M/S. Returns `(margins, mask)` over the `(0..cnt).step_by(per)`
     /// loop; the caller handles the ALL-upgrade path separately.
     fn ms_first_pass(
-        e_l: &[i32],
-        e_r: &[i32],
-        t_l: &[i32],
-        t_r: &[i32],
+        _e_l: &[i32],
+        _e_r: &[i32],
+        _t_l: &[i32],
+        _t_r: &[i32],
         eld_l: &[i32],
         eld_r: &[i32],
         tld_l: &[i32],
         tld_r: &[i32],
-        em: &[i32],
-        es: &[i32],
+        _em: &[i32],
+        _es: &[i32],
         em_ld: &[i32],
         es_ld: &[i32],
         cnt: usize,
@@ -3348,7 +3333,7 @@ mod phase1_tests {
         threshold_ld: &[Vec<i32>],
         energy_lin: &[Vec<i32>],
         ff: &[Vec<i32>],
-        spec: &[Vec<i32>],
+        _spec: &[Vec<i32>],
         offsets: &[Vec<i32>],
         geo: &[(usize, usize, usize, bool)],
         ms_mask: &[i32],
@@ -3361,7 +3346,6 @@ mod phase1_tests {
                 threshold_ld: &threshold_ld[c],
                 energy_linear: &energy_lin[c],
                 form_factor_ld: &ff[c],
-                spectrum_q31: &spec[c],
                 offsets: &offsets[c],
                 sfb_cnt: geo[c].0,
                 sfb_per_group: geo[c].1,
@@ -4680,7 +4664,7 @@ mod m52_tests {
     /// the independent-decode regression so both prove the same path.
     fn crash_synth_mono_48k() -> Vec<i16> {
         let rng = std::cell::Cell::new(0x12345678u32);
-        let mut sample = || {
+        let sample = || {
             let mut r = rng.get();
             r ^= r << 13;
             r ^= r >> 17;

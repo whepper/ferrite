@@ -173,8 +173,10 @@ amm-info@iis.fraunhofer.de
 //!   enFac) stay in [`super::pe::AtsElement`] untouched.
 //!   `bitres_calc_bit_fac` mutates `peMin/peMax` exactly like C
 //!   (`adj_thr.cpp:2426`).
-//! - [`QcState`] holds the persistent QC kernel (`bitResTot`,
-//!   `paddingRest`; everything else is init-constant at VBR-5).
+//! - [`QcState`] holds the persistent QC kernel (`bitResTot` only;
+//!   everything else is init-constant at VBR-5). Padding (`paddingRest`)
+//!   is owned by `StreamEncoder` and evolved per frame via
+//!   `adjust_bitrate`, never stored in [`QcState`].
 //! - The frame driver ([`qc_main_frame`]) consumes post-S4 state (stored
 //!   scalefactors, global gain, mutated spectrum) plus the S5 first-pass
 //!   (`QMAX`, sections, dyn bits) as explicit inputs — the same stage
@@ -1256,6 +1258,8 @@ pub fn fill_extension_bits(payload_bits: i32) -> i32 {
 /// the CBR transport-correction block `:1295-1341` is skipped).
 /// `glob_hdr_bits` is the refreshed transport value (constant 56 for ADTS
 /// SCE/CPE; transport-owned input, kept explicit for signature fidelity).
+/// On the VBR-5 path it is intentionally ignored (`let _` below): the
+/// header is added after `write_raw_block`, whose `totalBits` excludes it.
 /// Returns `(tot_fill_bits, align_bits, total_bits)`.
 #[allow(clippy::too_many_arguments)]
 pub fn finalize_bit_consumption(
@@ -1269,7 +1273,9 @@ pub fn finalize_bit_consumption(
     min_bits_per_frame: i32,
 ) -> Result<(i32, i32, i32), QcError> {
     // VBR skips the CBR transport-correction block; the header refresh
-    // reproduces the probed constant (transport-owned, passed in).
+    // reproduces the probed constant (transport-owned, passed in) but is
+    // excluded from `total` here by design (see doc above). The ADTS
+    // header is appended after the raw block instead.
     let _ = glob_hdr_bits;
     let tot_fill = tot_fill_bits_in;
     let sized_fill = fill_extension_bits(tot_fill);
@@ -1325,9 +1331,6 @@ pub struct QcFrameInput<'a> {
     /// Element static bits (`ChannelElementWrite(NULL)`, oracle `STATIC`).
     pub static_bits: i32,
     pub ms_digest: MsDigest,
-    /// MS mask band count (only read when `ms_digest == Some` on CPE wipeout
-    /// recounts; pass 0 on corpus — recount never runs there).
-    pub ms_bands: usize,
     /// Transport header bits (oracle `S6BITR globHdr`; always 56 on fixtures).
     pub glob_hdr_bits: i32,
     pub max_bits_per_frame: i32,
@@ -1386,7 +1389,8 @@ pub struct QcFrameOutput {
     pub bit_res_tot: i32,
 }
 
-/// Persistent per-stream QC kernel state (`QC_STATE` VBR-5 slice).
+/// Persistent per-stream QC kernel state (`QC_STATE` VBR-5 slice:
+/// bit-reservoir totals only; padding is owned by `StreamEncoder`).
 ///
 /// M5.22: no longer `Copy` — it now owns the reused bit-count scratch
 /// (`bc_scratch`); nothing in the crate relies on by-value copies of it.
@@ -1394,18 +1398,16 @@ pub struct QcFrameOutput {
 pub struct QcState {
     pub bit_res_tot: i32,
     pub bit_res_tot_max: i32,
-    pub padding_rest: i32,
     /// Reused bit-count scratch (M5.22): owns the `noiseless_counter`
     /// working buffers so the sectioning path allocates nothing per group.
     pub bc_scratch: BitCountScratch,
 }
 
 impl QcState {
-    pub fn new(bit_res_tot_max: i32, sample_rate: i32) -> Self {
+    pub fn new(bit_res_tot_max: i32) -> Self {
         Self {
             bit_res_tot: bit_res_tot_max,
             bit_res_tot_max,
-            padding_rest: sample_rate,
             bc_scratch: BitCountScratch::default(),
         }
     }
@@ -2062,16 +2064,15 @@ mod tests {
                 tns: &tns_defaults[ci],
             });
         }
-        let (digest, bands) = match &s1.msd {
-            Some((d, mask)) => (MsDigest::from_i32(*d).expect("ms digest"), mask.len()),
-            None => (MsDigest::None, 0),
+        let digest = match &s1.msd {
+            Some((d, _)) => MsDigest::from_i32(*d).expect("ms digest"),
+            None => MsDigest::None,
         };
         let input = QcFrameInput {
             channels,
             no_red_pe: s1.pe[0],
             static_bits: s1.static_bits,
             ms_digest: digest,
-            ms_bands: bands,
             glob_hdr_bits: 56,
             max_bits_per_frame: init.max,
             max_bits_el: init.maxbits_el,
@@ -2143,6 +2144,26 @@ mod tests {
         assert_eq!(out.align_bits, s6.align, "{name} f={f} align");
         assert_eq!(out.total_bits, s6.total, "{name} f={f} total");
         assert_eq!(out.bit_res_tot, s6.bitres, "{name} f={f} bitres");
+        // S6FINAL crash parity: final `crashDrops` equals the last pass
+        // `crash` (both start at -1; crash recovery sets both to the
+        // surviving `maxSfb`). Per-pass `crash` is already pinned above;
+        // this pins the final value the oracle dumps.
+        assert_eq!(
+            out.passes.last().map(|p| p.crash).unwrap_or(-1),
+            s6.fcrash,
+            "{name} f={f} fcrash"
+        );
+        // S6FINAL grant parity: the oracle dumps the post-crash frame
+        // grant (`s6qo.grantedDynBits = frameGranted`). The S6 corpus
+        // never takes the crash path (`fcrash == -1` on every fixture),
+        // so final == initial and the stored initial grant is the
+        // intended comparator. A future crash-path fixture would diverge
+        // here and must expose the final `frame_granted` instead.
+        if s6.fcrash == -1 {
+            assert_eq!(out.granted_dyn_bits, s6.fgranted, "{name} f={f} fgranted");
+        } else {
+            panic!("{name} f={f}: crash-path S6FINAL needs final frame_granted exposure");
+        }
         // Post-frame grant-state evolution (S6GPOST).
         let gp = &s6.gpost;
         assert_eq!(dist.pe_last, gp[0], "{name} f={f} post peLast");
@@ -2182,7 +2203,6 @@ mod tests {
             let mut qc = QcState {
                 bit_res_tot: init.max,
                 bit_res_tot_max: init.max,
-                padding_rest: 0,
                 bc_scratch: Default::default(),
             };
             let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
@@ -2221,7 +2241,6 @@ mod tests {
             let mut qc = QcState {
                 bit_res_tot: init.max,
                 bit_res_tot_max: init.max,
-                padding_rest: 0,
                 bc_scratch: Default::default(),
             };
             let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
@@ -2307,7 +2326,6 @@ mod tests {
         let mut qc = QcState {
             bit_res_tot: 2000,
             bit_res_tot_max: 2000,
-            padding_rest: 0,
             bc_scratch: Default::default(),
         };
         let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
@@ -2349,7 +2367,6 @@ mod tests {
         let mut qc = QcState {
             bit_res_tot: 1200,
             bit_res_tot_max: 1200,
-            padding_rest: 0,
             bc_scratch: Default::default(),
         };
         let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
@@ -2498,7 +2515,6 @@ mod tests {
         let mut qc = QcState {
             bit_res_tot: 400,
             bit_res_tot_max: 400,
-            padding_rest: 0,
             bc_scratch: Default::default(),
         };
         let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)

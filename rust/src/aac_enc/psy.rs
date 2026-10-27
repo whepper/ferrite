@@ -172,11 +172,6 @@ impl PsyChannel {
         }
     }
 
-    /// TNS runtime decisions (test inspection).
-    pub fn tns_state(&self) -> &TnsChannel {
-        &self.tns_state
-    }
-
     /// TNS output info (test inspection).
     pub fn tns_info(&self) -> &TnsChannel {
         &self.tns_info
@@ -3467,7 +3462,7 @@ mod tests {
         .expect("tables");
         let mut psy = PsyChannel::new(tables.long_cfg.pcm_quant_q31());
         let mut spec = [1000.0f64; 1024];
-        let mut input = ChannelInput {
+        let input = ChannelInput {
             spectrum: &mut spec,
             seq: WindowSequence::Long,
             grouping: (1, [1, 0, 0, 0]),

@@ -107,7 +107,6 @@ const PROTO_LEN: usize = 13;
 
 const MAX_QMF_BANDS_TO_HYBRID: usize = 3;
 const MAX_NUM_QMF_BANDS: usize = 64;
-pub(in super::super) const NUM_HYBRID_DATA_BANDS: usize = 71;
 
 /// Structure describing the hybrid analysis filter bank.
 #[derive(Debug, Default)]
