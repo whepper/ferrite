@@ -73,12 +73,17 @@ cargo test --locked --features aac_enc --lib
 cargo fmt --all -- --check
 ```
 
-CI (`.github/workflows/ci.yml`) runs these plus doctests, `cargo package`,
-and informational clippy checks — no C/C++ compilation and no external
-audio tools required. Reference validation
-(`rust/tools/run-reference-validation.sh`, manual workflow
-`reference-validation.yml`) builds and runs the external pinned reference
-checkout, and is never required for normal Rust validation or CI.
+CI (`.github/workflows/ci.yml`) runs two build-and-test jobs (default and
+encoder-only `--no-default-features --features aac_enc` configurations),
+the self-contained encoder lib tests with skips for the 15 tests that need
+external C artifacts or an external decoder, doctests,
+`cargo package --locked -p ferrite-aac`, and informational (non-gating)
+fmt and clippy jobs. A separate decode-validation job compiles a C++
+decoder (`cmake`/`c++`) from the pinned public historical commit `da00af1`
+and runs three decoder-backed lib tests. Manual workflows
+(`reference-validation.yml`, `oracle-repeatability-diagnostic.yml`) build
+and run the external pinned checkout and are never required for normal
+Rust validation.
 
 ## Production vs reference tooling
 
@@ -89,9 +94,11 @@ checkout, and is never required for normal Rust validation or CI.
   pinned checkout (`whepper/fdk-aac-reference`) plus the in-repo
   `tools/enc-oracle/` provenance scripts and the `rust/tools/` validation
   driver — used to validate Rust behavior against the original
-  implementation. System `ffmpeg`, `ffprobe`, and `mutagen` are used only
-  offline (fixture generation; `#[ignore]`d advisory tests skip cleanly
-  without them).
+  implementation. System `ffmpeg`/`ffprobe` are used only offline
+  (fixture generation; `#[ignore]`d advisory tests skip cleanly
+  without them). CI's decode-validation job is the exception: it builds
+  an external decoder from a pinned *public* historical commit and runs
+  three decoder-backed tests.
 
 ## Licensing, attribution, NOTICE guidance
 
@@ -103,12 +110,19 @@ checkout, and is never required for normal Rust validation or CI.
 - The root `NOTICE` preserves the upstream license text. `rust/NOTICE`
   carries the complete license text plus the prominent modified-version
   notice dated 2026-10-26; retain both.
-- The codec crate manifest declares the standard SPDX identifier
-  `license = "FDK-AAC"` and `license-file = "LICENSE-FDK-AAC"`. The
-  dedicated file contains the complete FDK-AAC license for Cargo source
-  packages. The converter manifest also uses
-  `FDK-AAC`. Distribution bundles containing binaries must include the
-  complete corresponding source and the license/notice documentation.
+- The codec crate manifest declares the packaging identifier
+  `license = "FDK-AAC"` with `license-file = "LICENSE-FDK-AAC"`, so the
+  complete license text ships in the `ferrite-aac` Cargo source package.
+  `FDK-AAC` is the project's declared packaging value, not proof of
+  per-file licensing. The converter manifest also declares
+  `license = "FDK-AAC"`, but its own package bundles neither
+  `LICENSE-FDK-AAC` nor `NOTICE`; see
+  `rust/convert/THIRD-PARTY-NOTICES.md` for the evidence inventory and
+  the supported workspace-bundle distribution model. Binary
+  distributions must include the appropriate notices and license text
+  in documentation/materials, make the complete corresponding source
+  available free of charge, charge no copyright license fee, and grant
+  no patent license.
 - **Modified-version identification:** Ferrite is a “Third-Party Modified
   Version of the Fraunhofer FDK AAC Codec Library for Android.” The Rust
   implementation/modifications are copyright © 2025–2026 Jeroen Steenvoorde.
@@ -142,6 +156,10 @@ Start from `docs/README.md` for the maintained-vs-historical index.
 - `docs/aac-enc-migration-spec.md` — encoder migration specification and
   float-native thesis (§5).
 - `docs/aac-enc-m6-api-contract.md` — production encoder API contract.
+- `docs/aac-enc-provenance-inventory.md` — technical evidence record of
+  source comparisons, provisional classifications, and unresolved gaps.
+  Evidence only: it establishes no legal clearance and no authorship;
+  copyright licensing and patent authorization remain separate questions.
 - `rust/convert/README.md` — `aac-convert` usage and metadata reference.
 - `docs/aac-convert-l2-loudness-integration-design.md` — finalized
   loudness design; `docs/archive/aac-convert-l3-*.md` — evidence and audit trail.
