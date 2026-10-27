@@ -365,8 +365,9 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 ## Scope limits
 
 - Core Vorbis-comment text tags and single JPEG/PNG cover art are supported
-  for M4A (see Metadata). Still out of scope: multi-image galleries,
-  loudness (ReplayGain/SoundCheck) tags, resampling,
+  for M4A (see Metadata). Loudness tagging (ReplayGain 2.0 and
+  `iTunNORM`) is implemented and shipped for M4A (see Loudness). Still out
+  of scope: multi-image galleries, resampling,
   downmixing, VBR 1–4, and parallel conversion.
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
