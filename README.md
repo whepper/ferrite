@@ -2,9 +2,7 @@
 
 Ferrite is the working identity for this project's native Rust audio work:
 a **native Rust AAC-LC encoder derived from the FDK AAC codebase**,
-accompanied by the **`aac-convert`** conversion application. (Ferrite is a
-working name; trademark, package-name, and domain availability have not
-been cleared. The selected encoder package/library name is
+accompanied by the **`aac-convert`** conversion application. (The selected encoder package/library name is
 `ferrite-aac` / `ferrite_aac`;
 `aac-convert` is unchanged. The repository rename to `whepper/ferrite` is
 complete.)
