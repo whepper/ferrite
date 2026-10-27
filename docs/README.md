@@ -28,6 +28,10 @@ decisions were reached, not as current normative guidance.
 - [M6 API contract](aac-enc-m6-api-contract.md) — production encoder API
   contract.
 - [VBR-5 profile](aac-enc-vbr5-profile.md) — fixed encoder operating point.
+- [Codec provenance inventory](aac-enc-provenance-inventory.md) —
+  source-provenance inventory for the Rust codec port: upstream
+  comparisons, evidence, and unresolved gaps (evidence record, not
+  normative guidance).
 
 ## Archive
 
