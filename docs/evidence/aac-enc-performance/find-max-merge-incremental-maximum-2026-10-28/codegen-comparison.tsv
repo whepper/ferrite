@@ -1,0 +1,9 @@
+metric	before	after
+binary_sha256	61126376e5672d86ca9de8d23cbcfa4f8e8d52d2684f7386612b19ed67c61756	31a0269a037742bc3be4ac12664f928b59bcfbb8d04f6a68cfd04a83e211e7ea
+binary_bytes	10930480	10936768
+text_section_bytes	1834748	1837692
+dyn_bit_count_reuse_bytes	5104	4492
+gm_stage2_symbol	not emitted (inlined)	904
+calc_merge_gain_symbol	emitted	emitted
+stage2_scan_loop	walk by sections[i].sfb_cnt	sequential 8-byte (gain,start) loads
+scan_loop_instructions	12 per step	7 per step

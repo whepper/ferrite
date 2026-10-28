@@ -1,0 +1,5 @@
+workload	worker_samples	form_factor_samples	form_factor_pct	form_factor_inclusive	sqrt_fixp_samples	calc_ld_data_samples
+corpus	8156	290	3.56	292	0	248
+onset	6334	293	4.63	295	0	86
+music	6555	220	3.36	220	0	233
+speech	6546	192	2.93	192	0	208

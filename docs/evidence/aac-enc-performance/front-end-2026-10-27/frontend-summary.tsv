@@ -1,0 +1,5 @@
+workload	worker_samples	frontend_self_samples	frontend_pct_worker
+corpus	8231	2198	26.70
+onset	6310	3234	51.25
+music	6606	1420	21.50
+speech	6561	1940	29.57

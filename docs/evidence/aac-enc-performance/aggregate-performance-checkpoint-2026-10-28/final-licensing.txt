@@ -1,0 +1,1 @@
+licensing hygiene OK: NOTICE + LICENSE-FDK-AAC present, manifest declares FDK-AAC, 67 rust/src file(s) carry the modified-version notice

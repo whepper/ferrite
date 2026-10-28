@@ -1,0 +1,10 @@
+
+running 1 test
+QFREQ music-stereo: calls=209522 lines=3011032 zero_q=1579458 maxq_ret=0
+QFREQ sine-stereo: calls=6221 lines=41952 zero_q=21128 maxq_ret=0
+QFREQ onset-stereo: calls=3324 lines=24812 zero_q=11215 maxq_ret=0
+QFREQ noise-mono: calls=4082 lines=59628 zero_q=5373 maxq_ret=0
+test aac_enc::quant::tests::zz_quant_path_frequency ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 341 filtered out; finished in 0.08s
+

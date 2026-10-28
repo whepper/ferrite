@@ -1,0 +1,6 @@
+workload	total_leaf_samples	idle_harness_samples	worker_samples
+corpus-19	13282	6752	6530
+music-stereo	13233	6722	6511
+speech-clean-stereo	9905	5040	4865
+onset-stereo	9689	4971	4718
+noise-mono	8278	4268	4010

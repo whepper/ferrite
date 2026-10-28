@@ -1,0 +1,103 @@
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -232,6 +232,19 @@
+     MTAB_3_4, MTAB_4_3, QUANT_K0, QUANT_K1, QUANT_TABLE_E, QUANT_TABLE_Q, SPEC_EXP_MANT,
+     SPEC_EXP_SHIFT,
+ };
++
++// TEMP ATTRIBUTION COUNTERS (removed before final state).
++pub(crate) mod qstats {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    pub static CALLS: AtomicU64 = AtomicU64::new(0);
++    pub static LINES: AtomicU64 = AtomicU64::new(0);
++    pub static ZERO_Q: AtomicU64 = AtomicU64::new(0);
++    pub static MAXQ_RET: AtomicU64 = AtomicU64::new(0);
++    #[inline]
++    pub fn bump(c: &AtomicU64) {
++        c.fetch_add(1, Ordering::Relaxed);
++    }
++}
+ 
+ /// Largest representable quantized magnitude (`quantize.h:110`).
+ /// Anything larger fails the S6 `calcMaxValueInSfb` gate and early-outs
+@@ -458,6 +471,8 @@
+ /// the early-out, the inverse quantization, and the distortion
+ /// accumulation are unchanged.
+ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &mut [i16]) -> i32 {
++    // TEMP ATTRIBUTION COUNTERS (removed before final state).
++    qstats::bump(&qstats::CALLS);
+     // All callers pass paired band slices. State the contract once so the
+     // line loop can carry no per-line `quant[i]` bounds check.
+     assert_eq!(
+@@ -474,14 +489,19 @@
+     };
+     let mut xfsf: i32 = 0;
+     for (&s, q_out) in spec.iter().zip(quant.iter_mut()) {
++        qstats::bump(&qstats::LINES);
+         let q = quantize_line_body(quantizer, quantizer_shift, k, s);
+         *q_out = q;
++        if q == 0 {
++            qstats::bump(&qstats::ZERO_Q);
++        }
+         // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+         // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+         // (whose `specExp < 14` assert then panics). The reference
+         // `fixabs_S` has the same blind spot; here the sentinel takes the
+         // documented early-out instead.
+         if (q as i32).abs() > MAX_QUANT {
++            qstats::bump(&qstats::MAXQ_RET);
+             return 0;
+         }
+         let inv = inv_quantize_line(gain, q);
+@@ -859,4 +879,51 @@
+             }
+         }
+     }
++
++    // TEMP ATTRIBUTION TEST (removed before final state).
++    #[test]
++    fn zz_quant_path_frequency() {
++        use super::super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
++        use super::super::pcm::PcmFeeder;
++        use super::super::stream_driver::StreamEncoder;
++        use super::super::testdata;
++        use std::sync::atomic::Ordering;
++
++        for (short, ch) in [
++            ("music-stereo", 2usize),
++            ("sine-stereo", 2),
++            ("onset-stereo", 2),
++            ("noise-mono", 1),
++        ] {
++            let c0 = qstats::CALLS.load(Ordering::Relaxed);
++            let l0 = qstats::LINES.load(Ordering::Relaxed);
++            let z0 = qstats::ZERO_Q.load(Ordering::Relaxed);
++            let m0 = qstats::MAXQ_RET.load(Ordering::Relaxed);
++            let pcm = testdata::fixture_samples(short);
++            let cfg = EncoderConfig::new(48000, ch as u32, FRAME_LENGTH, TransportType::Adts)
++                .expect("cfg");
++            let s = pcm[0].len();
++            let mut inter = Vec::with_capacity(s * ch);
++            for i in 0..s {
++                for c in pcm.iter().take(ch) {
++                    inter.push(c[i]);
++                }
++            }
++            let mut feeder = PcmFeeder::new(cfg);
++            let mut frames = feeder.push_interleaved(&inter).expect("push");
++            frames.extend(feeder.finish().expect("finish"));
++            let mut enc = StreamEncoder::new(48000, ch);
++            for (i, fr) in frames.iter().enumerate() {
++                let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
++                assert!(enc.step_frame(i as u32, &fresh).0.is_some());
++            }
++            eprintln!(
++                "QFREQ {short}: calls={} lines={} zero_q={} maxq_ret={}",
++                qstats::CALLS.load(Ordering::Relaxed) - c0,
++                qstats::LINES.load(Ordering::Relaxed) - l0,
++                qstats::ZERO_Q.load(Ordering::Relaxed) - z0,
++                qstats::MAXQ_RET.load(Ordering::Relaxed) - m0,
++            );
++        }
++    }
+ }

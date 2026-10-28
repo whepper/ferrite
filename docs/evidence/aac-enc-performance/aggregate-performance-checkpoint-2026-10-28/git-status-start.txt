@@ -1,0 +1,48 @@
+# Recorded at task start (2026-10-28T19:26Z)
+## git status --short
+ M docs/README.md
+ M docs/aac-enc-m5b-objective-quality-baseline.md
+ M docs/aac-enc-quality-divergence-audit-m5.25.md
+ M rust/src/aac_enc.rs
+ M rust/src/aac_enc/bitcount.rs
+ M rust/src/aac_enc/bitenc.rs
+ M rust/src/aac_enc/block_switch.rs
+ M rust/src/aac_enc/psy.rs
+ M rust/src/aac_enc/quant.rs
+ M rust/src/aac_enc/stream_driver.rs
+ M rust/src/aac_enc/tns.rs
+?? docs/aac-enc-block-switch-oracle-investigation.md
+?? docs/aac-enc-cross-frame-state-drift-investigation.md
+?? docs/aac-enc-mdct-f64-closeout.md
+?? docs/aac-enc-mdct-f64-precision-experiment.md
+?? docs/aac-enc-minsnr1-oracle-investigation.md
+?? docs/aac-enc-numerical-divergence-triage.md
+?? docs/aac-enc-performance-baseline.md
+?? docs/aac-enc-rate-control-divergence-audit.md
+?? docs/aac-enc-tns-d013-activation-margin-census.md
+?? docs/aac-enc-tns-oracle-investigation.md
+?? docs/evidence/
+?? rust/examples/
+?? rust/src/aac_enc/production_baseline.rs
+?? tools/aac-enc-metrics/challenge/listening-review-worksheet.md
+
+## git diff --stat
+ docs/README.md                                 |  126 +++
+ docs/aac-enc-m5b-objective-quality-baseline.md |   55 ++
+ docs/aac-enc-quality-divergence-audit-m5.25.md |   96 ++
+ rust/src/aac_enc.rs                            |    2 +
+ rust/src/aac_enc/bitcount.rs                   |  283 +++++-
+ rust/src/aac_enc/bitenc.rs                     |   51 +-
+ rust/src/aac_enc/block_switch.rs               |  109 ++-
+ rust/src/aac_enc/psy.rs                        |    6 +
+ rust/src/aac_enc/quant.rs                      |   80 +-
+ rust/src/aac_enc/stream_driver.rs              | 1105 ++++++++++++++++++++++++
+ rust/src/aac_enc/tns.rs                        |  303 ++++++-
+ 11 files changed, 2125 insertions(+), 91 deletions(-)
+
+## index
+staged entries: 0
+
+## HEAD
+c4d1262fa3ec2f4f88cbb27e49d403d6d6c06b2f
+c4d1262 refactor(aac-enc): remove redundant encoder bookkeeping

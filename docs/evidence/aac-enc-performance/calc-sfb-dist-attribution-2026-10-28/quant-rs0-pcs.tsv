@@ -1,0 +1,4 @@
+static_addr	offset	atos_resolution
+0x100134c94	0x94	_RNvNtNtCsnrXpTaZPjn_11ferrite_aac7aac_enc5quant13calc_sfb_dist (in ferrite_aac-1c6dc192d7062723) (quant.rs:0)
+0x100134cb4	0xb4	_RNvNtNtCsnrXpTaZPjn_11ferrite_aac7aac_enc5quant13calc_sfb_dist (in ferrite_aac-1c6dc192d7062723) (quant.rs:0)
+0x100134dd0	0x1d0	_RNvNtNtCsnrXpTaZPjn_11ferrite_aac7aac_enc5quant13calc_sfb_dist (in ferrite_aac-1c6dc192d7062723) (quant.rs:0)

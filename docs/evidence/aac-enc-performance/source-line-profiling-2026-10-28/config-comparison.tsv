@@ -1,0 +1,3 @@
+config	build_flags	binary_bytes	dsym_dwarf_bytes	text_section_bytes	debug_sections	median_ms	realtime_x	rtf	delta_vs_prod_pct	hashes
+production	release, debuginfo=0, default strip	10930480	0	1834748	none	399.934	228.7	0.004373	0.000	unchanged
+debuginfo	release, debuginfo=2, strip=none, default dSYM split	11149232	32040983	1833148	dSYM line tables + inline info	404.660	226.0	0.004425	1.182	unchanged

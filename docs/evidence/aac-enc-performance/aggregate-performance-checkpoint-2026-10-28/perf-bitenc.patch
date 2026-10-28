@@ -1,0 +1,70 @@
+diff --git a/rust/src/aac_enc/bitenc.rs b/rust/src/aac_enc/bitenc.rs
+index c8c690d..d178955 100644
+--- a/rust/src/aac_enc/bitenc.rs
++++ b/rust/src/aac_enc/bitenc.rs
+@@ -314,6 +314,7 @@ impl BitWriter {
+     /// `FDKwriteBits(hBs, value, numberOfBits)` (`FDK_bitstream.h:342`):
+     /// the value's low `nbits` go out high-bit-first. Zero lengths are a
+     /// no-op like C (`BitsInCache + 0 < CACHE_BITS` arm).
++    #[inline]
+     pub fn write_bits(&mut self, value: u32, nbits: u8) -> Result<(), BitEncError> {
+         if nbits > 32 {
+             return Err(BitEncError::InvalidLength(nbits));
+@@ -332,24 +333,40 @@ impl BitWriter {
+                 free_bits: free,
+             });
+         }
+-        // Byte-chunk emission (was: one bounds-checked bit iteration per
+-        // bit). Places the same high-bit-first bits at the same positions:
+-        // each step fills the current byte's remaining high slots with the
+-        // top `take` bits of the not-yet-written field. One buffer access
+-        // per touched byte instead of one per bit; entry checks above
+-        // already guarantee every access is in-bounds.
+-        let mut remaining = need;
+-        let mut shift = need;
+-        while remaining > 0 {
+-            let room = 8 - self.bits % 8;
+-            let take = room.min(remaining);
+-            shift -= take;
+-            let chunk = ((value >> shift) & ((1u32 << take) - 1)) as u8;
+-            let byte_idx = self.bits / 8;
+-            self.buf[byte_idx] |= chunk << (room - take);
+-            self.bits += take;
+-            remaining -= take;
++        // A write of at most 32 bits starting at any bit offset touches at
++        // most five bytes, so one 8-byte window covers the whole field.
++        // Merging the field into that window and storing it back replaces
++        // the per-touched-byte load/OR/store loop. The writer only appends,
++        // so bytes outside the written range are read back unchanged.
++        let bit = self.bits;
++        let byte_idx = bit / 8;
++        let bit_offset = bit % 8;
++        if byte_idx + 8 <= self.buf.len() {
++            let mut word = u64::from_be_bytes(
++                self.buf[byte_idx..byte_idx + 8]
++                    .try_into()
++                    .expect("8-byte window"),
++            );
++            word |= (value as u64) << (64 - bit_offset - need);
++            self.buf[byte_idx..byte_idx + 8].copy_from_slice(&word.to_be_bytes());
++        } else {
++            // Buffer tail: the window would run past the end. Keep the
++            // original byte-at-a-time placement for these final bytes.
++            let mut remaining = need;
++            let mut shift = need;
++            let mut pos = bit;
++            while remaining > 0 {
++                let room = 8 - pos % 8;
++                let take = room.min(remaining);
++                shift -= take;
++                let chunk = ((value >> shift) & ((1u32 << take) - 1)) as u8;
++                let idx = pos / 8;
++                self.buf[idx] |= chunk << (room - take);
++                pos += take;
++                remaining -= take;
++            }
+         }
++        self.bits = bit + need;
+         Ok(())
+     }
+ 

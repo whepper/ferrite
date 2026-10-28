@@ -1,0 +1,22 @@
+# Build and host facts (recorded 2026-10-27)
+
+- rustc: 1.99.1 (58cf8f9c3 2026-10-13), LLVM 23.1.1
+- cargo: 1.99.1 (5f94df478 2026-08-27)
+- Host: Apple M5, arm64 (aarch64-apple-darwin), 10 logical CPUs, 16 GiB RAM
+- OS: Darwin 27.0.0 / macOS 27.0.1 (26A434)
+- Build command: `cargo test --release --locked --features aac_enc --lib`
+- Release profile: opt-level=3, debug-assertions=off, overflow-checks=off,
+  LTO off, codegen-units=16, strip=debuginfo (Cargo defaults; no profile
+  overrides beyond the workspace's `dev-release` definition).
+- Features: `default = ["aac_enc"]`, `aac_enc` only. `rust/Cargo.toml` and
+  `rust/.cargo/config.toml` define no SIMD feature and no target-cpu/RUSTFLAGS
+  override. The `aarch64-apple-darwin` baseline includes NEON for LLVM
+  auto-vectorisation, but there is no explicit SIMD feature in this tree.
+- rustc invocation observed with `cargo build --release -v`:
+  `-C opt-level=3 -C debug-assertions=off -C embed-bitcode=no -C strip=debuginfo
+  --cfg 'feature="aac_enc"' --cfg 'feature="default"' --cfg is_stable`
+  (no `-C target-cpu`, no LTO flag).
+
+The benchmark is a single-threaded process; no CPU affinity/pinning was applied.
+The macOS scheduler may place the process on P- or E-cores between runs, which
+is the largest observed source of run-to-run variance.

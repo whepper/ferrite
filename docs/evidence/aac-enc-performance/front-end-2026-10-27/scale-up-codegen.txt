@@ -1,0 +1,43 @@
+Isolated microbenchmark code generation (rustc -O, aarch64)
+
+The write loop in `tns::scale_up_spectrum` currently uses:
+
+    for (d, s) in dest.iter_mut().zip(src.iter()).take(stop).skip(start) {
+        *d = (*s as i64) << scale;
+    }
+
+The direct-slice variant is:
+
+    for (d, s) in dest[start..stop].iter_mut().zip(&src[start..stop]) {
+        *d = (*s as i64) << scale;
+    }
+
+The old variant remains scalar in the generated loop:
+
+    ldrsw   x13, [x11], #0x4
+    str     x13, [x10], #0x8
+    b.lo    ...
+
+The new variant vectorizes the same operation:
+
+    ldr     q1, [x14], #0x10
+    sshll2.2d v2, v1, #0x0
+    sshll.2d  v1, v1, #0x0
+    ushl.2d   v1, v1, v0
+    ushl.2d   v2, v2, v0
+    ...
+    b.ne    ...
+
+This is from the standalone `scale-up-function-microbench.rs` build, not
+from the production binary. It supports the source-level hypothesis that the
+adapter chain prevents the write loop from vectorizing. The production
+function's own assembly is in `asm-tns-scale-up.txt`; its peak scan is already
+vectorized, but its write loop is the scalar `ldrsw/str` shape.
+
+Microbenchmark result (1,000,000 iterations of four 256-element quarters):
+
+    old: 1697.5 ns/frame
+    new:  216.4 ns/frame
+
+The write-only loop measured 1636.8 ns/frame (old) vs 67.3 ns/frame (new).
+These are isolated measurements, not end-to-end encoder results.

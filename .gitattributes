@@ -1,0 +1,5 @@
+# Raw benchmark/profiler evidence is preserved byte-for-byte. Captured logs,
+# assembly dumps, and saved patches may contain trailing spaces or blank lines
+# at EOF; those are artifacts, not source formatting. Keep `git diff --check`
+# meaningful for code and documentation without rewriting the evidence.
+docs/evidence/aac-enc-performance/** -whitespace

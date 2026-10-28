@@ -1,0 +1,5 @@
+workload	worker_samples	autocorr_samples	autocorr_pct	autocorr_inclusive	fmult_samples	merged_autocorr_samples
+corpus	8194	340	4.15	340	0	67
+onset	6394	323	5.05	323	0	89
+music	6564	200	3.05	200	0	47
+speech	6535	255	3.90	255	0	60

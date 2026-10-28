@@ -1,0 +1,1176 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4839:9
+     |
+4838 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4839 |     pub stem: String,
+     |         ^^^^
+...
+4844 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:5467:9
+     |
+5466 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+5467 |     pub short: String,
+     |         ^^^^^
+...
+5470 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:516:16
+    |
+495 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+516 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+   --> src/aac_enc/testdata.rs:940:16
+    |
+939 | pub(crate) struct S1Frame {
+    |                   ------- field in this struct
+940 |     pub(crate) frame: u32,
+    |                ^^^^^
+    |
+    = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1187:16
+     |
+1186 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1187 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1445:16
+     |
+1441 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1445 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1640:16
+     |
+1636 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1640 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2305:16
+     |
+2304 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2305 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2369:16
+     |
+2368 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2369 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:686:18
+    |
+686 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `release` profile [optimized] target(s) in 0.01s
+     Running unittests src/lib.rs (target/release/deps/ferrite_aac-549f414e79686bc8)
+
+running 1 test
+AACPERF_CONFIG	profile=release	features=aac_enc,default	arch=aarch64	os=macos	threads=single	reps=15	warmups=1	modes=production,feed,core
+AACPERF_ROW	production	m2-silence-stereo-48k	0	48000	2	48000	49	735	22917	1130000	1152917	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	0	48000	2	48000	49	0	83	100916	100999	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	0	48000	2	48000	49	735	14959	1084875	1099834	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	0	48000	2	48000	49	3147	21417	2572667	2594084	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	0	48000	2	48000	49	0	83	96125	96208	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	0	48000	2	48000	49	3147	15000	2372666	2387666	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	0	48000	2	48000	49	2359	18625	1922875	1941500	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	0	48000	2	48000	49	0	42	103250	103292	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	0	48000	2	48000	49	2359	12666	1763166	1775832	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	0	48000	2	48000	49	2236	17292	1927500	1944792	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	0	48000	2	48000	49	0	125	97708	97833	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	0	48000	2	48000	49	2236	17958	1727084	1745042	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	0	48000	1	24000	25	2680	21250	923833	945083	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	0	48000	1	24000	25	0	41	25667	25708	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	0	48000	1	24000	25	2680	13709	848541	862250	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	0	48000	1	9600	11	306	15334	175834	191168	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	0	48000	1	9600	11	0	42	12166	12208	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	0	48000	1	9600	11	306	12666	147500	160166	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	0	48000	1	12000	14	415	14416	200583	214999	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	0	48000	1	12000	14	0	0	13250	13250	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	0	48000	1	12000	14	415	12583	182750	195333	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	0	48000	2	48000	49	4819	15625	2912542	2928167	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	0	48000	2	48000	49	0	83	96083	96166	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	0	48000	2	48000	49	4819	13417	2709666	2723083	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	0	48000	2	48000	49	3988	17291	2669875	2687166	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	0	48000	2	48000	49	0	83	97334	97417	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	0	48000	2	48000	49	3988	15541	2506125	2521666	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	0	48000	1	24000	25	10603	18167	1345125	1363292	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	0	48000	1	24000	25	0	83	29542	29625	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	0	48000	1	24000	25	10603	16458	1269917	1286375	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	0	48000	2	24000	25	10630	18333	1885916	1904249	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	0	48000	2	24000	25	0	167	56208	56375	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	0	48000	2	24000	25	10630	18958	1718708	1737666	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	0	48000	2	48000	49	4200	19500	2673500	2693000	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	0	48000	2	48000	49	0	83	95917	96000	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	0	48000	2	48000	49	4200	14917	2569333	2584250	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	0	44100	2	44100	45	2998	19000	2605500	2624500	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	0	44100	2	44100	45	0	83	89083	89166	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	0	44100	2	44100	45	2998	15292	2457292	2472584	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	0	44100	2	44100	45	2250	18959	1900208	1919167	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	0	44100	2	44100	45	0	41	117292	117333	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	0	44100	2	44100	45	2250	14084	1779209	1793293	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	0	48000	2	24000	25	10728	18291	1957625	1975916	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	0	48000	2	24000	25	0	84	51834	51918	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	0	48000	2	24000	25	10728	15625	1843708	1859333	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	0	48000	2	480000	471	250926	18666	62822125	62840791	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	0	48000	2	480000	471	0	250	918833	919083	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	0	48000	2	480000	471	250926	28916	63512291	63541207	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	0	48000	2	480000	471	125818	22042	39958500	39980542	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	0	48000	2	480000	471	0	167	851791	851958	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	0	48000	2	480000	471	125818	24458	39019291	39043749	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	0	48000	2	480000	471	127900	28833	39880375	39909208	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	0	48000	2	480000	471	0	125	916417	916542	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	0	48000	2	480000	471	127900	24750	39940500	39965250	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	0	48000	2	480000	471	234229	23667	58257167	58280834	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	0	48000	2	480000	471	0	208	841416	841624	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	0	48000	2	480000	471	234229	25125	56885791	56910916	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	0	48000	2	1920000	1877	997957	23000	248661375	248684375	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	0	48000	2	1920000	1877	0	250	3502667	3502917	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	0	48000	2	1920000	1877	997957	30750	241307292	241338042	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	1	48000	2	48000	49	735	24375	1187375	1211750	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	1	48000	2	48000	49	0	125	96625	96750	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	1	48000	2	48000	49	735	19000	1014291	1033291	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	1	48000	2	48000	49	3147	17916	2541458	2559374	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	1	48000	2	48000	49	0	0	96791	96791	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	1	48000	2	48000	49	3147	20125	2364875	2385000	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	1	48000	2	48000	49	2359	20209	1887083	1907292	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	1	48000	2	48000	49	0	84	96667	96751	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	1	48000	2	48000	49	2359	14208	1795417	1809625	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	1	48000	2	48000	49	2236	17416	1834250	1851666	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	1	48000	2	48000	49	0	42	95625	95667	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	1	48000	2	48000	49	2236	14041	1752666	1766707	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	1	48000	1	24000	25	2680	15917	953500	969417	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	1	48000	1	24000	25	0	41	29375	29416	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	1	48000	1	24000	25	2680	14583	862666	877249	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	1	48000	1	9600	11	306	15417	174625	190042	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	1	48000	1	9600	11	0	41	12208	12249	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	1	48000	1	9600	11	306	11667	149417	161084	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	1	48000	1	12000	14	415	14708	203583	218291	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	1	48000	1	12000	14	0	0	14750	14750	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	1	48000	1	12000	14	415	11375	183500	194875	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	1	48000	2	48000	49	4819	14667	2968250	2982917	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	1	48000	2	48000	49	0	83	96375	96458	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	1	48000	2	48000	49	4819	14250	2723541	2737791	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	1	48000	2	48000	49	3988	16583	2726250	2742833	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	1	48000	2	48000	49	0	83	96792	96875	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	1	48000	2	48000	49	3988	14459	2539000	2553459	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	1	48000	1	24000	25	10603	17542	1396125	1413667	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	1	48000	1	24000	25	0	84	29834	29918	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	1	48000	1	24000	25	10603	18833	1242000	1260833	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	1	48000	2	24000	25	10630	18375	1800834	1819209	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	1	48000	2	24000	25	0	125	55583	55708	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	1	48000	2	24000	25	10630	13667	1821458	1835125	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	1	48000	2	48000	49	4200	15208	2691417	2706625	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	1	48000	2	48000	49	0	83	96333	96416	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	1	48000	2	48000	49	4200	17792	2482958	2500750	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	1	44100	2	44100	45	2998	21083	2648417	2669500	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	1	44100	2	44100	45	0	125	89750	89875	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	1	44100	2	44100	45	2998	16416	2491625	2508041	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	1	44100	2	44100	45	2250	19917	1905417	1925334	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	1	44100	2	44100	45	0	83	117625	117708	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	1	44100	2	44100	45	2250	14500	1792958	1807458	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	1	48000	2	24000	25	10728	18666	1984791	2003457	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	1	48000	2	24000	25	0	41	50667	50708	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	1	48000	2	24000	25	10728	14375	1847167	1861542	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	1	48000	2	480000	471	250926	16709	60581583	60598292	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	1	48000	2	480000	471	0	208	827958	828166	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	1	48000	2	480000	471	250926	19417	59493125	59512542	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	1	48000	2	480000	471	125818	20791	38760875	38781666	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	1	48000	2	480000	471	0	84	848500	848584	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	1	48000	2	480000	471	125818	19709	38315125	38334834	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	1	48000	2	480000	471	127900	23250	39132000	39155250	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	1	48000	2	480000	471	0	167	827834	828001	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	1	48000	2	480000	471	127900	19750	37984750	38004500	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	1	48000	2	480000	471	234229	25334	56638917	56664251	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	1	48000	2	480000	471	0	166	857042	857208	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	1	48000	2	480000	471	234229	21042	55444166	55465208	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	1	48000	2	1920000	1877	997957	21708	242381625	242403333	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	1	48000	2	1920000	1877	0	209	3367500	3367709	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	1	48000	2	1920000	1877	997957	26458	240601375	240627833	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	2	48000	2	48000	49	735	24167	1167875	1192042	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	2	48000	2	48000	49	0	83	103041	103124	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	2	48000	2	48000	49	735	19916	1071417	1091333	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	2	48000	2	48000	49	3147	23458	2615084	2638542	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	2	48000	2	48000	49	0	42	99666	99708	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	2	48000	2	48000	49	3147	16917	2385708	2402625	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	2	48000	2	48000	49	2359	18916	1917375	1936291	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	2	48000	2	48000	49	0	83	96333	96416	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	2	48000	2	48000	49	2359	14125	1924458	1938583	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	2	48000	2	48000	49	2236	21333	1880375	1901708	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	2	48000	2	48000	49	0	83	95875	95958	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	2	48000	2	48000	49	2236	14958	1732083	1747041	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	2	48000	1	24000	25	2680	15000	951833	966833	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	2	48000	1	24000	25	0	42	26917	26959	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	2	48000	1	24000	25	2680	12250	874167	886417	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	2	48000	1	9600	11	306	14250	183250	197500	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	2	48000	1	9600	11	0	41	12167	12208	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	2	48000	1	9600	11	306	11834	148750	160584	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	2	48000	1	12000	14	415	13083	202375	215458	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	2	48000	1	12000	14	0	41	14708	14749	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	2	48000	1	12000	14	415	14417	184125	198542	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	2	48000	2	48000	49	4819	15042	2986500	3001542	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	2	48000	2	48000	49	0	42	97875	97917	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	2	48000	2	48000	49	4819	13500	2763666	2777166	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	2	48000	2	48000	49	3988	22375	2742458	2764833	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	2	48000	2	48000	49	0	41	96875	96916	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	2	48000	2	48000	49	3988	14083	2563375	2577458	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	2	48000	1	24000	25	10603	18042	1358708	1376750	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	2	48000	1	24000	25	0	83	29750	29833	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	2	48000	1	24000	25	10603	15833	1289708	1305541	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	2	48000	2	24000	25	10630	16250	1819625	1835875	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	2	48000	2	24000	25	0	83	55416	55499	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	2	48000	2	24000	25	10630	12708	1789208	1801916	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	2	48000	2	48000	49	4200	17250	2737125	2754375	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	2	48000	2	48000	49	0	84	96791	96875	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	2	48000	2	48000	49	4200	14167	2656541	2670708	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	2	44100	2	44100	45	2998	19291	2565459	2584750	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	2	44100	2	44100	45	0	83	88542	88625	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	2	44100	2	44100	45	2998	14208	2460250	2474458	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	2	44100	2	44100	45	2250	17792	2003458	2021250	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	2	44100	2	44100	45	0	83	90833	90916	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	2	44100	2	44100	45	2250	18666	1820166	1838832	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	2	48000	2	24000	25	10728	18208	1867209	1885417	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	2	48000	2	24000	25	0	83	55750	55833	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	2	48000	2	24000	25	10728	13542	1756375	1769917	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	2	48000	2	480000	471	250926	15917	60917042	60932959	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	2	48000	2	480000	471	0	167	839583	839750	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	2	48000	2	480000	471	250926	20875	60092375	60113250	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	2	48000	2	480000	471	125818	19625	39150750	39170375	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	2	48000	2	480000	471	0	125	1148458	1148583	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	2	48000	2	480000	471	125818	20709	52293833	52314542	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	2	48000	2	480000	471	127900	25625	39751083	39776708	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	2	48000	2	480000	471	0	166	879667	879833	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	2	48000	2	480000	471	127900	23208	38401625	38424833	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	2	48000	2	480000	471	234229	24250	56828333	56852583	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	2	48000	2	480000	471	0	167	860334	860501	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	2	48000	2	480000	471	234229	20917	56152417	56173334	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	2	48000	2	1920000	1877	997957	24708	246398041	246422749	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	2	48000	2	1920000	1877	0	167	3348084	3348251	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	2	48000	2	1920000	1877	997957	27458	251080208	251107666	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	3	48000	2	48000	49	735	23750	1178500	1202250	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	3	48000	2	48000	49	0	125	97084	97209	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	3	48000	2	48000	49	735	18625	1007958	1026583	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	3	48000	2	48000	49	3147	17625	2491833	2509458	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	3	48000	2	48000	49	0	84	96417	96501	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	3	48000	2	48000	49	3147	13667	2335834	2349501	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	3	48000	2	48000	49	2359	17584	1887125	1904709	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	3	48000	2	48000	49	0	84	99167	99251	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	3	48000	2	48000	49	2359	12750	1775334	1788084	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	3	48000	2	48000	49	2236	16959	1891000	1907959	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	3	48000	2	48000	49	0	83	96292	96375	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	3	48000	2	48000	49	2236	12875	1766125	1779000	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	3	48000	1	24000	25	2680	17000	965709	982709	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	3	48000	1	24000	25	0	42	29333	29375	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	3	48000	1	24000	25	2680	12709	873625	886334	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	3	48000	1	9600	11	306	15709	172125	187834	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	3	48000	1	9600	11	0	42	12125	12167	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	3	48000	1	9600	11	306	11625	144291	155916	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	3	48000	1	12000	14	415	14250	207042	221292	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	3	48000	1	12000	14	0	42	14833	14875	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	3	48000	1	12000	14	415	11208	181541	192749	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	3	48000	2	48000	49	4819	12625	3024167	3036792	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	3	48000	2	48000	49	0	125	97459	97584	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	3	48000	2	48000	49	4819	18958	2686417	2705375	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	3	48000	2	48000	49	3988	18917	2656000	2674917	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	3	48000	2	48000	49	0	83	96500	96583	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	3	48000	2	48000	49	3988	15125	2554125	2569250	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	3	48000	1	24000	25	10603	17083	1356625	1373708	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	3	48000	1	24000	25	0	84	30584	30668	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	3	48000	1	24000	25	10603	22583	1207334	1229917	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	3	48000	2	24000	25	10630	18000	1835041	1853041	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	3	48000	2	24000	25	0	83	55833	55916	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	3	48000	2	24000	25	10630	15416	1793416	1808832	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	3	48000	2	48000	49	4200	15042	2704042	2719084	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	3	48000	2	48000	49	0	125	95750	95875	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	3	48000	2	48000	49	4200	13833	2540708	2554541	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	3	44100	2	44100	45	2998	22667	2577750	2600417	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	3	44100	2	44100	45	0	83	89542	89625	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	3	44100	2	44100	45	2998	16417	2441042	2457459	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	3	44100	2	44100	45	2250	19583	1902417	1922000	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	3	44100	2	44100	45	0	42	104500	104542	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	3	44100	2	44100	45	2250	13042	1781834	1794876	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	3	48000	2	24000	25	10728	17916	1949375	1967291	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	3	48000	2	24000	25	0	83	53583	53666	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	3	48000	2	24000	25	10728	14667	1844000	1858667	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	3	48000	2	480000	471	250926	17666	60956916	60974582	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	3	48000	2	480000	471	0	167	824458	824625	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	3	48000	2	480000	471	250926	18792	60323292	60342084	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	3	48000	2	480000	471	125818	27334	39735459	39762793	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	3	48000	2	480000	471	0	291	849000	849291	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	3	48000	2	480000	471	125818	22750	39010291	39033041	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	3	48000	2	480000	471	127900	25375	39489542	39514917	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	3	48000	2	480000	471	0	334	838792	839126	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	3	48000	2	480000	471	127900	20417	38766459	38786876	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	3	48000	2	480000	471	234229	24667	56628625	56653292	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	3	48000	2	480000	471	0	125	1186542	1186667	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	3	48000	2	480000	471	234229	19292	55622083	55641375	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	3	48000	2	1920000	1877	997957	20625	242633125	242653750	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	3	48000	2	1920000	1877	0	208	3404583	3404791	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	3	48000	2	1920000	1877	997957	25833	239835875	239861708	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	4	48000	2	48000	49	735	28334	1122958	1151292	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	4	48000	2	48000	49	0	84	99625	99709	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	4	48000	2	48000	49	735	14125	1043792	1057917	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	4	48000	2	48000	49	3147	16584	2585042	2601626	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	4	48000	2	48000	49	0	41	96375	96416	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	4	48000	2	48000	49	3147	14125	2423750	2437875	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	4	48000	2	48000	49	2359	17083	1911459	1928542	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	4	48000	2	48000	49	0	125	96666	96791	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	4	48000	2	48000	49	2359	13375	1892667	1906042	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	4	48000	2	48000	49	2236	23625	1887750	1911375	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	4	48000	2	48000	49	0	84	95625	95709	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	4	48000	2	48000	49	2236	17292	1713834	1731126	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	4	48000	1	24000	25	2680	19333	1011292	1030625	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	4	48000	1	24000	25	0	83	29458	29541	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	4	48000	1	24000	25	2680	12791	861791	874582	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	4	48000	1	9600	11	306	16084	192375	208459	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	4	48000	1	9600	11	0	0	10500	10500	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	4	48000	1	9600	11	306	14791	146791	161582	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	4	48000	1	12000	14	415	14791	206542	221333	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	4	48000	1	12000	14	0	42	13125	13167	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	4	48000	1	12000	14	415	11292	174125	185417	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	4	48000	2	48000	49	4819	14875	2898500	2913375	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	4	48000	2	48000	49	0	84	102833	102917	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	4	48000	2	48000	49	4819	14083	2688500	2702583	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	4	48000	2	48000	49	3988	16250	2682000	2698250	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	4	48000	2	48000	49	0	42	97250	97292	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	4	48000	2	48000	49	3988	12541	2505333	2517874	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	4	48000	1	24000	25	10603	15750	1397000	1412750	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	4	48000	1	24000	25	0	83	28333	28416	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	4	48000	1	24000	25	10603	15000	1296833	1311833	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	4	48000	2	24000	25	10630	19250	1891750	1911000	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	4	48000	2	24000	25	0	84	56542	56626	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	4	48000	2	24000	25	10630	14083	1717041	1731124	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	4	48000	2	48000	49	4200	16834	2699292	2716126	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	4	48000	2	48000	49	0	83	96709	96792	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	4	48000	2	48000	49	4200	15958	2588292	2604250	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	4	44100	2	44100	45	2998	18417	2657292	2675709	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	4	44100	2	44100	45	0	84	84375	84459	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	4	44100	2	44100	45	2998	15500	2486250	2501750	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	4	44100	2	44100	45	2250	18542	1901042	1919584	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	4	44100	2	44100	45	0	83	90584	90667	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	4	44100	2	44100	45	2250	13833	2143375	2157208	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	4	48000	2	24000	25	10728	21916	1872333	1894249	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	4	48000	2	24000	25	0	83	54000	54083	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	4	48000	2	24000	25	10728	15375	1761042	1776417	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	4	48000	2	480000	471	250926	18375	61327292	61345667	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	4	48000	2	480000	471	0	209	827208	827417	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	4	48000	2	480000	471	250926	21125	59715833	59736958	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	4	48000	2	480000	471	125818	23209	39194250	39217459	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	4	48000	2	480000	471	0	167	846125	846292	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	4	48000	2	480000	471	125818	20750	38281208	38301958	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	4	48000	2	480000	471	127900	23291	39912875	39936166	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	4	48000	2	480000	471	0	167	856208	856375	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	4	48000	2	480000	471	127900	24958	38644209	38669167	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	4	48000	2	480000	471	234229	20375	56808750	56829125	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	4	48000	2	480000	471	0	167	893917	894084	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	4	48000	2	480000	471	234229	21584	55767250	55788834	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	4	48000	2	1920000	1877	997957	24750	242754542	242779292	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	4	48000	2	1920000	1877	0	83	3403083	3403166	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	4	48000	2	1920000	1877	997957	28291	239176167	239204458	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	5	48000	2	48000	49	735	23084	1134042	1157126	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	5	48000	2	48000	49	0	84	95916	96000	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	5	48000	2	48000	49	735	15500	1042083	1057583	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	5	48000	2	48000	49	3147	16833	2528208	2545041	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	5	48000	2	48000	49	0	83	106208	106291	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	5	48000	2	48000	49	3147	13250	2378958	2392208	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	5	48000	2	48000	49	2359	17083	1909291	1926374	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	5	48000	2	48000	49	0	83	96333	96416	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	5	48000	2	48000	49	2359	12875	1827459	1840334	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	5	48000	2	48000	49	2236	16542	1887291	1903833	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	5	48000	2	48000	49	0	42	102625	102667	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	5	48000	2	48000	49	2236	13083	1747625	1760708	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	5	48000	1	24000	25	2680	15542	961834	977376	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	5	48000	1	24000	25	0	41	29500	29541	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	5	48000	1	24000	25	2680	14042	871708	885750	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	5	48000	1	9600	11	306	15250	172292	187542	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	5	48000	1	9600	11	0	41	12292	12333	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	5	48000	1	9600	11	306	12375	148041	160416	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	5	48000	1	12000	14	415	14167	200917	215084	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	5	48000	1	12000	14	0	42	14417	14459	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	5	48000	1	12000	14	415	11875	181833	193708	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	5	48000	2	48000	49	4819	15208	2968459	2983667	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	5	48000	2	48000	49	0	166	97250	97416	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	5	48000	2	48000	49	4819	18542	2726375	2744917	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	5	48000	2	48000	49	3988	17542	2695458	2713000	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	5	48000	2	48000	49	0	125	97125	97250	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	5	48000	2	48000	49	3988	18459	2488042	2506501	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	5	48000	1	24000	25	10603	18625	1303750	1322375	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	5	48000	1	24000	25	0	83	28167	28250	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	5	48000	1	24000	25	10603	13000	1205834	1218834	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	5	48000	2	24000	25	10630	17916	1839458	1857374	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	5	48000	2	24000	25	0	83	53833	53916	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	5	48000	2	24000	25	10630	13125	1756709	1769834	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	5	48000	2	48000	49	4200	16333	2738084	2754417	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	5	48000	2	48000	49	0	83	96542	96625	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	5	48000	2	48000	49	4200	13375	2596917	2610292	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	5	44100	2	44100	45	2998	24042	2608542	2632584	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	5	44100	2	44100	45	0	83	85458	85541	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	5	44100	2	44100	45	2998	13334	2774917	2788251	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	5	44100	2	44100	45	2250	20083	1856875	1876958	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	5	44100	2	44100	45	0	83	117834	117917	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	5	44100	2	44100	45	2250	14583	1767208	1781791	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	5	48000	2	24000	25	10728	16250	1936583	1952833	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	5	48000	2	24000	25	0	125	55916	56041	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	5	48000	2	24000	25	10728	16375	1755250	1771625	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	5	48000	2	480000	471	250926	20250	60795500	60815750	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	5	48000	2	480000	471	0	125	886250	886375	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	5	48000	2	480000	471	250926	22167	59439791	59461958	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	5	48000	2	480000	471	125818	23084	38972959	38996043	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	5	48000	2	480000	471	0	83	871458	871541	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	5	48000	2	480000	471	125818	23875	39068667	39092542	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	5	48000	2	480000	471	127900	24959	39172209	39197168	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	5	48000	2	480000	471	0	125	837750	837875	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	5	48000	2	480000	471	127900	25459	38759916	38785375	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	5	48000	2	480000	471	234229	20500	56964250	56984750	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	5	48000	2	480000	471	0	167	822958	823125	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	5	48000	2	480000	471	234229	21166	55572791	55593957	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	5	48000	2	1920000	1877	997957	22250	245166666	245188916	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	5	48000	2	1920000	1877	0	125	3386292	3386417	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	5	48000	2	1920000	1877	997957	27334	240916958	240944292	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	6	48000	2	48000	49	735	24458	1191292	1215750	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	6	48000	2	48000	49	0	41	104167	104208	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	6	48000	2	48000	49	735	18625	1044708	1063333	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	6	48000	2	48000	49	3147	17834	2538709	2556543	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	6	48000	2	48000	49	0	84	96125	96209	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	6	48000	2	48000	49	3147	14083	2345666	2359749	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	6	48000	2	48000	49	2359	17875	1887750	1905625	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	6	48000	2	48000	49	0	42	96584	96626	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	6	48000	2	48000	49	2359	13125	1769333	1782458	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	6	48000	2	48000	49	2236	16667	1899167	1915834	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	6	48000	2	48000	49	0	41	96334	96375	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	6	48000	2	48000	49	2236	12667	1768875	1781542	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	6	48000	1	24000	25	2680	18958	929000	947958	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	6	48000	1	24000	25	0	41	24250	24291	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	6	48000	1	24000	25	2680	14375	838458	852833	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	6	48000	1	9600	11	306	17125	167250	184375	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	6	48000	1	9600	11	0	42	10541	10583	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	6	48000	1	9600	11	306	15792	149375	165167	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	6	48000	1	12000	14	415	15417	203166	218583	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	6	48000	1	12000	14	0	41	13042	13083	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	6	48000	1	12000	14	415	12250	172291	184541	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	6	48000	2	48000	49	4819	15542	2923834	2939376	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	6	48000	2	48000	49	0	83	105833	105916	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	6	48000	2	48000	49	4819	15000	2752792	2767792	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	6	48000	2	48000	49	3988	24958	2642000	2666958	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	6	48000	2	48000	49	0	83	96458	96541	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	6	48000	2	48000	49	3988	17500	2497959	2515459	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	6	48000	1	24000	25	10603	20167	1341041	1361208	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	6	48000	1	24000	25	0	41	28292	28333	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	6	48000	1	24000	25	10603	14666	1230666	1245332	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	6	48000	2	24000	25	10630	18000	1903292	1921292	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	6	48000	2	24000	25	0	125	54416	54541	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	6	48000	2	24000	25	10630	17375	1743042	1760417	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	6	48000	2	48000	49	4200	18000	2687625	2705625	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	6	48000	2	48000	49	0	84	95959	96043	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	6	48000	2	48000	49	4200	15000	2584750	2599750	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	6	44100	2	44100	45	2998	19292	2678208	2697500	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	6	44100	2	44100	45	0	83	94375	94458	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	6	44100	2	44100	45	2998	13958	2522875	2536833	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	6	44100	2	44100	45	2250	19833	1917625	1937458	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	6	44100	2	44100	45	0	83	89541	89624	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	6	44100	2	44100	45	2250	14416	1798416	1812832	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	6	48000	2	24000	25	10728	18167	1963291	1981458	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	6	48000	2	24000	25	0	42	53750	53792	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	6	48000	2	24000	25	10728	13791	1864042	1877833	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	6	48000	2	480000	471	250926	18958	61210500	61229458	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	6	48000	2	480000	471	0	83	841833	841916	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	6	48000	2	480000	471	250926	22333	60192167	60214500	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	6	48000	2	480000	471	125818	25083	39375917	39401000	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	6	48000	2	480000	471	0	125	925084	925209	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	6	48000	2	480000	471	125818	19584	37907750	37927334	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	6	48000	2	480000	471	127900	20125	39148959	39169084	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	6	48000	2	480000	471	0	83	859333	859416	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	6	48000	2	480000	471	127900	19500	38329875	38349375	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	6	48000	2	480000	471	234229	22250	56755542	56777792	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	6	48000	2	480000	471	0	125	850625	850750	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	6	48000	2	480000	471	234229	21500	55667958	55689458	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	6	48000	2	1920000	1877	997957	20458	245139334	245159792	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	6	48000	2	1920000	1877	0	250	3395916	3396166	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	6	48000	2	1920000	1877	997957	35083	241642875	241677958	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	7	48000	2	48000	49	735	23875	1136500	1160375	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	7	48000	2	48000	49	0	42	96125	96167	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	7	48000	2	48000	49	735	14708	1026625	1041333	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	7	48000	2	48000	49	3147	15708	2541750	2557458	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	7	48000	2	48000	49	0	83	98542	98625	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	7	48000	2	48000	49	3147	13417	2372250	2385667	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	7	48000	2	48000	49	2359	16834	1928417	1945251	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	7	48000	2	48000	49	0	84	97959	98043	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	7	48000	2	48000	49	2359	18209	1808833	1827042	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	7	48000	2	48000	49	2236	17833	1856709	1874542	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	7	48000	2	48000	49	0	83	95833	95916	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	7	48000	2	48000	49	2236	14833	1739375	1754208	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	7	48000	1	24000	25	2680	18459	991125	1009584	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	7	48000	1	24000	25	0	84	27500	27584	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	7	48000	1	24000	25	2680	13084	838209	851293	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	7	48000	1	9600	11	306	15792	179500	195292	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	7	48000	1	9600	11	0	42	22375	22417	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	7	48000	1	9600	11	306	15042	147750	162792	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	7	48000	1	12000	14	415	14959	196834	211793	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	7	48000	1	12000	14	0	42	12625	12667	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	7	48000	1	12000	14	415	14917	178583	193500	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	7	48000	2	48000	49	4819	15042	2942417	2957459	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	7	48000	2	48000	49	0	83	96625	96708	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	7	48000	2	48000	49	4819	13166	2717125	2730291	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	7	48000	2	48000	49	3988	16584	2668917	2685501	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	7	48000	2	48000	49	0	42	96458	96500	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	7	48000	2	48000	49	3988	14000	2603708	2617708	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	7	48000	1	24000	25	10603	22500	1285292	1307792	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	7	48000	1	24000	25	0	83	28459	28542	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	7	48000	1	24000	25	10603	14959	1232167	1247126	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	7	48000	2	24000	25	10630	17833	1848167	1866000	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	7	48000	2	24000	25	0	125	57708	57833	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	7	48000	2	24000	25	10630	13625	1780958	1794583	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	7	48000	2	48000	49	4200	24667	2641500	2666167	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	7	48000	2	48000	49	0	83	96792	96875	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	7	48000	2	48000	49	4200	14083	2575000	2589083	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	7	44100	2	44100	45	2998	20625	2675125	2695750	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	7	44100	2	44100	45	0	83	118417	118500	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	7	44100	2	44100	45	2998	15666	2518791	2534457	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	7	44100	2	44100	45	2250	19709	1906417	1926126	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	7	44100	2	44100	45	0	83	117625	117708	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	7	44100	2	44100	45	2250	13667	1816166	1829833	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	7	48000	2	24000	25	10728	15833	1901958	1917791	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	7	48000	2	24000	25	0	125	55875	56000	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	7	48000	2	24000	25	10728	14958	1776500	1791458	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	7	48000	2	480000	471	250926	18167	61363250	61381417	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	7	48000	2	480000	471	0	125	837666	837791	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	7	48000	2	480000	471	250926	19875	59986917	60006792	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	7	48000	2	480000	471	125818	19750	39165250	39185000	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	7	48000	2	480000	471	0	125	868042	868167	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	7	48000	2	480000	471	125818	19500	38222667	38242167	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	7	48000	2	480000	471	127900	23041	39577500	39600541	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	7	48000	2	480000	471	0	42	869500	869542	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	7	48000	2	480000	471	127900	24125	38279708	38303833	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	7	48000	2	480000	471	234229	20875	57792875	57813750	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	7	48000	2	480000	471	0	125	929083	929208	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	7	48000	2	480000	471	234229	25916	56708625	56734541	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	7	48000	2	1920000	1877	997957	21250	246588625	246609875	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	7	48000	2	1920000	1877	0	209	3526208	3526417	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	7	48000	2	1920000	1877	997957	25834	245419333	245445167	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	8	48000	2	48000	49	735	24167	1160083	1184250	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	8	48000	2	48000	49	0	83	99000	99083	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	8	48000	2	48000	49	735	16041	1045750	1061791	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	8	48000	2	48000	49	3147	17542	2544500	2562042	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	8	48000	2	48000	49	0	83	96375	96458	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	8	48000	2	48000	49	3147	13667	2474500	2488167	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	8	48000	2	48000	49	2359	22750	1878000	1900750	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	8	48000	2	48000	49	0	84	96750	96834	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	8	48000	2	48000	49	2359	15917	1757791	1773708	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	8	48000	2	48000	49	2236	17875	1883583	1901458	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	8	48000	2	48000	49	0	42	96375	96417	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	8	48000	2	48000	49	2236	13500	1771458	1784958	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	8	48000	1	24000	25	2680	17709	960583	978292	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	8	48000	1	24000	25	0	42	26166	26208	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	8	48000	1	24000	25	2680	12584	870709	883293	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	8	48000	1	9600	11	306	15375	171833	187208	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	8	48000	1	9600	11	0	0	12209	12209	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	8	48000	1	9600	11	306	11666	147583	159249	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	8	48000	1	12000	14	415	14208	213042	227250	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	8	48000	1	12000	14	0	42	11708	11750	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	8	48000	1	12000	14	415	11125	196416	207541	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	8	48000	2	48000	49	4819	14459	2935792	2950251	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	8	48000	2	48000	49	0	84	96500	96584	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	8	48000	2	48000	49	4819	12083	2749792	2761875	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	8	48000	2	48000	49	3988	16708	2725458	2742166	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	8	48000	2	48000	49	0	83	96542	96625	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	8	48000	2	48000	49	3988	14500	2525875	2540375	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	8	48000	1	24000	25	10603	19917	1323625	1343542	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	8	48000	1	24000	25	0	83	29708	29791	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	8	48000	1	24000	25	10603	15458	1263667	1279125	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	8	48000	2	24000	25	10630	19167	1867041	1886208	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	8	48000	2	24000	25	0	84	53791	53875	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	8	48000	2	24000	25	10630	13666	1750000	1763666	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	8	48000	2	48000	49	4200	17125	2771667	2788792	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	8	48000	2	48000	49	0	125	97125	97250	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	8	48000	2	48000	49	4200	22000	2491209	2513209	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	8	44100	2	44100	45	2998	21166	2636750	2657916	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	8	44100	2	44100	45	0	83	117666	117749	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	8	44100	2	44100	45	2998	16667	2519750	2536417	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	8	44100	2	44100	45	2250	25708	1879958	1905666	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	8	44100	2	44100	45	0	83	89333	89416	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	8	44100	2	44100	45	2250	15167	1749375	1764542	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	8	48000	2	24000	25	10728	19000	1969500	1988500	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	8	48000	2	24000	25	0	125	55583	55708	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	8	48000	2	24000	25	10728	13625	1852291	1865916	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	8	48000	2	480000	471	250926	17833	62817458	62835291	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	8	48000	2	480000	471	0	333	856083	856416	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	8	48000	2	480000	471	250926	25167	60497333	60522500	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	8	48000	2	480000	471	125818	26250	39275084	39301334	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	8	48000	2	480000	471	0	208	865334	865542	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	8	48000	2	480000	471	125818	23333	38377792	38401125	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	8	48000	2	480000	471	127900	25084	39834458	39859542	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	8	48000	2	480000	471	0	42	858375	858417	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	8	48000	2	480000	471	127900	22250	38742417	38764667	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	8	48000	2	480000	471	234229	20708	57057708	57078416	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	8	48000	2	480000	471	0	250	1154125	1154375	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	8	48000	2	480000	471	234229	21667	56336125	56357792	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	8	48000	2	1920000	1877	997957	22250	242390042	242412292	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	8	48000	2	1920000	1877	0	250	3338833	3339083	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	8	48000	2	1920000	1877	997957	26917	239889875	239916792	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	9	48000	2	48000	49	735	21375	1157042	1178417	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	9	48000	2	48000	49	0	84	96166	96250	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	9	48000	2	48000	49	735	14875	1080375	1095250	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	9	48000	2	48000	49	3147	16833	2571750	2588583	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	9	48000	2	48000	49	0	83	104250	104333	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	9	48000	2	48000	49	3147	13375	2414708	2428083	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	9	48000	2	48000	49	2359	16708	1914917	1931625	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	9	48000	2	48000	49	0	83	99667	99750	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	9	48000	2	48000	49	2359	13125	1877625	1890750	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	9	48000	2	48000	49	2236	20875	1851459	1872334	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	9	48000	2	48000	49	0	83	95875	95958	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	9	48000	2	48000	49	2236	14583	1726208	1740791	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	9	48000	1	24000	25	2680	16958	949459	966417	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	9	48000	1	24000	25	0	0	26708	26708	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	9	48000	1	24000	25	2680	12833	866833	879666	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	9	48000	1	9600	11	306	14625	171833	186458	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	9	48000	1	9600	11	0	42	12166	12208	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	9	48000	1	9600	11	306	12334	147834	160168	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	9	48000	1	12000	14	415	15125	200125	215250	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	9	48000	1	12000	14	0	42	14666	14708	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	9	48000	1	12000	14	415	11709	182833	194542	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	9	48000	2	48000	49	4819	15625	2961750	2977375	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	9	48000	2	48000	49	0	83	100166	100249	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	9	48000	2	48000	49	4819	17083	2763709	2780792	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	9	48000	2	48000	49	3988	16916	2661833	2678749	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	9	48000	2	48000	49	0	125	96250	96375	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	9	48000	2	48000	49	3988	17083	2539833	2556916	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	9	48000	1	24000	25	10603	23542	1300083	1323625	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	9	48000	1	24000	25	0	84	28083	28167	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	9	48000	1	24000	25	10603	14583	1230917	1245500	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	9	48000	2	24000	25	10630	17958	1854000	1871958	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	9	48000	2	24000	25	0	83	53875	53958	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	9	48000	2	24000	25	10630	13458	1738125	1751583	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	9	48000	2	48000	49	4200	18208	2695000	2713208	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	9	48000	2	48000	49	0	41	97167	97208	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	9	48000	2	48000	49	4200	14334	2526167	2540501	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	9	44100	2	44100	45	2998	18416	2703875	2722291	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	9	44100	2	44100	45	0	84	89708	89792	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	9	44100	2	44100	45	2998	15625	2521208	2536833	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	9	44100	2	44100	45	2250	18291	1882583	1900874	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	9	44100	2	44100	45	0	83	89625	89708	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	9	44100	2	44100	45	2250	13917	1880958	1894875	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	9	48000	2	24000	25	10728	19000	1862959	1881959	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	9	48000	2	24000	25	0	84	56750	56834	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	9	48000	2	24000	25	10728	14584	1789125	1803709	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	9	48000	2	480000	471	250926	14583	62268416	62282999	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	9	48000	2	480000	471	0	250	863833	864083	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	9	48000	2	480000	471	250926	25416	60120209	60145625	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	9	48000	2	480000	471	125818	24208	39409666	39433874	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	9	48000	2	480000	471	0	125	840833	840958	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	9	48000	2	480000	471	125818	22000	38817959	38839959	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	9	48000	2	480000	471	127900	24416	40055084	40079500	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	9	48000	2	480000	471	0	83	872625	872708	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	9	48000	2	480000	471	127900	22208	38460625	38482833	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	9	48000	2	480000	471	234229	24458	56942375	56966833	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	9	48000	2	480000	471	0	167	1121792	1121959	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	9	48000	2	480000	471	234229	21875	55877459	55899334	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	9	48000	2	1920000	1877	997957	20417	243524959	243545376	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	9	48000	2	1920000	1877	0	209	3506834	3507043	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	9	48000	2	1920000	1877	997957	25041	241323166	241348207	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	10	48000	2	48000	49	735	22958	1159083	1182041	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	10	48000	2	48000	49	0	84	96458	96542	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	10	48000	2	48000	49	735	14917	1063458	1078375	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	10	48000	2	48000	49	3147	20875	2490667	2511542	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	10	48000	2	48000	49	0	84	95875	95959	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	10	48000	2	48000	49	3147	15667	2345167	2360834	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	10	48000	2	48000	49	2359	16209	1897167	1913376	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	10	48000	2	48000	49	0	42	98958	99000	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	10	48000	2	48000	49	2359	14083	1774333	1788416	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	10	48000	2	48000	49	2236	16875	1868458	1885333	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	10	48000	2	48000	49	0	83	96083	96166	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	10	48000	2	48000	49	2236	13375	1772250	1785625	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	10	48000	1	24000	25	2680	17167	960292	977459	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	10	48000	1	24000	25	0	42	28458	28500	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	10	48000	1	24000	25	2680	13292	874000	887292	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	10	48000	1	9600	11	306	16000	171875	187875	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	10	48000	1	9600	11	0	42	12250	12292	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	10	48000	1	9600	11	306	11584	148250	159834	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	10	48000	1	12000	14	415	14292	205250	219542	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	10	48000	1	12000	14	0	0	14709	14709	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	10	48000	1	12000	14	415	11000	183416	194416	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	10	48000	2	48000	49	4819	14667	2999792	3014459	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	10	48000	2	48000	49	0	125	97042	97167	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	10	48000	2	48000	49	4819	17500	2725250	2742750	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	10	48000	2	48000	49	3988	19500	2832333	2851833	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	10	48000	2	48000	49	0	125	97500	97625	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	10	48000	2	48000	49	3988	18958	2663750	2682708	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	10	48000	1	24000	25	10603	18375	1384458	1402833	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	10	48000	1	24000	25	0	84	26666	26750	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	10	48000	1	24000	25	10603	14542	1286541	1301083	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	10	48000	2	24000	25	10630	16917	1897584	1914501	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	10	48000	2	24000	25	0	83	49458	49541	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	10	48000	2	24000	25	10630	13333	1918125	1931458	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	10	48000	2	48000	49	4200	21167	2802250	2823417	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	10	48000	2	48000	49	0	84	111292	111376	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	10	48000	2	48000	49	4200	16041	2775250	2791291	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	10	44100	2	44100	45	2998	19958	2780166	2800124	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	10	44100	2	44100	45	0	125	85958	86083	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	10	44100	2	44100	45	2998	16458	2537792	2554250	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	10	44100	2	44100	45	2250	18375	1945291	1963666	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	10	44100	2	44100	45	0	83	115458	115541	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	10	44100	2	44100	45	2250	14500	1848458	1862958	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	10	48000	2	24000	25	10728	17458	1988458	2005916	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	10	48000	2	24000	25	0	84	49291	49375	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	10	48000	2	24000	25	10728	15042	1872875	1887917	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	10	48000	2	480000	471	250926	17584	63257541	63275125	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	10	48000	2	480000	471	0	125	850667	850792	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	10	48000	2	480000	471	250926	26000	60230292	60256292	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	10	48000	2	480000	471	125818	20542	39701750	39722292	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	10	48000	2	480000	471	0	125	888959	889084	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	10	48000	2	480000	471	125818	24792	38266042	38290834	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	10	48000	2	480000	471	127900	21541	39511667	39533208	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	10	48000	2	480000	471	0	125	862833	862958	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	10	48000	2	480000	471	127900	25875	38515917	38541792	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	10	48000	2	480000	471	234229	21334	57445250	57466584	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	10	48000	2	480000	471	0	167	899875	900042	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	10	48000	2	480000	471	234229	23500	56499667	56523167	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	10	48000	2	1920000	1877	997957	27584	244017417	244045001	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	10	48000	2	1920000	1877	0	83	3444084	3444167	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	10	48000	2	1920000	1877	997957	26833	240796416	240823249	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	11	48000	2	48000	49	735	24250	1132500	1156750	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	11	48000	2	48000	49	0	84	96750	96834	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	11	48000	2	48000	49	735	14000	1036542	1050542	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	11	48000	2	48000	49	3147	14917	2559667	2574584	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	11	48000	2	48000	49	0	83	96500	96583	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	11	48000	2	48000	49	3147	11750	2379000	2390750	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	11	48000	2	48000	49	2359	15666	1937458	1953124	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	11	48000	2	48000	49	0	83	96708	96791	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	11	48000	2	48000	49	2359	20083	1798666	1818749	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	11	48000	2	48000	49	2236	16042	1875667	1891709	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	11	48000	2	48000	49	0	42	96208	96250	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	11	48000	2	48000	49	2236	11958	1819625	1831583	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	11	48000	1	24000	25	2680	24333	923000	947333	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	11	48000	1	24000	25	0	42	30166	30208	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	11	48000	1	24000	25	2680	16416	840125	856541	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	11	48000	1	9600	11	306	16625	172125	188750	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	11	48000	1	9600	11	0	41	10792	10833	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	11	48000	1	9600	11	306	13333	140125	153458	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	11	48000	1	12000	14	415	14000	203458	217458	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	11	48000	1	12000	14	0	42	14666	14708	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	11	48000	1	12000	14	415	11000	173250	184250	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	11	48000	2	48000	49	4819	13584	2921500	2935084	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	11	48000	2	48000	49	0	83	96541	96624	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	11	48000	2	48000	49	4819	13292	2765625	2778917	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	11	48000	2	48000	49	3988	15708	2693708	2709416	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	11	48000	2	48000	49	0	84	96375	96459	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	11	48000	2	48000	49	3988	13125	2588042	2601167	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	11	48000	1	24000	25	10603	21666	1294042	1315708	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	11	48000	1	24000	25	0	42	28333	28375	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	11	48000	1	24000	25	10603	14833	1188167	1203000	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	11	48000	2	24000	25	10630	18750	1837250	1856000	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	11	48000	2	24000	25	0	83	54042	54125	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	11	48000	2	24000	25	10630	14916	1759542	1774458	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	11	48000	2	48000	49	4200	16958	2720958	2737916	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	11	48000	2	48000	49	0	84	104500	104584	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	11	48000	2	48000	49	4200	14417	2543459	2557876	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	11	44100	2	44100	45	2998	18625	2719875	2738500	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	11	44100	2	44100	45	0	42	88834	88876	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	11	44100	2	44100	45	2998	13084	2467458	2480542	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	11	44100	2	44100	45	2250	17541	1928625	1946166	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	11	44100	2	44100	45	0	42	88666	88708	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	11	44100	2	44100	45	2250	14125	1768000	1782125	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	11	48000	2	24000	25	10728	15625	1965083	1980708	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	11	48000	2	24000	25	0	125	57250	57375	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	11	48000	2	24000	25	10728	19416	1831916	1851332	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	11	48000	2	480000	471	250926	19333	60917541	60936874	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	11	48000	2	480000	471	0	84	864500	864584	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	11	48000	2	480000	471	250926	21250	61586708	61607958	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	11	48000	2	480000	471	125818	25125	39279750	39304875	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	11	48000	2	480000	471	0	167	858959	859126	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	11	48000	2	480000	471	125818	21917	38247292	38269209	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	11	48000	2	480000	471	127900	22583	39219875	39242458	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	11	48000	2	480000	471	0	84	848417	848501	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	11	48000	2	480000	471	127900	22292	38316250	38338542	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	11	48000	2	480000	471	234229	21167	56882625	56903792	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	11	48000	2	480000	471	0	125	1164125	1164250	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	11	48000	2	480000	471	234229	20834	56104667	56125501	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	11	48000	2	1920000	1877	997957	20833	243110083	243130916	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	11	48000	2	1920000	1877	0	84	3387333	3387417	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	11	48000	2	1920000	1877	997957	26250	239973667	239999917	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	12	48000	2	48000	49	735	21416	1170666	1192082	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	12	48000	2	48000	49	0	83	95500	95583	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	12	48000	2	48000	49	735	14958	1064875	1079833	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	12	48000	2	48000	49	3147	17042	2601417	2618459	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	12	48000	2	48000	49	0	41	113333	113374	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	12	48000	2	48000	49	3147	16917	2388500	2405417	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	12	48000	2	48000	49	2359	19625	1896500	1916125	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	12	48000	2	48000	49	0	83	95375	95458	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	12	48000	2	48000	49	2359	13416	1787458	1800874	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	12	48000	2	48000	49	2236	15125	1911833	1926958	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	12	48000	2	48000	49	0	84	94833	94917	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	12	48000	2	48000	49	2236	18833	1805458	1824291	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	12	48000	1	24000	25	2680	19625	929333	948958	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	12	48000	1	24000	25	0	41	26958	26999	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	12	48000	1	24000	25	2680	13250	886667	899917	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	12	48000	1	9600	11	306	16333	166417	182750	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	12	48000	1	9600	11	0	41	12083	12124	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	12	48000	1	9600	11	306	12208	150708	162916	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	12	48000	1	12000	14	415	14875	201416	216291	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	12	48000	1	12000	14	0	42	14958	15000	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	12	48000	1	12000	14	415	11833	184750	196583	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	12	48000	2	48000	49	4819	15583	3007833	3023416	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	12	48000	2	48000	49	0	125	88375	88500	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	12	48000	2	48000	49	4819	16667	2773583	2790250	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	12	48000	2	48000	49	3988	17166	2661541	2678707	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	12	48000	2	48000	49	0	83	96667	96750	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	12	48000	2	48000	49	3988	14083	2551708	2565791	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	12	48000	1	24000	25	10603	17291	1342583	1359874	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	12	48000	1	24000	25	0	83	29792	29875	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	12	48000	1	24000	25	10603	15250	1283750	1299000	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	12	48000	2	24000	25	10630	17417	1945209	1962626	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	12	48000	2	24000	25	0	83	53875	53958	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	12	48000	2	24000	25	10630	13167	1752208	1765375	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	12	48000	2	48000	49	4200	17000	2705750	2722750	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	12	48000	2	48000	49	0	41	96542	96583	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	12	48000	2	48000	49	4200	14292	2527542	2541834	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	12	44100	2	44100	45	2998	19084	2806708	2825792	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	12	44100	2	44100	45	0	84	117500	117584	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	12	44100	2	44100	45	2998	16125	2463209	2479334	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	12	44100	2	44100	45	2250	18708	1902667	1921375	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	12	44100	2	44100	45	0	83	88791	88874	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	12	44100	2	44100	45	2250	14416	1844875	1859291	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	12	48000	2	24000	25	10728	18584	1926083	1944667	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	12	48000	2	24000	25	0	84	54000	54084	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	12	48000	2	24000	25	10728	18542	1819417	1837959	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	12	48000	2	480000	471	250926	17584	60930708	60948292	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	12	48000	2	480000	471	0	83	875417	875500	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	12	48000	2	480000	471	250926	21292	60336833	60358125	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	12	48000	2	480000	471	125818	22708	39329583	39352291	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	12	48000	2	480000	471	0	125	863042	863167	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	12	48000	2	480000	471	125818	19417	38194833	38214250	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	12	48000	2	480000	471	127900	24750	39225042	39249792	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	12	48000	2	480000	471	0	84	848459	848543	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	12	48000	2	480000	471	127900	19000	38064208	38083208	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	12	48000	2	480000	471	234229	20667	56824208	56844875	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	12	48000	2	480000	471	0	125	1124125	1124250	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	12	48000	2	480000	471	234229	20333	55863917	55884250	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	12	48000	2	1920000	1877	997957	22500	248461916	248484416	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	12	48000	2	1920000	1877	0	209	3436375	3436584	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	12	48000	2	1920000	1877	997957	31167	241455667	241486834	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	13	48000	2	48000	49	735	24084	1194333	1218417	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	13	48000	2	48000	49	0	125	97000	97125	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	13	48000	2	48000	49	735	15792	1072334	1088126	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	13	48000	2	48000	49	3147	17750	2602792	2620542	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	13	48000	2	48000	49	0	84	96458	96542	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	13	48000	2	48000	49	3147	14208	2393000	2407208	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	13	48000	2	48000	49	2359	17792	1952125	1969917	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	13	48000	2	48000	49	0	125	97417	97542	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	13	48000	2	48000	49	2359	19042	1866458	1885500	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	13	48000	2	48000	49	2236	19334	1884291	1903625	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	13	48000	2	48000	49	0	83	95167	95250	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	13	48000	2	48000	49	2236	14375	1751208	1765583	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	13	48000	1	24000	25	2680	18292	1052875	1071167	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	13	48000	1	24000	25	0	42	23833	23875	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	13	48000	1	24000	25	2680	13875	910167	924042	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	13	48000	1	9600	11	306	14584	185292	199876	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	13	48000	1	9600	11	0	41	18292	18333	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	13	48000	1	9600	11	306	13250	152667	165917	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	13	48000	1	12000	14	415	12584	206875	219459	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	13	48000	1	12000	14	0	42	11917	11959	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	13	48000	1	12000	14	415	12042	189542	201584	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	13	48000	2	48000	49	4819	13250	3087416	3100666	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	13	48000	2	48000	49	0	125	98209	98334	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	13	48000	2	48000	49	4819	23625	2727167	2750792	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	13	48000	2	48000	49	3988	18875	2943167	2962042	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	13	48000	2	48000	49	0	84	110542	110626	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	13	48000	2	48000	49	3988	18333	2872917	2891250	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	13	48000	1	24000	25	10603	26959	1455125	1482084	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	13	48000	1	24000	25	0	83	24000	24083	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	13	48000	1	24000	25	10603	21000	1353125	1374125	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	13	48000	2	24000	25	10630	19875	2111667	2131542	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	13	48000	2	24000	25	0	125	58542	58667	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	13	48000	2	24000	25	10630	21666	1927917	1949583	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	13	48000	2	48000	49	4200	15417	3029834	3045251	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	13	48000	2	48000	49	0	83	96875	96958	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	13	48000	2	48000	49	4200	14333	2792958	2807291	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	13	44100	2	44100	45	2998	21417	2754416	2775833	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	13	44100	2	44100	45	0	41	83042	83083	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	13	44100	2	44100	45	2998	15958	2623083	2639041	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	13	44100	2	44100	45	2250	15792	2040667	2056459	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	13	44100	2	44100	45	0	83	112625	112708	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	13	44100	2	44100	45	2250	19209	1997750	2016959	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	13	48000	2	24000	25	10728	20750	2009583	2030333	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	13	48000	2	24000	25	0	42	47250	47292	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	13	48000	2	24000	25	10728	16875	1896584	1913459	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	13	48000	2	480000	471	250926	16416	61811542	61827958	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	13	48000	2	480000	471	0	209	861083	861292	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	13	48000	2	480000	471	250926	26334	60276750	60303084	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	13	48000	2	480000	471	125818	22959	39501917	39524876	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	13	48000	2	480000	471	0	125	881625	881750	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	13	48000	2	480000	471	125818	19792	38720333	38740125	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	13	48000	2	480000	471	127900	19167	39571792	39590959	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	13	48000	2	480000	471	0	125	839250	839375	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	13	48000	2	480000	471	127900	18583	38345792	38364375	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	13	48000	2	480000	471	234229	21916	57057417	57079333	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	13	48000	2	480000	471	0	84	909416	909500	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	13	48000	2	480000	471	234229	18791	56190459	56209250	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	13	48000	2	1920000	1877	997957	21708	244367458	244389166	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	13	48000	2	1920000	1877	0	208	3372167	3372375	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	13	48000	2	1920000	1877	997957	25917	240864209	240890126	889c3be4ccd53dd7
+AACPERF_ROW	production	m2-silence-stereo-48k	14	48000	2	48000	49	735	24458	1187375	1211833	7713057f645ea480
+AACPERF_ROW	feed	m2-silence-stereo-48k	14	48000	2	48000	49	0	84	97125	97209	0000000000000000
+AACPERF_ROW	core	m2-silence-stereo-48k	14	48000	2	48000	49	735	15125	1090291	1105416	7713057f645ea480
+AACPERF_ROW	production	m2-sine-stereo-48k	14	48000	2	48000	49	3147	32042	2492709	2524751	8921b76c2eb4297e
+AACPERF_ROW	feed	m2-sine-stereo-48k	14	48000	2	48000	49	0	84	95875	95959	0000000000000000
+AACPERF_ROW	core	m2-sine-stereo-48k	14	48000	2	48000	49	3147	15875	2333541	2349416	8921b76c2eb4297e
+AACPERF_ROW	production	m2-onset-stereo-48k	14	48000	2	48000	49	2359	18500	1882625	1901125	2a6ca107a2f0ba5d
+AACPERF_ROW	feed	m2-onset-stereo-48k	14	48000	2	48000	49	0	84	96125	96209	0000000000000000
+AACPERF_ROW	core	m2-onset-stereo-48k	14	48000	2	48000	49	2359	12250	1781458	1793708	2a6ca107a2f0ba5d
+AACPERF_ROW	production	m2-stepdown-stereo-48k	14	48000	2	48000	49	2236	15875	1926333	1942208	c5e3cf81d7c9051d
+AACPERF_ROW	feed	m2-stepdown-stereo-48k	14	48000	2	48000	49	0	125	101291	101416	0000000000000000
+AACPERF_ROW	core	m2-stepdown-stereo-48k	14	48000	2	48000	49	2236	17000	1757166	1774166	c5e3cf81d7c9051d
+AACPERF_ROW	production	m2-click-mono-48k	14	48000	1	24000	25	2680	20625	946458	967083	2c5e9650bd12691c
+AACPERF_ROW	feed	m2-click-mono-48k	14	48000	1	24000	25	0	42	29292	29334	0000000000000000
+AACPERF_ROW	core	m2-click-mono-48k	14	48000	1	24000	25	2680	14875	958750	973625	2c5e9650bd12691c
+AACPERF_ROW	production	m2-impulse-mono-48k	14	48000	1	9600	11	306	20167	173292	193459	0fef4f3c59abdbec
+AACPERF_ROW	feed	m2-impulse-mono-48k	14	48000	1	9600	11	0	42	10792	10834	0000000000000000
+AACPERF_ROW	core	m2-impulse-mono-48k	14	48000	1	9600	11	306	17375	143333	160708	0fef4f3c59abdbec
+AACPERF_ROW	production	m2-edge-mono-48k	14	48000	1	12000	14	415	14083	212750	226833	8d1d7ff2a90be28c
+AACPERF_ROW	feed	m2-edge-mono-48k	14	48000	1	12000	14	0	42	13458	13500	0000000000000000
+AACPERF_ROW	core	m2-edge-mono-48k	14	48000	1	12000	14	415	11875	186459	198334	8d1d7ff2a90be28c
+AACPERF_ROW	production	m3-multitone-stereo-48k	14	48000	2	48000	49	4819	14000	2849084	2863084	2777d7380edfb4e1
+AACPERF_ROW	feed	m3-multitone-stereo-48k	14	48000	2	48000	49	0	83	95833	95916	0000000000000000
+AACPERF_ROW	core	m3-multitone-stereo-48k	14	48000	2	48000	49	4819	12958	2766000	2778958	2777d7380edfb4e1
+AACPERF_ROW	production	m3-sweep-stereo-48k	14	48000	2	48000	49	3988	17209	2681083	2698292	264a1b8e77b469b7
+AACPERF_ROW	feed	m3-sweep-stereo-48k	14	48000	2	48000	49	0	83	96791	96874	0000000000000000
+AACPERF_ROW	core	m3-sweep-stereo-48k	14	48000	2	48000	49	3988	13834	2530792	2544626	264a1b8e77b469b7
+AACPERF_ROW	production	m3-noise-mono-48k	14	48000	1	24000	25	10603	17584	1386958	1404542	1d402183d5f6ea47
+AACPERF_ROW	feed	m3-noise-mono-48k	14	48000	1	24000	25	0	84	29584	29668	0000000000000000
+AACPERF_ROW	core	m3-noise-mono-48k	14	48000	1	24000	25	10603	15833	1265667	1281500	1d402183d5f6ea47
+AACPERF_ROW	production	m3-tonal-noise-stereo-48k	14	48000	2	24000	25	10630	16500	1826083	1842583	dcc15ccc2963940c
+AACPERF_ROW	feed	m3-tonal-noise-stereo-48k	14	48000	2	24000	25	0	84	55291	55375	0000000000000000
+AACPERF_ROW	core	m3-tonal-noise-stereo-48k	14	48000	2	24000	25	10630	13166	1750500	1763666	dcc15ccc2963940c
+AACPERF_ROW	production	m3-quiet-sine-stereo-48k	14	48000	2	48000	49	4200	15791	2690416	2706207	a1b6c369cc1b8450
+AACPERF_ROW	feed	m3-quiet-sine-stereo-48k	14	48000	2	48000	49	0	84	96459	96543	0000000000000000
+AACPERF_ROW	core	m3-quiet-sine-stereo-48k	14	48000	2	48000	49	4200	14792	2537875	2552667	a1b6c369cc1b8450
+AACPERF_ROW	production	m3-sine-stereo-441k	14	44100	2	44100	45	2998	18875	2674625	2693500	1ba21b60517c9291
+AACPERF_ROW	feed	m3-sine-stereo-441k	14	44100	2	44100	45	0	83	118041	118124	0000000000000000
+AACPERF_ROW	core	m3-sine-stereo-441k	14	44100	2	44100	45	2998	14917	2460000	2474917	1ba21b60517c9291
+AACPERF_ROW	production	m3-onset-stereo-441k	14	44100	2	44100	45	2250	16917	1917834	1934751	7b3ce9aea13d7c47
+AACPERF_ROW	feed	m3-onset-stereo-441k	14	44100	2	44100	45	0	42	115083	115125	0000000000000000
+AACPERF_ROW	core	m3-onset-stereo-441k	14	44100	2	44100	45	2250	15250	1851583	1866833	7b3ce9aea13d7c47
+AACPERF_ROW	production	m6-stress-stereo-48k	14	48000	2	24000	25	10728	16750	1913250	1930000	57fd0bbb44c960d8
+AACPERF_ROW	feed	m6-stress-stereo-48k	14	48000	2	24000	25	0	41	55417	55458	0000000000000000
+AACPERF_ROW	core	m6-stress-stereo-48k	14	48000	2	24000	25	10728	12291	1801500	1813791	57fd0bbb44c960d8
+AACPERF_ROW	production	m7-music-stereo-48k	14	48000	2	480000	471	250926	16292	61058834	61075126	151e37b967d52678
+AACPERF_ROW	feed	m7-music-stereo-48k	14	48000	2	480000	471	0	125	835875	836000	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k	14	48000	2	480000	471	250926	18042	61663291	61681333	151e37b967d52678
+AACPERF_ROW	production	m7-speech-pauses-stereo-48k	14	48000	2	480000	471	125818	21708	45816250	45837958	e64771cc5687e56b
+AACPERF_ROW	feed	m7-speech-pauses-stereo-48k	14	48000	2	480000	471	0	125	1583166	1583291	0000000000000000
+AACPERF_ROW	core	m7-speech-pauses-stereo-48k	14	48000	2	480000	471	125818	28709	41436834	41465543	e64771cc5687e56b
+AACPERF_ROW	production	m7-speech-clean-stereo-48k	14	48000	2	480000	471	127900	27667	40240334	40268001	ea3183de57cbf39f
+AACPERF_ROW	feed	m7-speech-clean-stereo-48k	14	48000	2	480000	471	0	83	922958	923041	0000000000000000
+AACPERF_ROW	core	m7-speech-clean-stereo-48k	14	48000	2	480000	471	127900	26875	39859542	39886417	ea3183de57cbf39f
+AACPERF_ROW	production	m8-music-eroica-stereo-48k	14	48000	2	480000	471	234229	22500	58672709	58695209	3c40aaae93078019
+AACPERF_ROW	feed	m8-music-eroica-stereo-48k	14	48000	2	480000	471	0	250	872833	873083	0000000000000000
+AACPERF_ROW	core	m8-music-eroica-stereo-48k	14	48000	2	480000	471	234229	26750	56746708	56773458	3c40aaae93078019
+AACPERF_ROW	production	m7-music-stereo-48k-x4	14	48000	2	1920000	1877	997957	24167	247546959	247571126	889c3be4ccd53dd7
+AACPERF_ROW	feed	m7-music-stereo-48k-x4	14	48000	2	1920000	1877	0	167	3447417	3447584	0000000000000000
+AACPERF_ROW	core	m7-music-stereo-48k-x4	14	48000	2	1920000	1877	997957	32500	242097083	242129583	889c3be4ccd53dd7
+AACPERF_MEDIAN	production	m2-silence-stereo-48k	48000	2	48000	1.000000	49	735	24084	1160083	1184250	0.001184	844.4	40531982.3	7713057f645ea480
+AACPERF_MEDIAN	production	m2-sine-stereo-48k	48000	2	48000	1.000000	49	3147	17625	2544500	2562042	0.002562	390.3	18735055.9	8921b76c2eb4297e
+AACPERF_MEDIAN	production	m2-onset-stereo-48k	48000	2	48000	1.000000	49	2359	17792	1909291	1926374	0.001926	519.1	24917279.8	2a6ca107a2f0ba5d
+AACPERF_MEDIAN	production	m2-stepdown-stereo-48k	48000	2	48000	1.000000	49	2236	17292	1884291	1903625	0.001904	525.3	25215050.2	c5e3cf81d7c9051d
+AACPERF_MEDIAN	production	m2-click-mono-48k	48000	1	24000	0.500000	25	2680	18292	953500	969417	0.001939	515.8	24757147.9	2c5e9650bd12691c
+AACPERF_MEDIAN	production	m2-impulse-mono-48k	48000	1	9600	0.200000	11	306	15709	172292	188750	0.000944	1059.6	50860927.2	0fef4f3c59abdbec
+AACPERF_MEDIAN	production	m2-edge-mono-48k	48000	1	12000	0.250000	14	415	14292	203458	218291	0.000873	1145.3	54972490.8	8d1d7ff2a90be28c
+AACPERF_MEDIAN	production	m3-multitone-stereo-48k	48000	2	48000	1.000000	49	4819	14875	2961750	2977375	0.002977	335.9	16121583.6	2777d7380edfb4e1
+AACPERF_MEDIAN	production	m3-sweep-stereo-48k	48000	2	48000	1.000000	49	3988	17209	2682000	2698292	0.002698	370.6	17789031.0	264a1b8e77b469b7
+AACPERF_MEDIAN	production	m3-noise-mono-48k	48000	1	24000	0.500000	25	10603	18375	1345125	1363292	0.002727	366.8	17604445.7	1d402183d5f6ea47
+AACPERF_MEDIAN	production	m3-tonal-noise-stereo-48k	48000	2	24000	0.500000	25	10630	18000	1854000	1871958	0.003744	267.1	12820800.5	dcc15ccc2963940c
+AACPERF_MEDIAN	production	m3-quiet-sine-stereo-48k	48000	2	48000	1.000000	49	4200	17000	2704042	2719084	0.002719	367.8	17653003.7	a1b6c369cc1b8450
+AACPERF_MEDIAN	production	m3-sine-stereo-441k	44100	2	44100	1.000000	45	2998	19292	2674625	2693500	0.002694	371.3	16372749.2	1ba21b60517c9291
+AACPERF_MEDIAN	production	m3-onset-stereo-441k	44100	2	44100	1.000000	45	2250	18708	1905417	1925334	0.001925	519.4	22905116.7	7b3ce9aea13d7c47
+AACPERF_MEDIAN	production	m6-stress-stereo-48k	48000	2	24000	0.500000	25	10728	18208	1949375	1967291	0.003935	254.2	12199517.0	57fd0bbb44c960d8
+AACPERF_MEDIAN	production	m7-music-stereo-48k	48000	2	480000	10.000000	471	250926	17666	61210500	61229458	0.006123	163.3	7839363.9	151e37b967d52678
+AACPERF_MEDIAN	production	m7-speech-pauses-stereo-48k	48000	2	480000	10.000000	471	125818	22959	39329583	39352291	0.003935	254.1	12197510.9	e64771cc5687e56b
+AACPERF_MEDIAN	production	m7-speech-clean-stereo-48k	48000	2	480000	10.000000	471	127900	24416	39571792	39590959	0.003959	252.6	12123980.1	ea3183de57cbf39f
+AACPERF_MEDIAN	production	m8-music-eroica-stereo-48k	48000	2	480000	10.000000	471	234229	21916	56942375	56966833	0.005697	175.5	8425955.5	3c40aaae93078019
+AACPERF_MEDIAN	production	m7-music-stereo-48k-x4	48000	2	1920000	40.000000	1877	997957	22250	244367458	244389166	0.006110	163.7	7856322.1	889c3be4ccd53dd7
+AACPERF_MEDIAN	feed	m2-silence-stereo-48k	48000	2	48000	1.000000	49	735	84	97000	97125	0.000097	10296.0	494208494.2	0000000000000000
+AACPERF_MEDIAN	feed	m2-sine-stereo-48k	48000	2	48000	1.000000	49	3147	83	96458	96542	0.000097	10358.2	497192931.6	0000000000000000
+AACPERF_MEDIAN	feed	m2-onset-stereo-48k	48000	2	48000	1.000000	49	2359	83	96708	96791	0.000097	10331.5	495913876.3	0000000000000000
+AACPERF_MEDIAN	feed	m2-stepdown-stereo-48k	48000	2	48000	1.000000	49	2236	83	96083	96166	0.000096	10398.7	499136909.1	0000000000000000
+AACPERF_MEDIAN	feed	m2-click-mono-48k	48000	1	24000	0.500000	25	2680	42	27500	27584	0.000055	18126.5	870069605.6	0000000000000000
+AACPERF_MEDIAN	feed	m2-impulse-mono-48k	48000	1	9600	0.200000	11	306	41	12166	12208	0.000061	16382.7	786369593.7	0000000000000000
+AACPERF_MEDIAN	feed	m2-edge-mono-48k	48000	1	12000	0.250000	14	415	42	14417	14459	0.000058	17290.3	829932913.8	0000000000000000
+AACPERF_MEDIAN	feed	m3-multitone-stereo-48k	48000	2	48000	1.000000	49	4819	83	97042	97167	0.000097	10291.6	493994874.8	0000000000000000
+AACPERF_MEDIAN	feed	m3-sweep-stereo-48k	48000	2	48000	1.000000	49	3988	83	96791	96874	0.000097	10322.7	495488985.7	0000000000000000
+AACPERF_MEDIAN	feed	m3-noise-mono-48k	48000	1	24000	0.500000	25	10603	83	28459	28542	0.000057	17518.0	840866092.1	0000000000000000
+AACPERF_MEDIAN	feed	m3-tonal-noise-stereo-48k	48000	2	24000	0.500000	25	10630	84	55291	55375	0.000111	9029.3	433408577.9	0000000000000000
+AACPERF_MEDIAN	feed	m3-quiet-sine-stereo-48k	48000	2	48000	1.000000	49	4200	83	96709	96792	0.000097	10331.4	495908752.8	0000000000000000
+AACPERF_MEDIAN	feed	m3-sine-stereo-441k	44100	2	44100	1.000000	45	2998	83	89542	89625	0.000090	11157.6	492050209.2	0000000000000000
+AACPERF_MEDIAN	feed	m3-onset-stereo-441k	44100	2	44100	1.000000	45	2250	83	104500	104542	0.000105	9565.5	421840026.0	0000000000000000
+AACPERF_MEDIAN	feed	m6-stress-stereo-48k	48000	2	24000	0.500000	25	10728	84	54000	54084	0.000108	9244.9	443754160.2	0000000000000000
+AACPERF_MEDIAN	feed	m7-music-stereo-48k	48000	2	480000	10.000000	471	250926	167	850667	850792	0.000085	11753.8	564180199.2	0000000000000000
+AACPERF_MEDIAN	feed	m7-speech-pauses-stereo-48k	48000	2	480000	10.000000	471	125818	125	865334	865542	0.000087	11553.5	554565809.6	0000000000000000
+AACPERF_MEDIAN	feed	m7-speech-clean-stereo-48k	48000	2	480000	10.000000	471	127900	125	858375	858417	0.000086	11649.3	559168795.6	0000000000000000
+AACPERF_MEDIAN	feed	m8-music-eroica-stereo-48k	48000	2	480000	10.000000	471	234229	167	899875	900042	0.000090	11110.6	533308445.6	0000000000000000
+AACPERF_MEDIAN	feed	m7-music-stereo-48k-x4	48000	2	1920000	40.000000	1877	997957	208	3403083	3403166	0.000085	11753.8	564180530.7	0000000000000000
+AACPERF_MEDIAN	core	m2-silence-stereo-48k	48000	2	48000	1.000000	49	735	15125	1045750	1063333	0.001063	940.4	45141080.0	7713057f645ea480
+AACPERF_MEDIAN	core	m2-sine-stereo-48k	48000	2	48000	1.000000	49	3147	14125	2378958	2390750	0.002391	418.3	20077381.6	8921b76c2eb4297e
+AACPERF_MEDIAN	core	m2-onset-stereo-48k	48000	2	48000	1.000000	49	2359	13416	1795417	1809625	0.001810	552.6	26524832.5	2a6ca107a2f0ba5d
+AACPERF_MEDIAN	core	m2-stepdown-stereo-48k	48000	2	48000	1.000000	49	2236	14375	1752666	1766707	0.001767	566.0	27169191.0	c5e3cf81d7c9051d
+AACPERF_MEDIAN	core	m2-click-mono-48k	48000	1	24000	0.500000	25	2680	13292	870709	883293	0.001767	566.1	27171052.0	2c5e9650bd12691c
+AACPERF_MEDIAN	core	m2-impulse-mono-48k	48000	1	9600	0.200000	11	306	12375	147834	160584	0.000803	1245.5	59781796.4	0fef4f3c59abdbec
+AACPERF_MEDIAN	core	m2-edge-mono-48k	48000	1	12000	0.250000	14	415	11833	182833	194542	0.000778	1285.1	61683338.3	8d1d7ff2a90be28c
+AACPERF_MEDIAN	core	m3-multitone-stereo-48k	48000	2	48000	1.000000	49	4819	14250	2727167	2750792	0.002751	363.5	17449520.0	2777d7380edfb4e1
+AACPERF_MEDIAN	core	m3-sweep-stereo-48k	48000	2	48000	1.000000	49	3988	14500	2539833	2556916	0.002557	391.1	18772615.1	264a1b8e77b469b7
+AACPERF_MEDIAN	core	m3-noise-mono-48k	48000	1	24000	0.500000	25	10603	15250	1263667	1279125	0.002558	390.9	18762826.2	1d402183d5f6ea47
+AACPERF_MEDIAN	core	m3-tonal-noise-stereo-48k	48000	2	24000	0.500000	25	10630	13666	1756709	1769834	0.003540	282.5	13560593.8	dcc15ccc2963940c
+AACPERF_MEDIAN	core	m3-quiet-sine-stereo-48k	48000	2	48000	1.000000	49	4200	14417	2569333	2584250	0.002584	387.0	18574054.4	a1b6c369cc1b8450
+AACPERF_MEDIAN	core	m3-sine-stereo-441k	44100	2	44100	1.000000	45	2998	15625	2491625	2508041	0.002508	398.7	17583444.6	1ba21b60517c9291
+AACPERF_MEDIAN	core	m3-onset-stereo-441k	44100	2	44100	1.000000	45	2250	14416	1816166	1829833	0.001830	546.5	24100560.0	7b3ce9aea13d7c47
+AACPERF_MEDIAN	core	m6-stress-stereo-48k	48000	2	24000	0.500000	25	10728	14958	1831916	1851332	0.003703	270.1	12963639.2	57fd0bbb44c960d8
+AACPERF_MEDIAN	core	m7-music-stereo-48k	48000	2	480000	10.000000	471	250926	21292	60230292	60256292	0.006026	166.0	7965973.1	151e37b967d52678
+AACPERF_MEDIAN	core	m7-speech-pauses-stereo-48k	48000	2	480000	10.000000	471	125818	21917	38377792	38401125	0.003840	260.4	12499633.8	e64771cc5687e56b
+AACPERF_MEDIAN	core	m7-speech-clean-stereo-48k	48000	2	480000	10.000000	471	127900	22292	38460625	38482833	0.003848	259.9	12473094.2	ea3183de57cbf39f
+AACPERF_MEDIAN	core	m8-music-eroica-stereo-48k	48000	2	480000	10.000000	471	234229	21500	56104667	56125501	0.005613	178.2	8552262.2	3c40aaae93078019
+AACPERF_MEDIAN	core	m7-music-stereo-48k-x4	48000	2	1920000	40.000000	1877	997957	26917	240916958	240944292	0.006024	166.0	7968647.0	889c3be4ccd53dd7
+AACPERF_AGG	production	15	91.450000	469317705	0.005132	194.9	9336532.5
+AACPERF_AGG	feed	15	91.450000	8138454	0.000089	11236.8	538406925.9
+AACPERF_AGG	core	15	91.450000	459656417	0.005026	199.0	9532772.4
+AACPERF_DONE fixtures=20 reps=15
+test aac_enc::stream_driver::perf_tests::aac_perf_bench ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 17.20s
+

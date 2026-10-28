@@ -1,0 +1,5 @@
+old-warm: 8621875 ns total, 8.622 ns/write, bits=26027, checksum=c90d08548a26aa6e
+window-warm: 3071958 ns total, 3.072 ns/write, bits=26027, checksum=c90d08548a26aa6e
+old: 260598334 ns total, 5.212 ns/write, bits=30995, checksum=7bcdace3845a65f1
+window: 83304041 ns total, 1.666 ns/write, bits=30995, checksum=7bcdace3845a65f1
+window 3.128x checksums 7bcdace3845a65f1 7bcdace3845a65f1

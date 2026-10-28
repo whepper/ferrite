@@ -1,0 +1,5 @@
+workload	worker_samples	quantize_samples	quantize_pct	quantize_inclusive	calc_sfb_dist_samples	calc_sfb_dist_pct	calc_sfb_quant_energy_samples	bit_count_samples
+corpus	8112	375	4.62	375	1997	24.62	275	231
+onset	6320	97	1.53	97	377	5.97	47	242
+music	6538	309	4.73	309	1956	29.92	289	139
+speech	6566	264	4.02	264	1422	21.66	262	235

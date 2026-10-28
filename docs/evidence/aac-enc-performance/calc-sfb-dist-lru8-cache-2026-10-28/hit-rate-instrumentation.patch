@@ -1,0 +1,119 @@
+--- a/rust/src/aac_enc/scf.rs
++++ b/rust/src/aac_enc/scf.rs
+@@ -197,6 +197,28 @@
+ use super::pe::bit_count_scf_delta;
+ use super::q31::{calc_inv_ld_data, calc_ld_data, fmult};
+ use super::quant::{calc_sfb_dist_written, calc_sfb_quant_energy_and_dist};
++
++// TEMP HIT-RATE COUNTERS (removed before final state).
++pub(crate) mod cache_stats {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    pub static HITS: AtomicU64 = AtomicU64::new(0);
++    pub static MISSES: AtomicU64 = AtomicU64::new(0);
++    pub static WRITTEN: AtomicU64 = AtomicU64::new(0);
++    pub static LOOKUPS: AtomicU64 = AtomicU64::new(0);
++    #[inline]
++    pub fn hit() {
++        HITS.fetch_add(1, Ordering::Relaxed);
++    }
++    #[inline]
++    pub fn miss(written: usize) {
++        MISSES.fetch_add(1, Ordering::Relaxed);
++        WRITTEN.fetch_add(written as u64, Ordering::Relaxed);
++    }
++    #[inline]
++    pub fn lookup() {
++        LOOKUPS.fetch_add(1, Ordering::Relaxed);
++    }
++}
+ 
+ const UPCOUNT_LIMIT: i32 = 1;
+ const AS_PE_SHIFT: i32 = 7;
+@@ -1144,6 +1166,7 @@
+             return super::quant::calc_sfb_dist(spec, gain, dz, quant);
+         }
+         self.tick = self.tick.wrapping_add(1);
++        cache_stats::lookup();
+         let base = band * DIST_CACHE_SLOTS;
+         let mut victim = base;
+         let mut oldest = u32::MAX;
+@@ -1158,6 +1181,7 @@
+                 quant[..e.len as usize]
+                     .copy_from_slice(&self.pool[off..off + e.len as usize]);
+                 self.entries[i].stamp = self.tick;
++                cache_stats::hit();
+                 return e.dist;
+             }
+             if e.stamp < oldest {
+@@ -1166,6 +1190,7 @@
+             }
+         }
+         let (dist, written) = calc_sfb_dist_written(spec, gain, dz, quant);
++        cache_stats::miss(written);
+         let off = self.pool.len() as u32;
+         self.pool.extend_from_slice(&quant[..written]);
+         self.entries[victim] = DistCacheEntry {
+@@ -2348,8 +2373,63 @@
+                         "{name} f={f} ch={ci} inv={} spec",
+                         lv.inv
+                     );
++                }
++            }
++        }
++    }
++
++    // TEMP HIT-RATE TEST (removed before final state).
++    #[test]
++    fn zz_cache_hit_rate() {
++        use super::super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
++        use super::super::pcm::PcmFeeder;
++        use super::super::stream_driver::StreamEncoder;
++        use super::super::testdata;
++        use std::sync::atomic::Ordering;
++
++        fn load(c: &std::sync::atomic::AtomicU64) -> u64 {
++            c.load(Ordering::Relaxed)
++        }
++
++        for (short, ch) in [
++            ("music-stereo", 2usize),
++            ("speech-clean-stereo", 2),
++            ("onset-stereo", 2),
++            ("sine-stereo", 2),
++            ("noise-mono", 1),
++        ] {
++            let (l0, h0, m0, w0) = (
++                load(&cache_stats::LOOKUPS),
++                load(&cache_stats::HITS),
++                load(&cache_stats::MISSES),
++                load(&cache_stats::WRITTEN),
++            );
++            let pcm = testdata::fixture_samples(short);
++            let cfg = EncoderConfig::new(48000, ch as u32, FRAME_LENGTH, TransportType::Adts)
++                .expect("cfg");
++            let s = pcm[0].len();
++            let mut inter = Vec::with_capacity(s * ch);
++            for i in 0..s {
++                for c in pcm.iter().take(ch) {
++                    inter.push(c[i]);
+                 }
+             }
++            let mut feeder = PcmFeeder::new(cfg);
++            let mut frames = feeder.push_interleaved(&inter).expect("push");
++            frames.extend(feeder.finish().expect("finish"));
++            let mut enc = StreamEncoder::new(48000, ch);
++            for (i, fr) in frames.iter().enumerate() {
++                let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
++                assert!(enc.step_frame(i as u32, &fresh).0.is_some());
++            }
++            let look = load(&cache_stats::LOOKUPS) - l0;
++            let hits = load(&cache_stats::HITS) - h0;
++            let misses = load(&cache_stats::MISSES) - m0;
++            let written = load(&cache_stats::WRITTEN) - w0;
++            eprintln!(
++                "CACHE {short}: lookups={look} hits={hits} ({:.1}%) misses={misses} written_lines={written}",
++                100.0 * hits as f64 / look.max(1) as f64
++            );
+         }
+     }
+ }

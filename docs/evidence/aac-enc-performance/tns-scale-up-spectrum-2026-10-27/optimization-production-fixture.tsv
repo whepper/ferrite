@@ -1,0 +1,6 @@
+fixture	before_median_ms	after_median_ms	improvement_pct	before_hash	after_hash
+m7-music-stereo-48k	61.281	60.121	1.892	151e37b967d52678	151e37b967d52678
+m7-speech-clean-stereo-48k	39.493	38.398	2.772	ea3183de57cbf39f	ea3183de57cbf39f
+m7-speech-pauses-stereo-48k	39.310	38.234	2.737	e64771cc5687e56b	e64771cc5687e56b
+m8-music-eroica-stereo-48k	56.875	55.761	1.960	3c40aaae93078019	3c40aaae93078019
+m7-music-stereo-48k-x4	245.131	240.681	1.816	889c3be4ccd53dd7	889c3be4ccd53dd7

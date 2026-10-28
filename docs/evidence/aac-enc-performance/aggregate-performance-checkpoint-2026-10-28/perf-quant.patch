@@ -1,0 +1,114 @@
+diff --git a/rust/src/aac_enc/quant.rs b/rust/src/aac_enc/quant.rs
+index f7f2da7..b93c369 100644
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -300,41 +300,37 @@ pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
+ /// recursion, and Gate D verifies the resulting shape.
+ #[inline(always)]
+ fn quantize_line_body(quantizer: i16, quantizer_shift: i32, k: i32, spec: i32) -> i16 {
+-    let mut accu = fixmuldiv2_ds(spec, quantizer);
+-    if accu < 0 {
+-        accu = accu.wrapping_neg();
+-        /* normalize: leading one lands on bit 30 ([0.5, 1.0)). */
+-        let accu_shift = count_leading_zeros(accu) - 1;
+-        accu = accu.wrapping_shl(accu_shift as u32);
+-        /* Bit 9 of the shifted value is the old bit 30 (always 1);
+-         * clearing it yields the 9-bit mantissa index 0..511. */
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
+-        debug_assert!(tab_index < 512);
+-        let mut total_shift = quantizer_shift - accu_shift + 1;
+-        accu = fixmuldiv2_ss(
+-            MTAB_3_4[tab_index],
+-            QUANT_TABLE_E[(total_shift & 3) as usize],
+-        );
+-        total_shift = (16 - 4) - (3 * (total_shift >> 2));
+-        debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
+-        accu >>= total_shift.min(31);
+-        ((k.wrapping_add(accu) >> (32 - 1 - 16)) as i16).wrapping_neg()
+-    } else if accu > 0 {
+-        let accu_shift = count_leading_zeros(accu) - 1;
+-        accu = accu.wrapping_shl(accu_shift as u32);
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
+-        debug_assert!(tab_index < 512);
+-        let mut total_shift = quantizer_shift - accu_shift + 1;
+-        accu = fixmuldiv2_ss(
+-            MTAB_3_4[tab_index],
+-            QUANT_TABLE_E[(total_shift & 3) as usize],
+-        );
+-        total_shift = (16 - 4) - (3 * (total_shift >> 2));
+-        debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
+-        accu >>= total_shift.min(31);
+-        (k.wrapping_add(accu) >> (32 - 1 - 16)) as i16
++    let accu = fixmuldiv2_ds(spec, quantizer);
++    if accu == 0 {
++        return 0;
++    }
++    // One magnitude path for both signs; only the final result is negated.
++    // This is the arithmetic the former two-branch body performed:
++    // `wrapping_neg` for negative input, identity otherwise, and the same
++    // final `wrapping_neg` on the emitted magnitude.
++    let neg = accu < 0;
++    let mut accu = if neg { accu.wrapping_neg() } else { accu };
++    /* normalize: leading one lands on bit 30 ([0.5, 1.0)). */
++    let accu_shift = count_leading_zeros(accu) - 1;
++    accu = accu.wrapping_shl(accu_shift as u32);
++    // Normalization puts the leading one at bit 30, so `accu >> 21`
++    // is 0..=0x3FF; masking to nine bits is the same index as the
++    // former `& !512` and bounds the 512-entry table for LLVM.
++    let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
++    debug_assert!(tab_index < 512);
++    let mut total_shift = quantizer_shift - accu_shift + 1;
++    accu = fixmuldiv2_ss(
++        MTAB_3_4[tab_index],
++        QUANT_TABLE_E[(total_shift & 3) as usize],
++    );
++    total_shift = (16 - 4) - (3 * (total_shift >> 2));
++    debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
++    accu >>= total_shift.min(31);
++    let q = (k.wrapping_add(accu) >> (32 - 1 - 16)) as i16;
++    if neg {
++        q.wrapping_neg()
+     } else {
+-        0
++        q
+     }
+ }
+ 
+@@ -356,7 +352,10 @@ pub fn inv_quantize_line(gain: i32, q: i16) -> i32 {
+     accu = accu.wrapping_shl(ex as u32);
+     let spec_exp = (32 - 1) - ex;
+     assert!((spec_exp as u32) < 14, "specExp envelope: |q| <= MAX_QUANT");
+-    let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
++    // `count_leading_bits` + shift leaves the leading one at bit 30, so
++    // `accu >> 21` is 0..=0x3FF and the nine-bit mask is the same index
++    // as the former `& !512` while bounding the 512-entry table.
++    let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
+     debug_assert!(tab_index < 512);
+     let m = (gain & 3) as usize;
+     let s = MTAB_4_3[tab_index];
+@@ -459,6 +458,13 @@ fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
+ /// the early-out, the inverse quantization, and the distortion
+ /// accumulation are unchanged.
+ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &mut [i16]) -> i32 {
++    // All callers pass paired band slices. State the contract once so the
++    // line loop can carry no per-line `quant[i]` bounds check.
++    assert_eq!(
++        spec.len(),
++        quant.len(),
++        "calc_sfb_dist: spec and quant lengths differ"
++    );
+     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
+     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
+     let k = if dzone_quant_enable {
+@@ -467,9 +473,9 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
+         QUANT_K0
+     };
+     let mut xfsf: i32 = 0;
+-    for (i, &s) in spec.iter().enumerate() {
++    for (&s, q_out) in spec.iter().zip(quant.iter_mut()) {
+         let q = quantize_line_body(quantizer, quantizer_shift, k, s);
+-        quant[i] = q;
++        *q_out = q;
+         // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+         // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+         // (whose `specExp < 14` assert then panics). The reference

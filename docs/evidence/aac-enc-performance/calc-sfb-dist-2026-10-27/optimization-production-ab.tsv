@@ -1,0 +1,6 @@
+pair	order	before_total_ms	after_total_ms	improvement_pct
+before then after	1/1	445.199	435.730	2.127
+after then before	2/2	448.467	434.163	3.189
+before then after	3/3	445.311	432.681	2.836
+after then before	4/4	449.835	433.559	3.618
+median	-	-	-	3.013

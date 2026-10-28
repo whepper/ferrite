@@ -1,0 +1,2 @@
+std_hashmap_entry: 11.6 ns/lookup acc=180999856
+open_addr_512: 1.3 ns/lookup acc=180999856

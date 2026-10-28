@@ -1,0 +1,6 @@
+old=(-48, 39) new=(-48, 39)
+old-warm: 32445708 ns total, 32.446 ns/scan, acc=-9000000
+new-warm: 25293209 ns total, 25.293 ns/scan, acc=-9000000
+old: 447631792 ns total, 22.382 ns/scan, acc=-180000000
+new: 446116542 ns total, 22.306 ns/scan, acc=-180000000
+new 1.003x

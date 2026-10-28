@@ -1,0 +1,5 @@
+run	production_total_ms	production_realtime_x	production_rtf	production_samples_per_s
+1	468.188	195.30	0.005120	9359053
+2	481.888	189.80	0.005269	9092986
+3	471.833	193.80	0.005159	9286765
+4	469.318	194.90	0.005132	9336532

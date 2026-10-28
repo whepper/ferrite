@@ -1,0 +1,5 @@
+workload	worker_samples	code_values_samples	code_values_pct	bit_path_pct
+corpus	7351	161	2.19	9.11
+onset	5692	33	0.58	7.64
+music	5918	185	3.13	9.70
+speech	5868	110	1.87	8.59

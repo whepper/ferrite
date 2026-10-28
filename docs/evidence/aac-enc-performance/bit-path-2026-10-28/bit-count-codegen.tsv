@@ -1,0 +1,5 @@
+metric	before	after
+instructions	881	700
+panic_bounds	38	19
+branches	57	32
+code_bytes	0xdc4	0xaf0

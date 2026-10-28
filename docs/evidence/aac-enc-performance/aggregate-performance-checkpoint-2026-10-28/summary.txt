@@ -1,0 +1,38 @@
+=== paired aggregates ===
+pair 1: 481.343 -> 414.401  +13.907%
+pair 2: 484.223 -> 414.398  +14.420%
+pair 3: 485.920 -> 417.086  +14.166%
+pair 4: 480.635 -> 416.092  +13.429%
+pair 5: 481.039 -> 416.439  +13.429%
+pair 6: 481.882 -> 413.769  +14.135%
+pair 7: 480.663 -> 413.581  +13.956%
+pair 8: 479.291 -> 420.122  +12.345%
+old median 481.191 ms  new median 415.247 ms  paired median +13.932%
+pair improvements min +12.345% max +14.420% mean +13.723%
+baseline standalone [474.308, 480.119, 482.067] median 480.119
+post baseline [482.161, 481.947] median 482.054
+all baseline median 481.947 ms
+=== per-workload ===
+m2-click-mono-48k                   0.990    0.911  +7.983%  pair[+6.91,+9.35]
+m2-edge-mono-48k                    0.216    0.199  +7.622%  pair[+4.69,+8.78]
+m2-impulse-mono-48k                 0.184    0.172  +6.868%  pair[+0.93,+8.71]
+m2-onset-stereo-48k                 1.957    1.852  +5.361%  pair[+4.14,+6.88]
+m2-silence-stereo-48k               1.213    1.130  +6.854%  pair[+5.97,+8.64]
+m2-sine-stereo-48k                  2.615    2.494  +4.621%  pair[+3.83,+6.03]
+m2-stepdown-stereo-48k              1.933    1.823  +5.694%  pair[+4.94,+6.05]
+m3-multitone-stereo-48k             2.988    2.819  +5.635%  pair[+3.75,+7.43]
+m3-noise-mono-48k                   1.373    1.159 +15.557%  pair[+14.35,+17.16]
+m3-onset-stereo-441k                1.961    1.814  +7.478%  pair[+5.37,+9.43]
+m3-quiet-sine-stereo-48k            2.757    2.515  +8.798%  pair[+7.18,+9.76]
+m3-sine-stereo-441k                 2.726    2.536  +6.949%  pair[+5.51,+8.55]
+m3-sweep-stereo-48k                 2.744    2.580  +5.964%  pair[+4.66,+6.41]
+m3-tonal-noise-stereo-48k           1.908    1.667 +12.626%  pair[+11.85,+13.62]
+m6-stress-stereo-48k                1.992    1.731 +13.078%  pair[+11.91,+13.79]
+m7-music-stereo-48k                62.923   53.800 +14.499%  pair[+13.83,+15.13]
+m7-music-stereo-48k-x4            250.954  215.155 +14.265%  pair[+13.37,+14.83]
+m7-speech-clean-stereo-48k         40.401   35.415 +12.341%  pair[+11.46,+12.93]
+m7-speech-pauses-stereo-48k        40.342   35.466 +12.087%  pair[+11.40,+12.91]
+m8-music-eroica-stereo-48k         58.701   49.664 +15.394%  pair[+14.97,+15.97]
+heavy median improvement +14.265% (5 workloads)
+short median improvement +6.949% (15 workloads)
+positive workloads 20/20

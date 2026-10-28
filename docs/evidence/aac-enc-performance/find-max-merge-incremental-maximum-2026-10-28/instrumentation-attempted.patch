@@ -1,0 +1,114 @@
+diff --git a/rust/src/aac_enc/bitcount.rs b/rust/src/aac_enc/bitcount.rs
+index 74866f5..21c19b3 100644
+--- a/rust/src/aac_enc/bitcount.rs
++++ b/rust/src/aac_enc/bitcount.rs
+@@ -193,6 +193,24 @@ use super::bitcount_tables::{
+ };
+ use super::pe::bit_count_scf_delta;
+ 
++// TEMPORARY INSTRUMENTATION (removed before any final state).
++pub(crate) mod stage2_stats {
++    use std::sync::atomic::{AtomicU64, Ordering};
++    pub static CALLS: AtomicU64 = AtomicU64::new(0);
++    pub static INIT_SECTIONS: AtomicU64 = AtomicU64::new(0);
++    pub static MERGES: AtomicU64 = AtomicU64::new(0);
++    pub static SCAN_STEPS: AtomicU64 = AtomicU64::new(0);
++    pub static INIT_HIST: [AtomicU64; 65] = [const { AtomicU64::new(0) }; 65];
++    #[inline]
++    pub fn bump(c: &AtomicU64, v: u64) {
++        c.fetch_add(v, Ordering::Relaxed);
++    }
++    #[inline]
++    pub fn hist(i: usize) {
++        INIT_HIST[i.min(64)].fetch_add(1, Ordering::Relaxed);
++    }
++}
++
+ /// `INVALID_BITCOUNT = FDK_INT_MAX/4` (`bit_cnt.h:110`).
+ pub const INVALID_BITCOUNT: i32 = i32::MAX / 4;
+ /// `CODE_BOOK_ESC_LAV = 16` (count dispatch clamp, `bit_cnt.cpp:551`).
+@@ -814,6 +832,7 @@ fn find_max_merge(merge_gain: &[i32], sections: &[SectionInfo], max_sfb: usize)
+     // Faithful loop: `for (i = 0; i + cnt < maxSfb; i += cnt)`.
+     let mut i = 0;
+     while i + (sections[i].sfb_cnt as usize) < max_sfb {
++        stage2_stats::bump(&stage2_stats::SCAN_STEPS, 1);
+         if merge_gain[i] > max_gain {
+             max_gain = merge_gain[i];
+             max_ndx = i;
+@@ -925,16 +944,22 @@ fn gm_stage2(
+ ) {
+     // Faithful init: `for (i = 0; i + cnt < maxSfb; i += cnt)`.
+     let mut i = 0;
++    let mut initial = 0usize;
+     while i + (sections[i].sfb_cnt as usize) < max_sfb {
+         let nxt = i + sections[i].sfb_cnt as usize;
+         merge_gain[i] = calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11);
++        initial += 1;
+         i = nxt;
+     }
++    stage2_stats::hist(initial);
++    stage2_stats::bump(&stage2_stats::INIT_SECTIONS, initial as u64);
++    stage2_stats::bump(&stage2_stats::CALLS, 1);
+     loop {
+         let (max_gain, max_ndx) = find_max_merge(merge_gain, sections, max_sfb);
+         if max_gain <= 0 {
+             break;
+         }
++        stage2_stats::bump(&stage2_stats::MERGES, 1);
+         let max_next = max_ndx + sections[max_ndx].sfb_cnt as usize;
+         sections[max_ndx].sfb_cnt += sections[max_next].sfb_cnt;
+         sections[max_ndx].section_bits += sections[max_next].section_bits - max_gain;
+@@ -1811,4 +1836,53 @@ mod tests {
+         let orig: Vec<i32> = s5.ch[0].sections.iter().map(|s| s.book).collect();
+         assert_ne!(tampered, orig);
+     }
++
++    #[test]
++    fn zz_stage2_topology_stats() {
++        use super::super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
++        use super::super::pcm::PcmFeeder;
++        use super::super::stream_driver::StreamEncoder;
++        use super::super::testdata;
++        use std::sync::atomic::Ordering;
++
++        fn run(short: &str, sr: u32, ch: usize) {
++            let pcm = testdata::fixture_samples(short);
++            let cfg = EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
++                .expect("cfg");
++            let s = pcm[0].len();
++            let mut inter = Vec::with_capacity(s * ch);
++            for i in 0..s {
++                for c in pcm.iter().take(ch) {
++                    inter.push(c[i]);
++                }
++            }
++            let mut feeder = PcmFeeder::new(cfg);
++            let mut frames = feeder.push_interleaved(&inter).expect("push");
++            frames.extend(feeder.finish().expect("finish"));
++            let mut enc = StreamEncoder::new(sr, ch);
++            for (i, fr) in frames.iter().enumerate() {
++                let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
++                let (bytes, snap) = enc.step_frame(i as u32, &fresh);
++                assert!(bytes.is_some());
++                assert!(snap.notes.is_empty());
++            }
++            eprintln!(
++                "STATS {short}: calls={} init={} merges={} steps={}",
++                stage2_stats::CALLS.load(Ordering::Relaxed),
++                stage2_stats::INIT_SECTIONS.load(Ordering::Relaxed),
++                stage2_stats::MERGES.load(Ordering::Relaxed),
++                stage2_stats::SCAN_STEPS.load(Ordering::Relaxed),
++            );
++        }
++
++        run("music-stereo", 48000, 2);
++        eprintln!("STATS_HIST_BEGIN");
++        for (n, c) in stage2_stats::INIT_HIST.iter().enumerate() {
++            let v = c.load(Ordering::Relaxed);
++            if v != 0 {
++                eprintln!("STATS_HIST {n} {v}");
++            }
++        }
++        eprintln!("STATS_HIST_END");
++    }
+ }

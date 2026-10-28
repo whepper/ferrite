@@ -1,0 +1,40 @@
+Attempted and reverted change (not in the current tree)
+=======================================================
+
+File: rust/src/aac_enc/bitcount.rs
+Target: bit_count's per-band kernels only.
+
+1. Added a release width assertion:
+
+  + assert_eq!(values.len() % 4, 0, "bit_count: width is not a multiple of 4");
+
+2. Replaced each `while i < values.len()` / `values[i]` stride-4 loop in
+   count_1_to_11, count_3_to_11, count_5_to_11, count_7_to_11,
+   count_9_to_11, and count_11_only with:
+
+  - while i < values.len() {
+  -     let t0 = values[i] as i32;
+  -     let t1 = values[i + 1] as i32;
+  -     let t2 = values[i + 2] as i32;
+  -     let t3 = values[i + 3] as i32;
+  + for q in values.chunks_exact(4) {
+  +     let t0 = q[0] as i32;
+  +     let t1 = q[1] as i32;
+  +     let t2 = q[2] as i32;
+  +     let t3 = q[3] as i32;
+        ...
+  -     i += 4;
+  + }
+
+3. Replaced count_esc's stride-2 loop with `chunks_exact(2)` and
+   `q[0]`/`q[1]` in the same way.
+
+No Huffman table, codeword, bit-order, scaling, threshold, or emitted-bit
+expression was changed. The table-range guards inside the kernels were kept.
+The change was applied, measured, then reverted; `bitcount.rs` is back at HEAD
+and `git status` shows no modification to it.
+
+The attempted change passed `aac_enc::bitcount` (11 tests), the production
+baseline, and all benchmark hash checks. It failed the end-to-end gate:
+four paired test-build comparisons gave -2.717%, +1.033%, +0.164%, and
+-0.105% (median +0.029%).

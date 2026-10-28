@@ -1,0 +1,5 @@
+workload	worker_samples	eqd_samples	eqd_pct	eqd_inclusive	calc_sfb_dist_samples	calc_sfb_dist_pct	inv_quantize_samples	fpow2_samples
+corpus	8210	319	3.89	368	1824	22.22	0	0
+onset	6429	43	0.67	54	329	5.12	0	0
+music	6554	336	5.13	368	1689	25.77	0	0
+speech	6555	246	3.75	272	1243	18.96	0	0

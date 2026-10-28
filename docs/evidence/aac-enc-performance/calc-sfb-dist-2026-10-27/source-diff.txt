@@ -1,0 +1,62 @@
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -308,7 +308,10 @@
+         accu = accu.wrapping_shl(accu_shift as u32);
+         /* Bit 9 of the shifted value is the old bit 30 (always 1);
+          * clearing it yields the 9-bit mantissa index 0..511. */
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
++        // Normalization puts the leading one at bit 30, so `accu >> 21`
++        // is 0..=0x3FF; masking to nine bits is the same index as the
++        // former `& !512` and bounds the 512-entry table for LLVM.
++        let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
+         debug_assert!(tab_index < 512);
+         let mut total_shift = quantizer_shift - accu_shift + 1;
+         accu = fixmuldiv2_ss(
+@@ -322,7 +325,8 @@
+     } else if accu > 0 {
+         let accu_shift = count_leading_zeros(accu) - 1;
+         accu = accu.wrapping_shl(accu_shift as u32);
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
++        // Same nine-bit normalization argument as the negative branch.
++        let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
+         debug_assert!(tab_index < 512);
+         let mut total_shift = quantizer_shift - accu_shift + 1;
+         accu = fixmuldiv2_ss(
+@@ -356,7 +360,10 @@
+     accu = accu.wrapping_shl(ex as u32);
+     let spec_exp = (32 - 1) - ex;
+     assert!((spec_exp as u32) < 14, "specExp envelope: |q| <= MAX_QUANT");
+-    let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
++    // `count_leading_bits` + shift leaves the leading one at bit 30, so
++    // `accu >> 21` is 0..=0x3FF and the nine-bit mask is the same index
++    // as the former `& !512` while bounding the 512-entry table.
++    let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
+     debug_assert!(tab_index < 512);
+     let m = (gain & 3) as usize;
+     let s = MTAB_4_3[tab_index];
+@@ -459,6 +466,13 @@
+ /// the early-out, the inverse quantization, and the distortion
+ /// accumulation are unchanged.
+ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &mut [i16]) -> i32 {
++    // All callers pass paired band slices. State the contract once so the
++    // line loop can carry no per-line `quant[i]` bounds check.
++    assert_eq!(
++        spec.len(),
++        quant.len(),
++        "calc_sfb_dist: spec and quant lengths differ"
++    );
+     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
+     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
+     let k = if dzone_quant_enable {
+@@ -467,9 +481,9 @@
+         QUANT_K0
+     };
+     let mut xfsf: i32 = 0;
+-    for (i, &s) in spec.iter().enumerate() {
++    for (&s, q_out) in spec.iter().zip(quant.iter_mut()) {
+         let q = quantize_line_body(quantizer, quantizer_shift, k, s);
+-        quant[i] = q;
++        *q_out = q;
+         // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+         // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+         // (whose `specExp < 14` assert then panics). The reference

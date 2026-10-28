@@ -1,0 +1,22 @@
+Temporary instrumentation (removed): counters in gm_stage2/find_max_merge.
+Workload: one pass of the music-stereo fixture (48 kHz, stereo, 1 s).
+Ran through StreamEncoder::step_frame on the default release build.
+
+STATS music-stereo: calls=2244 init=53771 merges=37832 steps=725165
+
+Derived per call:
+  candidates (sections with a successor) 24.0
+  merges                                 16.9
+  scan steps per merge                   19.2
+  scan steps per call                    323.2
+
+INIT_HIST (candidate count per stage-2 call, buckets with counts):
+0:10 2:10 3:12 4:40 5:46 6:50 7:65 8:90 9:89 10:57 11:24 12:19 13:14 14:12
+15:6 16:14 17:14 18:20  (remaining buckets 19..64 were also populated; the
+distribution is centered near 20-30 and the mean is 24.0)
+
+Implication: a 64-leaf tournament tree would need up to 3 point updates per
+merge (~18 dependent node updates), i.e. the same order as the ~19 scan
+steps, so it has no clear advantage. A compacted (gain, start) array keeps
+the same step count but removes the loop-carried `sections[i].sfb_cnt` load
+and the merge_gain gather.

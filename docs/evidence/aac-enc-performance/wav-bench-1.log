@@ -1,0 +1,377 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+   Compiling ferrite-aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:226:12
+    |
+198 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+226 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, `max_sfb_per_group`, `ms_energies`, and `ms_ld` are never read
+   --> src/aac_enc/psy.rs:202:9
+    |
+194 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+202 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+203 |     /// Grouped threshold log vectors (clamped).
+204 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+208 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+212 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+...
+225 |     pub ms_energies: Vec<i32>,
+    |         ^^^^^^^^^^^
+...
+239 |     pub ms_ld: Vec<f64>,
+    |         ^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:248:9
+    |
+244 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+248 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+249 |     /// TNS overflow shift applied.
+250 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+254 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+264 |     pub nm1: Vec<i32>,
+    |         ^^^
+265 |     /// Previous scale / enabled flag after the frame.
+266 |     pub m_nm1: i32,
+    |         ^^^^^
+267 |     /// Calc flag after the frame (0/1).
+268 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1361:9
+     |
+1360 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1361 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1365 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1366 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1367 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1368 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1134:15
+     |
+1134 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+190 |     /// Transform lines covered (1024 long, 128 short).
+191 |     lines: usize,
+    |     ^^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+221 |     allow_is: bool,
+222 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+368 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+453 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:680:18
+    |
+680 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:686:18
+    |
+686 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:692:15
+    |
+692 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:698:15
+    |
+698 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib) generated 18 warnings
+    Finished `release` profile [optimized] target(s) in 2.24s
+     Running `target/release/examples/aac_bench_wav`
+WAVBENCH_CONFIG	profile=release	arch=aarch64	os=macos	reps=15	warmups=1	fixtures=5
+WAVBENCH_ROW	m7-music-stereo-48k	0	48000	2	480000	471	250926	20875	60532500	60553375	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	0	48000	2	480000	471	127900	24417	39397042	39421459	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	0	48000	2	480000	471	125818	22916	39173333	39196249	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	0	48000	2	480000	471	234229	23375	56351042	56374417	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	0	48000	2	1920000	1877	997957	20834	241462583	241483417	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	1	48000	2	480000	471	250926	20000	60506958	60526958	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	1	48000	2	480000	471	127900	25000	38659750	38684750	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	1	48000	2	480000	471	125818	22208	38758166	38780374	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	1	48000	2	480000	471	234229	22708	55799875	55822583	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	1	48000	2	1920000	1877	997957	20458	242017917	242038375	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	2	48000	2	480000	471	250926	22792	60781292	60804084	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	2	48000	2	480000	471	127900	22708	38791625	38814333	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	2	48000	2	480000	471	125818	22250	38951250	38973500	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	2	48000	2	480000	471	234229	19875	56366542	56386417	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	2	48000	2	1920000	1877	997957	23750	241403125	241426875	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	3	48000	2	480000	471	250926	21792	60226375	60248167	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	3	48000	2	480000	471	127900	21167	38860375	38881542	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	3	48000	2	480000	471	125818	24667	38715083	38739750	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	3	48000	2	480000	471	234229	20375	56107875	56128250	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	3	48000	2	1920000	1877	997957	20042	240748125	240768167	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	4	48000	2	480000	471	250926	23459	60237250	60260709	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	4	48000	2	480000	471	127900	20250	38832500	38852750	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	4	48000	2	480000	471	125818	25750	38601083	38626833	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	4	48000	2	480000	471	234229	21041	56171041	56192082	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	4	48000	2	1920000	1877	997957	21083	240517667	240538750	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	5	48000	2	480000	471	250926	21750	59994208	60015958	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	5	48000	2	480000	471	127900	20375	39095375	39115750	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	5	48000	2	480000	471	125818	21167	38723500	38744667	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	5	48000	2	480000	471	234229	20959	56234875	56255834	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	5	48000	2	1920000	1877	997957	19625	239942292	239961917	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	6	48000	2	480000	471	250926	20250	60239958	60260208	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	6	48000	2	480000	471	127900	20416	38946417	38966833	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	6	48000	2	480000	471	125818	24208	39241833	39266041	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	6	48000	2	480000	471	234229	23042	57204541	57227583	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	6	48000	2	1920000	1877	997957	21750	240901334	240923084	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	7	48000	2	480000	471	250926	21583	60450250	60471833	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	7	48000	2	480000	471	127900	21084	39030500	39051584	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	7	48000	2	480000	471	125818	24042	38987833	39011875	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	7	48000	2	480000	471	234229	25541	56332875	56358416	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	7	48000	2	1920000	1877	997957	20750	239911208	239931958	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	8	48000	2	480000	471	250926	22958	60260666	60283624	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	8	48000	2	480000	471	127900	21666	38673208	38694874	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	8	48000	2	480000	471	125818	21125	38403500	38424625	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	8	48000	2	480000	471	234229	22750	55956917	55979667	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	8	48000	2	1920000	1877	997957	19667	241038875	241058542	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	9	48000	2	480000	471	250926	21416	60388292	60409708	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	9	48000	2	480000	471	127900	21167	38657333	38678500	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	9	48000	2	480000	471	125818	23083	38737208	38760291	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	9	48000	2	480000	471	234229	23125	56493458	56516583	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	9	48000	2	1920000	1877	997957	19750	245477917	245497667	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	10	48000	2	480000	471	250926	24417	63985666	64010083	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	10	48000	2	480000	471	127900	28625	40697042	40725667	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	10	48000	2	480000	471	125818	27084	40177458	40204542	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	10	48000	2	480000	471	234229	24625	58471709	58496334	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	10	48000	2	1920000	1877	997957	25750	244526625	244552375	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	11	48000	2	480000	471	250926	23000	62246666	62269666	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	11	48000	2	480000	471	127900	24416	40358625	40383041	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	11	48000	2	480000	471	125818	27417	40558209	40585626	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	11	48000	2	480000	471	234229	25500	71796291	71821791	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	11	48000	2	1920000	1877	997957	27084	281983959	282011043	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	12	48000	2	480000	471	250926	27167	60956167	60983334	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	12	48000	2	480000	471	127900	23875	39157375	39181250	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	12	48000	2	480000	471	125818	23666	41184166	41207832	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	12	48000	2	480000	471	234229	25084	65606417	65631501	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	12	48000	2	1920000	1877	997957	58542	283188709	283247251	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	13	48000	2	480000	471	250926	23666	63420500	63444166	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	13	48000	2	480000	471	127900	23875	40100959	40124834	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	13	48000	2	480000	471	125818	27167	40455625	40482792	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	13	48000	2	480000	471	234229	24291	59114208	59138499	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	13	48000	2	1920000	1877	997957	22625	247094750	247117375	889c3be4ccd53dd7
+WAVBENCH_ROW	m7-music-stereo-48k	14	48000	2	480000	471	250926	24333	60284125	60308458	151e37b967d52678
+WAVBENCH_ROW	m7-speech-clean-stereo-48k	14	48000	2	480000	471	127900	22125	38999250	39021375	ea3183de57cbf39f
+WAVBENCH_ROW	m7-speech-pauses-stereo-48k	14	48000	2	480000	471	125818	23250	38668209	38691459	e64771cc5687e56b
+WAVBENCH_ROW	m8-music-eroica-stereo-48k	14	48000	2	480000	471	234229	21375	56661875	56683250	3c40aaae93078019
+WAVBENCH_ROW	m7-music-stereo-48k-x4	14	48000	2	1920000	1877	997957	24458	240614833	240639291	889c3be4ccd53dd7
+WAVBENCH_MEDIAN	m7-music-stereo-48k	48000	2	480000	10.000000	250926	471	22792	60450250	60471833	0.006047	165.4	7937580	151e37b967d52678
+WAVBENCH_MEDIAN	m7-speech-clean-stereo-48k	48000	2	480000	10.000000	127900	471	22125	38999250	39021375	0.003902	256.3	12300950	ea3183de57cbf39f
+WAVBENCH_MEDIAN	m7-speech-pauses-stereo-48k	48000	2	480000	10.000000	125818	471	23666	38951250	38973500	0.003897	256.6	12316061	e64771cc5687e56b
+WAVBENCH_MEDIAN	m8-music-eroica-stereo-48k	48000	2	480000	10.000000	234229	471	23042	56366542	56386417	0.005639	177.3	8512688	3c40aaae93078019
+WAVBENCH_MEDIAN	m7-music-stereo-48k-x4	48000	2	1920000	40.000000	997957	1877	21083	241403125	241426875	0.006036	165.7	7952719	889c3be4ccd53dd7
+WAVBENCH_DONE

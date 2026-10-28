@@ -1,0 +1,13 @@
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -432,7 +432,9 @@
+ fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
+     let mut diff = (inv.wrapping_abs().wrapping_sub((spec >> 1).wrapping_abs())).wrapping_abs();
+     let scale = count_leading_bits(diff);
+-    diff = shift_int(diff, scale);
++    // `scale` is in 0..=31, so this is exactly `shift_int(diff, scale)`
++    // with the right-shift arm dead; keep the generic second shift below.
++    diff = (diff as u32).wrapping_shl(scale as u32) as i32;
+     diff = fpow2(diff);
+     let scale2 = (2 * (scale - 1)).min(32 - 1);
+     diff = shift_int(diff, -scale2);

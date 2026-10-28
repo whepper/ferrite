@@ -1,0 +1,376 @@
+diff --git a/rust/src/aac_enc/bitcount.rs b/rust/src/aac_enc/bitcount.rs
+index 74866f5..f808861 100644
+--- a/rust/src/aac_enc/bitcount.rs
++++ b/rust/src/aac_enc/bitcount.rs
+@@ -805,22 +805,20 @@ fn merge_bit_lookup(bc1: &mut [i32; 12], bc2: &[i32; 12]) {
+     }
+ }
+ 
+-/// `findMaxMerge` (`dyn_bits.cpp:186-200`): first maximum gain position
+-/// (strict `>`, initial gain 0 at index 0 — a non-positive best breaks
+-/// the stage-2 loop in the caller).
+-fn find_max_merge(merge_gain: &[i32], sections: &[SectionInfo], max_sfb: usize) -> (i32, usize) {
++/// First maximum gain position in the compacted candidate list, in the
++/// same visit order as `findMaxMerge` (`dyn_bits.cpp:186-200`): strict `>`
++/// with an initial gain of 0, so ties keep the earliest section and a
++/// non-positive best breaks the stage-2 loop in the caller.
++fn find_max_candidate(cand: &[(i32, u32)]) -> (i32, usize) {
+     let mut max_gain = 0;
+-    let mut max_ndx = 0;
+-    // Faithful loop: `for (i = 0; i + cnt < maxSfb; i += cnt)`.
+-    let mut i = 0;
+-    while i + (sections[i].sfb_cnt as usize) < max_sfb {
+-        if merge_gain[i] > max_gain {
+-            max_gain = merge_gain[i];
+-            max_ndx = i;
++    let mut max_pos = 0;
++    for (pos, &(gain, _)) in cand.iter().enumerate() {
++        if gain > max_gain {
++            max_gain = gain;
++            max_pos = pos;
+         }
+-        i += sections[i].sfb_cnt as usize;
+     }
+-    (max_gain, max_ndx)
++    (max_gain, max_pos)
+ }
+ 
+ /// `CalcMergeGain` (`dyn_bits.cpp:202-227`).
+@@ -915,34 +913,48 @@ fn gm_stage1(
+ }
+ 
+ /// `gmStage2` (`dyn_bits.cpp:294-340`): greedy max-gain merges.
++///
++/// The candidate set is kept compacted as `(gain, section_start)` pairs in
++/// ascending start order instead of rescanning `merge_gain` through the
++/// section list after every merge. A merge changes only three candidates:
++/// the merged section, the section before it, and the removed successor;
++/// all other gains are untouched, so the list needs at most two point
++/// updates and one ordered removal. The scan order and the strict `>` tie
++/// rule are identical to `findMaxMerge`.
+ fn gm_stage2(
+     sections: &mut [SectionInfo],
+-    merge_gain: &mut [i32],
++    cand: &mut [(i32, u32)],
+     bit_lookup: &mut [[i32; 12]],
+     max_sfb: usize,
+     side_info_tab: &[i16],
+     use_vcb11: bool,
+ ) {
+-    // Faithful init: `for (i = 0; i + cnt < maxSfb; i += cnt)`.
+-    let mut i = 0;
++    // Initial candidate list: `for (i = 0; i + cnt < maxSfb; i += cnt)`.
++    let mut n = 0usize;
++    let mut i = 0usize;
+     while i + (sections[i].sfb_cnt as usize) < max_sfb {
+         let nxt = i + sections[i].sfb_cnt as usize;
+-        merge_gain[i] = calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11);
++        cand[n] = (
++            calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11),
++            i as u32,
++        );
++        n += 1;
+         i = nxt;
+     }
+     loop {
+-        let (max_gain, max_ndx) = find_max_merge(merge_gain, sections, max_sfb);
++        let (max_gain, max_pos) = find_max_candidate(&cand[..n]);
+         if max_gain <= 0 {
+             break;
+         }
++        let max_ndx = cand[max_pos].1 as usize;
+         let max_next = max_ndx + sections[max_ndx].sfb_cnt as usize;
+         sections[max_ndx].sfb_cnt += sections[max_next].sfb_cnt;
+         sections[max_ndx].section_bits += sections[max_next].section_bits - max_gain;
+         let row = bit_lookup[max_next];
+         merge_bit_lookup(&mut bit_lookup[max_ndx], &row);
+-        if max_ndx != 0 {
+-            let max_last = sections[max_ndx - 1].sfb_start as usize;
+-            merge_gain[max_last] = calc_merge_gain(
++        if max_pos != 0 {
++            let max_last = cand[max_pos - 1].1 as usize;
++            cand[max_pos - 1].0 = calc_merge_gain(
+                 sections,
+                 bit_lookup,
+                 side_info_tab,
+@@ -954,7 +966,7 @@ fn gm_stage2(
+         let max_next2 = max_ndx + sections[max_ndx].sfb_cnt as usize;
+         sections[max_next2 - 1].sfb_start = sections[max_ndx].sfb_start;
+         if max_next2 < max_sfb {
+-            merge_gain[max_ndx] = calc_merge_gain(
++            cand[max_pos].0 = calc_merge_gain(
+                 sections,
+                 bit_lookup,
+                 side_info_tab,
+@@ -962,6 +974,14 @@ fn gm_stage2(
+                 max_next2,
+                 use_vcb11,
+             );
++            // The merged successor is no longer a section start; keep the
++            // remaining candidates in ascending start order.
++            cand.copy_within(max_pos + 2..n, max_pos + 1);
++            n -= 1;
++        } else {
++            // The merged section is now last and has no successor, so it is
++            // no longer a candidate.
++            n = max_pos;
+         }
+     }
+ }
+@@ -983,14 +1003,13 @@ fn gm_stage2(
+ /// * `work` — every `SectionInfo` later read is rewritten in full by
+ ///   `build_bit_lookup`, so only the length is restored (the resize
+ ///   placeholder matches the former `vec![]` initializer anyway).
+-/// * `merge_gain` — only section-start indices are written before the
+-///   first `find_max_merge` walk, so the former fresh-allocation zeros are
+-///   restored explicitly (`fill(0)`) for all potentially observed
+-///   elements.
++/// * `merge_cand` — `gm_stage2` rewrites the `0..candidate_count` prefix
++///   before the first scan and only ever reads that prefix, so the stale
++///   tail (and the resize placeholder) is never observed.
+ #[derive(Debug, Default, Clone)]
+ pub struct BitCountScratch {
+     bit_lookup: Vec<[i32; 12]>,
+-    merge_gain: Vec<i32>,
++    merge_cand: Vec<(i32, u32)>,
+     work: Vec<SectionInfo>,
+ }
+ 
+@@ -1026,14 +1045,12 @@ fn noiseless_counter(
+     while grp < sfb_cnt {
+         // Per-group scratch (C reuses the BITCNTR_STATE buffers). M5.22:
+         // caller-owned and reused across groups/calls — the lengths are
+-        // restored to `max_sfb_per_group.max(1)` here, `bit_lookup`/`work`
+-        // are then fully rewritten for every index read later, and
+-        // `merge_gain`'s observable zeros are restored explicitly (it is
+-        // only partially written before its first read).
++        // restored to `max_sfb_per_group.max(1)` here; `bit_lookup` and
++        // `work` are then fully rewritten for every index read later, and
++        // `merge_cand`'s prefix is rebuilt by `gm_stage2` before it is read.
+         let n = max_sfb_per_group.max(1);
+         scratch.bit_lookup.resize(n, [0i32; 12]);
+-        scratch.merge_gain.resize(n, 0);
+-        scratch.merge_gain.fill(0);
++        scratch.merge_cand.resize(n, (0, 0));
+         scratch.work.resize(
+             n,
+             SectionInfo {
+@@ -1044,7 +1061,7 @@ fn noiseless_counter(
+             },
+         );
+         let bit_lookup = &mut scratch.bit_lookup[..];
+-        let merge_gain = &mut scratch.merge_gain[..];
++        let merge_cand = &mut scratch.merge_cand[..];
+         let work = &mut scratch.work[..];
+         let off = &sfb_offsets[grp..];
+         build_bit_lookup(
+@@ -1071,7 +1088,7 @@ fn noiseless_counter(
+         );
+         gm_stage2(
+             work,
+-            merge_gain,
++            merge_cand,
+             bit_lookup,
+             max_sfb_per_group,
+             side_info_tab,
+@@ -1811,4 +1828,200 @@ mod tests {
+         let orig: Vec<i32> = s5.ch[0].sections.iter().map(|s| s.book).collect();
+         assert_ne!(tampered, orig);
+     }
++
++    /// Original `findMaxMerge` (`dyn_bits.cpp:186-200`), kept as the
++    /// test-only behavioral reference for the compacted candidate list.
++    fn find_max_merge_ref(
++        merge_gain: &[i32],
++        sections: &[SectionInfo],
++        max_sfb: usize,
++    ) -> (i32, usize) {
++        let mut max_gain = 0;
++        let mut max_ndx = 0;
++        let mut i = 0;
++        while i + (sections[i].sfb_cnt as usize) < max_sfb {
++            if merge_gain[i] > max_gain {
++                max_gain = merge_gain[i];
++                max_ndx = i;
++            }
++            i += sections[i].sfb_cnt as usize;
++        }
++        (max_gain, max_ndx)
++    }
++
++    /// Original `gmStage2`, unchanged, for differential testing.
++    fn gm_stage2_ref(
++        sections: &mut [SectionInfo],
++        merge_gain: &mut [i32],
++        bit_lookup: &mut [[i32; 12]],
++        max_sfb: usize,
++        side_info_tab: &[i16],
++        use_vcb11: bool,
++    ) {
++        let mut i = 0;
++        while i + (sections[i].sfb_cnt as usize) < max_sfb {
++            let nxt = i + sections[i].sfb_cnt as usize;
++            merge_gain[i] =
++                calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11);
++            i = nxt;
++        }
++        loop {
++            let (max_gain, max_ndx) = find_max_merge_ref(merge_gain, sections, max_sfb);
++            if max_gain <= 0 {
++                break;
++            }
++            let max_next = max_ndx + sections[max_ndx].sfb_cnt as usize;
++            sections[max_ndx].sfb_cnt += sections[max_next].sfb_cnt;
++            sections[max_ndx].section_bits += sections[max_next].section_bits - max_gain;
++            let row = bit_lookup[max_next];
++            merge_bit_lookup(&mut bit_lookup[max_ndx], &row);
++            if max_ndx != 0 {
++                let max_last = sections[max_ndx - 1].sfb_start as usize;
++                merge_gain[max_last] = calc_merge_gain(
++                    sections,
++                    bit_lookup,
++                    side_info_tab,
++                    max_last,
++                    max_ndx,
++                    use_vcb11,
++                );
++            }
++            let max_next2 = max_ndx + sections[max_ndx].sfb_cnt as usize;
++            sections[max_next2 - 1].sfb_start = sections[max_ndx].sfb_start;
++            if max_next2 < max_sfb {
++                merge_gain[max_ndx] = calc_merge_gain(
++                    sections,
++                    bit_lookup,
++                    side_info_tab,
++                    max_ndx,
++                    max_next2,
++                    use_vcb11,
++                );
++            }
++        }
++    }
++
++    fn lcg_next(state: &mut u64) -> u32 {
++        *state = state
++            .wrapping_mul(6_364_136_223_846_793_005)
++            .wrapping_add(1_442_695_040_888_963_407);
++        (*state >> 33) as u32
++    }
++
++    fn lcg_below(state: &mut u64, n: u32) -> u32 {
++        lcg_next(state) % n
++    }
++
++    fn start_count(sections: &[SectionInfo], max_sfb: usize) -> usize {
++        let mut n = 0;
++        let mut i = 0;
++        while i < max_sfb {
++            n += 1;
++            i += sections[i].sfb_cnt as usize;
++        }
++        n
++    }
++
++    /// Builds a stage-1-shaped section list: runs of equal code book with
++    /// the `sfb_start` breadcrumb on each run's last element, plus
++    /// per-band lookup rows. `books` selects the code-book pool.
++    fn synthetic_stage1(
++        state: &mut u64,
++        max_sfb: usize,
++        books: &[i32],
++    ) -> (Vec<SectionInfo>, Vec<[i32; 12]>) {
++        let mut sections = vec![
++            SectionInfo {
++                code_book: 0,
++                sfb_start: 0,
++                sfb_cnt: 1,
++                section_bits: 0,
++            };
++            max_sfb
++        ];
++        let mut bit_lookup = vec![[0i32; 12]; max_sfb];
++        for (i, row) in bit_lookup.iter_mut().enumerate() {
++            for v in row.iter_mut() {
++                *v = lcg_below(state, 200) as i32 + i as i32;
++            }
++        }
++        let mut s = 0usize;
++        while s < max_sfb {
++            let len = (1 + lcg_below(state, 5) as usize).min(max_sfb - s);
++            let e = s + len - 1;
++            let book = books[lcg_below(state, books.len() as u32) as usize];
++            for (i, sec) in sections.iter_mut().enumerate().take(e + 1).skip(s) {
++                sec.code_book = book;
++                sec.sfb_start = i as i32;
++                sec.sfb_cnt = 1;
++                sec.section_bits = lcg_below(state, 300) as i32;
++            }
++            sections[s].sfb_cnt = len as i32;
++            sections[e].sfb_start = s as i32;
++            s = e + 1;
++        }
++        (sections, bit_lookup)
++    }
++
++    #[test]
++    fn stage2_candidate_scan_tie_break() {
++        // strict `>`, first maximum wins; a non-positive best stays 0/0.
++        assert_eq!(find_max_candidate(&[]), (0, 0));
++        assert_eq!(find_max_candidate(&[(0, 0), (-1, 3)]), (0, 0));
++        assert_eq!(find_max_candidate(&[(5, 0), (5, 3), (7, 9), (7, 12)]), (7, 2));
++        assert_eq!(find_max_candidate(&[(4, 0), (7, 6), (7, 8)]), (7, 1));
++    }
++
++    #[test]
++    fn stage2_compacted_candidates_match_reference() {
++        let side_info_tab = &SIDE_INFO_TAB_LONG;
++        let pools: [&[i32]; 3] = [
++            &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
++            &[0, 2, 13, 14, 15],
++            &[0, 1, 2, 3, 4],
++        ];
++        let mut state = 0x5eed_1234_9abc_def0u64;
++        let mut merges_checked = 0usize;
++        for case in 0..20_000u32 {
++            let max_sfb = 1 + lcg_below(&mut state, 24) as usize;
++            let pool = pools[(case % 3) as usize];
++            let (sections0, lookup0) = synthetic_stage1(&mut state, max_sfb, pool);
++
++            let mut sec_ref = sections0.clone();
++            let mut look_ref = lookup0.clone();
++            let mut gains = vec![0i32; max_sfb];
++            gm_stage2_ref(
++                &mut sec_ref,
++                &mut gains,
++                &mut look_ref,
++                max_sfb,
++                side_info_tab,
++                false,
++            );
++
++            let mut sec_new = sections0.clone();
++            let mut look_new = lookup0.clone();
++            let mut cand = vec![(0i32, 0u32); max_sfb];
++            gm_stage2(
++                &mut sec_new,
++                &mut cand,
++                &mut look_new,
++                max_sfb,
++                side_info_tab,
++                false,
++            );
++
++            assert_eq!(sec_ref, sec_new, "case {case} sections");
++            assert_eq!(look_ref, look_new, "case {case} bit_lookup");
++            if start_count(&sec_new, max_sfb) < start_count(&sections0, max_sfb) {
++                merges_checked += 1;
++            }
++        }
++        // Non-vacuity: the generator must exercise real merges, not only
++        // degenerate no-op cases (observed: ~70% of cases merge).
++        assert!(
++            merges_checked > 12_000,
++            "only {merges_checked} merging cases; generator too weak"
++        );
++    }
+ }

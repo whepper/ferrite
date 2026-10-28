@@ -1,0 +1,12 @@
+pair	order	old_ms	new_ms	improvement_pct
+1	old->new	402.290	405.770	-0.865
+2	new->old	411.466	406.890	+1.112
+3	old->new	413.452	411.427	+0.490
+4	new->old	424.548	411.128	+3.161
+5	old->new	411.031	418.504	-1.818
+6	new->old	414.179	405.740	+2.038
+7	old->new	409.114	406.257	+0.698
+8	new->old	415.001	414.185	+0.196
+median				+0.594
+positive				6/8
+ge1pct				3/8

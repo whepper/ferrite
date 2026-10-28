@@ -1,0 +1,668 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4839:9
+     |
+4838 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4839 |     pub stem: String,
+     |         ^^^^
+...
+4844 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:5467:9
+     |
+5466 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+5467 |     pub short: String,
+     |         ^^^^^
+...
+5470 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:516:16
+    |
+495 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+516 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+   --> src/aac_enc/testdata.rs:940:16
+    |
+939 | pub(crate) struct S1Frame {
+    |                   ------- field in this struct
+940 |     pub(crate) frame: u32,
+    |                ^^^^^
+    |
+    = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1187:16
+     |
+1186 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1187 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1445:16
+     |
+1441 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1445 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1640:16
+     |
+1636 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1640 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2305:16
+     |
+2304 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2305 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2369:16
+     |
+2368 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2369 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `release` profile [optimized] target(s) in 0.01s
+     Running unittests src/lib.rs (target/release/deps/ferrite_aac-549f414e79686bc8)
+
+running 341 tests
+test aac_enc::adts::tests::header_fields_round_trip ... ok
+test aac_enc::adts::tests::malformed_frame_error_is_descriptive ... ok
+test aac_enc::adts::tests::rejects_bad_modes_and_oversize_frames ... ok
+test aac_enc::adts::tests::sample_rate_index_covers_encoder_whitelist ... ok
+test aac_enc::adts::tests::mono_48k_header_matches_reference_encoder ... ok
+test aac_enc::bitcount::tests::s5_all_zero_band_sections ... ok
+test aac_enc::bitcount::tests::s5_constants_match_reference ... ok
+test aac_enc::bitcount::tests::s5_bit_count_dispatch_and_kernels ... ok
+test aac_enc::adts::tests::stereo_48k_header_matches_reference_encoder ... ok
+test aac_enc::bitcount::tests::s5_count_values_matches_bit_count ... ok
+test aac_enc::bitcount::tests::s5_scf_skip_forward_saves_bits ... ok
+test aac_enc::bitcount::tests::s5_synthetic_is_section ... ok
+test aac_enc::bitcount::tests::s5_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::bitcount::tests::s5_synthetic_pns_section ... ok
+test aac_enc::bitenc::tests::s7_code_values_rejects_invalid_books_widths_values ... ok
+test aac_enc::bitenc::tests::s7_constants_match_reference ... ok
+test aac_enc::bitenc::tests::s7_emitted_bits_match_s5_counters_on_probe_grid ... ok
+test aac_enc::bitenc::tests::s7_pns_and_is_walks_use_primitives_exactly ... ok
+test aac_enc::bitenc::tests::s7_section_headers_match_side_info_rule ... ok
+test aac_enc::bitenc::tests::s7_writer_packs_msb_first ... ok
+test aac_enc::bitenc::tests::s7_writer_rejects_bad_inputs_and_overflow ... ok
+test aac_enc::block_switch::tests::initial_state_matches_init_block_switching ... ok
+test aac_enc::block_switch::tests::lfe_path_freezes_history ... ok
+test aac_enc::block_switch::tests::silence_never_triggers ... ok
+test aac_enc::block_switch::tests::sync_merge_table_spot_checks ... ok
+test aac_enc::bitenc::tests::s7_probe_transcript_matches_c_bit_exact ... ok
+test aac_enc::block_switch::tests::sub_threshold_signal_never_triggers ... ok
+test aac_enc::block_switch::tests::sync_short_tie_goes_right ... ok
+test aac_enc::channel_map::tests::channel_config_matches_get_channel_config ... ok
+test aac_enc::channel_map::tests::discriminants_match_fdk_audio_h ... ok
+test aac_enc::channel_map::tests::from_channel_count_picks_first_matching_row ... ok
+test aac_enc::channel_map::tests::mode_table_matches_channel_map_cpp ... ok
+test aac_enc::channel_map::tests::only_mono_mode_is_mono ... ok
+test aac_enc::config::tests::accepts_full_sample_rate_whitelist ... ok
+test aac_enc::config::tests::audio_specific_config_covers_channel_configs ... ok
+test aac_enc::config::tests::audio_specific_config_covers_rate_table ... ok
+test aac_enc::config::tests::audio_specific_config_matches_m75_cases ... ok
+test aac_enc::config::tests::error_display_is_informative ... ok
+test aac_enc::config::tests::nominal_bitrate_uses_effective_channels ... ok
+test aac_enc::config::tests::primary_target_derivations ... ok
+test aac_enc::config::tests::rejects_out_of_plane_parameters ... ok
+test aac_enc::encoder::tests::empty_input_flush_emits_valid_stream ... ok
+test aac_enc::encoder::tests::config_scope_gates ... ok
+test aac_enc::encoder::tests::double_flush_and_post_finish_push_fail ... ok
+test aac_enc::encoder::tests::outcome_mapping_table ... ok
+test aac_enc::encoder::tests::empty_and_partial_flush_behaves ... ok
+test aac_enc::encoder::tests::poisoned_encoder_rejects_all_operations ... ok
+test aac_enc::encoder::tests::flush_failure_poisons_and_emits_nothing ... ok
+test aac_enc::encoder::tests::push_failure_poisons_and_discards_in_call_frames ... ok
+test aac_enc::encoder::tests::raw_payload_rejects_malformed_frames ... ok
+test aac_enc::encoder::tests::frame_indices_are_sequential ... ok
+test aac_enc::encoder::tests::raw_payload_borrows_bytes_after_adts_header ... ok
+test aac_enc::energy::tests::ld_data_conventions ... ok
+test aac_enc::energy::tests::max_scale_spec_matches_clz_rule ... ok
+test aac_enc::energy::tests::rescale_shifts_mirror_psy_main ... ok
+test aac_enc::frame::tests::s8_constants_match_reference ... ok
+test aac_enc::frame::tests::s8_fill_sizing_matches_s6_counter ... ok
+test aac_enc::frame::tests::s8_global_gain_formula ... ok
+test aac_enc::frame::tests::s8_ics_info_widths_and_values ... ok
+test aac_enc::encoder::tests::unaligned_input_rejected_and_recoverable ... ok
+test aac_enc::frame::tests::s8_ms_some_costs_mask_bits ... ok
+test aac_enc::frame::tests::s8_rejects_unsupported_syntax_and_elements ... ok
+test aac_enc::frame::tests::s8_static_agreement_accepts_post_crash_static ... ok
+test aac_enc::frame::tests::s8_tns_round_trip_matches_static_count ... ok
+test aac_enc::intensity::tests::inv_int_matches_reference_table_edges ... ok
+test aac_enc::encoder::tests::split_input_matches_single_push ... ok
+test aac_enc::intensity::tests::max_scale_matches_clz_rule ... ok
+test aac_enc::block_switch::tests::speech_clean_f107_attack_boundary_is_float_limited ... ok
+test aac_enc::m5a_decode::m5a_tests::m5a_decode_check ... FAILED
+test aac_enc::pcm::tests::emitted_counts_match_observed_reference_runs ... ok
+test aac_enc::pcm::tests::empty_stream_emits_delay_frames ... ok
+test aac_enc::pcm::tests::exact_frame_input_still_flushes_delay ... ok
+test aac_enc::m5b_measure::m5b_tests::m5b_dump_inputs ... ok
+test aac_enc::pcm::tests::invalid_usage_is_rejected ... ok
+test aac_enc::block_switch::tests::oracle_window_decisions_match_exactly ... ok
+test aac_enc::pcm::tests::irregular_chunks_preserve_samples_and_order ... ok
+test aac_enc::pe::tests::s1_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::bitcount::tests::s5_quantizer_envelope_holds ... ok
+test aac_enc::pe::tests::s1_form_factor_zero_band_and_tail_sentinel ... ok
+test aac_enc::bitenc::tests::s7_corpus_payloads_match_c_and_s5 ... ok
+test aac_enc::pe::tests::s1_intensity_branch_contributes_nothing ... ok
+test aac_enc::pe::tests::s1_ms_steering_drives_ch1_patch ... ok
+test aac_enc::bitcount::tests::s5_corpus_exact ... ok
+test aac_enc::pe::tests::s1_pe_constants_match_reference_literals ... ok
+test aac_enc::pe::tests::s1_pe_offset_is_added_verbatim ... ok
+test aac_enc::pe::tests::s1_prepare_clamps_estimate_to_band_width ... ok
+test aac_enc::pe::tests::s1_scf_dpcm_cost_table ... ok
+test aac_enc::pe::tests::s1_weighting_patch_gate_needs_prior_frame ... ok
+test aac_enc::pe::tests::s1_calc_sfb_pe_covers_both_ld_ratio_branches ... ok
+test aac_enc::pe::tests::s1_weighting_short_element_arms_patch_state ... ok
+test aac_enc::pe::tests::s1_weighting_silence_stays_unpatched ... ok
+test aac_enc::pcm::tests::frame_count_matches_reference_formula ... ok
+test aac_enc::psy::tests::d022_lfe_short_partner_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_mismatched_cpe_sequences_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_right_lfe_short_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_valid_long_lfe_ok ... ok
+test aac_enc::pe::tests::s1_form_factor_matches_oracle ... ok
+test aac_enc::psy::tests::d022_valid_matching_long_cpe_ok ... ok
+test aac_enc::psy::tests::lfe_path_skips_tns_and_preecho ... ok
+test aac_enc::psy::tests::d022_valid_matching_short_cpe_ok ... ok
+test aac_enc::phase1b::phase1b_isolated_differential ... ok
+test aac_enc::pe::tests::s1_geo_and_inputs_are_self_consistent ... ok
+test aac_enc::bitcount::tests::s5_scratch_reuse_is_bit_exact ... ok
+test aac_enc::psy::tests::short_grouped_ms_saturating_mapping ... ok
+test aac_enc::psy::tests::long_block_ms_path_unchanged ... ok
+test aac_enc::psy_config::tests::all_validated_snapshots_parse ... ok
+test aac_enc::q31::tests::primitives_match_c_semantics ... ok
+test aac_enc::psy_config::tests::unsupported_combination_panics - should panic ... ok
+test aac_enc::q31::tests::s1_kernels_match_c_anchors ... ok
+test aac_enc::quant::tests::dist_max_quant_gate_exact ... ok
+test aac_enc::quant::tests::dist_min_quant_takes_early_out ... ok
+test aac_enc::quant::tests::dist_zero_band_reads_sentinel ... ok
+test aac_enc::quant::tests::fixmuldiv_widths_match_reference ... ok
+test aac_enc::quant::tests::inv_quantize_out_of_envelope_panics_loudly - should panic ... ok
+test aac_enc::quant::tests::probe_table_anchors_hold ... ok
+test aac_enc::quant::tests::quantize_sign_symmetry ... ok
+test aac_enc::quant::tests::quantize_zero_fast_path ... ok
+test aac_enc::frame::tests::s8_corpus_elements_match_c_bit_exact ... ok
+test aac_enc::pe::tests::s1_pe_matches_oracle_with_injected_state ... ok
+test aac_enc::rate::tests::crash_recovery_recounts_ms_mask_under_surviving_sfb ... ok
+test aac_enc::psy::tests::short_stereo_grouped_ms_integration ... ok
+test aac_enc::rate::tests::s6_adjust_bitrate_padding_chain ... ok
+test aac_enc::quant::tests::qprobe_transcript_exact ... ok
+test aac_enc::rate::tests::s6_bits2pe_factor_paths ... ok
+test aac_enc::rate::tests::s6_bits2pe_eld_path_panics - should panic ... ok
+test aac_enc::psy::tests::short_grouped_ms_ignores_stale_history ... ok
+test aac_enc::rate::tests::s6_calc_bits_per_frame ... ok
+test aac_enc::rate::tests::s6_calc_max_envelope_and_short_min ... ok
+test aac_enc::rate::tests::s6_distribute_bits_reduced_and_disabled ... ok
+test aac_enc::rate::tests::s6_exit_matrix_cases ... ok
+test aac_enc::rate::tests::s6_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::rate::tests::s6_fill_and_finalize_vectors ... ok
+test aac_enc::rate::tests::s6_crash_forced_by_starvation_budget ... ok
+test aac_enc::rate::tests::s6_crash_stereo_ms_some_recounts_static_consistently ... ok
+test aac_enc::rate::tests::s6_init_vectors_match_oracle ... ok
+test aac_enc::rate::tests::s6_pe_correction_low_bit_res_taken ... ok
+test aac_enc::rate::tests::s6_pe_correction_opposite_side_reset ... ok
+test aac_enc::rate::tests::s6_q31_literals_match_probe ... ok
+test aac_enc::rate::tests::s6_reduce_and_bitres_errors ... ok
+test aac_enc::rate::tests::s6_padding_chain_matches_oracle ... ok
+test aac_enc::scf::tests::s4_constants_match_c_probe ... ok
+test aac_enc::rate::tests::s6_retry_forced_by_tiny_budget ... ok
+test aac_enc::scf::tests::s4_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::rate::tests::s6_grant_state_evolution_onset_chain ... ok
+test aac_enc::scf::tests::s4_silence_all_dead ... ok
+test aac_enc::scf::tests::s4_quantizer_envelope_holds ... ok
+test aac_enc::sfb::tests::active_band_semantics ... ok
+test aac_enc::scf::tests::s4_unit_probe_exact ... ok
+test aac_enc::rate::tests::s6_calc_max_cross_checks_s5_qmax ... ok
+test aac_enc::sfb::tests::oracle_config_parity_48k ... ok
+test aac_enc::sfb::tests::oracle_config_parity_441k_and_mono ... ok
+test aac_enc::sfb::tests::table_selection_and_offsets_match_init_sfb_table ... ok
+test aac_enc::static_bits::tests::s1_hand_counted_element_bases ... ok
+test aac_enc::quant::tests::s3_corpus_exact ... ok
+test aac_enc::static_bits::tests::s1_ms_some_costs_exactly_the_mask_bits ... ok
+test aac_enc::static_bits::tests::s1_tns_data_bits_hand_counted ... ok
+test aac_enc::static_bits::tests::s1_static_tamper_changes_count ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_c_oracle_parity ... ok
+test aac_enc::sfb::tests::all_rates_config_parity ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_wav_parity ... ok
+test aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_accepts_empty_records ... ok
+test aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_rejects_synthetic_entry - should panic ... ok
+test aac_enc::stream_driver::m511_tests::m511_profile_loop ... ok
+test aac_enc::rate::tests::s6_corpus_exact ... ok
+test aac_enc::stream_driver::m52_tests::crash_recovered_stream_decodes ... ok
+test aac_enc::scf::tests::s4_corpus_exact ... ok
+test aac_enc::stream_driver::m52_tests::m52_emit_or_fail_is_loud ... ok
+test aac_enc::psy::tests::psy_end_to_end_matches_oracle ... ok
+test aac_enc::stream_driver::m52_tests::m53b_zeroing_uses_group_stride ... ok
+test aac_enc::stream_driver::m52_tests::m53b_transient_groups_survive ... ok
+test aac_enc::static_bits::tests::s1_static_bits_match_oracle ... ok
+test aac_enc::stream_driver::m52_tests::crash_recovered_frame_emits_valid_adts ... ok
+test aac_enc::stream_driver::perf_tests::aac_perf_bench ... ignored, opt-in production performance benchmark; set AAC_PERF_BENCH=1
+test aac_enc::stream_driver::phase1_tests::cross_frame_state_onset_f25_is_upstream_and_output_neutral ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_44100_stereo ... ok
+test aac_enc::stream_driver::m58_tests::m58_smoke_untimed ... ok
+test aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5 ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1c_ms_grouping_saturates_like_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_short_ms_ld_grouped_refresh ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_threshold_ld_floor_matches_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1_reproducibility ... ok
+test aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue ... FAILED
+test aac_enc::stream_driver::phase1_tests::minsnr1_divergence_is_upstream_of_s2 ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1f_onset441_f22_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_sine_f1_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1i_click_f11_tier_b ... ok
+test aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b ... FAILED
+test aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b ... FAILED
+test aac_enc::threshold_vbr::tests::s2_adapt_min_snr_silence_is_identity ... ok
+test aac_enc::threshold_vbr::tests::s2_adapt_min_snr_updates_quiet_band_under_loud_avg ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_ms_section_raises_masked_min_snr ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_skip_and_clamp_are_exact ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_spread_scaling_is_block_dependent ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_measure_empty_is_one ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_measure_matches_c_probe_anchors ... ok
+test aac_enc::stream_driver::phase1_tests::stress_resynthesis_matches_wav ... ok
+test aac_enc::threshold_vbr::tests::s2_constants_match_reference_literals ... ok
+test aac_enc::threshold_vbr::tests::s2_enfac_add_touches_active_bands_only ... ok
+test aac_enc::threshold_vbr::tests::s2_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_trajectory_is_continuous_across_onset_run ... ok
+test aac_enc::stream_driver::phase1_tests::phase1h_d021_live_frame_reconciliation ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_long_zero_guard_fires_on_condition ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_short_minus_one_guard_fires_on_condition ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_skips_gated_bands_exactly ... ok
+test aac_enc::threshold_vbr::tests::s2_short_group_number_quirk_is_real ... ok
+test aac_enc::stream_driver::m52_tests::m52_all_fixtures_write_complete ... ok
+test aac_enc::threshold_vbr::tests::s2_thresh_exp_zero_threshold_and_inactive_bands ... ok
+test aac_enc::thresholds::tests::clip_cap_mirrors_shift_branches ... ok
+test aac_enc::thresholds::tests::pcm_floor_shift_accumulates_per_window ... ok
+test aac_enc::thresholds::tests::pre_echo_bypass_clamp_floor_memorize ... ok
+test aac_enc::thresholds::tests::pre_echo_reset_disables_next_frame ... ok
+test aac_enc::thresholds::tests::spreading_max_envelope_is_exact ... ok
+test aac_enc::thresholds::tests::threshold_init_is_exact_mult ... ok
+test aac_enc::threshold_vbr::tests::s2_full_matches_oracle_with_injected_chaos ... ok
+test aac_enc::threshold_vbr::tests::s2_pre_enfac_plus_enfac_is_thrv_on_active_bands ... ok
+test aac_enc::threshold_vbr::tests::s2_thresh_exp_matches_oracle ... ok
+test aac_enc::tns::tests_gain_gate::gain_gate_policy ... ok
+test aac_enc::tns::tests15::c_exact_rxx_reproduces_c_tns_analysis ... ok
+test aac_enc::transform::tests::mdct_parity_with_reference ... ok
+test aac_enc::tns::tests15::fixed_merge_matches_rxx_bit_exact ... ok
+test aac_enc::transform::tests::rejects_low_overlap_shape ... ok
+test aac_enc::transform::tests::ring_schedule_matches_oracle ... ok
+test aac_enc::transform::tests::silence_in_silence_out ... ok
+test aac_enc::transform::tests::staging_constants_match_psy_main ... ok
+test aac_enc::transform::tests::synthesis_matches_oracle_input ... ok
+test aac_enc::transform::tests::window_tables_have_encoder_lengths ... ok
+test common::autocorr2nd::test::alternating_cplx ... ok
+test common::autocorr2nd::test::constant_ones ... ok
+test common::autocorr2nd::test::constant_zeros ... ok
+test common::bitbuffer::tests::bit_states ... ok
+test common::bitbuffer::tests::buffer ... ok
+test common::bitbuffer::tests::default ... ok
+test common::bitbuffer::tests::feed ... ok
+test common::bitbuffer::tests::get ... ok
+test common::bitbuffer::tests::init ... ok
+test common::bitbuffer::tests::init_check_buffer_size ... ignored
+test common::bitbuffer::tests::init_check_buffer_size_power_of_two ... ignored
+test common::bitbuffer::tests::init_check_valid_bits ... ignored
+test common::bitbuffer::tests::new ... ok
+test common::bitbuffer::tests::push ... ok
+test common::bitbuffer::tests::put ... ok
+test common::bitbuffer::tests::reset ... ok
+test common::bitstream::tests::align_read ... ok
+test common::bitstream::tests::align_write ... ok
+test common::bitstream::tests::bit_states ... ok
+test common::bitstream::tests::buffer ... ok
+test common::bitstream::tests::default ... ok
+test common::bitstream::tests::feed ... ok
+test common::bitstream::tests::init ... ok
+test common::bitstream::tests::mode ... ok
+test common::bitstream::tests::new ... ok
+test common::bitstream::tests::push_back_cache ... ok
+test common::bitstream::tests::push_back_cache_too_many_bits ... ignored
+test common::bitstream::tests::push_reader ... ok
+test common::bitstream::tests::push_writer ... ok
+test common::bitstream::tests::read ... ok
+test common::bitstream::tests::read_too_many_bits - should panic ... ok
+test common::bitstream::tests::reset ... ok
+test common::bitstream::tests::sync_reader ... ok
+test common::bitstream::tests::sync_writer ... ok
+test common::bitstream::tests::write ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_not_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_not_valid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_invalid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_repetitions ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_none_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_new ... ok
+test common::channel_map_descr::tests::test_channel_map_info_default ... ok
+test common::channel_map_descr::tests::test_channel_map_info_new_none ... ok
+test common::channel_map_descr::tests::test_channel_map_info_not_none ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_cicp ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_mpeg ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_wav ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_channel_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_map_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_map_info_is_none ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_mpeg ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_none_table ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_wav_with_valid_map ... ok
+test common::crc::tests::crc_value ... ok
+test common::crc::tests::decode ... ok
+test common::crc::tests::decode_overlapping_region ... ok
+test common::crc::tests::encode ... ok
+test common::crc::tests::init ... ok
+test common::crc::tests::new ... ok
+test common::crc::tests::reset ... ok
+test common::crc::tests::start_region ... ok
+test aac_enc::tns::tests_gain_gate::schur_gains_match_committed_within_gate ... ok
+test common::fft::fft_n2::tests::t_complex_mult ... ok
+test common::fft::fft_n2::tests::t_fft_apply_rot_vec ... ok
+test common::fft::fft_n2::tests::t_window_overlap ... ok
+test common::fft::tests::t_pi_fourth ... ok
+test common::hybrid::test_initializing_analysis ... ok
+test common::hybrid::test_initializing_synthesis ... ok
+test common::pow::tests::test_scale_factor_2_exp ... ok
+test common::qmf::qmf_fb::tests::init_analysis_fb_clear_state ... ok
+test common::qmf::qmf_fb::tests::init_analysis_fb_keep_state ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_16 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_16_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_32_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_64 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_8 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_8_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_subbands_64 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_12 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_16 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_20 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_24 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_32_downsampled ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_40 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_64 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_8 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::new_qmf_instance ... ok
+test common::quantize::tests::test_inverse_quantize_band ... ok
+test common::samplerate_index::test_get_sample_rate_idx ... ok
+test aac_enc::transform::tests::naive_mdct_pins_absolute_scale ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_decisions ... ok
+test aac_enc::tns::tests_gain_gate::d013_activation_margin_census ... ok
+test common::dct::tests::cmp_to_ref ... ok
+test aac_enc::stream_driver::m52_tests::m55_streams_match_c_reference ... ok
+test aac_enc::production_baseline::production_f32_corpus_baseline_is_unchanged ... ok
+test aac_enc::m5g_census::m5g_tests::m5g_branch_census ... ok
+test aac_enc::m6_migration::m6_tests::m6_api_matches_driver_bytes ... ok
+test aac_enc::stream_driver::m58_tests::m58_corpus_validation ... ok
+
+failures:
+
+---- aac_enc::m5a_decode::m5a_tests::m5a_decode_check stdout ----
+
+thread 'aac_enc::m5a_decode::m5a_tests::m5a_decode_check' (56378789) panicked at src/aac_enc/m5a_decode.rs:47:57:
+M5.a: AAC_DEC_BIN env var must point at a prebuilt aac-dec binary; build with: cmake -S . -B /tmp/m5a-build -DBUILD_PROGRAMS=ON -DCMAKE_BUILD_TYPE=Release && cmake --build /tmp/m5a-build --target aac-dec -j 8: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5 stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5' (56378899) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity stdout ----
+== m2-silence-stereo-48k: stepping 49 frames
+m2-silence-stereo-48k f=0 seq=0 emitted
+m2-silence-stereo-48k f=1 seq=0 emitted
+m2-silence-stereo-48k f=2 seq=0 emitted
+m2-silence-stereo-48k f=3 seq=0 emitted
+m2-silence-stereo-48k f=4 seq=0 emitted
+m2-silence-stereo-48k f=5 seq=0 emitted
+m2-silence-stereo-48k f=6 seq=0 emitted
+m2-silence-stereo-48k f=7 seq=0 emitted
+m2-silence-stereo-48k f=8 seq=0 emitted
+m2-silence-stereo-48k f=9 seq=0 emitted
+m2-silence-stereo-48k f=10 seq=0 emitted
+m2-silence-stereo-48k f=11 seq=0 emitted
+m2-silence-stereo-48k f=12 seq=0 emitted
+m2-silence-stereo-48k f=13 seq=0 emitted
+m2-silence-stereo-48k f=14 seq=0 emitted
+m2-silence-stereo-48k f=15 seq=0 emitted
+m2-silence-stereo-48k f=16 seq=0 emitted
+m2-silence-stereo-48k f=17 seq=0 emitted
+m2-silence-stereo-48k f=18 seq=0 emitted
+m2-silence-stereo-48k f=19 seq=0 emitted
+m2-silence-stereo-48k f=20 seq=0 emitted
+m2-silence-stereo-48k f=21 seq=0 emitted
+m2-silence-stereo-48k f=22 seq=0 emitted
+m2-silence-stereo-48k f=23 seq=0 emitted
+m2-silence-stereo-48k f=24 seq=0 emitted
+m2-silence-stereo-48k f=25 seq=0 emitted
+m2-silence-stereo-48k f=26 seq=0 emitted
+m2-silence-stereo-48k f=27 seq=0 emitted
+m2-silence-stereo-48k f=28 seq=0 emitted
+m2-silence-stereo-48k f=29 seq=0 emitted
+m2-silence-stereo-48k f=30 seq=0 emitted
+m2-silence-stereo-48k f=31 seq=0 emitted
+m2-silence-stereo-48k f=32 seq=0 emitted
+m2-silence-stereo-48k f=33 seq=0 emitted
+m2-silence-stereo-48k f=34 seq=0 emitted
+m2-silence-stereo-48k f=35 seq=0 emitted
+m2-silence-stereo-48k f=36 seq=0 emitted
+m2-silence-stereo-48k f=37 seq=0 emitted
+m2-silence-stereo-48k f=38 seq=0 emitted
+m2-silence-stereo-48k f=39 seq=0 emitted
+m2-silence-stereo-48k f=40 seq=0 emitted
+m2-silence-stereo-48k f=41 seq=0 emitted
+m2-silence-stereo-48k f=42 seq=0 emitted
+m2-silence-stereo-48k f=43 seq=0 emitted
+m2-silence-stereo-48k f=44 seq=0 emitted
+m2-silence-stereo-48k f=45 seq=0 emitted
+m2-silence-stereo-48k f=46 seq=0 emitted
+m2-silence-stereo-48k f=47 seq=0 emitted
+m2-silence-stereo-48k f=48 seq=0 emitted
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity' (56378900) panicked at src/aac_enc/stream_driver.rs:1818:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/aac/m2-silence-stereo-48k.aac (from $PHASE1_C_DIR); encode the phase-1 fixtures with the reference aac-enc into $PHASE1_C_DIR as <stem>.aac (see tools/enc-oracle/README.md)
+
+---- aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality' (56378905) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue' (56378906) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence' (56378907) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence' (56378910) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-stepdown-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue' (56378911) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b' (56378914) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+---- aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b stdout ----
+
+thread 'aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b' (56378915) panicked at src/aac_enc/stream_driver.rs:1809:13:
+reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-sine-stereo-441k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+
+
+failures:
+    aac_enc::m5a_decode::m5a_tests::m5a_decode_check
+    aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5
+    aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity
+    aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality
+    aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue
+    aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence
+    aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence
+    aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue
+    aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b
+    aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b
+
+test result: FAILED. 326 passed; 10 failed; 5 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+error: test failed, to rerun pass `--lib`

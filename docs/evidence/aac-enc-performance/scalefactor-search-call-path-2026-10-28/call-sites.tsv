@@ -1,0 +1,10 @@
+phase	source	callsite	enclosing_loop	call_counting_group	inputs_that_vary
+0	improve_scf	scf.rs:432	once per active band in the initial formula loop (scf.rs:1185-1240)	initial trial at the formula scf	band slice, gain
+0	improve_scf	scf.rs:444	coarser `scf+1` loop, UPCOUNT_LIMIT = 1	coarse trial	gain
+0	improve_scf	scf.rs:458	single finer `scf-1` trial	finest trial	gain
+0	improve_scf	scf.rs:472	single coarser `best+1` trial in the NMR<=1.25 branch	coarse trial	gain
+1	assimilate_single_scf	scf.rs:593	descending `cur` from act-1 to smin per band transition	single-scf assimilation	gain
+2	assimilate_multiple_scf	scf.rs:735	per `act` level (gmax-1..gmin), per band in each region	multi-scf assimilation	gain
+3	assimilate_multiple_scf2	scf.rs:895	step 1: `nw` in scf+1..=hi, per band in the region	scf2 coarser step	gain
+4	assimilate_multiple_scf2	scf.rs:985	step 2: single finer `lo`, per band in the region	scf2 finer step	gain
+5	clamp	scf.rs:1357	per band where scf > gmin + MAX_SCF_DELTA	clamp requant	gain

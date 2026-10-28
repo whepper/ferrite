@@ -1,0 +1,2 @@
+old: 1636.83 ns/frame
+new: 67.28 ns/frame

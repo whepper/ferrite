@@ -1,0 +1,56 @@
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -1,20 +1,47 @@
+ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) -> (i32, i32) {
+-    let mut energy: i32 = 0;
+-    let mut distortion: i32 = 0;
+-    for (i, &s) in spec.iter().enumerate() {
+-        let q = quant[i];
++    // Two independent accumulator pairs give the line pipeline (clz, two
++    // multiplies, several shifts) something to overlap. Wrapping integer
++    // addition is associative modulo 2^32, so summing the pairs at the end
++    // is exactly the sequential accumulation order's value. The early-out
++    // still returns `(0, 0)` if either line exceeds `MAX_QUANT`.
++    let mut energy0: i32 = 0;
++    let mut energy1: i32 = 0;
++    let mut distortion0: i32 = 0;
++    let mut distortion1: i32 = 0;
++    let mut i = 0usize;
++    while i + 1 < spec.len() {
++        let s0 = spec[i];
++        let q0 = quant[i];
++        let s1 = spec[i + 1];
++        let q1 = quant[i + 1];
+         // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+         // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+         // (whose `specExp < 14` assert then panics). The reference
+         // `fixabs_S` has the same blind spot; here the sentinel takes the
+         // documented early-out instead.
++        if (q0 as i32).abs() > MAX_QUANT || (q1 as i32).abs() > MAX_QUANT {
++            return (0, 0);
++        }
++        let inv0 = inv_quantize_line(gain, q0);
++        let inv1 = inv_quantize_line(gain, q1);
++        energy0 = energy0.wrapping_add(fpow2(inv0));
++        energy1 = energy1.wrapping_add(fpow2(inv1));
++        distortion0 = accumulate_dist(distortion0, inv0, s0);
++        distortion1 = accumulate_dist(distortion1, inv1, s1);
++        i += 2;
++    }
++    if i < spec.len() {
++        let s = spec[i];
++        let q = quant[i];
+         if (q as i32).abs() > MAX_QUANT {
+             return (0, 0);
+         }
+         let inv = inv_quantize_line(gain, q);
+-        energy = energy.wrapping_add(fpow2(inv));
+-        distortion = accumulate_dist(distortion, inv, s);
++        energy0 = energy0.wrapping_add(fpow2(inv));
++        distortion0 = accumulate_dist(distortion0, inv, s);
+     }
++    let energy = energy0.wrapping_add(energy1);
++    let distortion = distortion0.wrapping_add(distortion1);
+     (
+         calc_ld_data(energy).wrapping_add(0x0400_0000),
+         calc_ld_data(distortion),

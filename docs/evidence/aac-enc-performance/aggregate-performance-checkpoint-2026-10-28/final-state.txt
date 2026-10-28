@@ -1,0 +1,17 @@
+date: 2026-10-28T19:45:14Z
+head: c4d1262fa3ec2f4f88cbb27e49d403d6d6c06b2f
+branch: main
+staged_entries: 0
+binary_sha256: 31a0269a037742bc3be4ac12664f928b59bcfbb8d04f6a68cfd04a83e211e7ea
+retained_diffs:
+   rust/src/aac_enc/bitcount.rs | 283 +++++++++++++++++++++++++++++++++++-----
+   rust/src/aac_enc/bitenc.rs   |  51 +++++---
+   rust/src/aac_enc/quant.rs    |  80 ++++++------
+   rust/src/aac_enc/tns.rs      | 303 ++++++++++++++++++++++++++++++++++++++++++-
+   4 files changed, 627 insertions(+), 90 deletions(-)
+worktrees:
+  /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac c4d1262 [main]
+final_hash_rows: 60
+final_long_hash: 889c3be4ccd53dd7
+final_suite: test result: ok. 338 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 1.09s
+final_licensing: licensing hygiene OK: NOTICE + LICENSE-FDK-AAC present, manifest declares FDK-AAC, 67 rust/src file(s) carry the modified-version notice

@@ -1,0 +1,30 @@
+diff --git a/rust/src/aac_enc/scf.rs b/rust/src/aac_enc/scf.rs
+index e18edba..025ce3c 100644
+--- a/rust/src/aac_enc/scf.rs
++++ b/rust/src/aac_enc/scf.rs
+@@ -849,16 +849,21 @@ fn assimilate_multiple_scf2(
+                         }
+                     }
+                     let mut check = true;
++                    // The trial differs from `scf` only in `start..stop`.
++                    // Accepted trials update `scf` to the same region values
++                    // already stored in `trial`; rejected trials leave `scf`
++                    // unchanged. One baseline copy therefore serves every
++                    // coarser candidate.
++                    let mut trial = [0i32; 60];
++                    for i in 0..60 {
++                        trial[i] = if i < cnt { scf[i] } else { 0 };
++                    }
+                     let mut nw = scf[start];
+                     loop {
+                         nw += 1;
+                         if !(nw <= hi) {
+                             break;
+                         }
+-                        let mut trial = [0i32; 60];
+-                        for i in 0..60 {
+-                            trial[i] = if i < cnt { scf[i] } else { 0 };
+-                        }
+                         for b in start..stop {
+                             if trial[b] != NO_SCF {
+                                 trial[b] = nw;

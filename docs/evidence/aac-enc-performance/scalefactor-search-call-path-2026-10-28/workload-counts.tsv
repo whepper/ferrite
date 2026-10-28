@@ -1,0 +1,6 @@
+workload	s4_passes	calls	calls_per_pass	lines	lines_per_call	zero_q_pct	dup_calls_pct	dup_lines_pct	phase0	phase1	phase2	phase3	phase4	phase5
+music-stereo	942	209522	222.4	3011032	14.4	52.5	18.3	17.8	81472	50955	30187	39037	7871	0
+speech-clean-stereo	942	108932	115.6	1545660	14.2	47.9	15.6	13.2	40400	23246	14999	26138	4149	0
+onset-stereo	98	3324	33.9	24812	7.5	45.2	19.6	16.3	762	911	928	588	135	0
+sine-stereo	98	6221	63.5	41952	6.7	50.4	20.3	17.2	1307	1790	1857	1014	253	0
+noise-mono	25	4082	163.3	59628	14.6	9.0	20.7	17.7	2227	753	397	559	146	0

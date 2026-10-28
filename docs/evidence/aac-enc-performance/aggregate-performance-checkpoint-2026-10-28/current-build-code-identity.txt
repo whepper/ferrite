@@ -1,0 +1,22 @@
+/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
+/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
+TEXT_DIFFERS bytes=65086 first=76
+== /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
+  7aac_enc8bitcount9gm_stage2                                            size=0x388
+  7aac_enc3scf28estimate_channel_with_inv_ws                             size=0x3748
+== /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
+  7aac_enc8bitcount9gm_stage2                                            size=0x388
+  7aac_enc3scf28estimate_channel_with_inv_ws                             size=0x3748
+/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: 2903 text symbols
+/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-current-bin: 2903 text symbols
+size_differences=10
+  __RNvCs5fGHjzWXRav_7___rustc35___rust_no_alloc_shim_is_unstable_v2 36 vs 32
+  7aac_enc7phase1bs_29phase1b_isolated_differential 21796 vs 21804
+  7aac_enc8bitcount13dyn_bit_count 196 vs 188
+  7aac_enc8testdata13testdata_path 288 vs 292
+  7aac_enc8testdata14wav_stereo_s16 1728 vs 1724
+  7aac_enc3tns7tests15s_33fixed_merge_matches_rxx_bit_exact 9188 vs 9192
+  7aac_enc13stream_driver20is_integration_tests43zero_c_record_guard_rejects_synthetic_entry0INtNtNtCs3bJEMBXHbwl_4core3ops8function6FnOnceuE9call_onceBc_ 16 vs 20
+  7aac_enc3tns15tests_gain_gate39schur_gains_match_committed_within_gate0INtNtNtCs3bJEMBXHbwl_4core3ops8function6FnOnceuE9call_onceBc_ 5080 vs 5084
+  7aac_enc5quant5tests42inv_quantize_out_of_envelope_panics_loudly0INtNtNtCs3bJEMBXHbwl_4core3ops8function6FnOnceuE9call_onceBc_ 92 vs 88
+  _main 68 vs 64

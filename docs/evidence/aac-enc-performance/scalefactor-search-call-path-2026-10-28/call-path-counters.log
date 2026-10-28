@@ -1,0 +1,16 @@
+
+running 1 test
+AUDIT music-stereo: chframes=942 calls=209522 (222.4/cf) lines=3011032 (14.4/call) zero=52.5% dups=38433 (18.3% calls, 17.8% lines) phases=[81472, 50955, 30187, 39037, 7871, 0] dup_pairs=[0->1:4369 0->2:3592 0->3:11928 0->4:1817 1->1:675 1->2:7067 1->3:5271 1->4:2279 2->3:567 2->4:868]
+AUDITSPECTRUM music-stereo: passes=942 same_as_prev=1 band_hits(lru2/4/8/all)=[25588, 34726, 38140, 38433] max_band_distinct=26
+AUDIT speech-clean-stereo: chframes=942 calls=108932 (115.6/cf) lines=1545660 (14.2/call) zero=47.9% dups=16978 (15.6% calls, 13.2% lines) phases=[40400, 23246, 14999, 26138, 4149, 0] dup_pairs=[0->1:1738 0->2:1763 0->3:5497 0->4:1241 1->1:295 1->2:3336 1->3:1714 1->4:817 2->3:114 2->4:463]
+AUDITSPECTRUM speech-clean-stereo: passes=942 same_as_prev=0 band_hits(lru2/4/8/all)=[11236, 15112, 16780, 16978] max_band_distinct=10
+AUDIT onset-stereo: chframes=98 calls=3324 (33.9/cf) lines=24812 (7.5/call) zero=45.2% dups=652 (19.6% calls, 16.3% lines) phases=[762, 911, 928, 588, 135, 0] dup_pairs=[0->1:114 0->2:114 0->3:40 0->4:34 1->1:1 1->2:229 1->3:33 1->4:44 2->4:43]
+AUDITSPECTRUM onset-stereo: passes=98 same_as_prev=48 band_hits(lru2/4/8/all)=[366, 552, 651, 652] max_band_distinct=0
+AUDIT sine-stereo: chframes=98 calls=6221 (63.5/cf) lines=41952 (6.7/call) zero=50.4% dups=1264 (20.3% calls, 17.2% lines) phases=[1307, 1790, 1857, 1014, 253, 0] dup_pairs=[0->1:208 0->2:226 0->3:49 0->4:55 1->1:3 1->2:480 1->3:59 1->4:95 2->3:4 2->4:85]
+AUDITSPECTRUM sine-stereo: passes=98 same_as_prev=2 band_hits(lru2/4/8/all)=[673, 1056, 1264, 1264] max_band_distinct=0
+AUDIT noise-mono: chframes=25 calls=4082 (163.3/cf) lines=59628 (14.6/call) zero=9.0% dups=845 (20.7% calls, 17.7% lines) phases=[2227, 753, 397, 559, 146, 0] dup_pairs=[0->1:95 0->2:115 0->3:300 0->4:46 1->2:119 1->3:80 1->4:73 2->4:17]
+AUDITSPECTRUM noise-mono: passes=25 same_as_prev=1 band_hits(lru2/4/8/all)=[623, 790, 845, 845] max_band_distinct=0
+test aac_enc::quant::tests::zz_search_audit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 341 filtered out; finished in 0.15s
+

@@ -1,0 +1,39 @@
+--- a/rust/src/aac_enc/tns.rs
++++ b/rust/src/aac_enc/tns.rs
+@@ -1,16 +1,24 @@
+     debug_assert!(max_lag >= 1 && max_lag <= 12);
+-    let mut acc = [0i64; 13];
+-    for i in start..stop {
+-        let a = spectrum[i] as i32;
+-        // Lags covering sample i are 1..=(stop-i-1), capped at max_lag
+-        // (`i < stop`, so `stop-i-1` cannot underflow).
+-        let lim = max_lag.min(stop - i - 1);
+-        for lag in 1..=lim {
+-            let b = spectrum[i + lag] as i32;
+-            acc[lag] += (super::q31::fmult(a, b) as i64) >> scale;
++    // Lag-outer traversal: for each lag, the contributing samples are
++    // `i in [start, stop-lag)` in ascending order — exactly the set and
++    // order the former per-sample `1..=lim` inner loop used. Each lag keeps
++    // one accumulator and reads two unit-stride streams, so the dynamic
++    // `lim` cascade and the 13-register accumulator array disappear. The
++    // per-term arithmetic and `i`-ascending accumulation order are
++    // unchanged; `out[0]` is left untouched.
++    let span = stop.saturating_sub(start);
++    for lag in 1..=max_lag {
++        let mut acc: i64 = 0;
++        let n = span.saturating_sub(lag);
++        if n == 0 {
++            out[lag] = 0;
++            continue;
+         }
++        let a = &spectrum[start..start + n];
++        let b = &spectrum[start + lag..start + lag + n];
++        for (&x, &y) in a.iter().zip(b.iter()) {
++            acc += (super::q31::fmult(x as i32, y as i32) as i64) >> scale;
++        }
++        out[lag] = acc;
+     }
+-    for lag in 1..=max_lag {
+-        out[lag] = acc[lag];
+-    }
+ }

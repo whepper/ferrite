@@ -1,0 +1,2 @@
+old: 1697.5 ns/frame (4 quarters x 256)
+new: 216.4 ns/frame (4 quarters x 256)

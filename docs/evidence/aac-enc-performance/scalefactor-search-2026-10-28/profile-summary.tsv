@@ -1,0 +1,5 @@
+workload	worker_samples	estimate_samples	estimate_pct	assimilate_samples	assimilate_pct	calc_sfb_dist_samples	calc_sfb_dist_pct	count_scf_bits_diff_samples	calc_spec_pe_diff_samples
+corpus	8152	673	8.26	268	3.29	1985	24.35	139	118
+onset	6361	279	4.39	40	0.63	343	5.39	56	20
+music	6533	596	9.12	277	4.24	1954	29.91	127	80
+speech	6515	585	8.98	159	2.44	1390	21.34	106	80

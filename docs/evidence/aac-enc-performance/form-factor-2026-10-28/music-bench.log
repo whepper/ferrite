@@ -1,0 +1,10 @@
+
+running 1 test
+AACPERF_CONFIG	profile=release	features=aac_enc,default	arch=aarch64	os=macos	threads=single	reps=300	warmups=1	modes=production
+AACPERF_MEDIAN	production	m7-music-stereo-48k	48000	2	480000	10.000000	471	250926	22188	53761042	53784583	0.005378	185.9	8924490.5	151e37b967d52678
+AACPERF_AGG	production	300	10.000000	53784583	0.005378	185.9	8924490.5
+AACPERF_DONE fixtures=1 reps=300
+test aac_enc::stream_driver::perf_tests::aac_perf_bench ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 16.44s
+

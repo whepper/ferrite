@@ -1,0 +1,6 @@
+pair	order	before_ms	after_ms	improvement_pct
+old then new	1/1	426.014	428.401	-0.560
+new then old	2/2	438.853	434.782	0.928
+old then new	3/3	441.589	437.379	0.953
+new then old	4/4	443.153	441.929	0.276
+median	-	-	-	0.602

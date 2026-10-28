@@ -1,0 +1,3 @@
+arm	total_leaf_samples	idle_harness_samples	worker_samples	calc_sfb_dist_samples	share_pct
+before	13282	6752	6530	1595	24.43
+after	13215	6721	6494	1518	23.38

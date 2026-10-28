@@ -1,0 +1,4 @@
+symbol	instructions	panic_bounds	branches	bl_calls	ushl_2d	sshll_2d	sshll2_2d	abs_4s	code_bytes
+scale_up_before	188	0	10	1	0	0	0	4	0x2f0
+merged_before	1113	3	53	12	16	0	0	0	0x1164
+merged_after	2012	3	121	8	56	20	20	16	0x1f70

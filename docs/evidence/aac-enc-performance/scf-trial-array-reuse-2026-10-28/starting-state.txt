@@ -1,0 +1,9 @@
+date: 2026-10-28T19:21:31Z
+head: c4d1262fa3ec2f4f88cbb27e49d403d6d6c06b2f
+baseline_binary_sha256: 31a0269a037742bc3be4ac12664f928b59bcfbb8d04f6a68cfd04a83e211e7ea
+candidate_binary_sha256: 8699ecfb8d3dbc95144cca87d9ee6aef36994302bc2fdd5068d198858c4ec52a
+final_binary_sha256: 31a0269a037742bc3be4ac12664f928b59bcfbb8d04f6a68cfd04a83e211e7ea
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13) binary: rustc commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67 commit-date: 2026-10-13 host: aarch64-apple-darwin release: 1.99.1 LLVM version: 23.1.1 
+uname: Darwin MacBook-Pro.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:59 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8142 arm64
+sw_vers: ProductName:		macOS ProductVersion:		27.0.1 BuildVersion:		26A434 
+cpu: Apple M5

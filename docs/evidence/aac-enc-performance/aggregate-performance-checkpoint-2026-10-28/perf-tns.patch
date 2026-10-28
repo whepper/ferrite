@@ -1,0 +1,20 @@
+diff --git a/rust/src/aac_enc/tns.rs b/rust/src/aac_enc/tns.rs
+index 8199234..fa3434e 100644
+--- a/rust/src/aac_enc/tns.rs
++++ b/rust/src/aac_enc/tns.rs
+@@ -536,7 +536,14 @@ fn scale_up_spectrum(dest: &mut [i64], src: &[i32], start: usize, stop: usize) -
+         // 32-bit clz(peak) - 1 = 31 - bitlen(peak).
+         31 - (64 - (peak as u64).leading_zeros() as i32)
+     };
+-    for (d, s) in dest.iter_mut().zip(src.iter()).take(stop).skip(start) {
++    // Equivalent to the former `zip(...).take(stop).skip(start)` for every
++    // range, including out-of-range values: the old form clamped to the
++    // shorter slice and skipped past the end without panicking. Clamp once
++    // here so the write loop can use direct slices without tightening the
++    // contract.
++    let end = stop.min(dest.len()).min(src.len());
++    let start = start.min(end);
++    for (d, s) in dest[start..end].iter_mut().zip(&src[start..end]) {
+         *d = (*s as i64) << scale;
+     }
+     scale

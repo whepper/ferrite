@@ -1,0 +1,9 @@
+symbol	instructions	panic_bounds	branches	bl_calls	fmul	fmla	fdiv	fsqrt	smull	clz
+tns::autocorr_quarter_lags	303	16	39	16	0	0	0	0	0	0
+tns::scale_up_spectrum	188	0	10	1	0	0	0	0	0	1
+block_switch::process	562	1	19	1	90	0	0	0	0	0
+fft::dit_fft	722	20	46	20	20	0	0	0	0	1
+pe::form_factor	416	1	29	9	0	0	0	0	8	2
+psy::process_pair_reuse	4944	63	392	242	17	0	0	0	38	1
+dctiv	249	7	12	11	26	0	0	0	0	1
+intensity_stereo	2524	2	134	43	0	0	0	0	95	18

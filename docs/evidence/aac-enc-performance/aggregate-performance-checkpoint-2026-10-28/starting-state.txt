@@ -1,0 +1,25 @@
+date: 2026-10-28T19:26:09Z
+head: c4d1262fa3ec2f4f88cbb27e49d403d6d6c06b2f
+head_subject: refactor(aac-enc): remove redundant encoder bookkeeping
+branch: main
+staged_entries: 0
+current_binary_sha256: 31a0269a037742bc3be4ac12664f928b59bcfbb8d04f6a68cfd04a83e211e7ea
+retained_diffs:
+   rust/src/aac_enc/bitcount.rs | 283 +++++++++++++++++++++++++++++++++++-----
+   rust/src/aac_enc/bitenc.rs   |  51 +++++---
+   rust/src/aac_enc/quant.rs    |  80 ++++++------
+   rust/src/aac_enc/tns.rs      | 303 ++++++++++++++++++++++++++++++++++++++++++-
+   4 files changed, 627 insertions(+), 90 deletions(-)
+non_perf_source_diffs:
+   rust/src/aac_enc.rs               |    2 +
+   rust/src/aac_enc/block_switch.rs  |  109 +++-
+   rust/src/aac_enc/psy.rs           |    6 +
+   rust/src/aac_enc/stream_driver.rs | 1105 +++++++++++++++++++++++++++++++++++++
+   4 files changed, 1221 insertions(+), 1 deletion(-)
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13) binary: rustc commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67 commit-date: 2026-10-13 host: aarch64-apple-darwin release: 1.99.1 LLVM version: 23.1.1 
+cargo: cargo 1.99.1 (5f94df478 2026-08-27)
+uname: Darwin MacBook-Pro.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:59 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8142 arm64
+sw_vers: ProductName:		macOS ProductVersion:		27.0.1 BuildVersion:		26A434 
+cpu: Apple M5
+ncpu: 10
+mem_gb: 16

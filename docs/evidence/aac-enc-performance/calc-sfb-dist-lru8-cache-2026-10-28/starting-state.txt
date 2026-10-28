@@ -1,0 +1,46 @@
+date: 2026-10-28T18:57:11Z
+head: c4d1262fa3ec2f4f88cbb27e49d403d6d6c06b2f
+staged:
+status:
+ M docs/README.md
+ M docs/aac-enc-m5b-objective-quality-baseline.md
+ M docs/aac-enc-quality-divergence-audit-m5.25.md
+ M rust/src/aac_enc.rs
+ M rust/src/aac_enc/bitenc.rs
+ M rust/src/aac_enc/block_switch.rs
+ M rust/src/aac_enc/psy.rs
+ M rust/src/aac_enc/quant.rs
+ M rust/src/aac_enc/stream_driver.rs
+ M rust/src/aac_enc/tns.rs
+?? docs/aac-enc-block-switch-oracle-investigation.md
+?? docs/aac-enc-cross-frame-state-drift-investigation.md
+?? docs/aac-enc-mdct-f64-closeout.md
+?? docs/aac-enc-mdct-f64-precision-experiment.md
+?? docs/aac-enc-minsnr1-oracle-investigation.md
+?? docs/aac-enc-numerical-divergence-triage.md
+?? docs/aac-enc-performance-baseline.md
+?? docs/aac-enc-rate-control-divergence-audit.md
+?? docs/aac-enc-tns-d013-activation-margin-census.md
+?? docs/aac-enc-tns-oracle-investigation.md
+?? docs/evidence/
+?? rust/examples/
+?? rust/src/aac_enc/production_baseline.rs
+?? tools/aac-enc-metrics/challenge/listening-review-worksheet.md
+diffstat:
+ docs/README.md                                 |  111 +++
+ docs/aac-enc-m5b-objective-quality-baseline.md |   55 ++
+ docs/aac-enc-quality-divergence-audit-m5.25.md |   96 ++
+ rust/src/aac_enc.rs                            |    2 +
+ rust/src/aac_enc/bitenc.rs                     |   51 +-
+ rust/src/aac_enc/block_switch.rs               |  109 ++-
+ rust/src/aac_enc/psy.rs                        |    6 +
+ rust/src/aac_enc/quant.rs                      |   80 +-
+ rust/src/aac_enc/stream_driver.rs              | 1105 ++++++++++++++++++++++++
+ rust/src/aac_enc/tns.rs                        |  303 ++++++-
+ 10 files changed, 1862 insertions(+), 56 deletions(-)
+production_binary_sha256: 61126376e5672d86ca9de8d23cbcfa4f8e8d52d2684f7386612b19ed67c61756
+rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13) binary: rustc commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67 commit-date: 2026-10-13 host: aarch64-apple-darwin release: 1.99.1 LLVM version: 23.1.1 
+uname: Darwin MacBook-Pro.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:59 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8142 arm64
+sw_vers: ProductName:		macOS ProductVersion:		27.0.1 BuildVersion:		26A434 
+cpu: Apple M5
+ncpu: 10

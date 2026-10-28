@@ -536,7 +536,14 @@ fn scale_up_spectrum(dest: &mut [i64], src: &[i32], start: usize, stop: usize) -
         // 32-bit clz(peak) - 1 = 31 - bitlen(peak).
         31 - (64 - (peak as u64).leading_zeros() as i32)
     };
-    for (d, s) in dest.iter_mut().zip(src.iter()).take(stop).skip(start) {
+    // Equivalent to the former `zip(...).take(stop).skip(start)` for every
+    // range, including out-of-range values: the old form clamped to the
+    // shorter slice and skipped past the end without panicking. Clamp once
+    // here so the write loop can use direct slices without tightening the
+    // contract.
+    let end = stop.min(dest.len()).min(src.len());
+    let start = start.min(end);
+    for (d, s) in dest[start..end].iter_mut().zip(&src[start..end]) {
         *d = (*s as i64) << scale;
     }
     scale
@@ -1041,6 +1048,77 @@ mod tests15 {
             }
         }
     }
+
+    /// TNS-stage fidelity check on C-exact RXX.
+    ///
+    /// The upstream f32-MDCT/Q31 spectrum differs from FDK, so the full
+    /// pipeline can make a different TNS decision. This test removes that
+    /// variable: it feeds the committed FDK RXX vectors to Rust's float
+    /// Schur/quantization stage and requires the FDK order, coefficients,
+    /// prediction gain (policy tolerance), and activation result. It isolates
+    /// the TNS port from the known upstream spectrum divergence.
+    #[test]
+    fn c_exact_rxx_reproduces_c_tns_analysis() {
+        use crate::aac_enc::sfb::{BlockKind, SfbConfig};
+        let cases = [
+            ("multitone-stereo", 1u32, 0u32, 6usize),
+            ("onset-stereo", 24, 0, 4),
+            ("onset-stereo", 25, 0, 0),
+            ("onset-stereo", 26, 0, 0),
+            ("stepdown-stereo", 1, 0, 3),
+        ];
+        for (name, f, ch, win) in cases {
+            let seq = testdata::load_seq(name)
+                .into_iter()
+                .find(|r| r.frame == f && r.channel == ch)
+                .expect("seq row");
+            let short = seq.seq == 2;
+            let sr = testdata::fixture_sample_rate(name);
+            let nch = testdata::fixture_samples(name).len();
+            let (ch_br, tns_br) = if nch == 1 {
+                (112000, 112000)
+            } else {
+                (96000, 192000)
+            };
+            let cfg = SfbConfig::new(
+                sr,
+                if short {
+                    BlockKind::Short
+                } else {
+                    BlockKind::Long
+                },
+                ch_br,
+                19293,
+                true,
+                true,
+            )
+            .unwrap();
+            let tconf = TnsConfig::new(sr, tns_br, !short, cfg.offsets(), cfg.sfb_active());
+            let ctw = testdata::load_psy(name, f, ch, short)
+                .tns
+                .into_iter()
+                .find(|t| t.window == win)
+                .expect("C TNS window");
+            let rxx = testdata::load_rxx(name, f, ch);
+            let rw = rxx.iter().find(|r| r.window == win).expect("C RXX");
+            let mut rxx2 = [0.0f64; 13];
+            for i in 0..13 {
+                rxx2[i] = rw.rxx2[i] as f64 / 2_147_483_648.0;
+            }
+            let (idx, order, sum, gain) = analyze_filter(&rxx2, &tconf, HI);
+            let active = gain > tconf.thresh_on[HI] || sum > tconf.limit_order[HI] as i32 / 2 + 2;
+            let tag = format!("{name} f{f} ch{ch} w{win}");
+            assert_eq!(order, ctw.order[0] as usize, "{tag} order");
+            assert_eq!(&idx[..], &ctw.coef_hi[..], "{tag} coef");
+            assert!(
+                gain_within_tolerance(gain, ctw.gain[0]),
+                "{tag} gain {gain} vs {} (tol {})",
+                ctw.gain[0],
+                gain_tolerance(ctw.gain[0])
+            );
+            assert_eq!(active, ctw.active[0], "{tag} active");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1187,5 +1265,228 @@ mod tests_gain_gate {
             }
         }
         assert!(checked > 100, "corpus coverage, got {checked}");
+    }
+
+    /// D-013 activation-margin census on every committed C-exact TNS window.
+    ///
+    /// The production activation rules are (`aacenc_tns.cpp:848-941`):
+    ///
+    /// ```text
+    /// HI: gain > 1437 || sumSqr > limitOrder/2 + 2
+    /// LO: (gain > 1500 && gain < 16000*limitOrder)
+    ///     || (sumSqr > 9 && sumSqr < 22*limitOrder)
+    /// ```
+    ///
+    /// LO detect only runs when HI activated and the block is long. This test
+    /// recomputes both filters from the committed FDK RXX, verifies the
+    /// activation result and coefficients against the committed C vectors, and
+    /// prints one TSV row per window. It then checks whether the measured
+    /// gain residual could cross either gain boundary while the exact sum
+    /// branch is false. The `+1` guard covers integer gain quantization; the
+    /// observed residual is used, not the wider policy gate.
+    #[test]
+    fn d013_activation_margin_census() {
+        fn crosses_lower(gain: i32, threshold: i32, residual: i32) -> bool {
+            // Activation is `gain > threshold` (strict). A residual-sized
+            // move can flip the bit only if the interval crosses the line.
+            (gain > threshold && gain - residual <= threshold)
+                || (gain <= threshold && gain + residual > threshold)
+        }
+        fn crosses_upper(gain: i32, threshold: i32, residual: i32) -> bool {
+            // Activation requires `gain < threshold` (strict).
+            (gain < threshold && gain + residual >= threshold)
+                || (gain >= threshold && gain - residual < threshold)
+        }
+
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/aac_enc/testdata");
+        let mut entries: Vec<_> = std::fs::read_dir(&dir)
+            .expect("testdata dir")
+            .map(|e| e.expect("entry").file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with("rxx_") && n.ends_with(".txt"))
+            .collect();
+        entries.sort();
+
+        let mut hi_windows = 0usize;
+        let mut lo_windows = 0usize;
+        let mut max_residual = 0i32;
+        let mut max_residual_decision = 0i32;
+        let mut min_hi_margin = i32::MAX;
+        let mut min_hi_margin_decision = i32::MAX;
+        let mut min_lo_low_margin = i32::MAX;
+        let mut min_lo_high_margin = i32::MAX;
+        let mut min_lo_low_margin_decision = i32::MAX;
+        let mut min_lo_high_margin_decision = i32::MAX;
+        let mut max_gate = 0i32;
+        let mut literal_candidates = 0usize;
+        let mut gate_candidates = 0usize;
+        let mut candidates = 0usize;
+        let mut actual_flips = 0usize;
+        let mut coefficient_mismatches = 0usize;
+
+        println!("CENSUS\tfixture\tframe\tch\twindow\tshort\tfilter\tgain_r\tgain_c\tresidual\tthreshold_lo\tthreshold_hi\td_lo\td_hi\tsum\tbound_lo\tbound_hi\td_sum_lo\td_sum_hi\tsum_true\tactive_c\tactive_r\tcross");
+
+        for n in entries {
+            let rest = n["rxx_".len()..n.len() - ".txt".len()].to_string();
+            let (name, tail) = rest.rsplit_once("_f").expect("rxx name");
+            let (frame, ch) = tail.split_once("_ch").expect("rxx frame/ch");
+            let (frame, ch): (u32, u32) = (frame.parse().expect("frame"), ch.parse().expect("ch"));
+            let row = testdata::load_seq(name)
+                .into_iter()
+                .find(|r| r.frame == frame && r.channel == ch)
+                .expect("seq row");
+            let short = row.seq == 2;
+            let sr = testdata::fixture_sample_rate(name);
+            let nch = testdata::fixture_samples(name).len();
+            let (ch_br, tns_br) = if nch == 1 {
+                (112000, 112000)
+            } else {
+                (96000, 192000)
+            };
+            let block = if short {
+                crate::aac_enc::sfb::BlockKind::Short
+            } else {
+                crate::aac_enc::sfb::BlockKind::Long
+            };
+            let cfg = crate::aac_enc::sfb::SfbConfig::new(sr, block, ch_br, 19293, true, true)
+                .expect("sfb config");
+            let tconf = TnsConfig::new(sr, tns_br, !short, cfg.offsets(), cfg.sfb_active());
+            let psy = testdata::load_psy(name, frame, ch, short);
+
+            for rw in testdata::load_rxx(name, frame, ch) {
+                let tw = &psy.tns[rw.window];
+                let mut corr_hi = [0.0f64; 13];
+                for (i, &q) in rw.rxx2.iter().enumerate() {
+                    corr_hi[i] = q as f64 / 2_147_483_648.0;
+                }
+                let (idx_hi, order_hi, sum_hi, gain_hi) = analyze_filter(&corr_hi, &tconf, HI);
+                if order_hi as i32 != tw.order[0] || idx_hi[..] != tw.coef_hi[..] {
+                    coefficient_mismatches += 1;
+                }
+                let bound_hi = tconf.limit_order[HI] as i32 / 2 + 2;
+                let sum_true_hi = sum_hi > bound_hi;
+                let active_hi = gain_hi > tconf.thresh_on[HI] || sum_true_hi;
+                if active_hi != tw.active[0] {
+                    actual_flips += 1;
+                }
+                let residual_hi = (gain_hi - tw.gain[0]).abs();
+                max_residual = max_residual.max(residual_hi);
+                let d_hi = (gain_hi - tconf.thresh_on[HI]).abs();
+                min_hi_margin = min_hi_margin.min(d_hi);
+                let gate_hi = gain_tolerance(tw.gain[0]) as i32;
+                max_gate = max_gate.max(gate_hi);
+                let mut cross_hi = false;
+                if !sum_true_hi {
+                    min_hi_margin_decision = min_hi_margin_decision.min(d_hi);
+                    max_residual_decision = max_residual_decision.max(residual_hi);
+                    if d_hi <= residual_hi + 1 {
+                        literal_candidates += 1;
+                    }
+                    if crosses_lower(gain_hi, tconf.thresh_on[HI], gate_hi + 1) {
+                        gate_candidates += 1;
+                    }
+                    cross_hi = crosses_lower(gain_hi, tconf.thresh_on[HI], residual_hi + 1);
+                    if cross_hi {
+                        candidates += 1;
+                    }
+                }
+                println!(
+                    "CENSUS\t{name}\t{frame}\t{ch}\t{}\t{}\tHI\t{gain_hi}\t{}\t{residual_hi}\t{}\t-1\t{d_hi}\t-1\t{sum_hi}\t{bound_hi}\t-1\t{}\t-1\t{}\t{}\t{}\t{}",
+                    rw.window,
+                    u8::from(short),
+                    tw.gain[0],
+                    tconf.thresh_on[HI],
+                    (sum_hi - bound_hi).abs(),
+                    u8::from(sum_true_hi),
+                    u8::from(tw.active[0]),
+                    u8::from(active_hi),
+                    u8::from(cross_hi),
+                );
+                hi_windows += 1;
+
+                // LO detect only runs on long blocks and only after HI
+                // activation; otherwise the production state is the 1000
+                // default and is not an activation decision.
+                if !short && tconf.limit_order[LO] > 0 && tw.active[0] {
+                    let mut corr_lo = [0.0f64; 13];
+                    for (i, &q) in rw.rxx1.iter().enumerate() {
+                        corr_lo[i] = q as f64 / 2_147_483_648.0;
+                    }
+                    let (idx_lo, order_lo, sum_lo, gain_lo) = analyze_filter(&corr_lo, &tconf, LO);
+                    if order_lo as i32 != tw.order[1] || idx_lo[..] != tw.coef_lo[..] {
+                        coefficient_mismatches += 1;
+                    }
+                    let t_lo = tconf.thresh_on[LO];
+                    let t_hi = 16000 * tconf.limit_order[LO] as i32;
+                    let b_lo = 9;
+                    let b_hi = 22 * tconf.limit_order[LO] as i32;
+                    let sum_true_lo = sum_lo > b_lo && sum_lo < b_hi;
+                    let active_lo = (gain_lo > t_lo && gain_lo < t_hi) || sum_true_lo;
+                    if active_lo != tw.active[1] {
+                        actual_flips += 1;
+                    }
+                    let residual_lo = (gain_lo - tw.gain[1]).abs();
+                    max_residual = max_residual.max(residual_lo);
+                    let d_low = (gain_lo - t_lo).abs();
+                    let d_high = (gain_lo - t_hi).abs();
+                    min_lo_low_margin = min_lo_low_margin.min(d_low);
+                    min_lo_high_margin = min_lo_high_margin.min(d_high);
+                    let gate_lo = gain_tolerance(tw.gain[1]) as i32;
+                    max_gate = max_gate.max(gate_lo);
+                    let mut cross_lo = false;
+                    if !sum_true_lo {
+                        min_lo_low_margin_decision = min_lo_low_margin_decision.min(d_low);
+                        min_lo_high_margin_decision = min_lo_high_margin_decision.min(d_high);
+                        max_residual_decision = max_residual_decision.max(residual_lo);
+                        if d_low <= residual_lo + 1 || d_high <= residual_lo + 1 {
+                            literal_candidates += 1;
+                        }
+                        if crosses_lower(gain_lo, t_lo, gate_lo + 1)
+                            || crosses_upper(gain_lo, t_hi, gate_lo + 1)
+                        {
+                            gate_candidates += 1;
+                        }
+                        cross_lo = crosses_lower(gain_lo, t_lo, residual_lo + 1)
+                            || crosses_upper(gain_lo, t_hi, residual_lo + 1);
+                        if cross_lo {
+                            candidates += 1;
+                        }
+                    }
+                    println!(
+                        "CENSUS\t{name}\t{frame}\t{ch}\t{}\t0\tLO\t{gain_lo}\t{}\t{residual_lo}\t{t_lo}\t{t_hi}\t{d_low}\t{d_high}\t{sum_lo}\t{b_lo}\t{b_hi}\t{}\t{}\t{}\t{}\t{}\t{}",
+                        rw.window,
+                        tw.gain[1],
+                        (sum_lo - b_lo).abs(),
+                        (sum_lo - b_hi).abs(),
+                        u8::from(sum_true_lo),
+                        u8::from(tw.active[1]),
+                        u8::from(active_lo),
+                        u8::from(cross_lo),
+                    );
+                    lo_windows += 1;
+                }
+            }
+        }
+
+        println!(
+            "CENSUS_SUMMARY\thi_windows={hi_windows}\tlo_windows={lo_windows}\tmax_residual={max_residual}\tmax_residual_decision={max_residual_decision}\tmax_gate={max_gate}\tmin_hi_margin={min_hi_margin}\tmin_hi_margin_decision={min_hi_margin_decision}\tmin_lo_low_margin={min_lo_low_margin}\tmin_lo_high_margin={min_lo_high_margin}\tmin_lo_low_margin_decision={min_lo_low_margin_decision}\tmin_lo_high_margin_decision={min_lo_high_margin_decision}\tliteral_candidates={literal_candidates}\tgate_candidates={gate_candidates}\tcandidates={candidates}\tactual_flips={actual_flips}\tcoefficient_mismatches={coefficient_mismatches}"
+        );
+        assert_eq!(
+            coefficient_mismatches, 0,
+            "C-exact RXX coefficient mismatch"
+        );
+        assert_eq!(actual_flips, 0, "activation differs from committed C state");
+        assert_eq!(
+            literal_candidates, 0,
+            "d_gain <= r_gain + 1 on a sum-false window"
+        );
+        assert_eq!(
+            gate_candidates, 0,
+            "policy gain gate could cross an activation boundary"
+        );
+        assert_eq!(candidates, 0, "gain residual could flip activation");
+        assert!(
+            hi_windows > 100,
+            "corpus coverage too small: {hi_windows} HI windows"
+        );
     }
 }

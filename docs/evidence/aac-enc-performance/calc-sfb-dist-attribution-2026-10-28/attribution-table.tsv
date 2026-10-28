@@ -1,0 +1,6 @@
+region_bytes	bytes	instructions	dwarf_line	source_operation	execution_frequency	sampled_pcs
+0x038..0x03c	4	1	0	`xfsf = 0` (quant.rs:475), loop accumulator initialisation	once per calc_sfb_dist call	none observed
+0x05c..0x0b4	88	22	0	Band-invariant quantizer setup hoisted out of the line loop: gain&3 table row (stride 0x38 / 0xe), quantizer_shift, dzone constant, and the QUANT/MTAB table base pointers used by inlined quantize_line_body (quant.rs:468-474)	once per call	0x94 (1 sample in capture 3; 0x80/0x94 in onset)
+0x0b4..0x0b8	4	1	0	`mov w20,#0`: inv_quantize_line's `if q == 0 { return 0; }` (quant.rs:344-346) jumping into accumulate_dist with inv=0 (quant.rs:433)	52.5% of music lines, 50.4% sine, 45.2% onset, 9.0% noise	0xb4 in nearly every q0 group
+0x1ac..0x1b0	4	1	0	`mov w20,#0` zero store for the q==0 quantize path (quant.rs:477-478)	52.5% of music lines	none observed
+0x1d0..0x1d4	4	1	0	`neg w21,w21`: `accu = if neg { -(q as i32) } else { q as i32 }` in inlined inv_quantize_line (quant.rs:350)	47.5% of music lines	0x1d0 in nearly every q0 group

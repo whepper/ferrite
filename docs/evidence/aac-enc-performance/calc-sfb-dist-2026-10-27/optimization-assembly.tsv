@@ -1,0 +1,9 @@
+metric	before	after
+instructions	212	196
+panic_bounds_check	4	0
+panic_fmt	1	1
+assert_failed	0	1
+smull	3	3
+clz	4	4
+branches	10	5
+cmp_x_x	3	1

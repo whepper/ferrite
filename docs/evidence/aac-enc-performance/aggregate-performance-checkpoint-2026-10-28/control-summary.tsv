@@ -1,0 +1,4 @@
+pair	order	repo_ms	isolated_ms	isolated_vs_repo_pct
+1	repo->isolated	411.272	406.469	+1.168
+2	isolated->repo	408.543	413.996	-1.335
+median				-0.084

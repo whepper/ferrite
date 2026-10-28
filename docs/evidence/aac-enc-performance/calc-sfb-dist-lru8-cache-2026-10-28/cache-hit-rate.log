@@ -1,0 +1,11 @@
+
+running 1 test
+CACHE music-stereo: lookups=209522 hits=38140 (18.2%) misses=171382 written_lines=2475996
+CACHE speech-clean-stereo: lookups=108932 hits=16780 (15.4%) misses=92152 written_lines=1343036
+CACHE onset-stereo: lookups=3324 hits=651 (19.6%) misses=2673 written_lines=20768
+CACHE sine-stereo: lookups=6221 hits=1264 (20.3%) misses=4957 written_lines=34756
+CACHE noise-mono: lookups=4082 hits=845 (20.7%) misses=3237 written_lines=49076
+test aac_enc::scf::tests::zz_cache_hit_rate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.12s
+

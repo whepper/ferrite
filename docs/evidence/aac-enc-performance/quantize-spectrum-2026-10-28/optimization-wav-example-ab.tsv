@@ -1,0 +1,13 @@
+pair	order	before_total_ms	after_total_ms	improvement_pct
+old then new	1/1	412.206	384.766	6.657
+new then old	2/2	415.384	383.337	7.715
+old then new	3/3	416.015	382.543	8.046
+new then old	4/4	414.897	383.955	7.458
+median	-	-	-	7.586
+
+fixture	before_median_ms	after_median_ms	improvement_pct
+m7-music-stereo-48k	57.510	52.969	7.895
+m7-speech-clean-stereo-48k	37.164	34.770	6.444
+m7-speech-pauses-stereo-48k	36.973	34.538	6.586
+m8-music-eroica-stereo-48k	53.558	49.202	8.134
+m7-music-stereo-48k-x4	229.919	212.014	7.788

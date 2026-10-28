@@ -1,0 +1,7 @@
+capture	worker_self	calc_sfb_dist_self	quant_rs0_self	quant_rs0_pct	q0_leaf_lines	distinct_pcs	pcs
+capture-1	8310	1745	619	7.45	11	2	0xb4,0x1d0
+capture-2	8344	1753	647	7.75	11	2	0xb4,0x1d0
+capture-3	8261	1848	677	8.20	12	3	0x94,0xb4,0x1d0
+s21-corpus	8177	1774	635	7.77	13	2	0xb4,0x1d0
+s21-music	6677	1801	688	10.30	12	2	0xb4,0x1d0
+s21-onset	6576	374	28	0.43	9	4	0x80,0x94,0xb4,0x1d0

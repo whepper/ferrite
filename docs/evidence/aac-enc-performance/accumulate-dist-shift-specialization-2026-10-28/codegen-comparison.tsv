@@ -1,0 +1,13 @@
+metric	before	after
+binary_sha256	61126376e5672d86ca9de8d23cbcfa4f8e8d52d2684f7386612b19ed67c61756	1be92fd3f69394263538666537e565e0fe53d42846778720eee3c8647ada0286
+binary_bytes	10930480	10930480
+text_section_bytes	0x1bfefc	0x1bfefc
+calc_sfb_dist_addr	0x1000f0f00	0x100112b00
+calc_sfb_dist_size_bytes	704	704
+calc_sfb_dist_instructions	176	176
+calc_sfb_dist_normalized_diff	-	0
+text_symbols	2868	2868
+symbols_only_before	-	0
+symbols_only_after	-	0
+symbols_with_size_change	-	20
+first_shift_instruction	-	lsl w20, w21, w19

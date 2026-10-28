@@ -1,0 +1,9 @@
+workload	arm	worker_samples	frontend_self	frontend_pct	tns_self	tns_pct
+corpus	before	8231	2198	26.70	548	6.66
+corpus	after	8226	2111	25.66	375	4.56
+onset	before	6310	3234	51.25	689	10.92
+onset	after	6390	3053	47.78	443	6.93
+music	before	6606	1420	21.50	332	5.03
+music	after	6547	1301	19.87	222	3.39
+speech	before	6561	1940	29.57	492	7.50
+speech	after	6443	1826	28.34	367	5.70

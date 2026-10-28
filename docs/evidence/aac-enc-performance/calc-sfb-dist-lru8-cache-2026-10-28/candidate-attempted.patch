@@ -1,0 +1,676 @@
+diff --git a/rust/src/aac_enc/quant.rs b/rust/src/aac_enc/quant.rs
+index f7f2da7..b29a945 100644
+--- a/rust/src/aac_enc/quant.rs
++++ b/rust/src/aac_enc/quant.rs
+@@ -300,41 +300,37 @@ pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
+ /// recursion, and Gate D verifies the resulting shape.
+ #[inline(always)]
+ fn quantize_line_body(quantizer: i16, quantizer_shift: i32, k: i32, spec: i32) -> i16 {
+-    let mut accu = fixmuldiv2_ds(spec, quantizer);
+-    if accu < 0 {
+-        accu = accu.wrapping_neg();
+-        /* normalize: leading one lands on bit 30 ([0.5, 1.0)). */
+-        let accu_shift = count_leading_zeros(accu) - 1;
+-        accu = accu.wrapping_shl(accu_shift as u32);
+-        /* Bit 9 of the shifted value is the old bit 30 (always 1);
+-         * clearing it yields the 9-bit mantissa index 0..511. */
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
+-        debug_assert!(tab_index < 512);
+-        let mut total_shift = quantizer_shift - accu_shift + 1;
+-        accu = fixmuldiv2_ss(
+-            MTAB_3_4[tab_index],
+-            QUANT_TABLE_E[(total_shift & 3) as usize],
+-        );
+-        total_shift = (16 - 4) - (3 * (total_shift >> 2));
+-        debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
+-        accu >>= total_shift.min(31);
+-        ((k.wrapping_add(accu) >> (32 - 1 - 16)) as i16).wrapping_neg()
+-    } else if accu > 0 {
+-        let accu_shift = count_leading_zeros(accu) - 1;
+-        accu = accu.wrapping_shl(accu_shift as u32);
+-        let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
+-        debug_assert!(tab_index < 512);
+-        let mut total_shift = quantizer_shift - accu_shift + 1;
+-        accu = fixmuldiv2_ss(
+-            MTAB_3_4[tab_index],
+-            QUANT_TABLE_E[(total_shift & 3) as usize],
+-        );
+-        total_shift = (16 - 4) - (3 * (total_shift >> 2));
+-        debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
+-        accu >>= total_shift.min(31);
+-        (k.wrapping_add(accu) >> (32 - 1 - 16)) as i16
++    let accu = fixmuldiv2_ds(spec, quantizer);
++    if accu == 0 {
++        return 0;
++    }
++    // One magnitude path for both signs; only the final result is negated.
++    // This is the arithmetic the former two-branch body performed:
++    // `wrapping_neg` for negative input, identity otherwise, and the same
++    // final `wrapping_neg` on the emitted magnitude.
++    let neg = accu < 0;
++    let mut accu = if neg { accu.wrapping_neg() } else { accu };
++    /* normalize: leading one lands on bit 30 ([0.5, 1.0)). */
++    let accu_shift = count_leading_zeros(accu) - 1;
++    accu = accu.wrapping_shl(accu_shift as u32);
++    // Normalization puts the leading one at bit 30, so `accu >> 21`
++    // is 0..=0x3FF; masking to nine bits is the same index as the
++    // former `& !512` and bounds the 512-entry table for LLVM.
++    let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
++    debug_assert!(tab_index < 512);
++    let mut total_shift = quantizer_shift - accu_shift + 1;
++    accu = fixmuldiv2_ss(
++        MTAB_3_4[tab_index],
++        QUANT_TABLE_E[(total_shift & 3) as usize],
++    );
++    total_shift = (16 - 4) - (3 * (total_shift >> 2));
++    debug_assert!(total_shift >= 0, "MAX_QUANT_VIOLATION envelope");
++    accu >>= total_shift.min(31);
++    let q = (k.wrapping_add(accu) >> (32 - 1 - 16)) as i16;
++    if neg {
++        q.wrapping_neg()
+     } else {
+-        0
++        q
+     }
+ }
+ 
+@@ -356,7 +352,10 @@ pub fn inv_quantize_line(gain: i32, q: i16) -> i32 {
+     accu = accu.wrapping_shl(ex as u32);
+     let spec_exp = (32 - 1) - ex;
+     assert!((spec_exp as u32) < 14, "specExp envelope: |q| <= MAX_QUANT");
+-    let tab_index = ((accu >> (32 - 2 - 9)) & !512) as usize;
++    // `count_leading_bits` + shift leaves the leading one at bit 30, so
++    // `accu >> 21` is 0..=0x3FF and the nine-bit mask is the same index
++    // as the former `& !512` while bounding the 512-entry table.
++    let tab_index = ((accu >> (32 - 2 - 9)) & 0x1FF) as usize;
+     debug_assert!(tab_index < 512);
+     let m = (gain & 3) as usize;
+     let s = MTAB_4_3[tab_index];
+@@ -459,6 +458,27 @@ fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
+ /// the early-out, the inverse quantization, and the distortion
+ /// accumulation are unchanged.
+ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &mut [i16]) -> i32 {
++    calc_sfb_dist_written(spec, gain, dzone_quant_enable, quant).0
++}
++
++/// [`calc_sfb_dist`] with the number of band lines actually written to
++/// `quant`: the full length on the normal path, or the prefix ending at the
++/// first `|q| > MAX_QUANT` line on the early-out path (the tail is left
++/// untouched). The S4 cache needs the count to replay exactly the same
++/// writes; arithmetic is identical to [`calc_sfb_dist`].
++pub(crate) fn calc_sfb_dist_written(
++    spec: &[i32],
++    gain: i32,
++    dzone_quant_enable: bool,
++    quant: &mut [i16],
++) -> (i32, usize) {
++    // All callers pass paired band slices. State the contract once so the
++    // line loop can carry no per-line `quant[i]` bounds check.
++    assert_eq!(
++        spec.len(),
++        quant.len(),
++        "calc_sfb_dist: spec and quant lengths differ"
++    );
+     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
+     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
+     let k = if dzone_quant_enable {
+@@ -467,21 +487,23 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
+         QUANT_K0
+     };
+     let mut xfsf: i32 = 0;
+-    for (i, &s) in spec.iter().enumerate() {
++    let mut written = 0usize;
++    for (&s, q_out) in spec.iter().zip(quant.iter_mut()) {
+         let q = quantize_line_body(quantizer, quantizer_shift, k, s);
+-        quant[i] = q;
++        *q_out = q;
++        written += 1;
+         // Widen before abs: `wrapping_abs` keeps `i16::MIN` negative and
+         // would let it slip past `> MAX_QUANT` into `inv_quantize_line`
+         // (whose `specExp < 14` assert then panics). The reference
+         // `fixabs_S` has the same blind spot; here the sentinel takes the
+         // documented early-out instead.
+         if (q as i32).abs() > MAX_QUANT {
+-            return 0;
++            return (0, written);
+         }
+         let inv = inv_quantize_line(gain, q);
+         xfsf = accumulate_dist(xfsf, inv, s);
+     }
+-    calc_ld_data(xfsf)
++    (calc_ld_data(xfsf), written)
+ }
+ 
+ /// `FDKaacEnc_calcSfbQuantEnergyAndDist` (`quantize.cpp:361-401`):
+diff --git a/rust/src/aac_enc/scf.rs b/rust/src/aac_enc/scf.rs
+index e18edba..b0b1a0c 100644
+--- a/rust/src/aac_enc/scf.rs
++++ b/rust/src/aac_enc/scf.rs
+@@ -196,7 +196,7 @@ amm-info@iis.fraunhofer.de
+ 
+ use super::pe::bit_count_scf_delta;
+ use super::q31::{calc_inv_ld_data, calc_ld_data, fmult};
+-use super::quant::{calc_sfb_dist, calc_sfb_quant_energy_and_dist};
++use super::quant::{calc_sfb_dist_written, calc_sfb_quant_energy_and_dist};
+ 
+ const UPCOUNT_LIMIT: i32 = 1;
+ const AS_PE_SHIFT: i32 = 7;
+@@ -419,6 +419,8 @@ fn calc_spec_pe_diff(
+ /// `min_scf_calc`; returns the best scf.
+ #[allow(clippy::too_many_arguments)]
+ fn improve_scf(
++    cache: &mut DistCache,
++    band: usize,
+     spec: &[i32],
+     quant: &mut [i16],
+     tmp: &mut [i16],
+@@ -429,7 +431,7 @@ fn improve_scf(
+     min_scf_calc: &mut i32,
+     dz: bool,
+ ) -> i32 {
+-    let mut here = calc_sfb_dist(spec, scf, dz, quant);
++    let mut here = cache.dist(band, spec, scf, dz, quant);
+     *min_scf_calc = scf;
+     let mut best = scf;
+     if here > thresh.wrapping_sub(DIST_FACTOR) {
+@@ -441,7 +443,7 @@ fn improve_scf(
+         while here > thresh.wrapping_sub(DIST_FACTOR) && cnt < UPCOUNT_LIMIT {
+             cnt += 1;
+             cur += 1;
+-            here = calc_sfb_dist(spec, cur, dz, tmp);
++            here = cache.dist(band, spec, cur, dz, tmp);
+             if here < best_dist {
+                 best = cur;
+                 best_dist = here;
+@@ -455,7 +457,7 @@ fn improve_scf(
+         while here > thresh.wrapping_sub(DIST_FACTOR) && cnt2 < 1 && cur2 > min_scf {
+             cnt2 += 1;
+             cur2 -= 1;
+-            here = calc_sfb_dist(spec, cur2, dz, tmp);
++            here = cache.dist(band, spec, cur2, dz, tmp);
+             if here < best_dist {
+                 best = cur2;
+                 best_dist = here;
+@@ -469,7 +471,7 @@ fn improve_scf(
+         let allowed = here.wrapping_sub(DIST_FACTOR).min(thresh);
+         // Single coarser trial (`UPCOUNT_LIMIT == 1`).
+         let cur = best + 1;
+-        here = calc_sfb_dist(spec, cur, dz, tmp);
++        here = cache.dist(band, spec, cur, dz, tmp);
+         if here < allowed {
+             *min_scf_calc = best + 1;
+             best = cur;
+@@ -487,6 +489,7 @@ fn improve_scf(
+ /// `vec![i32::MAX; cnt]` allocations.
+ #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
+ fn assimilate_single_scf(
++    cache: &mut DistCache,
+     offsets: &[i32],
+     cnt: usize,
+     spectrum: &[i32],
+@@ -590,7 +593,8 @@ fn assimilate_single_scf(
+                         // became an identity self-copy and is dropped.
+                         let t = &mut tmp[offs..offs + width];
+                         t.fill(0);
+-                        let dnew = calc_sfb_dist(&spectrum[offs..offs + width], cur, dz, t);
++                        let dnew =
++                            cache.dist(a, &spectrum[offs..offs + width], cur, dz, t);
+                         if dnew < dist[a] {
+                             scf[a] = cur;
+                             dist[a] = dnew;
+@@ -636,6 +640,7 @@ fn assimilate_single_scf(
+ /// `assimilateMultipleScf` (`:629-752`). `delta_pe` carries across levels.
+ #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
+ fn assimilate_multiple_scf(
++    cache: &mut DistCache,
+     offsets: &[i32],
+     cnt: usize,
+     spectrum: &[i32],
+@@ -732,7 +737,7 @@ fn assimilate_multiple_scf(
+                             // `tmp` per band, unchanged.
+                             let t = &mut tmp[o..o + w];
+                             t.fill(0);
+-                            let dn = calc_sfb_dist(&spectrum[o..o + w], act, dz, t);
++                            let dn = cache.dist(b, &spectrum[o..o + w], act, dz, t);
+                             new_d[b] = dn;
+                             if dn > threshold_ld[b] {
+                                 new_sum = old_sum.wrapping_shl(1);
+@@ -769,6 +774,7 @@ fn assimilate_multiple_scf(
+ /// `assimilateMultipleScf2` (`:758-1044`). `delta_pe` carries across regions.
+ #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
+ fn assimilate_multiple_scf2(
++    cache: &mut DistCache,
+     offsets: &[i32],
+     cnt: usize,
+     spectrum: &[i32],
+@@ -892,7 +898,8 @@ fn assimilate_multiple_scf2(
+                                     // below reads `tmp` per band, unchanged.
+                                     let t = &mut tmp[o..o + w];
+                                     t.fill(0);
+-                                    let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
++                                    let dn =
++                                        cache.dist(b, &spectrum[o..o + w], nw, dz, t);
+                                     new_d[b] = dn;
+                                     if dn > dmax[b] {
+                                         ok = false;
+@@ -982,7 +989,8 @@ fn assimilate_multiple_scf2(
+                                 // `tmp` per band, unchanged.
+                                 let t = &mut tmp[o..o + w];
+                                 t.fill(0);
+-                                let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
++                                let dn =
++                                    cache.dist(b, &spectrum[o..o + w], nw, dz, t);
+                                 new_d[b] = dn;
+                                 if dn > threshold_ld[b] {
+                                     new_sum = old_sum.wrapping_shl(1);
+@@ -1089,6 +1097,111 @@ fn assimilate_multiple_scf2(
+ /// read-only geometry/energy copies). No field is read before that
+ /// reset, so no information crosses calls and per-channel isolation is
+ /// preserved. Plain owned buffers: no unsafe, no globals, no caches.
++/// Per-band LRU cache for `calc_sfb_dist` inside a single S4 pass.
++///
++/// A pass evaluates the same `(band, gain)` more than once (§25: 13–18% of
++/// lines). The distance and the prefix written to `quant` are a pure
++/// function of the band spectrum, `gain` and `dz`, and the spectrum is
++/// immutable for the whole pass, so a hit replays the exact prefix write
++/// (leaving the tail untouched, as the early-out path does) and returns the
++/// cached distance.
++const DIST_CACHE_SLOTS: usize = 8;
++
++#[derive(Clone, Copy, Default)]
++struct DistCacheEntry {
++    gain: i32,
++    dist: i32,
++    pool_off: u32,
++    len: u16,
++    stamp: u32,
++    dz: bool,
++    used: bool,
++}
++
++#[derive(Default)]
++struct DistCache {
++    entries: Vec<DistCacheEntry>,
++    pool: Vec<i16>,
++    tick: u32,
++    #[cfg(test)]
++    no_cache: bool,
++}
++
++impl DistCache {
++    /// Binds the cache to one pass and drops every previous entry.
++    fn reset(&mut self, bands: usize) {
++        self.entries.clear();
++        self.entries
++            .resize(bands * DIST_CACHE_SLOTS, DistCacheEntry::default());
++        self.pool.clear();
++        self.tick = 0;
++    }
++
++    #[inline]
++    fn dist(&mut self, band: usize, spec: &[i32], gain: i32, dz: bool, quant: &mut [i16]) -> i32 {
++        #[cfg(test)]
++        if self.no_cache {
++            return super::quant::calc_sfb_dist(spec, gain, dz, quant);
++        }
++        self.tick = self.tick.wrapping_add(1);
++        let base = band * DIST_CACHE_SLOTS;
++        let mut victim = base;
++        let mut oldest = u32::MAX;
++        for i in base..base + DIST_CACHE_SLOTS {
++            let e = self.entries[i];
++            if !e.used {
++                victim = i;
++                break;
++            }
++            if e.gain == gain && e.dz == dz && e.len as usize == quant.len() {
++                let off = e.pool_off as usize;
++                quant[..e.len as usize]
++                    .copy_from_slice(&self.pool[off..off + e.len as usize]);
++                self.entries[i].stamp = self.tick;
++                return e.dist;
++            }
++            if e.stamp < oldest {
++                oldest = e.stamp;
++                victim = i;
++            }
++        }
++        let (dist, written) = calc_sfb_dist_written(spec, gain, dz, quant);
++        let off = self.pool.len() as u32;
++        self.pool.extend_from_slice(&quant[..written]);
++        self.entries[victim] = DistCacheEntry {
++            gain,
++            dist,
++            pool_off: off,
++            len: written as u16,
++            stamp: self.tick,
++            dz,
++            used: true,
++        };
++        dist
++    }
++
++    #[cfg(test)]
++    fn disable(&mut self) {
++        self.no_cache = true;
++    }
++
++    #[cfg(test)]
++    fn byte_capacity(&self) -> (usize, usize) {
++        (
++            self.entries.capacity() * core::mem::size_of::<DistCacheEntry>(),
++            self.pool.capacity() * core::mem::size_of::<i16>(),
++        )
++    }
++
++    #[cfg(test)]
++    fn is_cached(&self, band: usize, gain: i32) -> bool {
++        let base = band * DIST_CACHE_SLOTS;
++        self.entries[base..base + DIST_CACHE_SLOTS]
++            .iter()
++            .any(|e| e.used && e.gain == gain)
++    }
++}
++
+ #[derive(Default)]
+ pub struct ScfWorkspace {
+     offsets: Vec<i32>,
+@@ -1103,6 +1216,7 @@ pub struct ScfWorkspace {
+     prev_last: Vec<i32>,
+     prev_next: Vec<i32>,
+     last_delta: Vec<i32>,
++    dist_cache: DistCache,
+ }
+ 
+ /// Channel orchestrator `EstimateScaleFactorsChannel` (`:1046-1277`)
+@@ -1149,6 +1263,8 @@ fn estimate_channel_with_inv_ws(
+     let cnt = input.geo.sfb_cnt;
+     let per = input.geo.sfb_per_group;
+     let max = input.geo.max_sfb_per_group;
++    // A new pass: no entry may survive into the next spectrum.
++    ws.dist_cache.reset(cnt);
+     // M5.19: workspace buffers replace the former per-call `to_vec()` /
+     // `vec![...]` allocations. `clear` + `extend_from_slice` fully
+     // overwrites the read-only copies; `resize` + `fill` restores the
+@@ -1220,6 +1336,8 @@ fn estimate_channel_with_inv_ws(
+                     let mut d = 0i32;
+                     let mut m = 0i32;
+                     let best = improve_scf(
++                        &mut ws.dist_cache,
++                        s,
+                         &spec[start..end],
+                         &mut quant[start..end],
+                         &mut tmp[start..end],
+@@ -1269,6 +1387,7 @@ fn estimate_channel_with_inv_ws(
+         ws.prev_next.resize(cnt, i32::MAX);
+         ws.last_delta.resize(cnt, i32::MAX);
+         assimilate_single_scf(
++            &mut ws.dist_cache,
+             offsets,
+             cnt,
+             &spec,
+@@ -1291,6 +1410,7 @@ fn estimate_channel_with_inv_ws(
+     if inv_quant > 1 {
+         let mut delta2 = 0i32;
+         assimilate_multiple_scf(
++            &mut ws.dist_cache,
+             offsets,
+             cnt,
+             &spec,
+@@ -1309,6 +1429,7 @@ fn estimate_channel_with_inv_ws(
+         );
+         let mut delta3 = 0i32;
+         assimilate_multiple_scf2(
++            &mut ws.dist_cache,
+             offsets,
+             cnt,
+             &spec,
+@@ -1354,7 +1475,9 @@ fn estimate_channel_with_inv_ws(
+                     // exactly (incl. `MAX_QUANT` early-out tails).
+                     let q = &mut tmp[start..end];
+                     q.fill(0);
+-                    dist[s] = calc_sfb_dist(&spec[start..end], scf[s], false, q);
++                    dist[s] = ws
++                        .dist_cache
++                        .dist(s, &spec[start..end], scf[s], false, q);
+                     quant[start..end].copy_from_slice(q);
+                 }
+             }
+@@ -1749,7 +1872,10 @@ mod tests {
+             let mut pl4 = vec![i32::MAX; 4];
+             let mut pn4 = vec![i32::MAX; 4];
+             let mut ld4 = vec![i32::MAX; 4];
++            let mut cache = DistCache::default();
++            cache.reset(4);
+             assimilate_single_scf(
++                &mut cache,
+                 &off4,
+                 4,
+                 &spec,
+@@ -1853,7 +1979,10 @@ mod tests {
+                 let mut pl6 = vec![i32::MAX; 6];
+                 let mut pn6 = vec![i32::MAX; 6];
+                 let mut ld6 = vec![i32::MAX; 6];
++                let mut cache = DistCache::default();
++                cache.reset(6);
+                 assimilate_single_scf(
++                    &mut cache,
+                     &off6,
+                     6,
+                     &spec,
+@@ -1968,8 +2097,11 @@ mod tests {
+                     let mut tmp = vec![0i16; 4];
+                     let mut dd = 0i32;
+                     let mut mm = 0i32;
++                    let mut cache = DistCache::default();
++                    cache.reset(1);
+                     let got = improve_scf(
+-                        &bspec, &mut q, &mut tmp, -500000000, scf0, -111, &mut dd, &mut mm, false,
++                        &mut cache, 0, &bspec, &mut q, &mut tmp, -500000000, scf0, -111, &mut dd,
++                        &mut mm, false,
+                     );
+                     assert_eq!(got, best, "improve best scf0={scf0}");
+                     assert_eq!(dd, d, "improve dist scf0={scf0}");
+@@ -2022,4 +2154,202 @@ mod tests {
+             }
+         }
+     }
++
++    // ---- dist cache ----
++
++    fn lcg(state: &mut u64) -> u32 {
++        *state = state
++            .wrapping_mul(6_364_136_223_846_793_005)
++            .wrapping_add(1_442_695_040_888_963_407);
++        (*state >> 33) as u32
++    }
++
++    /// Deterministic spec/gain pair that takes the `MAX_QUANT` early-out
++    /// (found by brute force over negative scalefactors, which the S4
++    /// search uses).
++    fn early_out_case() -> (Vec<i32>, i32, usize) {
++        let spec = vec![867_603_899, 1_400_102_989, 1_960_503_771];
++        let gain = -81;
++        let mut q = vec![0i16; 3];
++        let (_, written) = crate::aac_enc::quant::calc_sfb_dist_written(&spec, gain, false, &mut q);
++        assert_eq!(written, 1, "pinned early-out case");
++        assert_eq!(q[0], 18_896);
++        (spec, gain, written)
++    }
++
++    #[test]
++    fn dist_cache_hit_replays_distance_and_prefix() {
++        let spec = vec![123_456, -7_654_321, 0, 999_999];
++        let mut cache = DistCache::default();
++        cache.reset(2);
++        let mut a = vec![0i16; 4];
++        let dist_a = cache.dist(0, &spec, 40, false, &mut a);
++        assert!(cache.is_cached(0, 40));
++        // Overwrite the destination: a hit must restore the same prefix.
++        let mut b = vec![-9i16; 4];
++        let dist_b = cache.dist(0, &spec, 40, false, &mut b);
++        assert_eq!(dist_a, dist_b);
++        assert_eq!(a, b);
++        // Same gain in another band is a separate entry.
++        let mut c = vec![0i16; 4];
++        let dist_c = cache.dist(1, &spec, 40, false, &mut c);
++        assert_eq!(dist_c, dist_a);
++        assert!(cache.is_cached(1, 40));
++        // Different gain in the same band is a separate entry.
++        let mut d = vec![0i16; 4];
++        let _ = cache.dist(0, &spec, 41, false, &mut d);
++        assert!(cache.is_cached(0, 40) && cache.is_cached(0, 41));
++        assert_eq!(d.len(), 4);
++    }
++
++    #[test]
++    fn dist_cache_early_out_preserves_untouched_tail() {
++        let (spec, gain, written) = early_out_case();
++        let width = spec.len();
++        assert!(written < width);
++        let mut cache = DistCache::default();
++        cache.reset(1);
++        let mut first = vec![0i16; width];
++        let d1 = cache.dist(0, &spec, gain, false, &mut first);
++        assert_eq!(d1, 0, "early-out distance");
++        let mut second = vec![7i16; width]; // different tail
++        let d2 = cache.dist(0, &spec, gain, false, &mut second);
++        assert_eq!(d2, 0);
++        assert_eq!(second[..written], first[..written], "written prefix");
++        assert_eq!(second[written..], vec![7i16; width - written], "tail untouched");
++    }
++
++    #[test]
++    fn dist_cache_evicts_least_recently_used() {
++        let spec = vec![1000i32; 2];
++        let mut cache = DistCache::default();
++        cache.reset(1);
++        let mut q = vec![0i16; 2];
++        for g in 0..8 {
++            let _ = cache.dist(0, &spec, g, false, &mut q);
++        }
++        // Touch gain 0 so gain 1 becomes the LRU entry.
++        let _ = cache.dist(0, &spec, 0, false, &mut q);
++        let _ = cache.dist(0, &spec, 8, false, &mut q);
++        assert!(cache.is_cached(0, 0), "touched entry survives");
++        assert!(!cache.is_cached(0, 1), "LRU entry evicted");
++        assert!(cache.is_cached(0, 8), "new entry stored");
++    }
++
++    #[test]
++    fn dist_cache_reset_and_empty_band() {
++        let mut cache = DistCache::default();
++        cache.reset(3);
++        let mut q = vec![0i16; 2];
++        let _ = cache.dist(2, &[1, 2], 5, false, &mut q);
++        assert!(cache.is_cached(2, 5));
++        cache.reset(1);
++        assert!(!cache.is_cached(0, 5));
++        // Empty band: no write, distance still defined.
++        let d = cache.dist(0, &[], 5, false, &mut []);
++        let mut probe = Vec::new();
++        let d2 = crate::aac_enc::quant::calc_sfb_dist(&[], 5, false, &mut probe);
++        assert_eq!(d, d2);
++        assert!(cache.is_cached(0, 5));
++    }
++
++    #[test]
++    fn dist_cache_randomized_differential() {
++        // Production invariant: one fixed spectrum per band per pass; only
++        // the gain varies. Random gains (including negative ones that take
++        // the early-out), random destination tails.
++        let mut state = 0xC0FF_EE12_3456_789Au64;
++        let bands = 4usize;
++        let mut cache = DistCache::default();
++        cache.reset(bands);
++        let specs: Vec<Vec<i32>> = (0..bands)
++            .map(|_| {
++                let width = 1 + (lcg(&mut state) % 16) as usize;
++                (0..width)
++                    .map(|_| {
++                        let v = lcg(&mut state) as i32;
++                        match lcg(&mut state) % 4 {
++                            0 => 0,
++                            1 => v >> 12,
++                            2 => v,
++                            _ => v >> 28,
++                        }
++                    })
++                    .collect()
++            })
++            .collect();
++        for _ in 0..50_000 {
++            let band = (lcg(&mut state) % bands as u32) as usize;
++            let spec = &specs[band];
++            let width = spec.len();
++            let gain = (lcg(&mut state) % 240) as i32 - 120;
++            let tail = (lcg(&mut state) % 3) as i16;
++            let mut got = vec![tail; width];
++            let mut want = vec![tail; width];
++            let d1 = cache.dist(band, spec, gain, false, &mut got);
++            let d2 = crate::aac_enc::quant::calc_sfb_dist(spec, gain, false, &mut want);
++            assert_eq!(d1, d2, "dist band={band} gain={gain}");
++            assert_eq!(got, want, "quant band={band} gain={gain}");
++        }
++    }
++
++    #[test]
++    fn dist_cache_full_pass_matches_uncached() {
++        // Same full S4 pass with the cache enabled and bypassed, compared
++        // over every committed S4 corpus case and checkpoint.
++        use super::super::testdata;
++        for (name, f) in S4_CASES {
++            let s1 = testdata::load_s1(name, f);
++            let s2 = testdata::load_s2(name, f);
++            let s4 = testdata::load_s4(name, f);
++            for (ci, ((c1, c2), c4)) in s1.ch.iter().zip(s2.ch.iter()).zip(s4.ch.iter()).enumerate()
++            {
++                if c4.levels.is_empty() {
++                    continue;
++                }
++                let spec0 =
++                    s4_input_spec(&c1.spec, &c1.offsets, c1.geo_cnt, c1.geo_per, c1.geo_max);
++                for lv in &c4.levels {
++                    let mut run = |no_cache: bool| {
++                        let mut spec = spec0.clone();
++                        let mut ws = ScfWorkspace::default();
++                        if no_cache {
++                            ws.dist_cache.disable();
++                        }
++                        let mut input = ScfChannelInput {
++                            spectrum: &mut spec,
++                            energy_ld: &c1.penld,
++                            threshold_ld: &c2.thrv,
++                            form_factor_ld: &c1.ff,
++                            geo: ScfGeometry {
++                                offsets: &c1.offsets,
++                                sfb_cnt: c1.geo_cnt,
++                                sfb_per_group: c1.geo_per,
++                                max_sfb_per_group: c1.geo_max,
++                            },
++                        };
++                        estimate_channel_with_inv_ws(&mut input, lv.inv, &mut ws)
++                    };
++                    let on = run(false);
++                    let off = run(true);
++                    assert_eq!(on.scf, off.scf, "{name} f={f} ch={ci} inv={} scf", lv.inv);
++                    assert_eq!(
++                        on.global_gain, off.global_gain,
++                        "{name} f={f} ch={ci} inv={} gain",
++                        lv.inv
++                    );
++                    assert_eq!(
++                        on.quant_spec, off.quant_spec,
++                        "{name} f={f} ch={ci} inv={} q",
++                        lv.inv
++                    );
++                    assert_eq!(
++                        on.mutated_spectrum, off.mutated_spectrum,
++                        "{name} f={f} ch={ci} inv={} spec",
++                        lv.inv
++                    );
++                }
++            }
++        }
++    }
+ }

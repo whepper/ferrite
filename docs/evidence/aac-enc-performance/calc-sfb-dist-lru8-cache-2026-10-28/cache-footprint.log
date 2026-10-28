@@ -1,0 +1,7 @@
+
+running 1 test
+CACHE_BYTES entries=7200 pool=8192 total=15392 entry_size=20 bands=45
+test aac_enc::scf::tests::zz_cache_bytes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.00s
+
