@@ -1,0 +1,40 @@
+Ferrite M9 f64 MDCT experiment — performance (final worktree)
+
+Hardware: Apple M5, arm64, macOS 27.0.1 (26A434)
+Toolchain: rustc/cargo 1.99.1
+Build: cargo test --release --locked --features aac_enc,transform-f64-experiment --lib
+Harness: aac_enc::m9_f64_experiment::m9_f64_performance (encoder-only, in-memory PCM)
+Corpus: 19 fixtures, 2,461,800 samples/ch summed, 2,442 frames, 51.2875 s audio
+Method: one untimed warm-up pass, then 5 timed passes per fixture; process max RSS via /usr/bin/time -l.
+
+Final-tree runs (2 independent processes per mode):
+  f32 totals: 0.227402 s, 0.223619 s
+  f64 totals: 0.255043 s, 0.259300 s
+  f32 median: 0.225511 s  -> RTF 227.4
+  f64 median: 0.257172 s  -> RTF 199.4
+  slowdown: +14.0% wall (1.140x)
+
+Earlier same-binary 3 x 5-rep runs (before the final concurrent worktree change):
+  f32: 0.219190, 0.217533, 0.217571 s
+  f64: 0.250265, 0.250237, 0.251087 s
+  slowdown: +14.9% to +15.0%
+
+Per-fixture representative values (7-rep run, ns per fixture):
+  fixture                     f32        f64       delta
+  m2-silence-stereo-48k       1,947,042  2,967,959  +52.4%
+  m2-sine-stereo-48k          3,138,416  3,606,166  +14.9%
+  m2-click-mono-48k             865,625  1,022,625  +18.1%
+  m3-noise-mono-48k           1,262,500  1,347,459   +6.7%
+  m6-stress-stereo-48k        1,773,875  2,139,250  +20.6%
+  m3-onset-stereo-441k        1,780,250  2,385,375  +34.0%
+  m7-music-stereo-48k        60,459,333 66,071,584   +9.3%
+  m7-speech-pauses-stereo-48k 38,572,209 44,530,083 +15.4%
+  m8-music-eroica-stereo-48k  56,210,084 62,348,500 +10.9%
+
+Memory:
+  process max RSS f32: 24,199,168..24,854,528 bytes
+  process max RSS f64: 24,068,096..24,100,864 bytes
+  observed difference is within run-to-run noise; no material process RSS increase.
+  steady-state analytical delta: ring f32 2 x 2048 x 4 B = 16 KiB;
+  ring f64 2 x 2048 x 8 B = 32 KiB; +16 KiB for stereo.
+  dctiv64 uses a stack ArrayVec; no per-frame heap allocation added.

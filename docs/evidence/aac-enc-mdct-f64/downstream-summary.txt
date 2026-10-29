@@ -1,0 +1,6 @@
+frames=2442 bytes_f32=800967 bytes_f64=800965 delta=-2 (-0.0002%)
+frame_lengths: exact=2425 diff=17 max_delta=5 total_abs_delta=26
+q31_bins=4924416 nonzero=3417011 (69.389162%) >1=2846764 >16=215763 >256=42 max=379 mean_abs=4.372432
+psy: e_nonzero=32900 e_max=3584 t_nonzero=375 t_max=8 spread_nonzero=33058 spread_max=3584 e_ld_nonzero=117887 e_ld_max=2012319 t_ld_nonzero=375 t_ld_max=1698730
+state: mdct_scale_mismatch=0 tns_diff_frames=3 max_common_diff=0 saturated_q31 f32=0 f64=0 nonfinite f32=0 f64=0
+decision_field_diffs: align=30 gains=2 huff_bits=31 mask_ones=2 pe=42 scf_bits=10 section_books=3 side_bits=3 tot_fill=4 total=17 used_dyn=31

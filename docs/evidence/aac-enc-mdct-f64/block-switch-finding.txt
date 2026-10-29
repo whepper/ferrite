@@ -1,0 +1,25 @@
+Block-switch sequence difference found by the M9 full-corpus oracle comparison
+(2026-10-27), retained after the f64 experiment was removed.
+
+Fixture: m7-speech-clean-stereo-48k
+Input: rust/src/aac_enc/testdata/m7-speech-clean-stereo-48k.wav
+Oracle: tools/enc-oracle/enc_oracle (pinned FDK reference, real
+FDKaacEnc_BlockSwitching decision, not the S1 replay).
+
+Legend: SEQ 0=LONG, 1=START, 2=SHORT, 3=STOP; SHAPE 0=SINE, 1=KBD.
+
+M9SEQ m7-speech-clean-stereo-48k f=107 ch=0 oracle_seq=1 oracle_shape=0 rust_seq=0 rust_shape=1
+M9SEQ m7-speech-clean-stereo-48k f=107 ch=1 oracle_seq=1 oracle_shape=0 rust_seq=0 rust_shape=1
+M9SEQ m7-speech-clean-stereo-48k f=108 ch=0 oracle_seq=2 oracle_shape=0 rust_seq=0 rust_shape=1
+M9SEQ m7-speech-clean-stereo-48k f=108 ch=1 oracle_seq=2 oracle_shape=0 rust_seq=0 rust_shape=1
+M9SEQ m7-speech-clean-stereo-48k f=109 ch=0 oracle_seq=3 oracle_shape=1 rust_seq=0 rust_shape=1
+M9SEQ m7-speech-clean-stereo-48k f=109 ch=1 oracle_seq=3 oracle_shape=1 rust_seq=0 rust_shape=1
+
+Neighbouring frames 100-106 and 110-115 agree (LONG/KBD on both sides), so the
+difference is localised to the C START/SHORT/STOP sequence for this transient.
+The f32 and f64 transform paths had identical block-switch behaviour; this is
+not a precision issue.
+
+Counts:
+- 6 channel-frame mismatches / 938 compared channel-frames in this fixture.
+- 0 mismatches in the other 18 fixtures in the same comparison.
