@@ -35,8 +35,9 @@ decisions were reached, not as current normative guidance.
 
 ### Encoder investigations (evidence)
 
-> **Publication note (2026-10-29).** These investigation records were
-> written against `c4d1262` and published after `331f4e8`. Their historical
+> **Publication note (2026-10-29).** The quality-investigation records in
+> this subsection were written against `c4d1262` and published after
+> `331f4e8`; the performance baseline was measured at `331f4e8`. Historical
 > test counts and worktree statements are preserved as recorded; they are
 > not rewritten to match later revisions.
 
