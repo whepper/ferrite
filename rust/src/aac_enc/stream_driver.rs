@@ -439,6 +439,36 @@ pub(crate) struct S1Cap {
     pub ats_pre: [i32; 4],
 }
 
+/// Test-only capture of the S2 threshold-adjustment inputs and outputs.
+/// `min_snr0`/`spread0` are the vectors entering `adaptMinSnr` (oracle
+/// `MINSNR0`/`SPREAD0`); `min_snr1` is the post-avoid-hole result (oracle
+/// `MINSNR1`); `thrv` is post-enFac (oracle `THRV`). The capture is a pure
+/// read after the production call.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct S2CapChannel {
+    pub energy_lin: Vec<i32>,
+    pub energy_ld: Vec<i32>,
+    pub min_snr0: Vec<i32>,
+    pub spread0: Vec<i32>,
+    pub min_snr1: Vec<i32>,
+    pub thrv: Vec<i32>,
+    pub offsets: Vec<i32>,
+    pub group_len: Vec<i32>,
+    pub cnt: usize,
+    pub per: usize,
+    pub max: usize,
+    pub seq: u8,
+}
+
+/// Test-only S2 element capture (see [`S2CapChannel`]).
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct S2Cap {
+    pub ch: Vec<S2CapChannel>,
+    pub ms_mask: Vec<i32>,
+}
+
 /// Typed step failure for the production API mapping (M6.1).
 /// Carries the already-typed errors from QC/S8 writes; notes-only failures
 /// (frontend mismatch, multi-pass policy, low-overlap) carry `None` and map
@@ -481,6 +511,10 @@ pub(crate) struct FrameSnapshot {
     /// S1 input capture (`None` when the frame never reaches PE).
     /// Test-only causality readout.
     pub s1_cap: Option<S1Cap>,
+    /// S2 input/output capture (`None` when the frame never reaches S2).
+    /// Test-only causality readout.
+    #[cfg(test)]
+    pub s2_cap: Option<S2Cap>,
     /// Earliest-stage diagnostic notes (empty when clean).
     pub notes: Vec<String>,
     /// Typed step failure for the production API mapping (`None` on success
@@ -1188,6 +1222,30 @@ impl StreamEncoder {
             None
         };
         let s2 = adapt_thresholds_vbr(&s2_inputs, ms_opt, &mut self.ats);
+        #[cfg(test)]
+        {
+            snap.s2_cap = Some(S2Cap {
+                ch: s2_inputs
+                    .iter()
+                    .enumerate()
+                    .map(|(ch, inp)| S2CapChannel {
+                        energy_lin: inp.energy_lin.to_vec(),
+                        energy_ld: inp.energy_ld.to_vec(),
+                        min_snr0: inp.min_snr_ld.to_vec(),
+                        spread0: inp.spread.to_vec(),
+                        min_snr1: s2.min_snr_ld[ch].clone(),
+                        thrv: s2.threshold_ld[ch].clone(),
+                        offsets: inp.geo.offsets.to_vec(),
+                        group_len: inp.geo.group_len.to_vec(),
+                        cnt: inp.geo.sfb_cnt,
+                        per: inp.geo.sfb_per_group,
+                        max: inp.geo.max_sfb_per_group,
+                        seq: inp.geo.seq,
+                    })
+                    .collect(),
+                ms_mask: ms_mask.clone(),
+            });
+        }
 
         // --- S4: scalefactor estimation (inv=2) on the S3-contract spectrum ---
         struct S4Out {
@@ -2066,6 +2124,510 @@ mod phase1_tests {
             snaps.push(snap);
         }
         snaps
+    }
+
+    /// Cross-frame state pin: onset f25 ATS divergence is upstream of PE
+    /// and has no coded-output effect on f26–f28.
+    ///
+    /// The f25 TNS/energy differences change `chaosMeasureEnFac` after the
+    /// frame, so f26 starts from a different ATS value. The PE stage itself
+    /// reproduces C exactly on C inputs, and injecting the C f25 ATS/chaos
+    /// state before f26 does not change any emitted frame. This guards both
+    /// the upstream attribution and the “not every mutable field is causal
+    /// state” conclusion: only `lastEnFacPatch` is read as history, and it
+    /// remains exact here.
+    #[test]
+    fn cross_frame_state_onset_f25_is_upstream_and_output_neutral() {
+        fn pe_ats(
+            lin: &[Vec<i32>],
+            ld: &[Vec<i32>],
+            thr: &[Vec<i32>],
+            ff: &[Vec<i32>],
+            offsets: &[Vec<i32>],
+            geo: &[(usize, usize, usize, bool)],
+            mask: &[i32],
+            ats_pre: [i32; 4],
+        ) -> [i32; 4] {
+            let zeros: Vec<Vec<i32>> = geo.iter().map(|g| vec![0i32; g.0]).collect();
+            let inputs: Vec<PeChannelInput> = (0..geo.len())
+                .map(|c| PeChannelInput {
+                    energy_ld: &ld[c],
+                    threshold_ld: &thr[c],
+                    energy_linear: &lin[c],
+                    form_factor_ld: &ff[c],
+                    offsets: &offsets[c],
+                    sfb_cnt: geo[c].0,
+                    sfb_per_group: geo[c].1,
+                    max_sfb_per_group: geo[c].2,
+                    is_book: &zeros[c],
+                    is_scale: &zeros[c],
+                    short_block: geo[c].3,
+                })
+                .collect();
+            let mut ats = AtsElement::new(0);
+            ats.chaos_measure_en_fac = [ats_pre[0], ats_pre[1]];
+            ats.last_enfac_patch = [ats_pre[2], ats_pre[3]];
+            pe_calculation(&inputs, mask, &mut ats);
+            [
+                ats.chaos_measure_en_fac[0],
+                ats.chaos_measure_en_fac[1],
+                ats.last_enfac_patch[0],
+                ats.last_enfac_patch[1],
+            ]
+        }
+
+        type FrameState = ([i32; 4], [i32; 4], i32);
+        fn run(
+            inject: bool,
+        ) -> (
+            Vec<Vec<u8>>,
+            Vec<FrameSnapshot>,
+            Vec<FrameState>,
+            Vec<Vec<(i32, Vec<i32>, bool)>>,
+        ) {
+            let name = "onset-stereo";
+            let pcm = testdata::fixture_samples(name);
+            let sr = 48000u32;
+            let nch = 2usize;
+            let cfg =
+                EncoderConfig::new(sr, nch as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg");
+            let mut feeder = PcmFeeder::new(cfg);
+            let s = pcm[0].len();
+            let mut interleaved = Vec::with_capacity(s * nch);
+            for i in 0..s {
+                for c in 0..nch {
+                    interleaved.push(pcm[c][i]);
+                }
+            }
+            let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+            frames.extend(feeder.finish().expect("finish"));
+            let mut enc = StreamEncoder::new(sr, nch);
+            let mut bytes = Vec::new();
+            let mut snaps = Vec::new();
+            let mut states = Vec::new();
+            let mut preecho = Vec::new();
+            for f in 0..=28usize {
+                if inject && f == 26 {
+                    let c25 = testdata::load_s1(name, 25);
+                    let c25_s2 = testdata::load_s2(name, 25);
+                    enc.ats.chaos_measure_en_fac = [c25.ats_post[0], c25.ats_post[1]];
+                    enc.ats.last_enfac_patch = [c25.ats_post[2], c25.ats_post[3]];
+                    enc.ats.chaos_measure_old = c25_s2.chaos_post;
+                }
+                let fresh: Vec<Vec<i16>> =
+                    frames[f].channels().iter().map(|b| b.to_vec()).collect();
+                let (b, snap) = enc.step_frame(f as u32, &fresh);
+                assert!(snap.notes.is_empty(), "f{f}: {}", snap.notes.join("; "));
+                let pre = snap.s1_cap.as_ref().expect("s1 cap").ats_pre;
+                let post = [
+                    enc.ats.chaos_measure_en_fac[0],
+                    enc.ats.chaos_measure_en_fac[1],
+                    enc.ats.last_enfac_patch[0],
+                    enc.ats.last_enfac_patch[1],
+                ];
+                states.push((pre, post, enc.ats.chaos_measure_old));
+                let mut pv = Vec::new();
+                for ch in 0..nch {
+                    let (m, calc) = enc.psy_ch[ch].preecho_state();
+                    pv.push((m, enc.psy_ch[ch].preecho_prev().to_vec(), calc));
+                }
+                preecho.push(pv);
+                bytes.push(b.expect("emitted"));
+                snaps.push(snap);
+            }
+            (bytes, snaps, states, preecho)
+        }
+
+        let (base_b, base_s, state, preecho) = run(false);
+        let (inj_b, inj_s, _, _) = run(true);
+        let name = "onset-stereo";
+
+        // S1 ATS and pre-echo state are exact through f24.
+        for f in 22..=24u32 {
+            let s1 = testdata::load_s1(name, f);
+            let s2 = testdata::load_s2(name, f);
+            assert_eq!(state[f as usize].0, s1.ats_pre, "f{f} ATS pre");
+            assert_eq!(state[f as usize].1, s1.ats_post, "f{f} ATS post");
+            assert_eq!(state[f as usize].2, s2.chaos_post, "f{f} chaos");
+        }
+
+        // f25 ATS diverges after PE; f26 starts from the divergent value
+        // but the S1 post-state reconverges.
+        let c25 = testdata::load_s1(name, 25);
+        let c25_s2 = testdata::load_s2(name, 25);
+        let c26 = testdata::load_s1(name, 26);
+        assert_eq!(state[25].0, c25.ats_pre, "f25 ATS pre");
+        assert_eq!(c25.ats_post[0], 407_797_760, "f25 C ATS post");
+        assert_eq!(state[25].1[0], 410_386_432, "f25 Rust ATS post");
+        assert_eq!(state[25].1[2..], [0, 0], "f25 patch exact");
+        assert_ne!(state[25].2, c25_s2.chaos_post, "f25 chaos diverges");
+        assert_eq!(state[26].0[0], 410_386_432, "f26 Rust ATS pre");
+        assert_eq!(c26.ats_pre[0], 407_797_760, "f26 C ATS pre");
+        assert_eq!(state[26].1, c26.ats_post, "f26 ATS post reconverges");
+        assert_ne!(
+            state[26].2,
+            testdata::load_s2(name, 26).chaos_post,
+            "f26 chaos diverges"
+        );
+
+        // The pre-echo history is exact across the START/SHORT/STOP/LONG
+        // transition in this interval.
+        for f in 22..=26u32 {
+            let short = testdata::load_seq(name)
+                .into_iter()
+                .find(|r| r.frame == f && r.channel == 0)
+                .expect("seq")
+                .seq
+                == 2;
+            for ch in 0..2usize {
+                let psy = testdata::load_psy(name, f, ch as u32, short);
+                let (m, prev, calc) = &preecho[f as usize][ch];
+                assert_eq!(*m, psy.m_nm1, "f{f} ch{ch} pre-echo scale");
+                assert_eq!(
+                    i32::from(*calc),
+                    psy.calc_pre_echo,
+                    "f{f} ch{ch} pre-echo enabled"
+                );
+                assert_eq!(
+                    &prev[..psy.nm1.len()],
+                    &psy.nm1[..],
+                    "f{f} ch{ch} pre-echo history"
+                );
+            }
+        }
+
+        // PE is exact on C inputs; the production state is reproduced from
+        // Rust inputs. Both energy lanes can cross the same f25 boundary.
+        let cap = base_s[25].s1_cap.as_ref().expect("s1 cap");
+        let s1 = testdata::load_s1(name, 25);
+        let c_lin: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.senl.clone()).collect();
+        let c_ld: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.penld.clone()).collect();
+        let c_thr: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.pthld.clone()).collect();
+        let c_ff: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.ff.clone()).collect();
+        let c_off: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.offsets.clone()).collect();
+        let c_ms = s1.msd.as_ref().map(|(_, m)| m.clone()).unwrap_or_default();
+        let r_lin: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.energy_lin.clone()).collect();
+        let r_ld: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.energy_ld.clone()).collect();
+        let r_thr: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.threshold_ld.clone()).collect();
+        let r_ff: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.ff.clone()).collect();
+        let r_off: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.offsets.clone()).collect();
+        let geo: Vec<(usize, usize, usize, bool)> = cap
+            .ch
+            .iter()
+            .map(|c| (c.cnt, c.per, c.max, c.short))
+            .collect();
+        let all_r = pe_ats(
+            &r_lin,
+            &r_ld,
+            &r_thr,
+            &r_ff,
+            &r_off,
+            &geo,
+            &cap.ms_mask,
+            c25.ats_pre,
+        );
+        let all_c = pe_ats(
+            &c_lin,
+            &c_ld,
+            &c_thr,
+            &c_ff,
+            &c_off,
+            &geo,
+            &c_ms,
+            c25.ats_pre,
+        );
+        let c_energy = pe_ats(
+            &c_lin,
+            &c_ld,
+            &c_thr,
+            &c_ff,
+            &r_off,
+            &geo,
+            &cap.ms_mask,
+            c25.ats_pre,
+        );
+        assert_eq!(all_r, state[25].1, "production ATS replay");
+        assert_eq!(all_c, c25.ats_post, "C ATS replay");
+        assert_eq!(c_energy, c25.ats_post, "C energy alone closes f25 ATS");
+
+        // Replacing the f25 state before f26 does not change f26–f28 output.
+        for f in 26..=28usize {
+            assert_eq!(base_b[f], inj_b[f], "f{f} bytes unchanged");
+            for (a, b) in [
+                (base_s[f].seq, inj_s[f].seq),
+                (base_s[f].static_bits, inj_s[f].static_bits),
+                (base_s[f].huff_bits, inj_s[f].huff_bits),
+                (base_s[f].scf_bits, inj_s[f].scf_bits),
+                (base_s[f].used_dyn, inj_s[f].used_dyn),
+                (base_s[f].total, inj_s[f].total),
+            ] {
+                assert_eq!(a, b, "f{f} coded field unchanged");
+            }
+        }
+    }
+
+    /// MINSNR1 divergence attribution pin.
+    ///
+    /// The S2 formula is exact on C inputs
+    /// (`threshold_vbr::tests::s2_full_matches_oracle_with_injected_chaos`).
+    /// For representative divergent frames this test proves that replacing
+    /// the production `SENL`/`PENLD` with the committed C vectors reproduces
+    /// the C `MINSNR1` exactly (or, where the known MS band-16 decision also
+    /// differs, that replacing the mask as well is required). It also pins
+    /// the downstream no-op observed on these frames: `THRV` stays inside the
+    /// documented Ld envelope and the initial avoid-hole flags agree.
+    #[test]
+    fn minsnr1_divergence_is_upstream_of_s2() {
+        use crate::aac_enc::threshold_vbr::{
+            adapt_min_snr, init_avoid_hole_flag_mono, init_avoid_hole_flag_ms, StereoWork,
+        };
+
+        fn minsnr1_with(
+            energy_lin: &[Vec<i32>],
+            energy_ld: &[Vec<i32>],
+            min0: &[Vec<i32>],
+            spread0: &[Vec<i32>],
+            ms_mask: &[i32],
+            caps: &[S2CapChannel],
+        ) -> (Vec<Vec<i32>>, Vec<Vec<u8>>) {
+            let ats = AtsElement::new(0);
+            let mut mins: Vec<Vec<i32>> = min0.iter().map(|v| v.to_vec()).collect();
+            let mut spreads: Vec<Vec<i32>> = spread0.iter().map(|v| v.to_vec()).collect();
+            let geos: Vec<SfbGeometry> = caps
+                .iter()
+                .map(|c| SfbGeometry {
+                    offsets: &c.offsets,
+                    group_len: &c.group_len,
+                    sfb_cnt: c.cnt,
+                    sfb_per_group: c.per,
+                    max_sfb_per_group: c.max,
+                    seq: c.seq,
+                })
+                .collect();
+            for i in 0..caps.len() {
+                adapt_min_snr(&energy_lin[i], &energy_ld[i], &mut mins[i], &geos[i], &ats);
+            }
+            let mut ah: Vec<Vec<u8>> = Vec::with_capacity(caps.len());
+            for i in 0..caps.len() {
+                ah.push(init_avoid_hole_flag_mono(
+                    &energy_lin[i],
+                    &energy_ld[i],
+                    &mut mins[i],
+                    &mut spreads[i],
+                    &geos[i],
+                    &ats,
+                ));
+            }
+            if caps.len() == 2 {
+                let (first, rest) = mins.split_at_mut(1);
+                let (sf, sr) = spreads.split_at_mut(1);
+                let mut work = StereoWork {
+                    energy_lin_m: &energy_lin[0],
+                    energy_ld_m: &energy_ld[0],
+                    min_snr_m: &mut first[0],
+                    spread_m: &mut sf[0],
+                    energy_lin_s: &energy_lin[1],
+                    energy_ld_s: &energy_ld[1],
+                    min_snr_s: &mut rest[0],
+                    spread_s: &mut sr[0],
+                    geo_m: SfbGeometry {
+                        offsets: &caps[0].offsets,
+                        group_len: &caps[0].group_len,
+                        sfb_cnt: caps[0].cnt,
+                        sfb_per_group: caps[0].per,
+                        max_sfb_per_group: caps[0].max,
+                        seq: caps[0].seq,
+                    },
+                    ms_mask,
+                };
+                init_avoid_hole_flag_ms(&mut work);
+            }
+            (mins, ah)
+        }
+
+        let cases = [
+            ("onset-stereo", 48000u32, 2usize, 25u32),
+            ("onset-stereo", 48000, 2, 26),
+            ("sine-stereo", 48000, 2, 5),
+            ("sine-stereo-44100", 44100, 2, 5),
+            ("stepdown-stereo", 48000, 2, 2),
+            ("quiet-sine-stereo", 48000, 2, 5),
+            ("click-mono", 48000, 1, 11),
+            ("impulse-mono", 48000, 1, 5),
+        ];
+        let mut diverged = 0usize;
+        let mut matched = 0usize;
+        for (name, sr, nch, f) in cases {
+            let snaps = step_to_frame(name, sr, nch, f);
+            let cap = snaps[f as usize]
+                .s2_cap
+                .as_ref()
+                .expect("S2 capture present");
+            let s1 = testdata::load_s1(name, f);
+            let s2 = testdata::load_s2(name, f);
+            assert_eq!(cap.ch.len(), nch);
+            assert_eq!(s2.ch.len(), nch);
+            let c_lin: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.senl.clone()).collect();
+            let c_ld: Vec<Vec<i32>> = s1.ch.iter().map(|c| c.penld.clone()).collect();
+            let r_lin: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.energy_lin.clone()).collect();
+            let r_ld: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.energy_ld.clone()).collect();
+            let c_min0: Vec<Vec<i32>> = s2.ch.iter().map(|c| c.minsnr0.clone()).collect();
+            let c_spread0: Vec<Vec<i32>> = s2.ch.iter().map(|c| c.spread0.clone()).collect();
+            let r_min0: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.min_snr0.clone()).collect();
+            let r_spread0: Vec<Vec<i32>> = cap.ch.iter().map(|c| c.spread0.clone()).collect();
+            let c_ms = s1.msd.as_ref().map(|(_, m)| m.clone()).unwrap_or_default();
+            let r_ms = cap.ms_mask.clone();
+
+            let (prod, prod_ah) = minsnr1_with(&r_lin, &r_ld, &r_min0, &r_spread0, &r_ms, &cap.ch);
+            let (c_energy, _) = minsnr1_with(&c_lin, &c_ld, &r_min0, &r_spread0, &r_ms, &cap.ch);
+            let (c_lin_only, _) = minsnr1_with(&c_lin, &r_ld, &r_min0, &r_spread0, &r_ms, &cap.ch);
+            let (c_ld_only, _) = minsnr1_with(&r_lin, &c_ld, &r_min0, &r_spread0, &r_ms, &cap.ch);
+            let (c_energy_cmask, _) =
+                minsnr1_with(&c_lin, &c_ld, &r_min0, &r_spread0, &c_ms, &cap.ch);
+            let (c_all, c_all_ah) =
+                minsnr1_with(&c_lin, &c_ld, &c_min0, &c_spread0, &c_ms, &cap.ch);
+            for ch in 0..nch {
+                assert_eq!(prod[ch], cap.ch[ch].min_snr1, "{name} f{f} ch{ch} prod");
+                assert_eq!(c_all[ch], s2.ch[ch].minsnr1, "{name} f{f} ch{ch} C-all");
+                // Short-block oracle vectors carry stale/pad entries outside
+                // `maxSfbPerGroup`; compare active bands only.
+                let active: Vec<usize> = (0..cap.ch[ch].cnt)
+                    .filter(|&i| i % cap.ch[ch].per < cap.ch[ch].max)
+                    .collect();
+                let ahdiff = active
+                    .iter()
+                    .filter(|&&b| prod_ah[ch][b] != c_all_ah[ch][b])
+                    .count();
+                let thr_out = active
+                    .iter()
+                    .filter(|&&b| {
+                        (ld_energy(cap.ch[ch].thrv[b]) - ld_energy(s2.ch[ch].thrv[b])).abs()
+                            > ld_energy_tol(ld_energy(s2.ch[ch].thrv[b]))
+                    })
+                    .count();
+                let maxdiff = |a: &[i32], b: &[i32]| {
+                    active
+                        .iter()
+                        .map(|&i| (a[i] as i64 - b[i] as i64).abs())
+                        .max()
+                        .unwrap_or(0)
+                };
+                let out_count = |a: &[i32], b: &[i32]| {
+                    active
+                        .iter()
+                        .filter(|&&i| {
+                            (ld_energy(a[i]) - ld_energy(b[i])).abs()
+                                > ld_energy_tol(ld_energy(b[i]))
+                        })
+                        .count()
+                };
+                let thr_max = maxdiff(&cap.ch[ch].thrv, &s2.ch[ch].thrv);
+                let mask_diff = if nch == 2 {
+                    active.iter().filter(|&&b| r_ms[b] != c_ms[b]).count()
+                } else {
+                    0
+                };
+                let in_env = |a: &[i32], b: &[i32]| {
+                    active.iter().all(|&i| {
+                        (ld_energy(a[i]) - ld_energy(b[i])).abs() <= ld_energy_tol(ld_energy(b[i]))
+                    })
+                };
+                let c_ref = &s2.ch[ch].minsnr1;
+                assert_eq!(
+                    maxdiff(&r_min0[ch], &c_min0[ch]),
+                    0,
+                    "{name} f{f} ch{ch} MINSNR0 exact"
+                );
+                assert_eq!(thr_out, 0, "{name} f{f} ch{ch} THRV envelope");
+                assert_eq!(ahdiff, 0, "{name} f{f} ch{ch} avoid-hole flags");
+                if mask_diff > 0 {
+                    assert!(
+                        in_env(&c_energy_cmask[ch], c_ref),
+                        "{name} f{f} ch{ch} C energy+mask reproduces MINSNR1"
+                    );
+                    assert!(
+                        !in_env(&c_energy[ch], c_ref),
+                        "{name} f{f} ch{ch} MS mask is a necessary cause"
+                    );
+                } else {
+                    assert!(
+                        in_env(&c_energy[ch], c_ref),
+                        "{name} f{f} ch{ch} C energy reproduces MINSNR1"
+                    );
+                }
+                let penld_case = matches!(
+                    (name, f, ch),
+                    ("onset-stereo", 25, 0)
+                        | ("sine-stereo-44100", 5, 0)
+                        | ("stepdown-stereo", 2, 0)
+                );
+                if penld_case {
+                    assert!(
+                        !in_env(&c_lin_only[ch], c_ref),
+                        "{name} f{f} ch{ch} C SENL alone does not close MINSNR1"
+                    );
+                    assert!(
+                        in_env(&c_ld_only[ch], c_ref),
+                        "{name} f{f} ch{ch} C PENLD alone closes MINSNR1"
+                    );
+                }
+                if in_env(&prod[ch], c_ref) {
+                    matched += 1;
+                } else {
+                    diverged += 1;
+                }
+                eprintln!(
+                    "MINSNR1 {name} f{f} ch{ch} \
+                     MINSNR0 maxdiff={} SENL maxdiff={} PENLD maxdiff={} SPREAD0 maxdiff={} maskdiff={mask_diff} | \
+                     prod-vs-C out={} max={} | Cenergy out={} max={} | \
+                     Csenl-only out={} max={} | Cpenld-only out={} max={} | \
+                     Cenergy+Cmask out={} max={} | \
+                     THRV out={thr_out} max={thr_max} ahdiff={ahdiff}",
+                    maxdiff(&r_min0[ch], &c_min0[ch]),
+                    maxdiff(&r_lin[ch], &c_lin[ch]),
+                    maxdiff(&r_ld[ch], &c_ld[ch]),
+                    maxdiff(&r_spread0[ch], &c_spread0[ch]),
+                    out_count(&prod[ch], &s2.ch[ch].minsnr1),
+                    maxdiff(&prod[ch], &s2.ch[ch].minsnr1),
+                    out_count(&c_energy[ch], &s2.ch[ch].minsnr1),
+                    maxdiff(&c_energy[ch], &s2.ch[ch].minsnr1),
+                    out_count(&c_lin_only[ch], &s2.ch[ch].minsnr1),
+                    maxdiff(&c_lin_only[ch], &s2.ch[ch].minsnr1),
+                    out_count(&c_ld_only[ch], &s2.ch[ch].minsnr1),
+                    maxdiff(&c_ld_only[ch], &s2.ch[ch].minsnr1),
+                    out_count(&c_energy_cmask[ch], &s2.ch[ch].minsnr1),
+                    maxdiff(&c_energy_cmask[ch], &s2.ch[ch].minsnr1),
+                );
+                for &b in &active {
+                    let c = s2.ch[ch].minsnr1[b];
+                    let p = prod[ch][b];
+                    if (ld_energy(p) - ld_energy(c)).abs() <= ld_energy_tol(ld_energy(c)) {
+                        continue;
+                    }
+                    eprintln!(
+                        "  band {b}: C min0={} senl={} penld={} spread0={} ms={} min1={} | \
+                         R min0={} senl={} penld={} spread0={} ms={} min1={}",
+                        c_min0[ch][b],
+                        c_lin[ch][b],
+                        c_ld[ch][b],
+                        c_spread0[ch][b],
+                        c_ms.get(b).copied().unwrap_or(0),
+                        c,
+                        r_min0[ch][b],
+                        r_lin[ch][b],
+                        r_ld[ch][b],
+                        r_spread0[ch][b],
+                        r_ms.get(b).copied().unwrap_or(0),
+                        p
+                    );
+                }
+            }
+        }
+        assert!(
+            diverged > 0,
+            "probe must exercise a real MINSNR1 divergence"
+        );
+        assert!(matched > 0, "probe must include in-envelope controls");
     }
 
     /// First-pass MS margins from decision operands, transcribing

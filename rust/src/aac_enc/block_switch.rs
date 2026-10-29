@@ -128,7 +128,12 @@ amm-info@iis.fraunhofer.de
 //!   integer is 15625, i.e. `15625 / 2^31 = 1e6 / 2^37` in real units.
 //!
 //! Parity target: identical window sequences, shapes, and groupings on the
-//! corpus (exact integer match), not identical energy integers.
+//! committed synthetic oracle fixtures (exact integer match), not identical
+//! energy integers. On other material FDK's fixed-point per-sample energy
+//! truncation can flip a knife-edge attack even when the branch/table logic
+//! matches; `speech_clean_f107_attack_boundary_is_float_limited` pins the
+//! measured real-speech case. That is a float-native precision divergence,
+//! not a reason to force the final sequence branch.
 
 use crate::common::enums::WindowShape;
 
@@ -599,6 +604,108 @@ mod tests {
         r.max_window_nrg = 5.0;
         BlockSwitch::synchronize_pair(&mut l, &mut r);
         assert_eq!(l.grouping(), (4, [3, 3, 1, 1]));
+    }
+
+    /// Reproduce the `speech-clean` f107 attack-boundary case without the
+    /// external oracle. Both channels are sample-identical in this fixture.
+    ///
+    /// The FDK reference reaches `attack=1` at f107 window 0:
+    /// `0.1 * 6237 > 0.7 * 450 + 0.3 * 992` (values in Q31 units, from the
+    /// focused `FDKaacEnc_BlockSwitching` probe recorded in
+    /// `docs/evidence/aac-enc-block-switch/README.md`).
+    /// Rust's float energy path reaches the opposite side:
+    /// `0.1 * 6298 < 0.7 * 497 + 0.3 * 1048`.
+    ///
+    /// This test pins the float side's intermediate accumulator and the
+    /// knife-edge margin. It is a root-cause regression, not a C-parity
+    /// assertion: the reference decision is a consequence of FDK's
+    /// fixed-point per-sample energy truncation, not of a different branch or
+    /// table. Do not "fix" the final sequence branch to force C parity.
+    #[test]
+    fn speech_clean_f107_attack_boundary_is_float_limited() {
+        let frames = testdata::fixture_samples("speech-clean-stereo");
+        assert_eq!(frames.len(), 2);
+        let mut switches = [BlockSwitch::new(), BlockSwitch::new()];
+
+        let process_frame = |switches: &mut [BlockSwitch; 2], f: usize| {
+            let fresh: Vec<[i16; 1024]> = (0..2)
+                .map(|ch| {
+                    let mut block = [0i16; 1024];
+                    for (i, v) in block.iter_mut().enumerate() {
+                        let t = f * 1024 + i;
+                        *v = if t < frames[ch].len() {
+                            frames[ch][t]
+                        } else {
+                            0
+                        };
+                    }
+                    block
+                })
+                .collect();
+            for (ch, sw) in switches.iter_mut().enumerate() {
+                sw.process(&fresh[ch], false);
+            }
+            let (l, r) = switches.split_at_mut(1);
+            BlockSwitch::synchronize_pair(&mut l[0], &mut r[0]);
+        };
+
+        for f in 0..=106 {
+            process_frame(&mut switches, f);
+        }
+        assert!(!switches[0].has_attack(), "f106 must have no attack");
+        let prev_acc = switches[0].acc_window_nrg;
+        let prev_e7 = switches[0].window_nrg_f[1][7];
+
+        process_frame(&mut switches, 107);
+        for sw in &switches {
+            assert!(
+                !sw.has_attack(),
+                "f107 must stay below the float attack threshold"
+            );
+            assert_eq!(sw.sequence(), WindowSequence::Long);
+        }
+
+        let e0 = switches[0].window_nrg_f[1][0];
+        let acc_i0 = ONE_MINUS_ACC_WINDOW_NRG_FAC * prev_acc + ACC_WINDOW_NRG_FAC * prev_e7;
+        let margin = acc_i0 - INV_ATTACK_RATIO * e0;
+        let q31 = |v: f32| (f64::from(v) * 2_147_483_648.0).round() as i64;
+
+        // Float-side values from the deterministic fixture run.
+        assert!(
+            (491..=503).contains(&q31(prev_acc)),
+            "f106 acc={}",
+            q31(prev_acc)
+        );
+        assert!(
+            (1_040..=1_056).contains(&q31(prev_e7)),
+            "f106 NRGF[7]={}",
+            q31(prev_e7)
+        );
+        assert!(
+            (6_290..=6_306).contains(&q31(e0)),
+            "f107 NRGF[0]={}",
+            q31(e0)
+        );
+        assert!(margin > 0.0, "float side unexpectedly attacks at f107");
+        assert!(
+            margin < 0.1 * acc_i0,
+            "f107 is not the expected knife-edge: margin={margin}"
+        );
+
+        // The C-side comparison values and sign; this documents why the
+        // reference attacks while Rust does not.
+        let c_margin = INV_ATTACK_RATIO * (6237.0 / 2_147_483_648.0)
+            - (ONE_MINUS_ACC_WINDOW_NRG_FAC * (450.0 / 2_147_483_648.0)
+                + ACC_WINDOW_NRG_FAC * (992.0 / 2_147_483_648.0));
+        assert!(c_margin > 0.0, "C-side comparison must be positive");
+
+        for f in 108..=109 {
+            process_frame(&mut switches, f);
+            for sw in &switches {
+                assert!(!sw.has_attack(), "f{f} unexpected attack");
+                assert_eq!(sw.sequence(), WindowSequence::Long, "f{f} sequence");
+            }
+        }
     }
 
     #[test]

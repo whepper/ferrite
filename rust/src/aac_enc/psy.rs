@@ -181,6 +181,12 @@ impl PsyChannel {
     pub fn preecho_prev(&self) -> &[i32] {
         self.preecho.prev()
     }
+
+    /// Pre-echo previous scale and enabled flag (test inspection).
+    #[cfg(test)]
+    pub fn preecho_state(&self) -> (i32, bool) {
+        (self.preecho.prev_scale(), self.preecho.is_enabled())
+    }
 }
 
 /// Grouped short-block output.
