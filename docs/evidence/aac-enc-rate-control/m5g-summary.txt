@@ -1,0 +1,14 @@
+M5.g / M5.i live census summary
+Command: cargo test --locked --features aac_enc --lib m5g_branch_census -- --nocapture
+Result: pass (1 test); total frames observed: 2442
+Global: max_iter=0
+  min_grant=986   @ m3-noise-mono-48k f=1
+  min_maxdyn=1042 @ m3-noise-mono-48k f=1
+  min_frame=984   @ m3-noise-mono-48k f=1
+  min_cap=1045    @ m3-noise-mono-48k f=1
+
+All frames asserted by the test: npass=1, crash=-1, no IS books,
+no non-PNS noise books, adts_len*8 == total + 56.
+The full per-stream rows are in vbr5-invariants.tsv; the raw census JSON is
+the test artifact at $TMPDIR/m5g-census/census.json and is not copied into
+the repository.

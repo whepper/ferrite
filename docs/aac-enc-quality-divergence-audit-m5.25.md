@@ -894,3 +894,99 @@ ring_check.py,ring_full.py,intersect.py}`.
   different Q31 inputs (float MDCT → round‑to‑nearest mapping) and those differences flip a
   handful of discrete decisions (TNS filters, band headroom) on transients; the resulting quality
   difference has never been measured.**
+
+---
+
+## 12. V4 localized divergence investigations (2026-10-25, HEAD `3878c45`)
+
+Follow-up to §§4.A–C/E and §8 on two fixtures where the V3 full-corpus baseline
+(`aac-enc-m5b-objective-quality-baseline.md` §9) left bounded questions: sweep-stereo
+(distributed −100 B / −2.45% payload gap) and onset-stereo-441k (codec-SNR gap 1.27 dB
+favoring Rust, +3 B total). No encoder, test, fixture, or gate change was made in V4;
+all analysis ran in scratch (`$TMPDIR/v4-*`, temporary) against retained V3 artifacts
+and fresh pin-clone (`f14ad40`) oracle runs. Tier-B, D-021, and P2b conclusions stand.
+
+### 12.1 Sweep: distributed payload gap, block switching excluded
+
+- Per-frame ADTS census (independent parser, cross-validated against V3 metrics exactly):
+  rust 3988 / C 4088 B over 49 frames each; headers equal (343/343), so the full −100 B
+  is payload. Distributed: negatives sum −131 B over ~25 LONG frames (largest f6 −23,
+  f8 −17, f3/f19 −10), positives +31 B; f1/f2 ±2 B is residue noise; f0 equal; frames
+  20–24 exactly equal; first notable diff f3 (−10 B, first LONG frame).
+- Window sequences from a scratch first-element ICS-header parse (not a full AAC decoder;
+  later elements explicitly unparsed): single CPE tag 0, `common_window` shared, on every
+  frame of both bitstreams. Rust and C agree 49/49 and both match committed
+  `seq_sweep-stereo.txt` (f0 LONG_START, f1 EIGHT_SHORT, f2 LONG_STOP, **f3–f48 all
+  ONLY_LONG**). **Block switching is excluded as the cause on both sides.**
+- Fresh-oracle S1 at f6/f8/f19 is smooth vs neighbors (no MS flips, TNS inactive,
+  ordinary thresholds; f10 S1 byte-identical to committed vectors). Live Rust census
+  (existing `m5g_branch_census`, scratch outputs only): npass=1, crash=−1 everywhere;
+  live seq == oracle on all 49 frames.
+- Verdict: **inconclusive on stage, narrowed** — C-side S1 shows no decision anomaly;
+  Rust-side S1 (thresholds/energies/TNS/spectra/MS) was not compared (no existing
+  capture; committed vectors exist only at f10). Consistent with VBR rate-control
+  operating-point shift (decoded-error signs mixed per frame), not a local failure.
+  ±2.2% remains a descriptive band, not a gate.
+
+### 12.2 onset441: localized transient difference, causal frames f21–f22
+
+- Error localization (retained WAVs): silent half bit-exact 0.00 RMS both (alignment
+  independently confirmed); the entire SNR gap sits in orig block 22000–24000
+  (rust 15.93 vs C 22.47 RMS); tone region near-identical. Rust peaks at the exact
+  onset sample 22050; C peaks ~700 samples later at 22749/22750.
+- **Causal-frame mapping (correction recorded):** an earlier V4 scratch note placed the
+  22749 lobe in the f23 span (decoded-sample coordinates). The encoding-cause mapping
+  (orig sample *i* encoded in output frame ⌊i/1024⌋, from feeder order + nominal lag)
+  puts onset 22050 in **f21 (LONG_START)** and C's peak 22749 in **f22 (EIGHT_SHORT)** —
+  the oracle START/SHORT pair. Window sequences from the scratch parse: rust and C
+  identical on 45/45 (f21 START, f22 SHORT, f23 STOP, rest LONG), matching committed
+  `seq_onset-stereo-44100.txt`. f0–f21 encode bit-identically (15 B); f22 is 310/303
+  (+7 rust, Tier-B-pinned via `phase1h_d021_live_frame_reconciliation`).
+- **Oracle evidence taxonomy (do not conflate):** committed vectors (Tier-B ground truth)
+  vs fresh-oracle S1 (determinism check: f22 58/60 lines identical; the 2 differing lines
+  are SPEC-only top-spectrum wobble, 10/1024 coeffs @1002–1020, zero decision movement —
+  documented float-residue class) vs **real-C decisions** (passive V4.25 captures).
+  At f22 the fresh/committed oracle MSD has 18 bands vs the real-C mask's 26 bands
+  (bands 47–54, coinciding with the wobble region): **oracle SHORT-frame MS is not valid
+  C ground truth** (Tier-B precedent, reproduced live). MS exclusion therefore rests on
+  `phase1f` (live == real-C passive, passing), never on oracle MSD.
+- Live Rust census at f22/f23: seq STOP/LONG confirmed; QC scalars reproduce phase1h pins
+  (total 2424/static 279 at f22); npass=1, crash=−1. **TNS was not compared**: no capture
+  mechanism records live TNS decisions (nor do committed vectors), though C STNSW is
+  active on windows 4–7 at f22 — the TNS-first hypothesis is explicitly blocked, not
+  resolved. f23 C-side S1 was obtained usable (LONG STOP, MSD digest 1, 26 bands); no
+  Rust-side f23 vectors exist (committed or live).
+- Verdict: **inconclusive on mechanism, narrowed** — block structure and MS mask excluded;
+  open lanes in order: live TNS (blocked), Rust S1 thresholds/energies (ungated), post-S1
+  QC/bitenc residue (D-021 class). The gap favors Rust and violates no Tier-B gate: not a
+  Rust defect finding, and not evidence of Rust superiority (single fixture, blunt metric).
+
+### 12.3 Decision rationale (recorded, not a gate change)
+
+- **No encoder fix is justified yet**: neither fixture yields a localized defect — sweep
+  shows no C-side anomaly and no Rust-side comparison; onset441 shows a same-direction
+  residue operating-point difference under identical block structure.
+- **No performance/SIMD campaign is warranted**: worst-case throughput is 159× realtime
+  (Rust, music) and the median encoder-core gap is 1.34× — hand-vectorization risk is not
+  justified by these numbers.
+- **Bit-identical Rust/C output is not the acceptance criterion** (consistent with §6.4
+  of `aac-enc-vbr5-profile.md`): structural equality plus bounded payload agreement is;
+  silence/edge bit-identity and stress byte-identity are recorded as instances, not goals.
+
+### 12.4 Outstanding questions and smallest follow-ups (all unapproved)
+
+1. Live Rust S1/QC capture (test-only, scratch outputs) at sweep f6 and onset441 f22 —
+   thresholds → spectra → MS → **TNS first** → S2→S8 — diffed line-by-line vs the fresh
+   V4.3 oracle S1. Pass = first differing stage named; fail-safe (full S1 equality
+   modulo documented SPEC wobble) = proven post-S1 QC/bitenc residue. The needed harness
+   extension (S1Cap/TNS/MS capture) is **proposed, not implemented or approved**.
+2. Systematic 44.1 kHz check (one more fixture) — requires a tracked addition; gated on
+   (1) showing f22/f23 sequence-level agreement (established) and therefore currently
+   the lowest priority.
+3. The V3 scratch corpora (`$TMPDIR/v3-*`, `$TMPDIR/v4-*`) are temporary; durable
+   conclusions are those recorded here and in `aac-enc-m5b-objective-quality-baseline.md`
+   §9. Re-measurement needs only committed fixtures, existing harnesses, and a fresh
+   pin-clone build. No report evidence conflicts with another: the f23→f21/f22 mapping
+   correction above supersedes the earlier V4 scratch note with the derivation stated;
+   raw-argmax candidate variance (pilot exact vs coarse scan) never changed a nominal
+   decision.

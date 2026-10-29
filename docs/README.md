@@ -32,6 +32,44 @@ decisions were reached, not as current normative guidance.
   source-provenance inventory for the Rust codec port: upstream
   comparisons, evidence, and unresolved gaps (evidence record, not
   normative guidance).
+
+### Encoder investigations (evidence)
+
+> **Publication note (2026-10-29).** These investigation records were
+> written against `c4d1262` and published after `331f4e8`. Their historical
+> test counts and worktree statements are preserved as recorded; they are
+> not rewritten to match later revisions.
+
+- [MDCT f32 vs f64 precision experiment](aac-enc-mdct-f64-precision-experiment.md) —
+  isolated forward-MDCT experiment; recommendation is to retain f32
+  (evidence, not normative guidance).
+- [MDCT f32/f64 experiment closeout](aac-enc-mdct-f64-closeout.md) —
+  retained artifacts, removed experimental code, regression coverage, and
+  the next highest-value correctness finding.
+- [Block-switch oracle investigation](aac-enc-block-switch-oracle-investigation.md) —
+  `speech-clean` f107–f109 START/SHORT/STOP vs LONG divergence: traced to
+  fixed-point energy truncation, not a porting defect.
+- [TNS D-012 oracle investigation](aac-enc-tns-oracle-investigation.md) —
+  TNS order/coefficient divergences: TNS analysis is faithful on C-exact RXX;
+  the boundary decisions come from upstream f32-MDCT/Q31 spectrum differences.
+- [TNS D-013 activation-margin census](aac-enc-tns-d013-activation-margin-census.md) —
+  committed-vector census: the same-input prediction-gain residual cannot
+  flip TNS activation; closest HI margin 54 vs maximum decision-relevant
+  residual 1. D-013 closed for the committed corpus.
+- [MINSNR1 oracle investigation](aac-enc-minsnr1-oracle-investigation.md) —
+  MINSNR1 value divergences: S2 adaptation is exact on C inputs; the
+  differences come from upstream `SENL`/`PENLD` residue and the known MS
+  band-16 decision.
+- [Cross-frame state drift investigation](aac-enc-cross-frame-state-drift-investigation.md) —
+  persistent-state audit: block-switch f106/f107 is the only demonstrated
+  output-changing drift; onset/sweep ATS/chaos differences are upstream
+  propagation and locally output-neutral.
+- [Rate-control and bit-reservoir audit](aac-enc-rate-control-divergence-audit.md) —
+  VBR-5 uses a pinned FULL reservoir and cap-derived grants, not a
+  conventional carry reservoir; the persistent QC grant state is inert in
+  the VBR threshold path. 2,442 corpus frames are single-pass with no gain
+  adjustments; no rate-control porting defect, and no new C QC capture is
+  justified for this path.
 - [Performance baseline and profiling audit](aac-enc-performance-baseline.md) —
   release-throughput baseline on the committed corpus (≈229× realtime for
   the 19 fixtures, ≈194× including a 40 s derived music workload) and
@@ -127,6 +165,11 @@ decisions were reached, not as current normative guidance.
   **+13.932%** median over eight alternating pairs, 8/8 positive, all 20
   workloads improved (heavy workloads +14.265% median), and all 60 output
   hashes unchanged.
+- [Numerical divergence triage](aac-enc-numerical-divergence-triage.md) —
+  consolidated evidence-based triage of MDCT, block-switch, TNS, MINSNR1,
+  cross-frame, and rate-control divergences; no verified porting defect.
+  D-013 and the rate-control/bit-reservoir question are closed for the
+  tested VBR-5 corpus.
 
 ## Archive
 

@@ -101,3 +101,58 @@ Next bounded milestone: **M5.c flush/termination + skip-policy validation** (M5.
 - Branch `main`, HEAD `53481f3a` (unchanged). No staging, commits, stashes, resets, cleans, restores, or amends.
 - Only intended additions: `rust/src/aac_enc/m5b_measure.rs`, one test-gated registration line in the already-modified `rust/src/aac_enc.rs`, and this report. All 28 pre-existing status lines verified untouched at start (26-count baseline + 2 M5.a files); final status shows only those plus the 2 new M5.b files.
 - Production encoder code, existing fixtures, and existing tests unmodified (`m5a_decode.rs` untouched; M5.a artifacts reused read-only). `aac-dec.c`/`aac-enc.c` unmodified. Generated audio lives only in `$TMPDIR/m5a-decode/` and `$TMPDIR/m5b-quality/`; build trees only in `/tmp/m5a-build/`.
+
+## 9. V3 full-corpus successor baseline (2026-10-24/25, HEAD `3878c45`)
+
+This section supersedes §§1–7 as the current quality/performance baseline; the M5.b
+3-fixture numbers above are retained as the method-validation record (the V3 pilot
+reproduces them exactly: 35.84/35.93, 58.10/57.62, 55.14/55.19 dB). Method, conventions,
+and limitations below are unchanged unless stated; the corpus is the 19-fixture V3 set
+(`aac-enc-benchmark-plan.md` §1 documents provenance; committed resynthesis formulae in
+`rust/src/aac_enc/testdata.rs`, licensed WAVs + `m55-PROVENANCE.txt`/`m8-PROVENANCE.txt`).
+
+- **Scope:** all 19 `M58_FIXTURES` (15 synthetic + m6 stress + 3 licensed + m8 eroica).
+  Mono-44.1k is absent from the corpus by design (unsupported per M5.a/M5.e), not a failure;
+  `m8-music-eroica` is PROVISIONAL pending independent provenance review.
+- **Builds:** pinned reference `f14ad40` (Release `aac-enc`/`aac-dec`, Apple clang 21.0.0,
+  cmake 4.4.4); Rust `cargo test --features aac_enc` (dev profile for quality — deterministic
+  bytes; `--release` for perf), rustc/cargo 1.99.1, no RUSTFLAGS.
+- **Input identity:** Rust in-memory PCM vs C-side WAV bit-identical on 19/19 (FNV-1a64 ==
+  harness `input_hash`); m5b hashes reproduce §1 exactly.
+- **Validation:** 38/38 reference decodes (exit 0, empty stderr) + 38/38 FFmpeg `decode_ok`
+  (9.0.2). Frame counts and decoded lengths rust==c on all 19. Zero clipped samples except
+  stress (22/22 both — full-scale content, identical).
+- **Quality (lag −1600 nominal, maximal overlap, both channels; rust-vs-c at lag 0):**
+  bitrates within −2.5%/+2.0% of C (18/19 within the old descriptive ±2.2% band; sweep
+  −2.45% is the sole outlier — the band is descriptive, not a gate); codec-error SNR
+  agreement ≤1.3 dB (17/19 ≤0.5 dB; onset441 1.27 dB *favoring Rust*; sweep 0.47 dB);
+  residue (rust-vs-c) 33–64 dB, i.e. 6–40 dB below codec error; silence/edge bit-identical,
+  stress bytes identical. SNR/SDR remain blunt full-band ratios — no perceptual claim.
+- **Performance (5 reps/config, medians, outliers kept):** Rust encoder-core median **1.34×**
+  slower than C (range 1.13–1.75×; silence worst at 1.75×); aggregate 223.8× vs 293.7×
+  realtime (51.5 s audio); worst case music 159× realtime Rust. C end-to-end timing is
+  order-of-magnitude only (`/usr/bin/time -p`, 10 ms granularity); the ns-resolution
+  `c-enc-bench` column carries the comparison. Timed outputs byte-identical to quality-run
+  outputs (release==dev bytes).
+- **Alignment discipline (extends §5):** coarse-to-fine correlation candidate (±2048, stride
+  64 → refine ±96) with acceptance always by full-rate SNR evidence at nominal −1600.
+  Raw candidates that lost on SNR evidence: onset48 544, multitone 640, quiet-sine 544,
+  click −80/−128 (rust/c — raw is unstable across impls), edge/silence range-edge −2048.
+  (The V3 pilot's exact full-rate scan gave onset48=1600; near-tied period-48 aliases differ
+  by scan, the nominal decision does not.) 44.1 kHz raw agreed (−1600 both fixtures) on the
+  weaker two-fixture basis. Two frame coordinates are distinguished where needed: causal
+  (orig sample *i* encoded in output frame ⌊i/1024⌋) vs decoded-audio (frame *f*'s audio ↔
+  orig [f·1024−1600−D, …), D=1744 @48 kHz / 1685 @44.1 kHz, ±1-frame MDCT slop).
+- **Limitations carried forward:** trimmed regions excluded; flush-payload stage attribution
+  open (M5.c gap, M5.d bounds only); 44.1 kHz basis thin; no perceptual evidence.
+- **Scratch provenance:** full data/logs under `$TMPDIR/v3-full-rvehNNkF/` (metrics JSON,
+  perf JSON, 38 ADTS+WAVs, build logs) and the pilot under `$TMPDIR/v3-XM50vmgW/` are
+  **temporary** and may be deleted. Durable conclusions (the numbers above, the method,
+  the limitations) survive deletion; re-measurement needs only the committed fixtures,
+  the existing harnesses (`m5b_dump_inputs`, `m58_corpus_validation`, `m52` paths), and a
+  fresh pin-clone build per the recorded commands.
+- **Direction (evidence, not a gate):** throughput (≥142× realtime worst case) does not
+  justify a performance/SIMD campaign; the measured 1.34× gap does not justify
+  hand-vectorization risk. Next milestone: bounded correctness (sweep bitrate, onset441
+  gap), then quality; see the V4 record appended to
+  `aac-enc-quality-divergence-audit-m5.25.md` §12.

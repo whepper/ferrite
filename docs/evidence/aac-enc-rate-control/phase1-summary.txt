@@ -1,0 +1,21 @@
+Phase 1 full-stream parity summary (M52 15-fixture inventory)
+Command: PHASE1_ORACLE_DIR=... PHASE1_C_DIR=... PHASE1_OUT=... cargo test --locked --features aac_enc --lib aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity -- --nocapture
+Result: pass (1 test); 558 compared frames
+Exact: 286
+Known-short: 7
+Flush-tail: 12
+New: 253
+Skipped-in: 0
+Skipped-fixtures: 0
+Unstepped: 0
+MS digest match: 480, mismatch: 3
+MS mask-ones exact: 342
+PARITY-STATUS: measurement only, no full-stream parity claimed.
+
+M55 full-stream comparison (4 licensed fixtures, retained C ADTS):
+Command: M55_C_DIR=... cargo test --locked --features aac_enc --lib aac_enc::stream_driver::m52_tests::m55_streams_match_c_reference -- --nocapture
+Result: pass (1 test), artifact-dependent fallback caveat applies.
+m7-music-stereo-48k: frames=471 Rust_bytes=250926 C_bytes=251279 len_exact_frames=145 first_diff=19
+m7-speech-pauses-stereo-48k: frames=471 Rust_bytes=125818 C_bytes=125996 len_exact_frames=161 first_diff=64
+m7-speech-clean-stereo-48k: frames=471 Rust_bytes=127900 C_bytes=127971 len_exact_frames=124 first_diff=21
+m8-music-eroica-stereo-48k: frames=471 Rust_bytes=234229 C_bytes=235444 len_exact_frames=93 first_diff=20
