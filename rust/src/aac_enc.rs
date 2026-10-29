@@ -133,6 +133,8 @@ pub(crate) mod pcm;
 pub(crate) mod pe;
 #[cfg(test)]
 pub(crate) mod phase1b;
+#[cfg(test)]
+pub(crate) mod production_baseline;
 pub(crate) mod psy;
 // Init-time PSY/TNS configuration snapshots (production: needed by
 // `StreamEncoder::new` for table setup).
