@@ -1,0 +1,1 @@
+CENSUS_SUMMARY	hi_windows=124	lo_windows=4	max_residual=11	max_residual_decision=1	max_gate=30	min_hi_margin=54	min_hi_margin_decision=54	min_lo_low_margin=343	min_lo_high_margin=78843	min_lo_low_margin_decision=343	min_lo_high_margin_decision=78843	literal_candidates=0	gate_candidates=0	candidates=0	actual_flips=0	coefficient_mismatches=0

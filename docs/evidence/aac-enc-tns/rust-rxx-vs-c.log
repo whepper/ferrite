@@ -1,0 +1,236 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4277:9
+     |
+4276 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4277 |     pub stem: String,
+     |         ^^^^
+...
+4282 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:4905:9
+     |
+4904 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+4905 |     pub short: String,
+     |         ^^^^^
+...
+4908 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:516:16
+    |
+495 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+516 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+   --> src/aac_enc/testdata.rs:940:16
+    |
+939 | pub(crate) struct S1Frame {
+    |                   ------- field in this struct
+940 |     pub(crate) frame: u32,
+    |                ^^^^^
+    |
+    = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1187:16
+     |
+1186 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1187 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1445:16
+     |
+1441 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1445 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1640:16
+     |
+1636 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1640 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2305:16
+     |
+2304 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2305 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2369:16
+     |
+2368 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2369 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-9f36c0a79a2489d0)
+
+running 1 test
+TNSRXX multitone-stereo f1 ch0 w6 short=true max|dRXX1|=4235 max|dRXX2|=64757860 C gain=[1752, 1000] Rust gain=[1773, 1000] C ord=[3, 0] Rust ord=[3, 0] C coef=[0, 2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0] Rust coef=[0, 2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  C RXX1 [1073741824, -194506043, -15290786, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  R RXX1 [1073741824, -194510278, -15290450, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  C RXX2 [1610612788, 83547705, -1013941077, 32614370, 609209700, -23977186, 0, 0, 0, 0, 0, 0, 0]
+  R RXX2 [1675370648, 78646461, -1066282883, 42443278, 648397995, -32954554, 0, 0, 0, 0, 0, 0, 0]
+TNSRXX onset-stereo f24 ch0 w4 short=true max|dRXX1|=770 max|dRXX2|=698176 C gain=[10227, 1000] Rust gain=[10317, 1000] C ord=[2, 0] Rust ord=[5, 0] C coef=[3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] Rust coef=[3, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0]
+  C RXX1 [1073741824, 157621860, -6606544, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  R RXX1 [1073741824, 157621090, -6606600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  C RXX2 [1610612788, -1514250165, 1367566774, -1188575362, 986269857, -759589923, 0, 0, 0, 0, 0, 0, 0]
+  R RXX2 [1610612796, -1514803170, 1368184319, -1189117258, 986968033, -760129494, 0, 0, 0, 0, 0, 0, 0]
+TNSRXX onset-stereo f25 ch0 w0 short=false max|dRXX1|=3787 max|dRXX2|=6805230 C gain=[22154, 1157] Rust gain=[27723, 1157] C ord=[11, 4] Rust ord=[10, 4] C coef=[6, 1, -2, 2, -1, 1, 0, -1, 1, -1, 1, 0] Rust coef=[6, 2, -3, 2, -1, 0, 1, -1, 1, -1, 0, 0]
+  C RXX1 [1073741824, -230784584, -176393926, -50217859, -31726975, 7488994, 0, 0, 0, 0, 0, 0, 0]
+  R RXX1 [1073741824, -230785588, -176392040, -50221646, -31725400, 7489900, 0, 0, 0, 0, 0, 0, 0]
+  C RXX2 [1214542851, -1163782003, 1090214698, -975012493, 820957565, -642270533, 443613245, -243361483, 48507919, 130288589, -284170683, 403452378, -486866500]
+  R RXX2 [1214059857, -1170587233, 1095063260, -977633737, 824441774, -643621907, 444776248, -243460880, 48069103, 130866276, -284776737, 405496154, -488524805]
+TNSRXX onset-stereo f26 ch0 w0 short=false max|dRXX1|=5186 max|dRXX2|=22901335 C gain=[1018, 1000] Rust gain=[1047, 1000] C ord=[0, 0] Rust ord=[2, 0] C coef=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] Rust coef=[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  C RXX1 [1073741312, -56058936, 145952353, -15007982, 16589300, -554770, 0, 0, 0, 0, 0, 0, 0]
+  R RXX1 [1073741824, -56059438, 145947167, -15006299, 16593150, -554770, 0, 0, 0, 0, 0, 0, 0]
+  C RXX2 [62197159, -2477449, -2982674, -2331155, 2905440, 832423, -3754717, 1530580, 2165542, 973423, -3538974, 2488817, 3177529]
+  R RXX2 [39295824, -1020636, -6506024, -79714, 3107840, 548304, -3908852, 62665, 3625426, 224746, -3193945, -83954, 2784440]
+TNSRXX stepdown-stereo f1 ch0 w3 short=true max|dRXX1|=4290 max|dRXX2|=2840148 C gain=[6007, 1000] Rust gain=[6107, 1000] C ord=[5, 0] Rust ord=[5, 0] C coef=[0, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0] Rust coef=[0, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
+  C RXX1 [1073741824, 214035250, 10500336, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  R RXX1 [1073741824, 214030960, 10500896, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  C RXX2 [1318924605, -76220393, -1092208849, 57000971, 776690805, -38381785, 0, 0, 0, 0, 0, 0, 0]
+  R RXX2 [1316084457, -74175564, -1091720729, 55013676, 775487311, -36706330, 0, 0, 0, 0, 0, 0, 0]
+test aac_enc::psy::tests::tns_rust_rxx_diagnostics ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.06s
+

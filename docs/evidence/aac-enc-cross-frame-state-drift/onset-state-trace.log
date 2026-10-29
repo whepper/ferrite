@@ -1,0 +1,287 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: unused imports: `StereoWork`, `adapt_min_snr`, `init_avoid_hole_flag_mono`, and `init_avoid_hole_flag_ms`
+    --> src/aac_enc/stream_driver.rs:2241:21
+     |
+2241 |                     adapt_min_snr, init_avoid_hole_flag_mono, init_avoid_hole_flag_ms, StereoWork,
+     |                     ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+     |
+     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `spec`
+    --> src/aac_enc/stream_driver.rs:2248:21
+     |
+2248 |                     spec: &[Vec<i32>],
+     |                     ^^^^ help: if this is intentional, prefix it with an underscore: `_spec`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `spec`
+    --> src/aac_enc/stream_driver.rs:2610:13
+     |
+2610 |             spec: &[Vec<i32>],
+     |             ^^^^ help: if this is intentional, prefix it with an underscore: `_spec`
+
+warning: method `ms_ld_state` is never used
+   --> src/aac_enc/psy.rs:193:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+193 |     pub fn ms_ld_state(&self) -> &[[f64; 64]; 8] {
+    |            ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5341:9
+     |
+5340 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5341 |     pub stem: String,
+     |         ^^^^
+...
+5346 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:5972:9
+     |
+5971 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+5972 |     pub short: String,
+     |         ^^^^^
+...
+5975 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:516:16
+    |
+495 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+516 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+   --> src/aac_enc/testdata.rs:940:16
+    |
+939 | pub(crate) struct S1Frame {
+    |                   ------- field in this struct
+940 |     pub(crate) frame: u32,
+    |                ^^^^^
+    |
+    = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1187:16
+     |
+1186 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1187 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1445:16
+     |
+1441 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1445 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1640:16
+     |
+1636 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1640 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2305:16
+     |
+2304 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2305 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2369:16
+     |
+2368 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2369 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:686:18
+    |
+686 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 19 warnings (run `cargo fix --lib -p ferrite-aac --tests` to apply 3 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-9f36c0a79a2489d0)
+
+running 1 test
+EARLY f0 seq=0 bytes=15 chaos_old=1020054751 ats=[402653184, 402653184]/[0, 0]
+EARLY f1 seq=0 bytes=15 chaos_old=1301911974 ats=[402653184, 402653184]/[0, 0]
+EARLY f2 seq=0 bytes=15 chaos_old=1513304891 ats=[402653184, 402653184]/[0, 0]
+EARLY f3 seq=0 bytes=15 chaos_old=1671849579 ats=[402653184, 402653184]/[0, 0]
+EARLY f4 seq=0 bytes=15 chaos_old=1790758095 ats=[402653184, 402653184]/[0, 0]
+EARLY f5 seq=0 bytes=15 chaos_old=1879939482 ats=[402653184, 402653184]/[0, 0]
+EARLY f6 seq=0 bytes=15 chaos_old=1946825522 ats=[402653184, 402653184]/[0, 0]
+EARLY f7 seq=0 bytes=15 chaos_old=1996990052 ats=[402653184, 402653184]/[0, 0]
+EARLY f8 seq=0 bytes=15 chaos_old=2034613450 ats=[402653184, 402653184]/[0, 0]
+EARLY f9 seq=0 bytes=15 chaos_old=2062830998 ats=[402653184, 402653184]/[0, 0]
+EARLY f10 seq=0 bytes=15 chaos_old=2083994159 ats=[402653184, 402653184]/[0, 0]
+EARLY f11 seq=0 bytes=15 chaos_old=2099866530 ats=[402653184, 402653184]/[0, 0]
+EARLY f12 seq=0 bytes=15 chaos_old=2111770808 ats=[402653184, 402653184]/[0, 0]
+EARLY f13 seq=0 bytes=15 chaos_old=2120699017 ats=[402653184, 402653184]/[0, 0]
+EARLY f14 seq=0 bytes=15 chaos_old=2127395173 ats=[402653184, 402653184]/[0, 0]
+EARLY f15 seq=0 bytes=15 chaos_old=2132417290 ats=[402653184, 402653184]/[0, 0]
+EARLY f16 seq=0 bytes=15 chaos_old=2136183878 ats=[402653184, 402653184]/[0, 0]
+EARLY f17 seq=0 bytes=15 chaos_old=2139008819 ats=[402653184, 402653184]/[0, 0]
+EARLY f18 seq=0 bytes=15 chaos_old=2141127525 ats=[402653184, 402653184]/[0, 0]
+EARLY f19 seq=0 bytes=15 chaos_old=2142716554 ats=[402653184, 402653184]/[0, 0]
+EARLY f20 seq=0 bytes=15 chaos_old=2143908326 ats=[402653184, 402653184]/[0, 0]
+EARLY f21 seq=0 bytes=15 chaos_old=2144802155 ats=[402653184, 402653184]/[0, 0]
+STATE onset f22 seqC=0 seqR=0 bytes=15 atsCpre=[402653184, 402653184, 0, 0] atsRpre=[402653184, 402653184, 0, 0] atsCpost=[402653184, 402653184, 0, 0] atsRpost=[402653184, 402653184, 0, 0]
+  chaos Cpre/post=2144802155/2145472527 Rpre/post=2144802155/2145472527
+  ch0 preC nm1_maxd=0@0 mC=0 mR=0 calcC=1 calcR=1
+  ch1 preC nm1_maxd=0@0 mC=0 mR=0 calcC=1 calcR=1
+STATE onset f23 seqC=1 seqR=1 bytes=15 atsCpre=[402653184, 402653184, 0, 0] atsRpre=[402653184, 402653184, 0, 0] atsCpost=[402653184, 402653184, 0, 0] atsRpost=[402653184, 402653184, 0, 0]
+  chaos Cpre/post=2145472527/2145975306 Rpre/post=2145472527/2145975306
+  ch0 preC nm1_maxd=0@0 mC=0 mR=0 calcC=0 calcR=0
+  ch1 preC nm1_maxd=0@0 mC=0 mR=0 calcC=0 calcR=0
+STATE onset f24 seqC=2 seqR=2 bytes=337 atsCpre=[402653184, 402653184, 0, 0] atsRpre=[402653184, 402653184, 0, 0] atsCpost=[1610612736, 1610612736, 1, 1] atsRpost=[1610612736, 1610612736, 1, 1]
+  chaos Cpre/post=2145975306/1073676288 Rpre/post=2145975306/1073676288
+  ch0 preC nm1_maxd=0@0 mC=7 mR=7 calcC=1 calcR=1
+  ch1 preC nm1_maxd=0@0 mC=7 mR=7 calcC=1 calcR=1
+STATE onset f25 seqC=3 seqR=3 bytes=119 atsCpre=[1610612736, 1610612736, 1, 1] atsRpre=[1610612736, 1610612736, 1, 1] atsCpost=[407797760, 402653184, 0, 0] atsRpost=[410386432, 402653184, 0, 0]
+  chaos Cpre/post=1073676288/401997824 Rpre/post=1073676288/402063360
+  diffs spec[183]=4198 lin[10]=1392 ld[37]=47151681 thr[44]=0 ff[39]=12846591 Cspec=2010 Rspec=-2188 Clin=151026002 Rlin=151027394 Cld=-1295446206 Rld=-1342597887 Cthr=-1107296256 Rthr=-1107296256 Cff=-401771223 Rff=-414617814
+PE25 atsCpost=[407797760, 402653184, 0, 0] allR=[410386432, 402653184, 0, 0] cSpecOnly=[410386432, 402653184, 0, 0] cEnergyOnly=[407797760, 402653184, 0, 0] cLinOnly=[410386432, 402653184, 0, 0] cLdOnly=[407797760, 402653184, 0, 0] cThrOnly=[410386432, 402653184, 0, 0] cFfOnly=[407797760, 402653184, 0, 0] allC=[407797760, 402653184, 0, 0] maxSpecDiff=4198
+  ch0 preC nm1_maxd=0@0 mC=10 mR=10 calcC=1 calcR=1
+  ch1 preC nm1_maxd=0@0 mC=10 mR=10 calcC=1 calcR=1
+STATE onset f26 seqC=0 seqR=0 bytes=58 atsCpre=[407797760, 402653184, 0, 0] atsRpre=[410386432, 402653184, 0, 0] atsCpost=[402653184, 402653184, 0, 0] atsRpost=[402653184, 402653184, 0, 0]
+  chaos Cpre/post=401997824/205848576 Rpre/post=402063360/220004352
+  ch0 preC nm1_maxd=0@0 mC=9 mR=9 calcC=1 calcR=1
+  ch1 preC nm1_maxd=0@0 mC=9 mR=9 calcC=1 calcR=1
+test aac_enc::stream_driver::phase1_tests::state_drift_onset_diagnostic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 342 filtered out; finished in 0.04s
+

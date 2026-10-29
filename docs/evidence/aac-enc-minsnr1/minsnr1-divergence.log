@@ -1,0 +1,239 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:4599:9
+     |
+4598 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+4599 |     pub stem: String,
+     |         ^^^^
+...
+4604 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:5230:9
+     |
+5229 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+5230 |     pub short: String,
+     |         ^^^^^
+...
+5233 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:516:16
+    |
+495 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+516 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+   --> src/aac_enc/testdata.rs:940:16
+    |
+939 | pub(crate) struct S1Frame {
+    |                   ------- field in this struct
+940 |     pub(crate) frame: u32,
+    |                ^^^^^
+    |
+    = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1187:16
+     |
+1186 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1187 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1445:16
+     |
+1441 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1445 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1640:16
+     |
+1636 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1640 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2305:16
+     |
+2304 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2305 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2369:16
+     |
+2368 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2369 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:686:18
+    |
+686 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-9f36c0a79a2489d0)
+
+running 1 test
+MINSNR1 onset-stereo f25 ch0 MINSNR0 maxdiff=0 SENL maxdiff=1392 PENLD maxdiff=47151681 SPREAD0 maxdiff=672 maskdiff=0 | prod-vs-C out=1 max=163913 | Cenergy out=0 max=0 | Csenl-only out=1 max=163913 | Cpenld-only out=0 max=88537 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=53132 ahdiff=0
+  band 22: C min0=-41709060 senl=17 penld=-901361351 spread0=8 ms=1 min1=-21874525 | R min0=-41709060 senl=17 penld=-901525264 spread0=8 ms=1 min1=-21710612
+MINSNR1 onset-stereo f25 ch1 MINSNR0 maxdiff=0 SENL maxdiff=0 PENLD maxdiff=47151681 SPREAD0 maxdiff=672 maskdiff=0 | prod-vs-C out=0 max=0 | Cenergy out=0 max=0 | Csenl-only out=0 max=0 | Cpenld-only out=0 max=0 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+MINSNR1 onset-stereo f26 ch0 MINSNR0 maxdiff=0 SENL maxdiff=548 PENLD maxdiff=65657763 SPREAD0 maxdiff=320 maskdiff=1 | prod-vs-C out=1 max=23297022 | Cenergy out=1 max=23297022 | Csenl-only out=1 max=23297022 | Cpenld-only out=1 max=23297022 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=4159422 ahdiff=0
+  band 16: C min0=-136396319 senl=0 penld=-1101385771 spread0=0 ms=1 min1=-10802114 | R min0=-136396319 senl=0 penld=-1107953108 spread0=0 ms=0 min1=-34099136
+MINSNR1 onset-stereo f26 ch1 MINSNR0 maxdiff=0 SENL maxdiff=0 PENLD maxdiff=1039530540 SPREAD0 maxdiff=320 maskdiff=1 | prod-vs-C out=1 max=125594205 | Cenergy out=1 max=125594205 | Csenl-only out=1 max=125594205 | Cpenld-only out=1 max=125594205 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+  band 16: C min0=-136396319 senl=0 penld=-2147483648 spread0=0 ms=1 min1=-10802114 | R min0=-136396319 senl=0 penld=-1107953108 spread0=0 ms=0 min1=-136396319
+MINSNR1 sine-stereo f5 ch0 MINSNR0 maxdiff=0 SENL maxdiff=698 PENLD maxdiff=101832433 SPREAD0 maxdiff=320 maskdiff=1 | prod-vs-C out=1 max=23297022 | Cenergy out=1 max=23297022 | Csenl-only out=1 max=23297022 | Cpenld-only out=1 max=23297022 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=4125678 ahdiff=0
+  band 16: C min0=-136396319 senl=0 penld=-1102217490 spread0=0 ms=1 min1=-10802114 | R min0=-136396319 senl=0 penld=-1108979069 spread0=0 ms=0 min1=-34099136
+MINSNR1 sine-stereo f5 ch1 MINSNR0 maxdiff=0 SENL maxdiff=0 PENLD maxdiff=1038504579 SPREAD0 maxdiff=320 maskdiff=1 | prod-vs-C out=1 max=125594205 | Cenergy out=1 max=125594205 | Csenl-only out=1 max=125594205 | Cpenld-only out=1 max=125594205 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+  band 16: C min0=-136396319 senl=0 penld=-2147483648 spread0=0 ms=1 min1=-10802114 | R min0=-136396319 senl=0 penld=-1108979069 spread0=0 ms=0 min1=-136396319
+MINSNR1 sine-stereo-44100 f5 ch0 MINSNR0 maxdiff=0 SENL maxdiff=49420 PENLD maxdiff=67908528 SPREAD0 maxdiff=24704 maskdiff=0 | prod-vs-C out=1 max=296901 | Cenergy out=0 max=0 | Csenl-only out=1 max=296901 | Cpenld-only out=0 max=0 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=6253969 ahdiff=0
+  band 13: C min0=-220503241 senl=4 penld=-969962975 spread0=1527 ms=0 min1=-47439153 | R min0=-220503241 senl=4 penld=-970259876 spread0=1527 ms=0 min1=-47142252
+MINSNR1 sine-stereo-44100 f5 ch1 MINSNR0 maxdiff=0 SENL maxdiff=0 PENLD maxdiff=67908528 SPREAD0 maxdiff=24704 maskdiff=0 | prod-vs-C out=0 max=0 | Cenergy out=0 max=0 | Csenl-only out=0 max=0 | Cpenld-only out=0 max=0 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+MINSNR1 stepdown-stereo f2 ch0 MINSNR0 maxdiff=0 SENL maxdiff=470 PENLD maxdiff=51321805 SPREAD0 maxdiff=192 maskdiff=0 | prod-vs-C out=1 max=246409 | Cenergy out=0 max=0 | Csenl-only out=1 max=246409 | Cpenld-only out=0 max=4804 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+  band 22: C min0=-41709060 senl=13 penld=-912759415 spread0=6 ms=1 min1=-22150828 | R min0=-41709060 senl=13 penld=-913005824 spread0=6 ms=1 min1=-21904419
+MINSNR1 stepdown-stereo f2 ch1 MINSNR0 maxdiff=0 SENL maxdiff=0 PENLD maxdiff=51321805 SPREAD0 maxdiff=192 maskdiff=0 | prod-vs-C out=0 max=0 | Cenergy out=0 max=0 | Csenl-only out=0 max=0 | Cpenld-only out=0 max=0 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=0 ahdiff=0
+MINSNR1 quiet-sine-stereo f5 ch0 MINSNR0 maxdiff=0 SENL maxdiff=21850 PENLD maxdiff=14363723 SPREAD0 maxdiff=9984 maskdiff=0 | prod-vs-C out=2 max=10452206 | Cenergy out=0 max=0 | Csenl-only out=3 max=10452206 | Cpenld-only out=2 max=1540830 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=308259 ahdiff=0
+  band 2: C min0=-281213728 senl=2 penld=-989994832 spread0=1 ms=1 min1=-59851282 | R min0=-281213728 senl=3 penld=-975631109 spread0=1 ms=1 min1=-70303488
+  band 5: C min0=-281213728 senl=9 penld=-931966974 spread0=4 ms=1 min1=-44302265 | R min0=-281213728 senl=9 penld=-933303197 spread0=4 ms=1 min1=-44506872
+MINSNR1 quiet-sine-stereo f5 ch1 MINSNR0 maxdiff=0 SENL maxdiff=5 PENLD maxdiff=5438150 SPREAD0 maxdiff=9984 maskdiff=0 | prod-vs-C out=5 max=1944944 | Cenergy out=0 max=0 | Csenl-only out=4 max=1087523 | Cpenld-only out=5 max=1669435 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=557 ahdiff=0
+  band 21: C min0=-55259159 senl=34 penld=-869135232 spread0=270 ms=0 min1=-55259159 | R min0=-55259159 senl=33 penld=-870053921 spread0=270 ms=0 min1=-55767585
+  band 34: C min0=-10802119 senl=115 penld=-810084779 spread0=2253 ms=0 min1=-35238921 | R min0=-10802119 senl=118 penld=-808997256 spread0=2243 ms=0 min1=-37022711
+  band 35: C min0=-10802119 senl=140 penld=-800746223 spread0=601 ms=0 min1=-54523973 | R min0=-10802119 senl=139 penld=-801021732 spread0=598 ms=0 min1=-52579029
+  band 42: C min0=-10802119 senl=121 penld=-807649041 spread0=10256 ms=0 min1=-37674659 | R min0=-10802119 senl=122 penld=-807304492 spread0=10262 ms=0 min1=-38715475
+  band 43: C min0=-10802119 senl=141 penld=-800382002 spread0=10255 ms=0 min1=-52405146 | R min0=-10802119 senl=138 penld=-801372539 spread0=10261 ms=0 min1=-50614445
+MINSNR1 click-mono f11 ch0 MINSNR0 maxdiff=0 SENL maxdiff=256 PENLD maxdiff=67789194 SPREAD0 maxdiff=256 maskdiff=0 | prod-vs-C out=0 max=19968 | Cenergy out=0 max=0 | Csenl-only out=0 max=19968 | Cpenld-only out=0 max=0 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=4167215 ahdiff=0
+MINSNR1 impulse-mono f5 ch0 MINSNR0 maxdiff=0 SENL maxdiff=1056 PENLD maxdiff=21772 SPREAD0 maxdiff=1056 maskdiff=0 | prod-vs-C out=0 max=12267 | Cenergy out=0 max=0 | Csenl-only out=0 max=14909 | Cpenld-only out=0 max=12758 | Cenergy+Cmask out=0 max=0 | THRV out=0 max=77236 ahdiff=0
+test aac_enc::stream_driver::phase1_tests::minsnr1_divergence_is_upstream_of_s2 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.11s
+
