@@ -1,0 +1,294 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+   Compiling ferrite-aac v0.1.0 (/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10/src/ferrite/rust)
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:226:12
+    |
+198 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+226 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, `max_sfb_per_group`, `ms_energies`, and `ms_ld` are never read
+   --> src/aac_enc/psy.rs:202:9
+    |
+194 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+202 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+203 |     /// Grouped threshold log vectors (clamped).
+204 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+208 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+212 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+...
+225 |     pub ms_energies: Vec<i32>,
+    |         ^^^^^^^^^^^
+...
+239 |     pub ms_ld: Vec<f64>,
+    |         ^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:248:9
+    |
+244 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+248 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+249 |     /// TNS overflow shift applied.
+250 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+254 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+264 |     pub nm1: Vec<i32>,
+    |         ^^^
+265 |     /// Previous scale / enabled flag after the frame.
+266 |     pub m_nm1: i32,
+    |         ^^^^^
+267 |     /// Calc flag after the frame (0/1).
+268 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1361:9
+     |
+1360 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1361 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1365 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1366 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1367 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1368 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1134:15
+     |
+1134 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:188:5
+    |
+187 | pub struct SfbConfig {
+    |            --------- fields in this struct
+188 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+189 |     kind: BlockKind,
+    |     ^^^^
+190 |     /// Transform lines covered (1024 long, 128 short).
+191 |     lines: usize,
+    |     ^^^^^
+...
+200 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+204 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+208 |     bark: Vec<f64>,
+    |     ^^^^
+...
+216 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+217 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+218 |     /// Spreading factors (spread-energy domain): high/low.
+219 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+220 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+221 |     allow_is: bool,
+222 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:358:12
+    |
+225 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+358 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+363 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+368 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+403 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+413 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+423 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+428 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+438 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+453 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:687:18
+    |
+687 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:699:15
+    |
+699 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:705:15
+    |
+705 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib) generated 18 warnings
+    Finished `release` profile [optimized] target(s) in 1.93s

@@ -1,0 +1,125 @@
+{
+  "bad": {},
+  "entries": {
+    "c:m2-click-mono-48k": [
+      "db0e68be8273773d"
+    ],
+    "c:m2-edge-mono-48k": [
+      "8d1d7ff2a90be28c"
+    ],
+    "c:m2-impulse-mono-48k": [
+      "367769d6f9e21e0e"
+    ],
+    "c:m2-onset-stereo-48k": [
+      "939bddba5ff0f7d6"
+    ],
+    "c:m2-silence-stereo-48k": [
+      "7713057f645ea480"
+    ],
+    "c:m2-sine-stereo-48k": [
+      "48533df891d144e9"
+    ],
+    "c:m2-stepdown-stereo-48k": [
+      "e3dda12e04f33240"
+    ],
+    "c:m3-multitone-stereo-48k": [
+      "9390adeaf4cb06eb"
+    ],
+    "c:m3-noise-mono-48k": [
+      "cfa672d6fccf1bba"
+    ],
+    "c:m3-onset-stereo-441k": [
+      "f7cb323f9e1b10ba"
+    ],
+    "c:m3-quiet-sine-stereo-48k": [
+      "123193b4bcb28c71"
+    ],
+    "c:m3-sine-stereo-441k": [
+      "52064c1bdacf65e6"
+    ],
+    "c:m3-sweep-stereo-48k": [
+      "1ab4bcb62e9d8efe"
+    ],
+    "c:m3-tonal-noise-stereo-48k": [
+      "cb111f217f59823c"
+    ],
+    "c:m6-stress-stereo-48k": [
+      "e63017d5c0c85ad7"
+    ],
+    "c:m7-music-stereo-48k": [
+      "1632d6fab8252722"
+    ],
+    "c:m7-music-stereo-48k-x4": [
+      "59d62d256b6ba3ca"
+    ],
+    "c:m7-speech-clean-stereo-48k": [
+      "4af707fa5c8a94fd"
+    ],
+    "c:m7-speech-pauses-stereo-48k": [
+      "596b0c0aa0b35176"
+    ],
+    "c:m8-music-eroica-stereo-48k": [
+      "a6ab7028f012a400"
+    ],
+    "r:m2-click-mono-48k": [
+      "2c5e9650bd12691c"
+    ],
+    "r:m2-edge-mono-48k": [
+      "8d1d7ff2a90be28c"
+    ],
+    "r:m2-impulse-mono-48k": [
+      "0fef4f3c59abdbec"
+    ],
+    "r:m2-onset-stereo-48k": [
+      "2a6ca107a2f0ba5d"
+    ],
+    "r:m2-silence-stereo-48k": [
+      "7713057f645ea480"
+    ],
+    "r:m2-sine-stereo-48k": [
+      "8921b76c2eb4297e"
+    ],
+    "r:m2-stepdown-stereo-48k": [
+      "c5e3cf81d7c9051d"
+    ],
+    "r:m3-multitone-stereo-48k": [
+      "2777d7380edfb4e1"
+    ],
+    "r:m3-noise-mono-48k": [
+      "1d402183d5f6ea47"
+    ],
+    "r:m3-onset-stereo-441k": [
+      "7b3ce9aea13d7c47"
+    ],
+    "r:m3-quiet-sine-stereo-48k": [
+      "a1b6c369cc1b8450"
+    ],
+    "r:m3-sine-stereo-441k": [
+      "1ba21b60517c9291"
+    ],
+    "r:m3-sweep-stereo-48k": [
+      "264a1b8e77b469b7"
+    ],
+    "r:m3-tonal-noise-stereo-48k": [
+      "dcc15ccc2963940c"
+    ],
+    "r:m6-stress-stereo-48k": [
+      "57fd0bbb44c960d8"
+    ],
+    "r:m7-music-stereo-48k": [
+      "151e37b967d52678"
+    ],
+    "r:m7-music-stereo-48k-x4": [
+      "889c3be4ccd53dd7"
+    ],
+    "r:m7-speech-clean-stereo-48k": [
+      "ea3183de57cbf39f"
+    ],
+    "r:m7-speech-pauses-stereo-48k": [
+      "e64771cc5687e56b"
+    ],
+    "r:m8-music-eroica-stereo-48k": [
+      "3c40aaae93078019"
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+# C vs Rust benchmark summary (2026-11-10)
+
+- Corpus: 20 workloads, 91.450 s audio, 15 reps/fixture, 8 paired runs
+- C paired aggregate median: **374.617 ms** (244.1x realtime, RTF 0.004096)
+- Rust paired aggregate median: **396.337 ms** (230.7x realtime, RTF 0.004334)
+- Ratio Rust/C: **1.0580**
+- Rust slowdown: **+5.80%**; Rust speed advantage: **-5.48%**
+- Paired slowdown median +6.25% (range +5.34% to +10.49%, IQR 1.38 pp); Rust slower in 8/8 pairs
+- Standalone/post medians: C 367.715 ms, Rust 394.673 ms
+
+## Per-category
+
+| Category | Fixtures | C ms | Rust ms | Ratio | Rust slowdown | C share | Rust share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| short_diagnostic | 7 | 5.717 | 8.160 | 1.4272 | +42.72% | 1.5% | 2.1% |
+| tonal_noise | 6 | 10.422 | 12.744 | 1.2228 | +22.28% | 2.8% | 3.2% |
+| transient | 2 | 2.734 | 3.404 | 1.2449 | +24.49% | 0.7% | 0.9% |
+| music | 2 | 96.323 | 99.198 | 1.0298 | +2.98% | 25.7% | 25.0% |
+| speech | 2 | 60.219 | 67.665 | 1.1236 | +12.36% | 16.1% | 17.1% |
+| long | 1 | 198.938 | 205.476 | 1.0329 | +3.29% | 53.1% | 51.8% |
+
+## Per-workload
+
+| Workload | C ms | Rust ms | Ratio | Rust slowdown |
+|---|---:|---:|---:|---:|
+| m2-silence-stereo-48k | 0.605 | 1.042 | 1.7223 | +72.23% |
+| m2-edge-mono-48k | 0.123 | 0.195 | 1.5855 | +58.55% |
+| m2-impulse-mono-48k | 0.106 | 0.166 | 1.5579 | +55.79% |
+| m2-onset-stereo-48k | 1.200 | 1.762 | 1.4674 | +46.74% |
+| m2-stepdown-stereo-48k | 1.196 | 1.734 | 1.4497 | +44.97% |
+| m3-onset-stereo-441k | 1.269 | 1.737 | 1.3681 | +36.81% |
+| m2-sine-stereo-48k | 1.742 | 2.377 | 1.3647 | +36.47% |
+| m3-multitone-stereo-48k | 2.095 | 2.722 | 1.2997 | +29.97% |
+| m3-sine-stereo-441k | 1.932 | 2.432 | 1.2588 | +25.88% |
+| m3-sweep-stereo-48k | 1.970 | 2.478 | 1.2577 | +25.77% |
+| m2-click-mono-48k | 0.721 | 0.873 | 1.2110 | +21.10% |
+| m3-quiet-sine-stereo-48k | 2.006 | 2.413 | 1.2030 | +20.30% |
+| m3-tonal-noise-stereo-48k | 1.393 | 1.611 | 1.1565 | +15.65% |
+| m6-stress-stereo-48k | 1.462 | 1.672 | 1.1433 | +14.33% |
+| m7-speech-pauses-stereo-48k | 30.037 | 33.848 | 1.1269 | +12.69% |
+| m7-speech-clean-stereo-48k | 30.125 | 33.941 | 1.1267 | +12.67% |
+| m3-noise-mono-48k | 1.047 | 1.118 | 1.0676 | +6.76% |
+| m7-music-stereo-48k-x4 | 199.098 | 205.808 | 1.0337 | +3.37% |
+| m7-music-stereo-48k | 49.957 | 51.639 | 1.0337 | +3.37% |
+| m8-music-eroica-stereo-48k | 46.485 | 47.505 | 1.0219 | +2.19% |

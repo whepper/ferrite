@@ -172,6 +172,15 @@ decisions were reached, not as current normative guidance.
   D-013 and the rate-control/bit-reservoir question are closed for the
   tested VBR-5 corpus.
 
+### C versus Rust benchmark (evidence)
+
+- [C versus Rust encoder benchmark (2026-11-10)](evidence/aac-enc-performance/c-versus-rust-2026-11-10/README.md) —
+  production-API comparison against the pinned FDK-AAC C encoder on the
+  20-workload corpus: C 374.6 ms vs Rust 396.3 ms aggregate, Rust 5.8%
+  slower from arm medians / 6.25% paired median (8/8 pairs), with
+  music/long workloads within ~3.4% and speech ~12.7%. Evidence record, not
+  normative guidance.
+
 ## Archive
 
 [archive/](archive/) holds dated plans, implementation reports, and

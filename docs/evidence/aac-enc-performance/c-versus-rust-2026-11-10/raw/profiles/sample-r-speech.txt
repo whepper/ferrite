@@ -1,0 +1,680 @@
+Analysis of sampling bench_corpus (pid 96994) every 1 millisecond
+Process:         bench_corpus [96994]
+Path:            /private/var/folders/*/bench_corpus
+Load Address:    0x104acc000
+Identifier:      bench_corpus
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  zsh [96887]
+Target Type:     live task
+
+Date/Time:       2026-11-10 20:30:22.161 +0100
+Launch Time:     2026-11-10 20:30:21.630 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         6464K
+Physical footprint (peak):  6464K
+Idle exit:                  untracked
+----
+
+Call graph:
+    1655 Thread_59661587   DispatchQueue_1: com.apple.main-thread  (serial)
+      1653 start  (in dyld) + 6688  [0x184053e80]
+      + 1653 main  (in bench_corpus) + 52  [0x104ad17c0]
+      +   1653 _RNvNtCsdnanKjkF2cC_3std2rt19lang_start_internal  (in bench_corpus) + 936  [0x104b34c24]
+      +     1653 _RNCINvNtCsdnanKjkF2cC_3std2rt10lang_startuE0Cs5jUnETJI1A0_12bench_corpus  (in bench_corpus) + 16  [0x104accc40]
+      +       1653 _RINvNtNtCsdnanKjkF2cC_3std3sys9backtrace28___rust_begin_short_backtraceFEuuECs5jUnETJI1A0_12bench_corpus  (in bench_corpus) + 12  [0x104accc28]
+      +         1651 _RNvCs5jUnETJI1A0_12bench_corpus4main  (in bench_corpus) + 3108  [0x104ad08e4]
+      +         ! 1635 _RNvCs5jUnETJI1A0_12bench_corpus11encode_once  (in bench_corpus) + 288  [0x104acf3d8]
+      +         ! : 1594 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus) + 700  [0x104af7768]
+      +         ! : | 1589 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder11emit_frames  (in bench_corpus) + 196  [0x104af6dcc]
+      +         ! : | + 717 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 9864  [0x104adc5c8]
+      +         ! : | + ! 229 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 7328,11296,...  [0x104aed720,0x104aee6a0,...]
+      +         ! : | + ! 94 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 7892  [0x104aed954]
+      +         ! : | + ! : 89 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 400,180,...  [0x104b19f90,0x104b19eb4,...]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 328,160,...  [0x104b150a4,0x104b14ffc,...]
+      +         ! : | + ! 93 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 1904  [0x104aec1f0]
+      +         ! : | + ! : 88 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 464,180,...  [0x104b19fd0,0x104b19eb4,...]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 0,352,...  [0x104b14f5c,0x104b150bc,...]
+      +         ! : | + ! 72 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 2132  [0x104aec2d4]
+      +         ! : | + ! : 69 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 400,464,...  [0x104b19f90,0x104b19fd0,...]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 0,200,...  [0x104b14f5c,0x104b15024,...]
+      +         ! : | + ! 67 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 10016  [0x104aee1a0]
+      +         ! : | + ! : 62 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist  (in bench_corpus) + 220,276,...  [0x104b1a3dc,0x104b1a414,...]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist  (in bench_corpus) + 388  [0x104b1a484]
+      +         ! : | + ! : | 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 252,300,...  [0x104b15058,0x104b15088,...]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist  (in bench_corpus) + 404  [0x104b1a494]
+      +         ! : | + ! :   2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 92,236  [0x104b14fb8,0x104b15048]
+      +         ! : | + ! 35 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 4956  [0x104aecddc]
+      +         ! : | + ! : 26 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 268,180,...  [0x104b19f0c,0x104b19eb4,...]
+      +         ! : | + ! : 9 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 328,168,...  [0x104b150a4,0x104b15004,...]
+      +         ! : | + ! 22 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 12464  [0x104aeeb30]
+      +         ! : | + ! : 18 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 264,400,...  [0x104b19f08,0x104b19f90,...]
+      +         ! : | + ! : 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 200,208,...  [0x104b15024,0x104b1502c,...]
+      +         ! : | + ! 21 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 11732  [0x104aee854]
+      +         ! : | + ! : 21 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff  (in bench_corpus) + 188,272,...  [0x104aeb7b4,0x104aeb808,...]
+      +         ! : | + ! 14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 8840  [0x104aedd08]
+      +         ! : | + ! : 13 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 456,180,...  [0x104b19fc8,0x104b19eb4,...]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 352  [0x104b150bc]
+      +         ! : | + ! 14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 11788  [0x104aee88c]
+      +         ! : | + ! : 14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff  (in bench_corpus) + 204,292,...  [0x104aeb60c,0x104aeb664,...]
+      +         ! : | + ! 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 1972  [0x104aec234]
+      +         ! : | + ! : 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 268,400,...  [0x104b19f0c,0x104b19f90,...]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 328  [0x104b150a4]
+      +         ! : | + ! 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 2080  [0x104aec2a0]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 400,28,...  [0x104b19f90,0x104b19e1c,...]
+      +         ! : | + ! 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 7564  [0x104aed80c]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff  (in bench_corpus) + 196,272,...  [0x104aeb7bc,0x104aeb808,...]
+      +         ! : | + ! 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 7620  [0x104aed844]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff  (in bench_corpus) + 192,204,...  [0x104aeb600,0x104aeb60c,...]
+      +         ! : | + ! 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 424  [0x104aebc28]
+      +         ! : | + ! : 2 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + ! : 1 _malloc_zone_calloc  (in libsystem_malloc.dylib) + 76  [0x18425076c]
+      +         ! : | + ! : 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 244  [0x184244b40]
+      +         ! : | + ! 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 7852  [0x104aed92c]
+      +         ! : | + ! : 4 _platform_memset  (in libsystem_platform.dylib) + 180,176,...  [0x184433b44,0x184433b40,...]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 3020  [0x104aec64c]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 0,136,...  [0x104b14f5c,0x104b14fe4,...]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 9776  [0x104aee0b0]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff  (in bench_corpus) + 124,180,...  [0x104aeb774,0x104aeb7ac,...]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 12804  [0x104aeec84]
+      +         ! : | + ! : 3 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 408  [0x104aebc18]
+      +         ! : | + ! : 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 8312  [0x104aedaf8]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff  (in bench_corpus) + 220,328  [0x104aeb61c,0x104aeb688]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 12596  [0x104aeebb4]
+      +         ! : | + ! : 2 _platform_memmove  (in libsystem_platform.dylib) + 0,420  [0x184433d60,0x184433f04]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 13396  [0x104aeeed4]
+      +         ! : | + ! : 2 _platform_memset  (in libsystem_platform.dylib) + 180  [0x184433b44]
+      +         ! : | + ! 1 DYLD-STUB$$free  (in bench_corpus) + 4  [0x104b55324]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 552  [0x104aebca8]
+      +         ! : | + ! : 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 1712  [0x104aec130]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 300  [0x104b15088]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 4920  [0x104aecdb8]
+      +         ! : | + ! : 1 _platform_memset  (in libsystem_platform.dylib) + 176  [0x184433b40]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 5044  [0x104aece34]
+      +         ! : | + ! : 1 _platform_memmove  (in libsystem_platform.dylib) + 428  [0x184433f0c]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 8256  [0x104aedac0]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff  (in bench_corpus) + 88  [0x104aeb750]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 8800  [0x104aedce0]
+      +         ! : | + ! : 1 _platform_memset  (in libsystem_platform.dylib) + 180  [0x184433b44]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 9448  [0x104aedf68]
+      +         ! : | + ! : 1 _platform_memmove  (in libsystem_platform.dylib) + 196  [0x184433e24]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 12420  [0x104aeeb04]
+      +         ! : | + !   1 _platform_memset  (in libsystem_platform.dylib) + 176  [0x184433b40]
+      +         ! : | + 215 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 1312  [0x104ada460]
+      +         ! : | + ! 52 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 8336  [0x104b08510]
+      +         ! : | + ! : 16 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8320  [0x104b18f00]
+      +         ! : | + ! : | 16 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 440,584,...  [0x104b16b78,0x104b16c08,...]
+      +         ! : | + ! : 12 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8352  [0x104b18f20]
+      +         ! : | + ! : | 12 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 476,612,...  [0x104b16b9c,0x104b16c24,...]
+      +         ! : | + ! : 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8380  [0x104b18f3c]
+      +         ! : | + ! : | 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 764,376,...  [0x104b16cbc,0x104b16b38,...]
+      +         ! : | + ! : 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 6976  [0x104b189c0]
+      +         ! : | + ! : | 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 392,412,...  [0x104b16b48,0x104b16b5c,...]
+      +         ! : | + ! : 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 4248,1056,...  [0x104b17f18,0x104b172a0,...]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8832  [0x104b19100]
+      +         ! : | + ! : | 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns14analyze_filter  (in bench_corpus) + 596,752,...  [0x104b16028,0x104b160c4,...]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 564  [0x104b170b4]
+      +         ! : | + ! :   1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + ! 40 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 1748,2404,...  [0x104b06b54,0x104b06de4,...]
+      +         ! : | + ! 35 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 8480  [0x104b085a0]
+      +         ! : | + ! : 11 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8320  [0x104b18f00]
+      +         ! : | + ! : | 11 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 836,376,...  [0x104b16d04,0x104b16b38,...]
+      +         ! : | + ! : 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8352  [0x104b18f20]
+      +         ! : | + ! : | 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 576,584,...  [0x104b16c00,0x104b16c08,...]
+      +         ! : | + ! : 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8380  [0x104b18f3c]
+      +         ! : | + ! : | 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 412,476,...  [0x104b16b5c,0x104b16b9c,...]
+      +         ! : | + ! : 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 6976  [0x104b189c0]
+      +         ! : | + ! : | 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 440,424,...  [0x104b16b78,0x104b16b68,...]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 3236,5932,...  [0x104b17b24,0x104b185ac,...]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 564  [0x104b170b4]
+      +         ! : | + ! : | 2 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus) + 8880  [0x104b19130]
+      +         ! : | + ! :   1 _platform_memmove  (in libsystem_platform.dylib) + 428  [0x184433f0c]
+      +         ! : | + ! 14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 10708  [0x104b08e54]
+      +         ! : | + ! : 12 ???  (in <unknown binary>)  [0x32]
+      +         ! : | + ! : | 12 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies  (in bench_corpus) + 1304,608,...  [0x104b1aa18,0x104b1a760,...]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies  (in bench_corpus) + 128  [0x104b1a580]
+      +         ! : | + ! : | 1 _malloc_zone_calloc  (in libsystem_malloc.dylib) + 12  [0x18425072c]
+      +         ! : | + ! : 1 log2  (in libsystem_m.dylib) + 180  [0x194f98214]
+      +         ! : | + ! 9 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 4112  [0x104b07490]
+      +         ! : | + ! : 9 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy22check_band_energy_into  (in bench_corpus) + 480,456,...  [0x104b1c33c,0x104b1c324,...]
+      +         ! : | + ! 9 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 12416  [0x104b09500]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 2832,2916,...  [0x104b03444,0x104b03498,...]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 332  [0x104b02a80]
+      +         ! : | + ! : | 1 _malloc_zone_malloc  (in libsystem_malloc.dylib) + 80  [0x184250540]
+      +         ! : | + ! : | 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 256  [0x184244b4c]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 7676  [0x104b04730]
+      +         ! : | + ! : | 2 _RNCNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy19group_short_channels_0B7_  (in bench_corpus) + 400,452  [0x104b02490,0x104b024c4]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 804  [0x104b02c58]
+      +         ! : | + ! : | 1 <deduplicated_symbol>  (in libsystem_malloc.dylib) + 92  [0x18424b864]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 10924  [0x104b053e0]
+      +         ! : | + ! :   1 DYLD-STUB$$log2  (in bench_corpus) + 4  [0x104b55354]
+      +         ! : | + ! 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 4372  [0x104b07594]
+      +         ! : | + ! : 8 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy22check_band_energy_into  (in bench_corpus) + 480,388,...  [0x104b1c33c,0x104b1c2e0,...]
+      +         ! : | + ! 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 2600  [0x104b06ea8]
+      +         ! : | + ! : 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19max_scale_spec_into  (in bench_corpus) + 352,304,...  [0x104b1b560,0x104b1b530,...]
+      +         ! : | + ! 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 12268  [0x104b0946c]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 5360,6636,...  [0x104b03e24,0x104b04320,...]
+      +         ! : | + ! : 2 log2  (in libsystem_m.dylib) + 180  [0x194f98214]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 176  [0x104b029e4]
+      +         ! : | + ! : | 1 <deduplicated_symbol>  (in libsystem_malloc.dylib) + 80  [0x18424b858]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus) + 1120  [0x104b02d94]
+      +         ! : | + ! :   1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 404  [0x184244be0]
+      +         ! : | + ! 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 1924  [0x104b06c04]
+      +         ! : | + ! : 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19max_scale_spec_into  (in bench_corpus) + 380,404  [0x104b1b57c,0x104b1b594]
+      +         ! : | + ! 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 9428  [0x104b08954]
+      +         ! : | + ! : 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18advance_thresholds  (in bench_corpus) + 632  [0x104b05d38]
+      +         ! : | + ! : | 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max  (in bench_corpus) + 76,160  [0x104aeb44c,0x104aeb4a0]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18advance_thresholds  (in bench_corpus) + 2304  [0x104b063c0]
+      +         ! : | + ! :   2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max  (in bench_corpus) + 160,164  [0x104aeb4a0,0x104aeb4a4]
+      +         ! : | + ! 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 4168  [0x104b074c8]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 4168  [0x104b074c8]
+      +         ! : | + ! : | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 88  [0x104b1af58]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 180  [0x104b1afb4]
+      +         ! : | + ! : | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 212  [0x104b1afd4]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 340  [0x104b1b054]
+      +         ! : | + ! : | 1 DYLD-STUB$$log2  (in bench_corpus) + 4  [0x104b55354]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 400  [0x104b1b090]
+      +         ! : | + ! :   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy17max_nrg_for_shift  (in bench_corpus) + 432  [0x104b1b0b0]
+      +         ! : | + ! 4 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 8840  [0x104b08708]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1256  [0x104b0a4a8]
+      +         ! : | + ! : | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6encode  (in bench_corpus) + 1988  [0x104b19bd4]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1508  [0x104b0a5a4]
+      +         ! : | + ! : | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19max_scale_spec_into  (in bench_corpus) + 380  [0x104b1b57c]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1596  [0x104b0a5fc]
+      +         ! : | + ! : | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy21band_energy_long_into  (in bench_corpus) + 992  [0x104b1b9fc]
+      +         ! : | + ! : |   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy21band_energy_long_into  (in bench_corpus) + 1044  [0x104b1ba30]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 904  [0x104b0a348]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 5972  [0x104b07bd4]
+      +         ! : | + ! : 3 log2  (in libsystem_m.dylib) + 12,84,...  [0x194f9816c,0x194f981b4,...]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 9868  [0x104b08b0c]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18advance_thresholds  (in bench_corpus) + 632  [0x104b05d38]
+      +         ! : | + ! : | 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max  (in bench_corpus) + 160  [0x104aeb4a0]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18advance_thresholds  (in bench_corpus) + 2304  [0x104b063c0]
+      +         ! : | + ! :   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max  (in bench_corpus) + 160  [0x104aeb4a0]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 6896  [0x104b07f70]
+      +         ! : | + ! : 2 log2  (in libsystem_m.dylib) + 12,124  [0x194f9816c,0x194f981dc]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 8960  [0x104b08780]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1256  [0x104b0a4a8]
+      +         ! : | + ! :   2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6encode  (in bench_corpus) + 2012,2016  [0x104b19bec,0x104b19bf0]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 11008  [0x104b08f80]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + ! : | 1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x1843e50f8]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 444  [0x18424d078]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 3460  [0x104b07204]
+      +         ! : | + ! : 1 _RNvMs1_NtCs8Hh7wWMBHrQ_5alloc3vecINtB5_3VecIBw_lEE6resizeCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 404  [0x104ad24dc]
+      +         ! : | + ! :   1 _xzm_free_main  (in libsystem_malloc.dylib) + 364  [0x18424d028]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 11556  [0x104b091a4]
+      +         ! : | + ! : 1 __bzero  (in libsystem_platform.dylib) + 0  [0x184433a30]
+      +         ! : | + ! 1 log2  (in libsystem_m.dylib) + 180  [0x194f98214]
+      +         ! : | + 116 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 15880  [0x104addd48]
+      +         ! : | + ! 52 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 6400  [0x104af2980]
+      +         ! : | + ! : 51 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 1684,1392,...  [0x104afd354,0x104afd230,...]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 4612  [0x104afdec4]
+      +         ! : | + ! :   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount15calc_merge_gain  (in bench_corpus) + 0  [0x104afcb80]
+      +         ! : | + ! 28 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 4632  [0x104af2298]
+      +         ! : | + ! : 28 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant17quantize_spectrum  (in bench_corpus) + 364,248,...  [0x104b1a22c,0x104b1a1b8,...]
+      +         ! : | + ! 17 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 4652,6992,...  [0x104af22ac,0x104af2bd0,...]
+      +         ! : | + ! 13 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 4724  [0x104af22f4]
+      +         ! : | + ! : 13 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate21calc_max_value_in_sfb  (in bench_corpus) + 144,96  [0x104af3cd0,0x104af3ca0]
+      +         ! : | + ! 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 2496  [0x104af1a40]
+      +         ! : | + ! : 3 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_sEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate14QcChannelInputENCNvB2V_13qc_main_frames0_0EE9from_iterB2Z_  (in bench_corpus) + 168  [0x104ad3fe8]
+      +         ! : | + ! :   2 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + ! :   1 _RNvCs5fGHjzWXRav_7___rustc18___rdl_alloc_zeroed  (in bench_corpus) + 0  [0x104b27850]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 2336  [0x104af19a0]
+      +         ! : | + ! : 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 404  [0x184244be0]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 7244  [0x104af2ccc]
+      +         ! : | + ! : 1 _RNvMs4_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB5_6RawVecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate9PassTraceE8grow_oneBS_  (in bench_corpus) + 44  [0x104b4f7f8]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 8812  [0x104af32ec]
+      +         ! : | + !   1 DYLD-STUB$$free  (in bench_corpus) + 4  [0x104b55324]
+      +         ! : | + 88 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 908  [0x104ada2cc]
+      +         ! : | + ! 84 _RNvMs0_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9transformNtB5_16ChannelTransform7process  (in bench_corpus) + 300  [0x104aefd6c]
+      +         ! : | + ! : 79 _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac6common4mdctNtB2_4Mdct4mdct  (in bench_corpus) + 752  [0x104b0acc0]
+      +         ! : | + ! : | 61 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac6common3dct5dctiv  (in bench_corpus) + 316  [0x104aeffb8]
+      +         ! : | + ! : | + 61 _RNvNtNtNtCs1QHmLwBrYI8_11ferrite_aac6common3fft7dit_fft7dit_fft  (in bench_corpus) + 2032,2112,...  [0x104af0a8c,0x104af0adc,...]
+      +         ! : | + ! : | 18 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac6common3dct5dctiv  (in bench_corpus) + 632,212,...  [0x104af00f4,0x104aeff50,...]
+      +         ! : | + ! : 5 _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac6common4mdctNtB2_4Mdct4mdct  (in bench_corpus) + 1812,1152,...  [0x104b0b0e4,0x104b0ae50,...]
+      +         ! : | + ! 3 _RNvMs0_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9transformNtB5_16ChannelTransform7process  (in bench_corpus) + 468  [0x104aefe14]
+      +         ! : | + ! : 3 _platform_memmove  (in libsystem_platform.dylib) + 180,196  [0x184433e14,0x184433e24]
+      +         ! : | + ! 1 _RNvMs0_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9transformNtB5_16ChannelTransform7process  (in bench_corpus) + 256  [0x104aefd40]
+      +         ! : | + !   1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + 61 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 14436  [0x104add7a4]
+      +         ! : | + ! 57 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 1392,1432,...  [0x104afd230,0x104afd258,...]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount15calc_merge_gain  (in bench_corpus) + 196  [0x104afcc44]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 4612  [0x104afdec4]
+      +         ! : | + ! : 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount15calc_merge_gain  (in bench_corpus) + 192  [0x104afcc40]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 5092  [0x104afe0a4]
+      +         ! : | + ! : 1 _platform_memmove  (in libsystem_platform.dylib) + 420  [0x184433f04]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 5128  [0x104afe0c8]
+      +         ! : | + !   1 _RNvMs4_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB5_6RawVecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount11SectionInfoE8grow_oneBS_  (in bench_corpus) + 60  [0x104b4f934]
+      +         ! : | + !     1 _RNvMs5_NtCs8Hh7wWMBHrQ_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 92  [0x104b4fbac]
+      +         ! : | + !       1 _realloc  (in libsystem_malloc.dylib) + 456  [0x184251358]
+      +         ! : | + !         1 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 148  [0x184250b2c]
+      +         ! : | + !           1 xzm_malloc_zone_malloc_type_realloc  (in libsystem_malloc.dylib) + 896  [0x184241390]
+      +         ! : | + !             1 _xzm_malloc  (in libsystem_malloc.dylib) + 492  [0x184243fe0]
+      +         ! : | + 57 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 6152  [0x104adb748]
+      +         ! : | + ! 49 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo  (in bench_corpus) + 2380,2440,...  [0x104af494c,0x104af4988,...]
+      +         ! : | + ! 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo  (in bench_corpus) + 3048  [0x104af4be8]
+      +         ! : | + ! : 7 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q319schur_div  (in bench_corpus) + 0,108,...  [0x104b151f4,0x104b15260,...]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 684  [0x18424d168]
+      +         ! : | + 52 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 328  [0x104ada088]
+      +         ! : | + ! 52 _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc12block_switchNtB2_11BlockSwitch7process  (in bench_corpus) + 1272,388,...  [0x104afa784,0x104afa410,...]
+      +         ! : | + 47 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 8276  [0x104adbf94]
+      +         ! : | + ! 46 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe11form_factor  (in bench_corpus) + 604,556,...  [0x104b12cdc,0x104b12cac,...]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe11form_factor  (in bench_corpus) + 128  [0x104b12b00]
+      +         ! : | + !   1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 88  [0x184244aa4]
+      +         ! : | + 40 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 9164  [0x104adc30c]
+      +         ! : | + ! 30 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 2804,3048,...  [0x104b10334,0x104b10428,...]
+      +         ! : | + ! 5 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 84  [0x104b0f894]
+      +         ! : | + ! : 3 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB2V_20adapt_thresholds_vbr0EE9from_iterB2Z_  (in bench_corpus) + 116  [0x104ad33dc]
+      +         ! : | + ! : | 3 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr15calc_thresh_exp  (in bench_corpus) + 260,340  [0x104b0f744,0x104b0f794]
+      +         ! : | + ! : 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB2V_20adapt_thresholds_vbr0EE9from_iterB2Z_  (in bench_corpus) + 80  [0x104ad33b8]
+      +         ! : | + ! : | 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 88  [0x184244aa4]
+      +         ! : | + ! : 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB2V_20adapt_thresholds_vbr0EE9from_iterB2Z_  (in bench_corpus) + 16  [0x104ad3378]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 9388  [0x104b11cec]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + ! : | 1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x1843e50f8]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 196  [0x18424cf80]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 108  [0x104b0f8ac]
+      +         ! : | + ! : 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB2V_20adapt_thresholds_vbrs_0EE9from_iterB2Z_  (in bench_corpus) + 136  [0x104ad3680]
+      +         ! : | + ! :   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB1p_20adapt_thresholds_vbrs_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB36_8for_each4callINtNtCs8Hh7wWMBHrQ_5alloc3vec3VeclENCINvMsk_B4c_IB4a_B49_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 152  [0x104ad761c]
+      +         ! : | + ! :     1 <deduplicated_symbol>  (in libsystem_malloc.dylib) + 144  [0x18424b898]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 796  [0x104b0fb5c]
+      +         ! : | + ! : 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB2V_20adapt_thresholds_vbrs0_0EE9from_iterB2Z_  (in bench_corpus) + 136  [0x104ad34e0]
+      +         ! : | + ! :   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr14S2ChannelInputENCNvB1p_20adapt_thresholds_vbrs0_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB37_8for_each4callINtNtCs8Hh7wWMBHrQ_5alloc3vec3VeclENCINvMsk_B4d_IB4b_B4a_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 152  [0x104ad7344]
+      +         ! : | + ! :     1 _malloc_zone_malloc  (in libsystem_malloc.dylib) + 80  [0x184250540]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 9356  [0x104b11ccc]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 268  [0x18424cfc8]
+      +         ! : | + 23 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18372  [0x104ade704]
+      +         ! : | + ! 20 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 1400  [0x104b01738]
+      +         ! : | + ! : 20 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame23encode_channel_spectral  (in bench_corpus) + 52  [0x104b018b4]
+      +         ! : | + ! :   20 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data  (in bench_corpus) + 2164,256,...  [0x104af8fb4,0x104af8840,...]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 1340  [0x104b016fc]
+      +         ! : | + ! : 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame20encode_channel_scale  (in bench_corpus) + 72  [0x104b01108]
+      +         ! : | + ! :   2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc24encode_scale_factor_data  (in bench_corpus) + 600  [0x104af98a8]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 712  [0x104b01488]
+      +         ! : | + !   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame14encode_ms_info  (in bench_corpus) + 44  [0x104aff204]
+      +         ! : | + 20 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 14216  [0x104add6c8]
+      +         ! : | + ! 20 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate21calc_max_value_in_sfb  (in bench_corpus) + 144,108,...  [0x104af3cd0,0x104af3cac,...]
+      +         ! : | + 20 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 960,968,...  [0x104ada300,0x104ada308,...]
+      +         ! : | + 17 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 8528  [0x104adc090]
+      +         ! : | + ! 13 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus) + 356,420,...  [0x104b13224,0x104b13264,...]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus) + 3676  [0x104b13f1c]
+      +         ! : | + ! : 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 88  [0x184244aa4]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus) + 4344  [0x104b141b8]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 240  [0x18424cfac]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus) + 4460  [0x104b1422c]
+      +         ! : | + ! : 1 _RNvCs5fGHjzWXRav_7___rustc35___rust_no_alloc_shim_is_unstable_v2  (in bench_corpus) + 0  [0x104ad17dc]
+      +         ! : | + ! 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus) + 5524  [0x104b14654]
+      +         ! : | + !   1 _platform_memmove  (in libsystem_platform.dylib) + 188  [0x184433e1c]
+      +         ! : | + 15 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4240  [0x104adafd0]
+      +         ! : | + ! 12 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19map_spectrum_to_q31  (in bench_corpus) + 348,324,...  [0x104b1b37c,0x104b1b364,...]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19map_spectrum_to_q31  (in bench_corpus) + 128  [0x104b1b2a0]
+      +         ! : | + ! : 2 _RINvNvMs2_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa_5alloc6GlobalECs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 108  [0x104b4f5bc]
+      +         ! : | + ! :   2 _RNvMs5_NtCs8Hh7wWMBHrQ_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 120  [0x104b4fbc8]
+      +         ! : | + ! :     1 _xzm_xzone_malloc_freelist_outlined  (in libsystem_malloc.dylib) + 324  [0x1842460f8]
+      +         ! : | + ! :     | 1 _xzm_xzone_find_and_malloc_from_freelist_chunk  (in libsystem_malloc.dylib) + 160  [0x184246930]
+      +         ! : | + ! :     |   1 _xzm_chunk_list_pop  (in libsystem_malloc.dylib) + 72  [0x18424721c]
+      +         ! : | + ! :     1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 268  [0x184244b58]
+      +         ! : | + ! 1 _RINvNvMs2_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa_5alloc6GlobalECs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 128  [0x104b4f5d0]
+      +         ! : | + 15 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 19212  [0x104adea4c]
+      +         ! : | + ! 15 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame15build_raw_block  (in bench_corpus) + 160  [0x104aff5a0]
+      +         ! : | + !   14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 1400  [0x104b01738]
+      +         ! : | + !   : 14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame23encode_channel_spectral  (in bench_corpus) + 52  [0x104b018b4]
+      +         ! : | + !   :   14 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data  (in bench_corpus) + 2148,2808,...  [0x104af8fa4,0x104af9238,...]
+      +         ! : | + !   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 1340  [0x104b016fc]
+      +         ! : | + !     1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame20encode_channel_scale  (in bench_corpus) + 72  [0x104b01108]
+      +         ! : | + !       1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc24encode_scale_factor_data  (in bench_corpus) + 624  [0x104af98c0]
+      +         ! : | + 9 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 8584  [0x104adc0c8]
+      +         ! : | + ! 9 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver12S1CapChannelEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB2P_5slice4iter4IterNtB15_11LiveChannelENCNvMs_B15_NtB15_13StreamEncoder10step_frames6_0EE9from_iterB19_  (in bench_corpus) + 152  [0x104ad4250]
+      +         ! : | + !   4 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 688  [0x104ad6cac]
+      +         ! : | + !   : 4 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + !   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 268  [0x104ad6b08]
+      +         ! : | + !   : 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 404  [0x184244be0]
+      +         ! : | + !   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 304  [0x104ad6b2c]
+      +         ! : | + !   : 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + !   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 472  [0x104ad6bd4]
+      +         ! : | + !   : 1 _RNvCs5fGHjzWXRav_7___rustc12___rust_alloc  (in bench_corpus) + 0  [0x104ad17cc]
+      +         ! : | + !   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 764  [0x104ad6cf8]
+      +         ! : | + !   : 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 244  [0x184244b40]
+      +         ! : | + !   1 _RINvXs0_NtNtNtCs3bJEMBXHbwl_4core4iter8adapters3mapINtB6_3MapINtNtNtBc_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelENCNvMs_B1p_NtB1p_13StreamEncoder10step_frames6_0ENtNtNtBa_6traits8iterator8Iterator4folduNCINvNvB3i_8for_each4callNtB1p_12S1CapChannelNCINvMsk_NtCs8Hh7wWMBHrQ_5alloc3vecINtB4O_3VecB4l_E14extend_trustedBN_E0E0EB1t_  (in bench_corpus) + 112  [0x104ad6a6c]
+      +         ! : | + 9 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 24264  [0x104adfe08]
+      +         ! : | + ! 9 _RNvNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver16ms_stereo_mirror5apply  (in bench_corpus) + 472,12,...  [0x104ae1d58,0x104ae1b8c,...]
+      +         ! : | + 6 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 944  [0x104ada2f0]
+      +         ! : | + ! 6 _platform_memmove  (in libsystem_platform.dylib) + 180,36  [0x184433e14,0x184433d84]
+      +         ! : | + 6 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4680  [0x104adb188]
+      +         ! : | + ! 6 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 280,156,...  [0x104b15074,0x104b14ff8,...]
+      +         ! : | + 4 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 5308  [0x104adb3fc]
+      +         ! : | + ! 2 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 472  [0x104ad8e0c]
+      +         ! : | + ! : 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13GroupedOutputEEB13_  (in bench_corpus) + 120  [0x104ad7b94]
+      +         ! : | + ! : | 1 _xzm_free_main  (in libsystem_malloc.dylib) + 112  [0x18424cf2c]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 332  [0x18424d008]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 72  [0x104ad8c7c]
+      +         ! : | + ! : 1 _free  (in libsystem_malloc.dylib) + 44  [0x18425113c]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 240  [0x104ad8d24]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 28  [0x18424ced8]
+      +         ! : | + 4 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 5320  [0x104adb408]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 72  [0x104ad8c7c]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 684  [0x18424d168]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 104  [0x104ad8c9c]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 240  [0x18424cfac]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 240  [0x104ad8d24]
+      +         ! : | + ! : 1 DYLD-STUB$$free  (in bench_corpus) + 4  [0x104b55324]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputEBH_  (in bench_corpus) + 464  [0x104ad8e04]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 332  [0x18424d008]
+      +         ! : | + 3 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 840  [0x104ada288]
+      +         ! : | + ! 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + ! 1 DYLD-STUB$$memcpy  (in bench_corpus) + 4  [0x104b55378]
+      +         ! : | + 3 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 3608  [0x104adad58]
+      +         ! : | + ! 3 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + 3 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 9456  [0x104adc430]
+      +         ! : | + ! 3 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + 3 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22376  [0x104adf6a8]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr11AdaptResultEBH_  (in bench_corpus) + 440  [0x104ad8574]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 288  [0x18424cfdc]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr11AdaptResultEBH_  (in bench_corpus) + 456  [0x104ad8584]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !   1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x1843e50f8]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4324  [0x104adb024]
+      +         ! : | + ! 2 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 272  [0x104b1506c]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4412  [0x104adb07c]
+      +         ! : | + ! 1 <deduplicated_symbol>  (in libsystem_malloc.dylib) + 344  [0x18424b960]
+      +         ! : | + ! 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 88  [0x184244aa4]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4792  [0x104adb1f8]
+      +         ! : | + ! 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 21256  [0x104adf248]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy8MsOutputEEB13_  (in bench_corpus) + 168  [0x104ad7ce0]
+      +         ! : | + ! : 1 _xzm_free_main  (in libsystem_malloc.dylib) + 164  [0x18424cf60]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy8MsOutputEEB13_  (in bench_corpus) + 200  [0x104ad7d00]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !     1 mach_absolute_time  (in libsystem_kernel.dylib) + 112  [0x1843e50fc]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22324  [0x104adf674]
+      +         ! : | + ! 2 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtCs8Hh7wWMBHrQ_5alloc3vec3VecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount11SectionDataEEB1e_  (in bench_corpus) + 72  [0x104ad8158]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !   : 1 mach_absolute_time  (in libsystem_kernel.dylib) + 112  [0x1843e50fc]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 280  [0x18424cfd4]
+      +         ! : | + 2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22576  [0x104adf770]
+      +         ! : | + ! 2 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtCs8Hh7wWMBHrQ_5alloc3vec3VecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelEEB1e_  (in bench_corpus) + 52  [0x104ad7f08]
+      +         ! : | + !   2 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver11LiveChannelEBH_  (in bench_corpus) + 64  [0x104ad1bdc]
+      +         ! : | + !     2 _xzm_free_main  (in libsystem_malloc.dylib) + 684,892  [0x18424d168,0x18424d238]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 272  [0x104ada050]
+      +         ! : | + ! 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecAsj400_EINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1O_5slice4iter4IterIBU_sEENCNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB38_13StreamEncoder10step_frame0EE9from_iterB3c_  (in bench_corpus) + 196  [0x104ad2f4c]
+      +         ! : | + !   1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 960  [0x104ada300]
+      +         ! : | + ! 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 1712  [0x104ada5f0]
+      +         ! : | + ! 1 _RNvMs4_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB5_6RawVecRNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy13ChannelOutputE8grow_oneBT_  (in bench_corpus) + 60  [0x104b4f9fc]
+      +         ! : | + !   1 _RNvMs5_NtCs8Hh7wWMBHrQ_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 92  [0x104b4fbac]
+      +         ! : | + !     1 _realloc  (in libsystem_malloc.dylib) + 456  [0x184251358]
+      +         ! : | + !       1 _malloc_zone_realloc  (in libsystem_malloc.dylib) + 48  [0x184250ac8]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 3064  [0x104adab38]
+      +         ! : | + ! 1 <deduplicated_symbol>  (in libsystem_malloc.dylib) + 200  [0x18424b8d0]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 4644  [0x104adb164]
+      +         ! : | + ! 1 _RNvCs5fGHjzWXRav_7___rustc35___rust_no_alloc_shim_is_unstable_v2  (in bench_corpus) + 0  [0x104ad17dc]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 5024  [0x104adb2e0]
+      +         ! : | + ! 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 5940  [0x104adb674]
+      +         ! : | + ! 1 _malloc_zone_calloc  (in libsystem_malloc.dylib) + 76  [0x18425076c]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 6312  [0x104adb7e8]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 392  [0x18424d044]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 7068  [0x104adbadc]
+      +         ! : | + ! 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 832  [0x184244d8c]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 8676  [0x104adc124]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver5S1CapEEB13_  (in bench_corpus) + 0  [0x104ad7a04]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 8944  [0x104adc230]
+      +         ! : | + ! 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterThAhj4_EENCNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB39_13StreamEncoder10step_frames7_0EE9from_iterB3d_  (in bench_corpus) + 120  [0x104ad3bfc]
+      +         ! : | + !   1 _RNvCs5fGHjzWXRav_7___rustc11___rdl_alloc  (in bench_corpus) + 0  [0x104b276b0]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 10044  [0x104adc67c]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !   1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x1843e50f8]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 17844  [0x104ade4f4]
+      +         ! : | + ! 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_lEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount11SectionDataENCNvMs_NtB2X_13stream_driverNtB42_13StreamEncoder10step_framesg_0EE9from_iterB2Z_  (in bench_corpus) + 76  [0x104ad396c]
+      +         ! : | + !   1 DYLD-STUB$$malloc  (in bench_corpus) + 4  [0x104b55360]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18008  [0x104ade598]
+      +         ! : | + ! 1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VeclEINtB4_18SpecFromIterNestedlINtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1F_3ops5range5RangejENCNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB2U_13StreamEncoder10step_framesh_0EE9from_iterB2Y_  (in bench_corpus) + 168  [0x104ad4fe0]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18308  [0x104ade6c4]
+      +         ! : | + ! 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18736  [0x104ade870]
+      +         ! : | + ! 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 88  [0x184244aa4]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18936  [0x104ade938]
+      +         ! : | + ! 1 _free  (in libsystem_malloc.dylib) + 76  [0x18425115c]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22116  [0x104adf5a4]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame13RawBlockInputEBH_  (in bench_corpus) + 76  [0x104ad91d4]
+      +         ! : | + !   1 DYLD-STUB$$free  (in bench_corpus) + 4  [0x104b55324]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22264  [0x104adf638]
+      +         ! : | + ! 1 _free  (in libsystem_malloc.dylib) + 36  [0x184251134]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22356  [0x104adf694]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 420  [0x18424d060]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22420  [0x104adf6d4]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtCs8Hh7wWMBHrQ_5alloc3vec3VecIBC_lEEECs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 72  [0x104ad7e14]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 28  [0x18424ced8]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 22444  [0x104adf6ec]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe8PeResultEBH_  (in bench_corpus) + 24  [0x104ad8610]
+      +         ! : | + !   1 _RNvXsp_NtCs8Hh7wWMBHrQ_5alloc3vecINtB5_3VecNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe13PeChannelDataENtNtNtCs3bJEMBXHbwl_4core3ops4drop4Drop4dropBL_  (in bench_corpus) + 140  [0x104ad55b0]
+      +         ! : | + !     1 _xzm_free_main  (in libsystem_malloc.dylib) + 28  [0x18424ced8]
+      +         ! : | + 1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 25556  [0x104ae0314]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 240  [0x18424cfac]
+      +         ! : | + 1 _xzm_free_main  (in libsystem_malloc.dylib) + 1072  [0x18424d2ec]
+      +         ! : | 2 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder11emit_frames  (in bench_corpus) + 636  [0x104af6f84]
+      +         ! : | + 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver17MsDecisionCaptureEEB13_  (in bench_corpus) + 264  [0x104af681c]
+      +         ! : | + ! 1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !   1 mach_absolute_time  (in libsystem_kernel.dylib) + 108  [0x1843e50f8]
+      +         ! : | + 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver17MsDecisionCaptureEEB13_  (in bench_corpus) + 360  [0x104af687c]
+      +         ! : | +   1 _xzm_free_main  (in libsystem_malloc.dylib) + 336  [0x18424d00c]
+      +         ! : | 2 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder11emit_frames  (in bench_corpus) + 644  [0x104af6f8c]
+      +         ! : | + 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver5S1CapEEB13_  (in bench_corpus) + 64  [0x104af6918]
+      +         ! : | + ! 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver12S1CapChannelEBH_  (in bench_corpus) + 112  [0x104ad1cf0]
+      +         ! : | + !   1 _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+      +         ! : | + !     1 mach_absolute_time  (in libsystem_kernel.dylib) + 16  [0x1843e509c]
+      +         ! : | + 1 _RINvNtCs3bJEMBXHbwl_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver5S1CapEEB13_  (in bench_corpus) + 104  [0x104af6940]
+      +         ! : | +   1 _xzm_free_main  (in libsystem_malloc.dylib) + 356  [0x18424d020]
+      +         ! : | 1 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder11emit_frames  (in bench_corpus) + 168  [0x104af6db0]
+      +         ! : |   1 _RNvXs_NtNtCs8Hh7wWMBHrQ_5alloc3vec21spec_from_iter_nestedINtB6_3VecIBU_sEEINtB4_18SpecFromIterNestedB13_INtNtNtNtCs3bJEMBXHbwl_4core4iter8adapters3map3MapINtNtNtB1N_5slice4iter4IterAsj400_ENCNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB39_7Encoder11emit_frames0EE9from_iterB3d_  (in bench_corpus) + 128  [0x104ad3ebc]
+      +         ! : |     1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : 38 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus) + 296,260,...  [0x104af75d4,0x104af75b0,...]
+      +         ! : 1 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus) + 432  [0x104af765c]
+      +         ! : | 1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 656  [0x184244cdc]
+      +         ! : 1 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus) + 484  [0x104af7690]
+      +         ! : | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+      +         ! : 1 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus) + 624  [0x104af771c]
+      +         ! :   1 _RNvMs4_NtCs8Hh7wWMBHrQ_5alloc7raw_vecINtB5_6RawVecINtNtB7_3vec3VecdEE8grow_oneCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 60  [0x104b4f6e0]
+      +         ! :     1 _RNvMs5_NtCs8Hh7wWMBHrQ_5alloc7raw_vecNtB5_11RawVecInner11finish_growCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 120  [0x104b4fbc8]
+      +         ! :       1 DYLD-STUB$$malloc  (in bench_corpus) + 4  [0x104b55360]
+      +         ! 9 _RNvCs5jUnETJI1A0_12bench_corpus11encode_once  (in bench_corpus) + 636  [0x104acf534]
+      +         ! : 9 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder5flush  (in bench_corpus) + 792  [0x104af7bb8]
+      +         ! :   9 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder11emit_frames  (in bench_corpus) + 196  [0x104af6dcc]
+      +         ! :     2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 1312  [0x104ada460]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 8960  [0x104b08780]
+      +         ! :     | + 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1256  [0x104b0a4a8]
+      +         ! :     | +   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6encode  (in bench_corpus) + 1388  [0x104b1997c]
+      +         ! :     | +     1 _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 260  [0x184244b50]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus) + 10708  [0x104b08e54]
+      +         ! :     |   1 ???  (in <unknown binary>)  [0x32]
+      +         ! :     |     1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies  (in bench_corpus) + 760  [0x104b1a7f8]
+      +         ! :     2 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 15880  [0x104addd48]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 4632  [0x104af2298]
+      +         ! :     | + 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant17quantize_spectrum  (in bench_corpus) + 376  [0x104b1a238]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus) + 6400  [0x104af2980]
+      +         ! :     |   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 1392  [0x104afd230]
+      +         ! :     1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 6152  [0x104adb748]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo  (in bench_corpus) + 1900  [0x104af476c]
+      +         ! :     1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 9164  [0x104adc30c]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus) + 2300  [0x104b1013c]
+      +         ! :     1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 9864  [0x104adc5c8]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus) + 4044  [0x104aeca4c]
+      +         ! :     1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 14436  [0x104add7a4]
+      +         ! :     | 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus) + 3680  [0x104afdb20]
+      +         ! :     1 _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus) + 18372  [0x104ade704]
+      +         ! :       1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame21channel_element_write  (in bench_corpus) + 1400  [0x104b01738]
+      +         ! :         1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5frame23encode_channel_spectral  (in bench_corpus) + 52  [0x104b018b4]
+      +         ! :           1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data  (in bench_corpus) + 256  [0x104af8840]
+      +         ! 6 _RNvCs5jUnETJI1A0_12bench_corpus11encode_once  (in bench_corpus) + 1396,1248  [0x104acf82c,0x104acf798]
+      +         ! 1 _RNvCs5jUnETJI1A0_12bench_corpus11encode_once  (in bench_corpus) + 144  [0x104acf348]
+      +         !   1 _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder3new  (in bench_corpus) + 220  [0x104af7414]
+      +         !     1 _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB2_13StreamEncoder3new  (in bench_corpus) + 288  [0x104ad939c]
+      +         !       1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10psy_config8load_cfg  (in bench_corpus) + 220  [0x104b0f2e8]
+      +         !         1 _RNCNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10psy_config8load_cfg0B7_  (in bench_corpus) + 1544  [0x104b0d15c]
+      +         !           1 _RINvXs1c_NtNtNtCsdnanKjkF2cC_3std11collections4hash3mapINtB7_7HashMapNtNtCs8Hh7wWMBHrQ_5alloc6string6StringB15_EINtNtNtNtCs3bJEMBXHbwl_4core4iter6traits7collect12FromIteratorTB15_B15_EE9from_iterINtNtNtB19_3vec9into_iter8IntoIterB2M_EECs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 124  [0x104b02158]
+      +         !             1 _RINvXs4_NtNtCs8Hh7wWMBHrQ_5alloc3vec9into_iterINtB6_8IntoIterTNtNtBa_6string6StringBY_EENtNtNtNtCs3bJEMBXHbwl_4core4iter6traits8iterator8Iterator4folduNCINvNvB1o_8for_each4callBX_NCINvXs1i_NtCsdnfh2UXVlgZ_9hashbrown3mapINtB31_7HashMapBY_BY_NtNtNtCsdnanKjkF2cC_3std4hash6random11RandomStateEINtNtB1s_7collect6ExtendBX_E6extendBI_E0E0ECs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 120  [0x104b0226c]
+      +         !               1 _RNvMs1_NtCsdnfh2UXVlgZ_9hashbrown3mapINtB5_7HashMapNtNtCs8Hh7wWMBHrQ_5alloc6string6StringBN_NtNtNtCsdnanKjkF2cC_3std4hash6random11RandomStateE6insertCs1QHmLwBrYI8_11ferrite_aac  (in bench_corpus) + 244  [0x104b15964]
+      +         2 _RNvCs5jUnETJI1A0_12bench_corpus4main  (in bench_corpus) + 3212  [0x104ad094c]
+      +           2 _RNvNtNtCsdnanKjkF2cC_3std2io5stdio6__print  (in bench_corpus) + 100  [0x104b35e7c]
+      +             2 _RNvXse_NtNtCsdnanKjkF2cC_3std2io5stdioRNtB5_6StdoutNtNtNtCs3bJEMBXHbwl_4core2io5write5Write9write_fmt  (in bench_corpus) + 68  [0x104b3c638]
+      +               2 _RNvNtCs3bJEMBXHbwl_4core3fmt5write  (in bench_corpus) + 144  [0x104b4ae38]
+      +                 2 _RNvXNvNtNtCs3bJEMBXHbwl_4core2io5write17default_write_fmtINtB2_7AdapterNtNtNtCsdnanKjkF2cC_3std2io5stdio10StdoutLockENtNtB8_3fmt5Write9write_strB1d_  (in bench_corpus) + 28  [0x104b3b108]
+      +                   2 _RNvXsh_NtNtCsdnanKjkF2cC_3std2io5stdioNtB5_10StdoutLockNtNtNtCs3bJEMBXHbwl_4core2io5write5Write9write_all  (in bench_corpus) + 128  [0x104b3c7d0]
+      +                     1 _RNvMs_NtNtNtCs8Hh7wWMBHrQ_5alloc2io8buffered9bufwriterINtB4_9BufWriterNtNtNtCsdnanKjkF2cC_3std2io5stdio9StdoutRawE9flush_bufB1c_  (in bench_corpus) + 116  [0x104b2d790]
+      +                     : 1 _RNvMNvMs_NtNtNtCs8Hh7wWMBHrQ_5alloc2io8buffered9bufwriterINtB7_9BufWriterpE9flush_bufNtB2_8BufGuard9remaining  (in bench_corpus) + 0  [0x104b48140]
+      +                     1 _RNvMs_NtNtNtCs8Hh7wWMBHrQ_5alloc2io8buffered9bufwriterINtB4_9BufWriterNtNtNtCsdnanKjkF2cC_3std2io5stdio9StdoutRawE9flush_bufB1c_  (in bench_corpus) + 144  [0x104b2d7ac]
+      +                       1 write  (in libsystem_kernel.dylib) + 8  [0x1843e8838]
+      1 ???  (in <unknown binary>)  [0xffff850000000000]
+      + 1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1596  [0x104b0a5fc]
+      +   1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy21band_energy_long_into  (in bench_corpus) + 580  [0x104b1b860]
+      1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18tns_encode_channel  (in bench_corpus) + 1596  [0x104b0a5fc]
+        1 _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy21band_energy_long_into  (in bench_corpus) + 588  [0x104b1b868]
+
+Total number in stack (recursive counted multiple, when >=5):
+        24       _xzm_free_main  (in libsystem_malloc.dylib) + 0  [0x18424cebc]
+        20       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x184433d60]
+        15       _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib) + 0  [0x184244a4c]
+        13       _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus) + 0  [0x104b14f5c]
+        13       _platform_memset  (in libsystem_platform.dylib) + 0  [0x184433a90]
+        8       _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus) + 0  [0x104b169c0]
+        8       _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus) + 0  [0x104b19e00]
+        8       _xzm_free_main  (in libsystem_malloc.dylib) + 736  [0x18424d19c]
+        8       mach_absolute_time  (in libsystem_kernel.dylib) + 0  [0x1843e508c]
+        5       <deduplicated_symbol>  (in libsystem_malloc.dylib) + 0  [0x18424b808]
+        5       log2  (in libsystem_m.dylib) + 0  [0x194f98160]
+
+Sort by top of stack, same collapsed (when >= 5):
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist  (in bench_corpus)        314
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse  (in bench_corpus)        230
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse  (in bench_corpus)        110
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags  (in bench_corpus)        72
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist  (in bench_corpus)        62
+        _RNvNtNtNtCs1QHmLwBrYI8_11ferrite_aac6common3fft7dit_fft7dit_fft  (in bench_corpus)        61
+        _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc12block_switchNtB2_11BlockSwitch7process  (in bench_corpus)        52
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo  (in bench_corpus)        50
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe11form_factor  (in bench_corpus)        46
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data  (in bench_corpus)        45
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse  (in bench_corpus)        40
+        _platform_memmove  (in libsystem_platform.dylib)        40
+        _RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push  (in bench_corpus)        38
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data  (in bench_corpus)        35
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate21calc_max_value_in_sfb  (in bench_corpus)        33
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr  (in bench_corpus)        31
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff  (in bench_corpus)        30
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant17quantize_spectrum  (in bench_corpus)        29
+        _xzm_free_main  (in libsystem_malloc.dylib)        25
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff  (in bench_corpus)        21
+        _RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame  (in bench_corpus)        20
+        _platform_memset  (in libsystem_platform.dylib)        20
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac6common3dct5dctiv  (in bench_corpus)        18
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame  (in bench_corpus)        17
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy22check_band_energy_into  (in bench_corpus)        17
+        _xzm_xzone_malloc_tiny  (in libsystem_malloc.dylib)        15
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19max_scale_spec_into  (in bench_corpus)        14
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation  (in bench_corpus)        13
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies  (in bench_corpus)        13
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19map_spectrum_to_q31  (in bench_corpus)        12
+        _RNvNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver16ms_stereo_mirror5apply  (in bench_corpus)        9
+        log2  (in libsystem_m.dylib)        9
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max  (in bench_corpus)        8
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect  (in bench_corpus)        8
+        mach_absolute_time  (in libsystem_kernel.dylib)        8
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q319schur_div  (in bench_corpus)        7
+        _RNvCs5jUnETJI1A0_12bench_corpus11encode_once  (in bench_corpus)        6
+        _RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel  (in bench_corpus)        6
+        <deduplicated_symbol>  (in libsystem_malloc.dylib)        5
+        _RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac6common4mdctNtB2_4Mdct4mdct  (in bench_corpus)        5
+
+Binary Images:
+       0x104acc000 -        0x104b845c3 +bench_corpus (0) <20CFAA0B-21A7-37CE-A534-33E6D3FC7B71> /var/folders/*/bench_corpus
+       0x183fa0000 -        0x183fef5f7  libobjc.A.dylib (973.1) <C0680DF6-9900-3C29-A071-95A031686EF8> /usr/lib/libobjc.A.dylib
+       0x183ff0000 -        0x183ffa23f  libsharedcache.dylib (0) <BBF95357-BEBF-3D89-8900-2BBB14A667C5> /usr/lib/libsharedcache.dylib
+       0x183ffb000 -        0x184021d3b  libdyld.dylib (27062) <62863BCA-DD60-3D32-A9DB-89099BA6F3D7> /usr/lib/system/libdyld.dylib
+       0x184022000 -        0x1840e16e3  dyld (1.0.0 - 27062) <D341DDCB-7969-3A9C-8E03-0CF4751398A9> /usr/lib/dyld
+       0x1840e2000 -        0x1840e501f  libsystem_blocks.dylib (98.1) <6F304731-D95D-3501-B4AD-F2934F7F2446> /usr/lib/system/libsystem_blocks.dylib
+       0x1840e6000 -        0x18413b0df  libxpc.dylib (3298.1.1) <0791121F-B5FC-3F84-BF04-115E86D2D882> /usr/lib/system/libxpc.dylib
+       0x18413c000 -        0x18415bc13  libsystem_trace.dylib (1966.1.1) <B48A8E3E-A12A-3342-8321-428B555E965E> /usr/lib/system/libsystem_trace.dylib
+       0x18415c000 -        0x184210f27  libcorecrypto.dylib (2109.0.22) <807AA6C9-5D8A-3CA5-B4CE-FACE5296EF6A> /usr/lib/system/libcorecrypto.dylib
+       0x184211000 -        0x184266c5f  libsystem_malloc.dylib (886.0.8) <2339CB57-FE5A-3154-A206-A76059C749EB> /usr/lib/system/libsystem_malloc.dylib
+       0x184267000 -        0x1842ad19f  libdispatch.dylib (1605.0.2) <022BF08F-0B3A-3225-9E65-16D1553CE90D> /usr/lib/system/libdispatch.dylib
+       0x1842ae000 -        0x1842b0d2b  libsystem_featureflags.dylib (108) <20C1CAB2-1F13-3426-8146-9CAE9FF2A33D> /usr/lib/system/libsystem_featureflags.dylib
+       0x1842b1000 -        0x184333ca3  libsystem_c.dylib (1786.0.3) <FBA7B23E-AA60-3A90-9AA4-A7A2E0AD63EE> /usr/lib/system/libsystem_c.dylib
+       0x184334000 -        0x1843c9033  libc++.1.dylib (2200.27) <1E9BA4AA-B5DA-3CF3-80AC-4B880049573F> /usr/lib/libc++.1.dylib
+       0x1843ca000 -        0x1843e3eff  libc++abi.dylib (2200.27) <A21743EE-6E1C-3E74-97EA-7AF793DE4BDF> /usr/lib/libc++abi.dylib
+       0x1843e4000 -        0x1844229ab  libsystem_kernel.dylib (13432.1.9) <F63BF418-8F75-34A4-AAF1-8CAF2B9B6A05> /usr/lib/system/libsystem_kernel.dylib
+       0x184423000 -        0x18442f91b  libsystem_pthread.dylib (553.0.1) <5A1828C3-CBC2-3B85-BD07-C8ED10021A41> /usr/lib/system/libsystem_pthread.dylib
+       0x184430000 -        0x1844394f3  libsystem_platform.dylib (402.0.1.0.1) <080E4444-A0FB-3913-9756-4E470015F32F> /usr/lib/system/libsystem_platform.dylib
+       0x18443a000 -        0x184468903  libsystem_info.dylib (603) <BC387AEB-1CEF-3513-92D7-D7F913596711> /usr/lib/system/libsystem_info.dylib
+       0x188592000 -        0x18859bb13  libsystem_darwin.dylib (1786.0.3) <4E66C888-993C-3E6A-A8DA-A949C01C5B67> /usr/lib/system/libsystem_darwin.dylib
+       0x1889ec000 -        0x1889fdb8b  libsystem_notify.dylib (368) <58FD36D8-37A7-311C-80F2-8E64DD8710CF> /usr/lib/system/libsystem_notify.dylib
+       0x18ab49000 -        0x18ab63d93  libsystem_networkextension.dylib (2340.1.2) <22E1D190-486F-324F-ABA4-F36AB841BFE9> /usr/lib/system/libsystem_networkextension.dylib
+       0x18abf1000 -        0x18ac08247  libsystem_asl.dylib (409) <B4D449B7-A821-3A9A-8019-E917B291F10A> /usr/lib/system/libsystem_asl.dylib
+       0x18bb9c000 -        0x18bb9cf2f  libobjcMsgSend.dylib (973.1) <41179EDE-DC97-3BBE-8848-6400D12C1436> /usr/lib/objc/libobjcMsgSend.dylib
+       0x18cce8000 -        0x18ccefedf  libsystem_symptoms.dylib (2394.0.4) <60EE7884-9F4E-3184-A6AC-FA40A7A0297D> /usr/lib/system/libsystem_symptoms.dylib
+       0x191080000 -        0x1910baaeb  libsystem_containermanager.dylib (833.0.8.0.1) <08A57205-555D-3792-8931-9D5B585AF326> /usr/lib/system/libsystem_containermanager.dylib
+       0x1926d3000 -        0x1926d7317  libsystem_configuration.dylib (1446) <F3EB66A7-7A24-3AE5-B6E8-9A37BB00F119> /usr/lib/system/libsystem_configuration.dylib
+       0x1926d8000 -        0x1926dee03  libsystem_sandbox.dylib (3051.0.52) <1E892B56-092E-3832-BDE3-DCE356D7A4FA> /usr/lib/system/libsystem_sandbox.dylib
+       0x193b9c000 -        0x193b9cf2f  libobjcMsgSend1.dylib (973.1) <B40D9B2A-E1EE-37ED-8004-711A1F263DE1> /usr/lib/objc/libobjcMsgSend1.dylib
+       0x1942bc000 -        0x1942bef93  libquarantine.dylib (217.0.4) <7FD4AE22-86EF-382B-83F5-ADF9336C1160> /usr/lib/system/libquarantine.dylib
+       0x1949ce000 -        0x1949d41e7  libsystem_coreservices.dylib (203) <57248E07-11A5-3857-918E-4A3A63B69FE8> /usr/lib/system/libsystem_coreservices.dylib
+       0x194f96000 -        0x194fd3b27  libsystem_m.dylib (3326.0.1) <A3FB340F-3ED5-30F4-8B64-9D5860F64D35> /usr/lib/system/libsystem_m.dylib
+       0x194fd5000 -        0x194fd84f7  libmacho.dylib (27062) <50DEADEC-3E99-3519-AFC3-4A3FEB3F14C3> /usr/lib/system/libmacho.dylib
+       0x194ff2000 -        0x194ffe707  libcommonCrypto.dylib (600041) <41C99F45-C5E6-39DB-B1F2-A1BEA9D242A4> /usr/lib/system/libcommonCrypto.dylib
+       0x194fff000 -        0x195008c87  libunwind.dylib (2200.5) <3070AB81-B082-39E8-8A00-EF88DDE9AC47> /usr/lib/system/libunwind.dylib
+       0x195010000 -        0x19501a7eb  libcopyfile.dylib (260.0.3) <72D95AF9-BF5E-3A84-81A6-BCC5BDB99857> /usr/lib/system/libcopyfile.dylib
+       0x19501b000 -        0x19501e8bf  libcompiler_rt.dylib (103.4) <DFB5CE7F-A36E-36AA-BECE-1392D3D43607> /usr/lib/system/libcompiler_rt.dylib
+       0x19501f000 -        0x195024077  libsystem_collections.dylib (1786.0.3) <1E8022D4-5A37-3A7A-8936-603E6FA88358> /usr/lib/system/libsystem_collections.dylib
+       0x195025000 -        0x195027f1f  libsystem_secinit.dylib (182) <DE037464-4C5D-3E96-A33F-2A4557CC6A20> /usr/lib/system/libsystem_secinit.dylib
+       0x195028000 -        0x19502a97f  libremovefile.dylib (96) <E6E6DFCF-6B2C-3F30-A59D-816CAB1190CE> /usr/lib/system/libremovefile.dylib
+       0x19502b000 -        0x19502be27  libkeymgr.dylib (31) <5EC997EF-3ADA-360B-9FCD-5F940C83FA4E> /usr/lib/system/libkeymgr.dylib
+       0x19502c000 -        0x195034af7  libsystem_dnssd.dylib (3111.0.5.0.1) <DE22096F-1E5B-3D6E-8164-771582DD6391> /usr/lib/system/libsystem_dnssd.dylib
+       0x195035000 -        0x195039f1b  libcache.dylib (95) <80BAE197-E285-3F6E-A1EE-B77FE37D7E5D> /usr/lib/system/libcache.dylib
+       0x19503a000 -        0x19503b8f3  libSystem.B.dylib (1359) <4FDC9AA6-B344-37FE-B8C6-A4C94A038F57> /usr/lib/libSystem.B.dylib
+       0x19bb9c000 -        0x19bb9cf2f  libobjcMsgSend2.dylib (973.1) <BD27A84B-C9AE-3282-BBEA-3B6119837B5A> /usr/lib/objc/libobjcMsgSend2.dylib
+       0x1a3b9c000 -        0x1a3b9cf2f  libobjcMsgSend3.dylib (973.1) <C0860D68-DDFC-3BD7-8B06-DB0645CBBED4> /usr/lib/objc/libobjcMsgSend3.dylib
+       0x1abb9c000 -        0x1abb9cf2f  libobjcMsgSend4.dylib (973.1) <A6153BF5-622B-3B01-81B6-F64A365EF613> /usr/lib/objc/libobjcMsgSend4.dylib
+       0x1b3b9c000 -        0x1b3b9cf2f  libobjcMsgSend5.dylib (973.1) <3913A71C-B29A-3AEA-820B-BEC40AC1861A> /usr/lib/objc/libobjcMsgSend5.dylib
+       0x1bbb9c000 -        0x1bbb9cf2f  libobjcMsgSend6.dylib (973.1) <9BC523A3-E167-3F6C-8CAE-0F3EBA671791> /usr/lib/objc/libobjcMsgSend6.dylib
+       0x1c3b9c000 -        0x1c3b9cf2f  libobjcMsgSend7.dylib (973.1) <248B7BCE-5B4C-34C7-A340-43D5228628C5> /usr/lib/objc/libobjcMsgSend7.dylib
+       0x1cbb9c000 -        0x1cbb9cf2f  libobjcMsgSend8.dylib (973.1) <3E041BAD-A8E8-3069-B741-78CD1A45B176> /usr/lib/objc/libobjcMsgSend8.dylib
+       0x1d3b9c000 -        0x1d3b9cf2f  libobjcMsgSend9.dylib (973.1) <34A67969-21A0-39D6-BB81-8FDA5A2409DB> /usr/lib/objc/libobjcMsgSend9.dylib
+       0x1dbb9c000 -        0x1dbb9cf2f  libobjcMsgSend10.dylib (973.1) <678186C0-8EAD-3B35-8CBB-00285B41E4A0> /usr/lib/objc/libobjcMsgSend10.dylib
+       0x1e3b9c000 -        0x1e3b9cf2f  libobjcMsgSend11.dylib (973.1) <E05CB08C-E956-36FA-8967-AE8E346A8D2C> /usr/lib/objc/libobjcMsgSend11.dylib
+       0x20bb9c000 -        0x20bb9cf2f  libobjcMsgSend12.dylib (973.1) <10AB03AA-FF1F-3FDC-9DFB-BFC40042C501> /usr/lib/objc/libobjcMsgSend12.dylib
+       0x213b9c000 -        0x213b9cf2f  libobjcMsgSend13.dylib (973.1) <ABF53427-FA6F-3D0D-8F9D-7AD795CA5C92> /usr/lib/objc/libobjcMsgSend13.dylib
+       0x21bb9c000 -        0x21bb9cf2f  libobjcMsgSend14.dylib (973.1) <9A844C46-A6DA-34D4-8EBF-2AD775C30684> /usr/lib/objc/libobjcMsgSend14.dylib
+       0x223b9c000 -        0x223b9cf2f  libobjcMsgSend15.dylib (973.1) <7C995666-2B2D-3284-AA0A-EBF7C922838E> /usr/lib/objc/libobjcMsgSend15.dylib
+       0x22bb9c000 -        0x22bb9cf2f  libobjcMsgSend16.dylib (973.1) <B6C0E14B-53AE-3E22-9ED5-1729C49F46F2> /usr/lib/objc/libobjcMsgSend16.dylib
+       0x233b9c000 -        0x233b9cf2f  libobjcMsgSend17.dylib (973.1) <07B4CF85-251B-301B-832B-20B315A59E19> /usr/lib/objc/libobjcMsgSend17.dylib
+       0x23bb9c000 -        0x23bb9cf2f  libobjcMsgSend18.dylib (973.1) <43E575B7-04DB-3999-A633-1A3B638BA6E3> /usr/lib/objc/libobjcMsgSend18.dylib
+       0x243b9c000 -        0x243b9cf2f  libobjcMsgSend19.dylib (973.1) <736F4D85-76F7-3B28-8D87-C07E8F7A0EF4> /usr/lib/objc/libobjcMsgSend19.dylib
+       0x24bb9c000 -        0x24bb9cf2f  libobjcMsgSend20.dylib (973.1) <74E67C8B-6BCA-3184-A18E-A97F370052C6> /usr/lib/objc/libobjcMsgSend20.dylib
+       0x253b9c000 -        0x253b9cf2f  libobjcMsgSend21.dylib (973.1) <CC0D732F-98E7-3888-9E15-70984DA2FB04> /usr/lib/objc/libobjcMsgSend21.dylib
+       0x25bb9c000 -        0x25bb9cf2f  libobjcMsgSend22.dylib (973.1) <85A60286-5DE3-32BA-B18C-2A498B065C88> /usr/lib/objc/libobjcMsgSend22.dylib
+       0x263b9c000 -        0x263b9cf2f  libobjcMsgSend23.dylib (973.1) <5452A0D2-6B19-39BE-ADDD-80B7BCDE3A98> /usr/lib/objc/libobjcMsgSend23.dylib
+       0x26bb9c000 -        0x26bb9cf2f  libobjcMsgSend24.dylib (973.1) <94BBF2D6-722B-350D-8557-4D25A8E8D53A> /usr/lib/objc/libobjcMsgSend24.dylib
+       0x273b9c000 -        0x273b9cf2f  libobjcMsgSend25.dylib (973.1) <35481387-5A8E-3AE4-86A6-94CEB3CC8726> /usr/lib/objc/libobjcMsgSend25.dylib
+       0x28bb9c000 -        0x28bb9cf2f  libobjcMsgSend26.dylib (973.1) <9E0C8664-E7F4-39D1-AAFC-BD92B255E4E8> /usr/lib/objc/libobjcMsgSend26.dylib
+       0x293b9c000 -        0x293b9cf2f  libobjcMsgSend27.dylib (973.1) <FD424935-55A9-3650-955A-EED3441A1D19> /usr/lib/objc/libobjcMsgSend27.dylib
+       0x29bb9c000 -        0x29bb9cf2f  libobjcMsgSend28.dylib (973.1) <09BA7B97-7DF7-3C7F-932A-B6847662FC49> /usr/lib/objc/libobjcMsgSend28.dylib
+       0x2a3b9c000 -        0x2a3b9cf2f  libobjcMsgSend29.dylib (973.1) <36D5BA3F-2139-30B0-8558-556764BE9813> /usr/lib/objc/libobjcMsgSend29.dylib
+       0x2abb9c000 -        0x2abb9cf2f  libobjcMsgSend30.dylib (973.1) <9F05564A-9D12-372C-98FC-E9F0E6BE4F04> /usr/lib/objc/libobjcMsgSend30.dylib
+       0x2b08b6000 -        0x2b08bcfe5  libRosetta.dylib (385) <E359944B-D230-33F9-A04E-0C3B17C3326E> /usr/lib/libRosetta.dylib
+       0x2b12a5000 -        0x2b12a875b  libsystem_darwindirectory.dylib (129.0.1) <61264923-2AA5-3658-B8C4-550C71E9D4B3> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x2b12a9000 -        0x2b12b3d9b  libsystem_eligibility.dylib (446.1.3) <EDDE8E9C-A2CF-3931-BBB3-321CB852EB30> /usr/lib/system/libsystem_eligibility.dylib
+       0x2b12b4000 -        0x2b12bd42b  libsystem_sanitizers.dylib (32) <7138ED99-7AA0-34EA-B35B-20EF6ADB1EED> /usr/lib/system/libsystem_sanitizers.dylib
+       0x2b12be000 -        0x2b12bea13  libsystem_trial.dylib (511) <6AE48824-EC44-3A8C-B501-BE57DBE892E7> /usr/lib/system/libsystem_trial.dylib
+       0x2b3b9c000 -        0x2b3b9cf2f  libobjcMsgSend31.dylib (973.1) <0985E20F-78C3-3466-A2B2-DBB95F7104A3> /usr/lib/objc/libobjcMsgSend31.dylib
+       0x2bbb9c000 -        0x2bbb9cf2f  libobjcMsgSend32.dylib (973.1) <0D309D58-D576-3E5D-AD4B-6D55AB491702> /usr/lib/objc/libobjcMsgSend32.dylib
+       0x2c3b9c000 -        0x2c3b9cf2f  libobjcMsgSend33.dylib (973.1) <346E0484-48FA-369B-8A64-93B5F5341CFE> /usr/lib/objc/libobjcMsgSend33.dylib
+       0x2cbb9c000 -        0x2cbb9cf2f  libobjcMsgSend34.dylib (973.1) <6A31F809-BCBE-3E01-A367-E91FDACCE324> /usr/lib/objc/libobjcMsgSend34.dylib

@@ -1,0 +1,12 @@
+{
+  "c_pair_median_ms": 383.41975,
+  "r_pair_median_ms": 407.513802,
+  "ratio": 1.062839882400424,
+  "slowdown_pct": 6.283988240042393,
+  "pair_slowdown_median_pct": 6.146884853550594,
+  "pair_slowdown_min_pct": 4.972990163738178,
+  "pair_slowdown_max_pct": 7.509194870585345,
+  "pairs_rust_slower": 8,
+  "pairs": 8,
+  "reps": 10
+}

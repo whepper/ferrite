@@ -1,0 +1,407 @@
+Analysis of sampling c_bench_corpus (pid 96888) every 1 millisecond
+Process:         c_bench_corpus [96888]
+Path:            /private/var/folders/*/c_bench_corpus
+Load Address:    0x100384000
+Identifier:      c_bench_corpus
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  zsh [96887]
+Target Type:     live task
+
+Date/Time:       2026-11-10 20:30:07.444 +0100
+Launch Time:     2026-11-10 20:30:06.885 +0100
+OS Version:      macOS 27.0.1 (26A434)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         5696K
+Physical footprint (peak):  5696K
+Idle exit:                  untracked
+----
+
+Call graph:
+    1704 Thread_59661143   DispatchQueue_1: com.apple.main-thread  (serial)
+      1704 start  (in dyld) + 6688  [0x184053e80]
+        1704 main  (in c_bench_corpus) + 1324  [0x100384a34]
+          1634 encode_once  (in c_bench_corpus) + 864  [0x100384f7c]
+          + 1623 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 1928  [0x1004f82f0]
+          + ! 1171 FDKaacEnc_EncodeFrame  (in libfdk-aac.2.0.4.dylib) + 1124  [0x1004f719c]
+          + ! : 990 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 1832  [0x100514b7c]
+          + ! : | 212 ???  (in <unknown binary>)  [0x80000000]
+          + ! : | + 212 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 2104,3608,...  [0x100517444,0x100517a24,...]
+          + ! : | 190 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 1776  [0x1005172fc]
+          + ! : | + 175 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 264,352,...  [0x100516410,0x100516468,...]
+          + ! : | + 8 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 92,284,...  [0x100501af4,0x100501bb4,...]
+          + ! : | + 7 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 1816,1792  [0x100517324,0x10051730c]
+          + ! : | 134 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 2052  [0x100517410]
+          + ! : | + 130 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 264,352,...  [0x100516410,0x100516468,...]
+          + ! : | + 4 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 368,8,...  [0x100501c08,0x100501aa0,...]
+          + ! : | 123 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 9276  [0x100519048]
+          + ! : | + 119 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 264,352,...  [0x100516410,0x100516468,...]
+          + ! : | + 4 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 176,260,...  [0x100501b48,0x100501b9c,...]
+          + ! : | 99 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 12224  [0x100519bcc]
+          + ! : | + 84 FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 200,244,...  [0x1005166b4,0x1005166e0,...]
+          + ! : | + 7 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 12400,12504,...  [0x100519c7c,0x100519ce4,...]
+          + ! : | + 4 FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 476  [0x1005167c8]
+          + ! : | + ! 4 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 0,176,...  [0x100501a98,0x100501b48,...]
+          + ! : | + 4 FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 496  [0x1005167dc]
+          + ! : | +   4 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 372,168,...  [0x100501c0c,0x100501b40,...]
+          + ! : | 95 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 4656  [0x100517e3c]
+          + ! : | + 72 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 352,264,...  [0x100516468,0x100516410,...]
+          + ! : | + 16 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 4676,4740,...  [0x100517e50,0x100517e90,...]
+          + ! : | + 7 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 4,92,...  [0x100501a9c,0x100501af4,...]
+          + ! : | 69 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 6820  [0x1005186b0]
+          + ! : | + 53 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 656,264,...  [0x100516598,0x100516410,...]
+          + ! : | + 10 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 7040,6988,...  [0x10051878c,0x100518758,...]
+          + ! : | + 6 fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 0,368,...  [0x100501a98,0x100501c08,...]
+          + ! : | 30 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 11040  [0x10051972c]
+          + ! : | + 29 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 264,436,...  [0x100516410,0x1005164bc,...]
+          + ! : | + 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 11056  [0x10051973c]
+          + ! : | 18 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 1856  [0x10051734c]
+          + ! : | + 15 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 264,656,...  [0x100516410,0x100516598,...]
+          + ! : | + 3 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 1924,1888  [0x100517390,0x10051736c]
+          + ! : | 8 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 2404  [0x100517570]
+          + ! : | + 8 FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 352,264,...  [0x100516468,0x100516410,...]
+          + ! : | 3 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 2140  [0x100517468]
+          + ! : | + 3 _platform_memmove  (in libsystem_platform.dylib) + 436,24  [0x184433f14,0x184433d78]
+          + ! : | 2 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 10208  [0x1005193ec]
+          + ! : | + 2 FDKaacEnc_countScfBitsDiff(int*, int*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 0,232  [0x10051a3b0,0x10051a498]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 236  [0x100516cf8]
+          + ! : | + 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 328  [0x100516d54]
+          + ! : | + 1 DYLD-STUB$$memset_pattern16  (in libfdk-aac.2.0.4.dylib) + 4  [0x10059a0e0]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 1920  [0x10051738c]
+          + ! : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 420  [0x184433f04]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 3324  [0x100517908]
+          + ! : | + 1 DYLD-STUB$$memset_pattern16  (in libfdk-aac.2.0.4.dylib) + 4  [0x10059a0e0]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 4724  [0x100517e80]
+          + ! : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 208  [0x184433e30]
+          + ! : | 1 FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 11204  [0x1005197d0]
+          + ! : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 24  [0x184433d78]
+          + ! : | 1 FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 512  [0x1005167ec]
+          + ! : 82 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 5036  [0x100515800]
+          + ! : | 82 FDKaacEnc_QuantizeSpectrum(int, int, int, int const*, int const*, int, int const*, short*, int)  (in libfdk-aac.2.0.4.dylib) + 200,312,...  [0x100516230,0x1005162a0,...]
+          + ! : 64 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 5704  [0x100515a9c]
+          + ! : | 42 FDKaacEnc_dynBitCount(BITCNTR_STATE*, short const*, unsigned int const*, int const*, int, int, int, int, int const*, SECTION_DATA*, int const*, int const*, int const*, unsigned int)  (in libfdk-aac.2.0.4.dylib) + 1624,1668,...  [0x10050c0f8,0x10050c124,...]
+          + ! : | 22 FDKaacEnc_dynBitCount(BITCNTR_STATE*, short const*, unsigned int const*, int const*, int, int, int, int, int const*, SECTION_DATA*, int const*, int const*, int const*, unsigned int)  (in libfdk-aac.2.0.4.dylib) + 368  [0x10050bc10]
+          + ! : |   22 FDKaacEnc_bitCount(short const*, int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 56  [0x100503fb0]
+          + ! : |     5 FDKaacEnc_count7_8_9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 252,0  [0x10050735c,0x100507260]
+          + ! : |     5 FDKaacEnc_countEsc(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 200,140,...  [0x100507664,0x100507628,...]
+          + ! : |     4 FDKaacEnc_count1_2_3_4_5_6_7_8_9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 416,0,...  [0x100506e64,0x100506cc4,...]
+          + ! : |     4 FDKaacEnc_count5_6_7_8_9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 312,140,...  [0x100507200,0x100507154,...]
+          + ! : |     1 FDKaacEnc_count11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 180  [0x100507574]
+          + ! : |     1 FDKaacEnc_count3_4_5_6_7_8_9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100506ee8]
+          + ! : |     1 FDKaacEnc_count9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 140  [0x10050743c]
+          + ! : |     1 FDKaacEnc_countEsc(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 268  [0x1005076a8]
+          + ! : |       1 _platform_memset_pattern16  (in libsystem_platform.dylib) + 300  [0x18443192c]
+          + ! : 29 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 1684  [0x100514ae8]
+          + ! : | 15 FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)  (in libfdk-aac.2.0.4.dylib) + 1856,3716,...  [0x1004fea08,0x1004ff14c,...]
+          + ! : | 1 ???  (in <unknown binary>)  [0x43]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 1032  [0x100502418]
+          + ! : | 1 ???  (in <unknown binary>)  [0x666]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 1160  [0x100502498]
+          + ! : | 1 ???  (in <unknown binary>)  [0x60d5]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 592  [0x100502260]
+          + ! : | 1 ???  (in <unknown binary>)  [0xaa95]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 1752  [0x1005026e8]
+          + ! : | 1 ???  (in <unknown binary>)  [0xac84]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 596  [0x100502264]
+          + ! : | 1 ???  (in <unknown binary>)  [0x3a489c]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 592  [0x100502260]
+          + ! : | 1 ???  (in <unknown binary>)  [0x71ce16]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 640  [0x100502290]
+          + ! : | 1 ???  (in <unknown binary>)  [0xd30300]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 1032  [0x100502418]
+          + ! : | 1 ???  (in <unknown binary>)  [0xb740000]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 888  [0x100502388]
+          + ! : | 1 ???  (in <unknown binary>)  [0x35ce0000]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 884  [0x100502384]
+          + ! : | 1 ???  (in <unknown binary>)  [0x3b776000]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 868  [0x100502374]
+          + ! : | 1 FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)  (in libfdk-aac.2.0.4.dylib) + 448  [0x1004fe488]
+          + ! : | + 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 284  [0x10050212c]
+          + ! : | 1 FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)  (in libfdk-aac.2.0.4.dylib) + 2328  [0x1004febe0]
+          + ! : | + 1 schur_div(int, int, int)  (in libfdk-aac.2.0.4.dylib) + 40  [0x10058f234]
+          + ! : | 1 FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 596  [0x100502264]
+          + ! : 4 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 5148,5332,...  [0x100515870,0x100515928,...]
+          + ! : 2 FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 1592  [0x100514a8c]
+          + ! :   1 FDKaacEnc_DistributeBits(ADJ_THR_STATE*, ATS_ELEMENT*, PSY_OUT_CHANNEL**, PE_DATA*, int*, int*, int, int, int, int, int, int, AACENC_BITRES_MODE)  (in libfdk-aac.2.0.4.dylib) + 212  [0x1004fdea4]
+          + ! :   + 1 FDKaacEnc_bitresCalcBitFac(int, int, int, int, int, int, ADJ_THR_STATE const*, ATS_ELEMENT*, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 232  [0x1004fd16c]
+          + ! :   +   1 schur_div(int, int, int)  (in libfdk-aac.2.0.4.dylib) + 56  [0x10058f244]
+          + ! :   1 FDKaacEnc_DistributeBits(ADJ_THR_STATE*, ATS_ELEMENT*, PSY_OUT_CHANNEL**, PE_DATA*, int*, int*, int, int, int, int, int, int, AACENC_BITRES_MODE)  (in libfdk-aac.2.0.4.dylib) + 52  [0x1004fde04]
+          + ! 287 FDKaacEnc_EncodeFrame  (in libfdk-aac.2.0.4.dylib) + 440  [0x1004f6ef0]
+          + ! : 67 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 1296  [0x100511f20]
+          + ! : | 67 FDKaacEnc_Transform_Real(short const*, int*, int, int, int*, mdct_t*, int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 200  [0x10051aa34]
+          + ! : |   67 mdct_block(mdct_t*, short const*, int, int*, int, int, FIXP_SPK const*, int, short*)  (in libfdk-aac.2.0.4.dylib) + 548  [0x1005904f4]
+          + ! : |     50 dct_IV(int*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 488  [0x1005883dc]
+          + ! : |     + 50 dit_fft(int*, int, FIXP_SPK const*, int)  (in libfdk-aac.2.0.4.dylib) + 1380,76,...  [0x10058f020,0x10058eb08,...]
+          + ! : |     17 dct_IV(int*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 356,668,...  [0x100588358,0x100588490,...]
+          + ! : 66 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 5988  [0x100513174]
+          + ! : | 57 FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)  (in libfdk-aac.2.0.4.dylib) + 5092,5004,...  [0x1004fb8ac,0x1004fb854,...]
+          + ! : | 7 FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)  (in libfdk-aac.2.0.4.dylib) + 3612  [0x1004fb2e4]
+          + ! : | + 5 CLpc_AutoToParcor(int*, int, short*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 164  [0x100584348]
+          + ! : | + ! 5 schur_div(int, int, int)  (in libfdk-aac.2.0.4.dylib) + 56,48  [0x10058f244,0x10058f23c]
+          + ! : | + 1 CLpc_AutoToParcor(int*, int, short*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 300  [0x1005843d0]
+          + ! : | + ! 1 fDivNormSigned(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 264  [0x10058f650]
+          + ! : | + 1 CLpc_AutoToParcor(int*, int, short*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 136  [0x10058432c]
+          + ! : | 1 ???  (in <unknown binary>)  [0x6]
+          + ! : | + 1 FDKaacEnc_Parcor2Index(short const*, int*, int, int)  (in libfdk-aac.2.0.4.dylib) + 1292  [0x1004fc48c]
+          + ! : | 1 FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)  (in libfdk-aac.2.0.4.dylib) + 120  [0x1004fa540]
+          + ! : |   1 DYLD-STUB$$bzero  (in libfdk-aac.2.0.4.dylib) + 4  [0x10059a008]
+          + ! : 47 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 436  [0x100511bc4]
+          + ! : | 45 FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)  (in libfdk-aac.2.0.4.dylib) + 328,340,...  [0x10050a58c,0x10050a598,...]
+          + ! : | 1 FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)  (in libfdk-aac.2.0.4.dylib) + 100  [0x10050a4a8]
+          + ! : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 460  [0x184433f2c]
+          + ! : | 1 FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)  (in libfdk-aac.2.0.4.dylib) + 124  [0x10050a4c0]
+          + ! : |   1 _platform_memmove  (in libsystem_platform.dylib) + 12  [0x184433d6c]
+          + ! : 46 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 6312  [0x1005132b8]
+          + ! : | 41 FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)  (in libfdk-aac.2.0.4.dylib) + 2100,404,...  [0x10050de88,0x10050d7e8,...]
+          + ! : | 3 FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)  (in libfdk-aac.2.0.4.dylib) + 2452  [0x10050dfe8]
+          + ! : | + 3 fDivNorm(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 236,252,...  [0x10058f3bc,0x10058f3cc,...]
+          + ! : | 2 FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)  (in libfdk-aac.2.0.4.dylib) + 2500  [0x10050e018]
+          + ! : |   2 fDivNorm(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 4,236  [0x10058f2d4,0x10058f3bc]
+          + ! : 13 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 4340  [0x100512b04]
+          + ! : | 11 FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 376,84,...  [0x1005038a0,0x10050377c,...]
+          + ! : | 1 FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 528  [0x100503938]
+          + ! : | + 1 LdDataVector(int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 60  [0x10058f190]
+          + ! : | +   1 fLog2(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 356  [0x10058fea4]
+          + ! : | 1 FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 544  [0x100503948]
+          + ! : |   1 LdDataVector(int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 60  [0x10058f190]
+          + ! : |     1 fLog2(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 356  [0x10058fea4]
+          + ! : 8 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 3760,1296,...  [0x1005128c0,0x100511f20,...]
+          + ! : 5 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 3700  [0x100512884]
+          + ! : | 5 FDKaacEnc_SpreadingMax(int, int const*, int const*, int*)  (in libfdk-aac.2.0.4.dylib) + 56,100,...  [0x10051a584,0x10051a5b0,...]
+          + ! : 4 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 3800  [0x1005128e8]
+          + ! : | 4 FDKaacEnc_SpreadingMax(int, int const*, int const*, int*)  (in libfdk-aac.2.0.4.dylib) + 100,56  [0x10051a5b0,0x10051a584]
+          + ! : 3 FDKaacEnc_MsStereoProcessing(PSY_DATA**, PSY_OUT_CHANNEL**, int const*, int*, int*, int, int, int, int, int const*)  (in libfdk-aac.2.0.4.dylib) + 416,208  [0x10050f298,0x10050f1c8]
+          + ! : 3 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 5096  [0x100512df8]
+          + ! : | 3 LdDataVector(int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 60  [0x10058f190]
+          + ! : |   3 fLog2(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 196,272,...  [0x10058fe04,0x10058fe50,...]
+          + ! : 2 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 2100  [0x100512244]
+          + ! : | 2 FDKaacEnc_CalcSfbMaxScaleSpec(int const*, int const*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 64,272  [0x100502afc,0x100502bcc]
+          + ! : 2 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 8080  [0x1005139a0]
+          + ! : | 2 FDKaacEnc_TnsEncode(TNS_INFO*, TNS_DATA*, int, TNS_CONFIG const*, int, int*, int, int)  (in libfdk-aac.2.0.4.dylib) + 284  [0x1004fc7c8]
+          + ! : |   2 CLpc_Analysis(int*, int, short const*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib) + 216  [0x100583c6c]
+          + ! : 1 ???  (in <unknown binary>)  [0x2]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 220  [0x100502cfc]
+          + ! : 1 ???  (in <unknown binary>)  [0xb]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 224  [0x100502d00]
+          + ! : 1 ???  (in <unknown binary>)  [0x13]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 224  [0x100502d00]
+          + ! : 1 ???  (in <unknown binary>)  [0x1b]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 224  [0x100502d00]
+          + ! : 1 ???  (in <unknown binary>)  [0xd519b1bb]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 172  [0x100502ccc]
+          + ! : 1 ???  (in <unknown binary>)  [0xd9be8f47]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 552  [0x100502e48]
+          + ! : 1 ???  (in <unknown binary>)  [0xe1575f81]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 360  [0x100502d88]
+          + ! : 1 ???  (in <unknown binary>)  [0xea320d55]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 380  [0x100502d9c]
+          + ! : 1 ???  (in <unknown binary>)  [0xecb88f26]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 572  [0x100502e5c]
+          + ! : 1 ???  (in <unknown binary>)  [0xf60c5092]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 472  [0x100502df8]
+          + ! : 1 ???  (in <unknown binary>)  [0xfbc5f844]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 552  [0x100502e48]
+          + ! : 1 ???  (in <unknown binary>)  [0xffffbb8b70000000]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 412  [0x100502dbc]
+          + ! : 1 ???  (in <unknown binary>)  [0xfffffffffffff32a]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 416  [0x100502dc0]
+          + ! : 1 ???  (in <unknown binary>)  [0xfffffffffffffffc]
+          + ! : | 1 FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 456  [0x100502de8]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 460  [0x100511bdc]
+          + ! : | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 1076  [0x100511e44]
+          + ! : | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 1392  [0x100511f80]
+          + ! : | 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 4592  [0x100512c00]
+          + ! : | 1 FDKaacEnc_groupShortData(int*, SFB_THRESHOLD*, SFB_ENERGY*, SFB_ENERGY*, SFB_ENERGY*, int, int, int const*, int const*, int*, int*, int*, int, int const*, int)  (in libfdk-aac.2.0.4.dylib) + 2536  [0x10050d3b4]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 5048  [0x100512dc8]
+          + ! : | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x184433e14]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 5180  [0x100512e4c]
+          + ! : | 1 DYLD-STUB$$bzero  (in libfdk-aac.2.0.4.dylib) + 4  [0x10059a008]
+          + ! : 1 FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib) + 8360  [0x100513ab8]
+          + ! :   1 FDKaacEnc_CalcBandEnergyOptimShort(int const*, int*, int const*, int, int*)  (in libfdk-aac.2.0.4.dylib) + 116  [0x100503664]
+          + ! 113 FDKaacEnc_EncodeFrame  (in libfdk-aac.2.0.4.dylib) + 492  [0x1004f6f24]
+          + ! : 105 FDKaacEnc_CalcFormFactor(QC_OUT_CHANNEL**, PSY_OUT_CHANNEL**, int)  (in libfdk-aac.2.0.4.dylib) + 472,476,...  [0x1005169ec,0x1005169f0,...]
+          + ! : 6 FDKaacEnc_QCMainPrepare(ELEMENT_INFO*, ATS_ELEMENT*, PSY_OUT_ELEMENT*, QC_OUT_ELEMENT*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 104  [0x1005143cc]
+          + ! : | 4 FDKaacEnc_peCalculation(PE_DATA*, PSY_OUT_CHANNEL const* const*, QC_OUT_CHANNEL* const*, TOOLSINFO const*, ATS_ELEMENT*, int)  (in libfdk-aac.2.0.4.dylib) + 128  [0x1004fca14]
+          + ! : | + 4 FDKaacEnc_prepareSfbPe(PE_CHANNEL_DATA*, int const*, int const*, int const*, int const*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 204  [0x10050edf0]
+          + ! : | +   3 FDKaacEnc_prepareSfbPe(PE_CHANNEL_DATA*, int const*, int const*, int const*, int const*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 376,384  [0x10050ee9c,0x10050eea4]
+          + ! : | +   1 CalcLdInt(int)  (in libfdk-aac.2.0.4.dylib) + 20  [0x10058f1fc]
+          + ! : | 2 FDKaacEnc_peCalculation(PE_DATA*, PSY_OUT_CHANNEL const* const*, QC_OUT_CHANNEL* const*, TOOLSINFO const*, ATS_ELEMENT*, int)  (in libfdk-aac.2.0.4.dylib) + 528  [0x1004fcba4]
+          + ! : 2 FDKaacEnc_QCMainPrepare(ELEMENT_INFO*, ATS_ELEMENT*, PSY_OUT_ELEMENT*, QC_OUT_ELEMENT*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 148  [0x1005143f8]
+          + ! :   2 FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib) + 704,1672  [0x1005085fc,0x1005089c4]
+          + ! 51 FDKaacEnc_EncodeFrame  (in libfdk-aac.2.0.4.dylib) + 1332  [0x1004f726c]
+          + ! : 50 FDKaacEnc_WriteBitstream(TRANSPORTENC*, CHANNEL_MAPPING*, QC_OUT*, PSY_OUT*, QC_STATE*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 340  [0x100509fc4]
+          + ! : | 42 FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib) + 3680  [0x10050919c]
+          + ! : | + 16 FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib) + 3680  [0x10050919c]
+          + ! : | + ! 16 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 3364,3184,...  [0x100506b94,0x100506ae0,...]
+          + ! : | + 14 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 3412  [0x100506bc4]
+          + ! : | + ! 12 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 3364,3232,...  [0x100506b94,0x100506b10,...]
+          + ! : | + ! 2 FDK_put  (in libfdk-aac.2.0.4.dylib) + 188  [0x10057dd88]
+          + ! : | + 6 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2840  [0x100506988]
+          + ! : | + ! 6 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 3420,2676,...  [0x100506bcc,0x1005068e4,...]
+          + ! : | + 2 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 1756  [0x10050654c]
+          + ! : | + ! 2 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 1596,3420  [0x1005064ac,0x100506bcc]
+          + ! : | + 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 828  [0x1005061ac]
+          + ! : | + ! 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 780  [0x10050617c]
+          + ! : | + 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2280  [0x100506758]
+          + ! : | + ! 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2232  [0x100506728]
+          + ! : | + 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2508  [0x10050683c]
+          + ! : | + ! 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2452  [0x100506804]
+          + ! : | + 1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 3144  [0x100506ab8]
+          + ! : | +   1 FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 2760  [0x100506938]
+          + ! : | 5 FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib) + 3696,816,...  [0x1005091ac,0x10050866c,...]
+          + ! : | 3 FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib) + 4836  [0x100509620]
+          + ! : |   3 FDKaacEnc_codeScalefactorDelta(int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 116,0  [0x100506c60,0x100506bec]
+          + ! : 1 FDKaacEnc_WriteBitstream(TRANSPORTENC*, CHANNEL_MAPPING*, QC_OUT*, PSY_OUT*, QC_STATE*, AUDIO_OBJECT_TYPE, unsigned int, signed char)  (in libfdk-aac.2.0.4.dylib) + 816  [0x10050a1a0]
+          + ! :   1 FDKaacEnc_writeExtensionData(TRANSPORTENC*, QC_OUT_EXTENSION*, int, unsigned int, unsigned int, AUDIO_OBJECT_TYPE, signed char)  (in libfdk-aac.2.0.4.dylib) + 48  [0x1005076e8]
+          + ! 1 FDKaacEnc_EncodeFrame  (in libfdk-aac.2.0.4.dylib) + 368  [0x1004f6ea8]
+          + 7 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 1600  [0x1004f81a8]
+          + ! 7 FDK_deinterleave(short const*, short*, unsigned int, unsigned int, unsigned int)  (in libfdk-aac.2.0.4.dylib) + 172,176,...  [0x100575c5c,0x100575c60,...]
+          + 2 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 1112  [0x1004f7fc0]
+          + ! 2 _platform_memset  (in libsystem_platform.dylib) + 140  [0x184433b1c]
+          + 1 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 1052  [0x1004f7f84]
+          + ! 1 _platform_memset  (in libsystem_platform.dylib) + 208  [0x184433b60]
+          + 1 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 1788  [0x1004f8264]
+          +   1 DYLD-STUB$$bzero  (in libfdk-aac.2.0.4.dylib) + 4  [0x10059a008]
+          67 encode_once  (in c_bench_corpus) + 1196,1144,...  [0x1003850c8,0x100385094,...]
+          1 encode_once  (in c_bench_corpus) + 440  [0x100384dd4]
+          + 1 aacEncEncode  (in libfdk-aac.2.0.4.dylib) + 976  [0x1004f7f38]
+          +   1 FDKaacEnc_Initialize  (in libfdk-aac.2.0.4.dylib) + 1880  [0x1004f6950]
+          +     1 FDKaacEnc_psyMainInit(PSY_INTERNAL*, AUDIO_OBJECT_TYPE, CHANNEL_MAPPING*, int, int, int, int, int, int, int, int, unsigned int, unsigned int)  (in libfdk-aac.2.0.4.dylib) + 176  [0x100511790]
+          +       1 FDKaacEnc_InitPsyConfiguration(int, int, int, int, int, int, int, PSY_CONFIGURATION*, FB_TYPE)  (in libfdk-aac.2.0.4.dylib) + 3060  [0x100510a34]
+          +         1 fDivNorm(int, int, int*)  (in libfdk-aac.2.0.4.dylib) + 372  [0x10058f444]
+          1 encode_once  (in c_bench_corpus) + 912  [0x100384fac]
+          + 1 _platform_memmove  (in libsystem_platform.dylib) + 0  [0x184433d60]
+          1 encode_once  (in c_bench_corpus) + 1020  [0x100385018]
+            1 walk_adts  (in c_bench_corpus) + 68  [0x100385248]
+
+Total number in stack (recursive counted multiple, when >=5):
+        14       FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100502c20]
+        13       FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100502010]
+        10       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x184433d60]
+        8       FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100516308]
+        8       FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100505e70]
+        7       FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100516c0c]
+        7       fLog2(int, int)  (in libfdk-aac.2.0.4.dylib) + 0  [0x100501a98]
+
+Sort by top of stack, same collapsed (when >= 5):
+        FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)  (in libfdk-aac.2.0.4.dylib)        601
+        FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)  (in libfdk-aac.2.0.4.dylib)        256
+        FDKaacEnc_CalcFormFactor(QC_OUT_CHANNEL**, PSY_OUT_CHANNEL**, int)  (in libfdk-aac.2.0.4.dylib)        105
+        FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)  (in libfdk-aac.2.0.4.dylib)        85
+        FDKaacEnc_QuantizeSpectrum(int, int, int, int const*, int const*, int, int const*, short*, int)  (in libfdk-aac.2.0.4.dylib)        82
+        encode_once  (in c_bench_corpus)        67
+        FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)  (in libfdk-aac.2.0.4.dylib)        57
+        dit_fft(int*, int, FIXP_SPK const*, int)  (in libfdk-aac.2.0.4.dylib)        50
+        FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)  (in libfdk-aac.2.0.4.dylib)        45
+        FDKaacEnc_dynBitCount(BITCNTR_STATE*, short const*, unsigned int const*, int const*, int, int, int, int, int const*, SECTION_DATA*, int const*, int const*, int const*, unsigned int)  (in libfdk-aac.2.0.4.dylib)        42
+        FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)  (in libfdk-aac.2.0.4.dylib)        41
+        FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)  (in libfdk-aac.2.0.4.dylib)        40
+        fLog2(int, int)  (in libfdk-aac.2.0.4.dylib)        37
+        dct_IV(int*, int, int*)  (in libfdk-aac.2.0.4.dylib)        17
+        FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)  (in libfdk-aac.2.0.4.dylib)        15
+        FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)  (in libfdk-aac.2.0.4.dylib)        14
+        FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)  (in libfdk-aac.2.0.4.dylib)        13
+        _platform_memmove  (in libsystem_platform.dylib)        12
+        FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)  (in libfdk-aac.2.0.4.dylib)        11
+        FDKaacEnc_SpreadingMax(int, int const*, int const*, int*)  (in libfdk-aac.2.0.4.dylib)        9
+        FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)  (in libfdk-aac.2.0.4.dylib)        8
+        FDK_deinterleave(short const*, short*, unsigned int, unsigned int, unsigned int)  (in libfdk-aac.2.0.4.dylib)        7
+        FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)  (in libfdk-aac.2.0.4.dylib)        7
+        schur_div(int, int, int)  (in libfdk-aac.2.0.4.dylib)        7
+        fDivNorm(int, int, int*)  (in libfdk-aac.2.0.4.dylib)        6
+        FDKaacEnc_count7_8_9_10_11(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib)        5
+        FDKaacEnc_countEsc(short const*, int, int*)  (in libfdk-aac.2.0.4.dylib)        5
+        _platform_memset  (in libsystem_platform.dylib)        5
+        fLog2(int, int, int*)  (in libfdk-aac.2.0.4.dylib)        5
+
+Binary Images:
+       0x100384000 -        0x100385d4f +c_bench_corpus (0) <06A9FC2B-38B9-38D6-B002-16FABFDA882B> /var/folders/*/c_bench_corpus
+       0x1004c4000 -        0x1005c4503 +libfdk-aac.2.0.4.dylib (0) <E33C3194-C5B5-353F-853C-091F1437DD85> /var/folders/*/libfdk-aac.2.0.4.dylib
+       0x183fa0000 -        0x183fef5f7  libobjc.A.dylib (973.1) <C0680DF6-9900-3C29-A071-95A031686EF8> /usr/lib/libobjc.A.dylib
+       0x183ff0000 -        0x183ffa23f  libsharedcache.dylib (0) <BBF95357-BEBF-3D89-8900-2BBB14A667C5> /usr/lib/libsharedcache.dylib
+       0x183ffb000 -        0x184021d3b  libdyld.dylib (27062) <62863BCA-DD60-3D32-A9DB-89099BA6F3D7> /usr/lib/system/libdyld.dylib
+       0x184022000 -        0x1840e16e3  dyld (1.0.0 - 27062) <D341DDCB-7969-3A9C-8E03-0CF4751398A9> /usr/lib/dyld
+       0x1840e2000 -        0x1840e501f  libsystem_blocks.dylib (98.1) <6F304731-D95D-3501-B4AD-F2934F7F2446> /usr/lib/system/libsystem_blocks.dylib
+       0x1840e6000 -        0x18413b0df  libxpc.dylib (3298.1.1) <0791121F-B5FC-3F84-BF04-115E86D2D882> /usr/lib/system/libxpc.dylib
+       0x18413c000 -        0x18415bc13  libsystem_trace.dylib (1966.1.1) <B48A8E3E-A12A-3342-8321-428B555E965E> /usr/lib/system/libsystem_trace.dylib
+       0x18415c000 -        0x184210f27  libcorecrypto.dylib (2109.0.22) <807AA6C9-5D8A-3CA5-B4CE-FACE5296EF6A> /usr/lib/system/libcorecrypto.dylib
+       0x184211000 -        0x184266c5f  libsystem_malloc.dylib (886.0.8) <2339CB57-FE5A-3154-A206-A76059C749EB> /usr/lib/system/libsystem_malloc.dylib
+       0x184267000 -        0x1842ad19f  libdispatch.dylib (1605.0.2) <022BF08F-0B3A-3225-9E65-16D1553CE90D> /usr/lib/system/libdispatch.dylib
+       0x1842ae000 -        0x1842b0d2b  libsystem_featureflags.dylib (108) <20C1CAB2-1F13-3426-8146-9CAE9FF2A33D> /usr/lib/system/libsystem_featureflags.dylib
+       0x1842b1000 -        0x184333ca3  libsystem_c.dylib (1786.0.3) <FBA7B23E-AA60-3A90-9AA4-A7A2E0AD63EE> /usr/lib/system/libsystem_c.dylib
+       0x184334000 -        0x1843c9033  libc++.1.dylib (2200.27) <1E9BA4AA-B5DA-3CF3-80AC-4B880049573F> /usr/lib/libc++.1.dylib
+       0x1843ca000 -        0x1843e3eff  libc++abi.dylib (2200.27) <A21743EE-6E1C-3E74-97EA-7AF793DE4BDF> /usr/lib/libc++abi.dylib
+       0x1843e4000 -        0x1844229ab  libsystem_kernel.dylib (13432.1.9) <F63BF418-8F75-34A4-AAF1-8CAF2B9B6A05> /usr/lib/system/libsystem_kernel.dylib
+       0x184423000 -        0x18442f91b  libsystem_pthread.dylib (553.0.1) <5A1828C3-CBC2-3B85-BD07-C8ED10021A41> /usr/lib/system/libsystem_pthread.dylib
+       0x184430000 -        0x1844394f3  libsystem_platform.dylib (402.0.1.0.1) <080E4444-A0FB-3913-9756-4E470015F32F> /usr/lib/system/libsystem_platform.dylib
+       0x18443a000 -        0x184468903  libsystem_info.dylib (603) <BC387AEB-1CEF-3513-92D7-D7F913596711> /usr/lib/system/libsystem_info.dylib
+       0x188592000 -        0x18859bb13  libsystem_darwin.dylib (1786.0.3) <4E66C888-993C-3E6A-A8DA-A949C01C5B67> /usr/lib/system/libsystem_darwin.dylib
+       0x1889ec000 -        0x1889fdb8b  libsystem_notify.dylib (368) <58FD36D8-37A7-311C-80F2-8E64DD8710CF> /usr/lib/system/libsystem_notify.dylib
+       0x18ab49000 -        0x18ab63d93  libsystem_networkextension.dylib (2340.1.2) <22E1D190-486F-324F-ABA4-F36AB841BFE9> /usr/lib/system/libsystem_networkextension.dylib
+       0x18abf1000 -        0x18ac08247  libsystem_asl.dylib (409) <B4D449B7-A821-3A9A-8019-E917B291F10A> /usr/lib/system/libsystem_asl.dylib
+       0x18bb9c000 -        0x18bb9cf2f  libobjcMsgSend.dylib (973.1) <41179EDE-DC97-3BBE-8848-6400D12C1436> /usr/lib/objc/libobjcMsgSend.dylib
+       0x18cce8000 -        0x18ccefedf  libsystem_symptoms.dylib (2394.0.4) <60EE7884-9F4E-3184-A6AC-FA40A7A0297D> /usr/lib/system/libsystem_symptoms.dylib
+       0x191080000 -        0x1910baaeb  libsystem_containermanager.dylib (833.0.8.0.1) <08A57205-555D-3792-8931-9D5B585AF326> /usr/lib/system/libsystem_containermanager.dylib
+       0x1926d3000 -        0x1926d7317  libsystem_configuration.dylib (1446) <F3EB66A7-7A24-3AE5-B6E8-9A37BB00F119> /usr/lib/system/libsystem_configuration.dylib
+       0x1926d8000 -        0x1926dee03  libsystem_sandbox.dylib (3051.0.52) <1E892B56-092E-3832-BDE3-DCE356D7A4FA> /usr/lib/system/libsystem_sandbox.dylib
+       0x193b9c000 -        0x193b9cf2f  libobjcMsgSend1.dylib (973.1) <B40D9B2A-E1EE-37ED-8004-711A1F263DE1> /usr/lib/objc/libobjcMsgSend1.dylib
+       0x1942bc000 -        0x1942bef93  libquarantine.dylib (217.0.4) <7FD4AE22-86EF-382B-83F5-ADF9336C1160> /usr/lib/system/libquarantine.dylib
+       0x1949ce000 -        0x1949d41e7  libsystem_coreservices.dylib (203) <57248E07-11A5-3857-918E-4A3A63B69FE8> /usr/lib/system/libsystem_coreservices.dylib
+       0x194f96000 -        0x194fd3b27  libsystem_m.dylib (3326.0.1) <A3FB340F-3ED5-30F4-8B64-9D5860F64D35> /usr/lib/system/libsystem_m.dylib
+       0x194fd5000 -        0x194fd84f7  libmacho.dylib (27062) <50DEADEC-3E99-3519-AFC3-4A3FEB3F14C3> /usr/lib/system/libmacho.dylib
+       0x194ff2000 -        0x194ffe707  libcommonCrypto.dylib (600041) <41C99F45-C5E6-39DB-B1F2-A1BEA9D242A4> /usr/lib/system/libcommonCrypto.dylib
+       0x194fff000 -        0x195008c87  libunwind.dylib (2200.5) <3070AB81-B082-39E8-8A00-EF88DDE9AC47> /usr/lib/system/libunwind.dylib
+       0x195010000 -        0x19501a7eb  libcopyfile.dylib (260.0.3) <72D95AF9-BF5E-3A84-81A6-BCC5BDB99857> /usr/lib/system/libcopyfile.dylib
+       0x19501b000 -        0x19501e8bf  libcompiler_rt.dylib (103.4) <DFB5CE7F-A36E-36AA-BECE-1392D3D43607> /usr/lib/system/libcompiler_rt.dylib
+       0x19501f000 -        0x195024077  libsystem_collections.dylib (1786.0.3) <1E8022D4-5A37-3A7A-8936-603E6FA88358> /usr/lib/system/libsystem_collections.dylib
+       0x195025000 -        0x195027f1f  libsystem_secinit.dylib (182) <DE037464-4C5D-3E96-A33F-2A4557CC6A20> /usr/lib/system/libsystem_secinit.dylib
+       0x195028000 -        0x19502a97f  libremovefile.dylib (96) <E6E6DFCF-6B2C-3F30-A59D-816CAB1190CE> /usr/lib/system/libremovefile.dylib
+       0x19502b000 -        0x19502be27  libkeymgr.dylib (31) <5EC997EF-3ADA-360B-9FCD-5F940C83FA4E> /usr/lib/system/libkeymgr.dylib
+       0x19502c000 -        0x195034af7  libsystem_dnssd.dylib (3111.0.5.0.1) <DE22096F-1E5B-3D6E-8164-771582DD6391> /usr/lib/system/libsystem_dnssd.dylib
+       0x195035000 -        0x195039f1b  libcache.dylib (95) <80BAE197-E285-3F6E-A1EE-B77FE37D7E5D> /usr/lib/system/libcache.dylib
+       0x19503a000 -        0x19503b8f3  libSystem.B.dylib (1359) <4FDC9AA6-B344-37FE-B8C6-A4C94A038F57> /usr/lib/libSystem.B.dylib
+       0x19bb9c000 -        0x19bb9cf2f  libobjcMsgSend2.dylib (973.1) <BD27A84B-C9AE-3282-BBEA-3B6119837B5A> /usr/lib/objc/libobjcMsgSend2.dylib
+       0x1a3b9c000 -        0x1a3b9cf2f  libobjcMsgSend3.dylib (973.1) <C0860D68-DDFC-3BD7-8B06-DB0645CBBED4> /usr/lib/objc/libobjcMsgSend3.dylib
+       0x1abb9c000 -        0x1abb9cf2f  libobjcMsgSend4.dylib (973.1) <A6153BF5-622B-3B01-81B6-F64A365EF613> /usr/lib/objc/libobjcMsgSend4.dylib
+       0x1b3b9c000 -        0x1b3b9cf2f  libobjcMsgSend5.dylib (973.1) <3913A71C-B29A-3AEA-820B-BEC40AC1861A> /usr/lib/objc/libobjcMsgSend5.dylib
+       0x1bbb9c000 -        0x1bbb9cf2f  libobjcMsgSend6.dylib (973.1) <9BC523A3-E167-3F6C-8CAE-0F3EBA671791> /usr/lib/objc/libobjcMsgSend6.dylib
+       0x1c3b9c000 -        0x1c3b9cf2f  libobjcMsgSend7.dylib (973.1) <248B7BCE-5B4C-34C7-A340-43D5228628C5> /usr/lib/objc/libobjcMsgSend7.dylib
+       0x1cbb9c000 -        0x1cbb9cf2f  libobjcMsgSend8.dylib (973.1) <3E041BAD-A8E8-3069-B741-78CD1A45B176> /usr/lib/objc/libobjcMsgSend8.dylib
+       0x1d3b9c000 -        0x1d3b9cf2f  libobjcMsgSend9.dylib (973.1) <34A67969-21A0-39D6-BB81-8FDA5A2409DB> /usr/lib/objc/libobjcMsgSend9.dylib
+       0x1dbb9c000 -        0x1dbb9cf2f  libobjcMsgSend10.dylib (973.1) <678186C0-8EAD-3B35-8CBB-00285B41E4A0> /usr/lib/objc/libobjcMsgSend10.dylib
+       0x1e3b9c000 -        0x1e3b9cf2f  libobjcMsgSend11.dylib (973.1) <E05CB08C-E956-36FA-8967-AE8E346A8D2C> /usr/lib/objc/libobjcMsgSend11.dylib
+       0x20bb9c000 -        0x20bb9cf2f  libobjcMsgSend12.dylib (973.1) <10AB03AA-FF1F-3FDC-9DFB-BFC40042C501> /usr/lib/objc/libobjcMsgSend12.dylib
+       0x213b9c000 -        0x213b9cf2f  libobjcMsgSend13.dylib (973.1) <ABF53427-FA6F-3D0D-8F9D-7AD795CA5C92> /usr/lib/objc/libobjcMsgSend13.dylib
+       0x21bb9c000 -        0x21bb9cf2f  libobjcMsgSend14.dylib (973.1) <9A844C46-A6DA-34D4-8EBF-2AD775C30684> /usr/lib/objc/libobjcMsgSend14.dylib
+       0x223b9c000 -        0x223b9cf2f  libobjcMsgSend15.dylib (973.1) <7C995666-2B2D-3284-AA0A-EBF7C922838E> /usr/lib/objc/libobjcMsgSend15.dylib
+       0x22bb9c000 -        0x22bb9cf2f  libobjcMsgSend16.dylib (973.1) <B6C0E14B-53AE-3E22-9ED5-1729C49F46F2> /usr/lib/objc/libobjcMsgSend16.dylib
+       0x233b9c000 -        0x233b9cf2f  libobjcMsgSend17.dylib (973.1) <07B4CF85-251B-301B-832B-20B315A59E19> /usr/lib/objc/libobjcMsgSend17.dylib
+       0x23bb9c000 -        0x23bb9cf2f  libobjcMsgSend18.dylib (973.1) <43E575B7-04DB-3999-A633-1A3B638BA6E3> /usr/lib/objc/libobjcMsgSend18.dylib
+       0x243b9c000 -        0x243b9cf2f  libobjcMsgSend19.dylib (973.1) <736F4D85-76F7-3B28-8D87-C07E8F7A0EF4> /usr/lib/objc/libobjcMsgSend19.dylib
+       0x24bb9c000 -        0x24bb9cf2f  libobjcMsgSend20.dylib (973.1) <74E67C8B-6BCA-3184-A18E-A97F370052C6> /usr/lib/objc/libobjcMsgSend20.dylib
+       0x253b9c000 -        0x253b9cf2f  libobjcMsgSend21.dylib (973.1) <CC0D732F-98E7-3888-9E15-70984DA2FB04> /usr/lib/objc/libobjcMsgSend21.dylib
+       0x25bb9c000 -        0x25bb9cf2f  libobjcMsgSend22.dylib (973.1) <85A60286-5DE3-32BA-B18C-2A498B065C88> /usr/lib/objc/libobjcMsgSend22.dylib
+       0x263b9c000 -        0x263b9cf2f  libobjcMsgSend23.dylib (973.1) <5452A0D2-6B19-39BE-ADDD-80B7BCDE3A98> /usr/lib/objc/libobjcMsgSend23.dylib
+       0x26bb9c000 -        0x26bb9cf2f  libobjcMsgSend24.dylib (973.1) <94BBF2D6-722B-350D-8557-4D25A8E8D53A> /usr/lib/objc/libobjcMsgSend24.dylib
+       0x273b9c000 -        0x273b9cf2f  libobjcMsgSend25.dylib (973.1) <35481387-5A8E-3AE4-86A6-94CEB3CC8726> /usr/lib/objc/libobjcMsgSend25.dylib
+       0x28bb9c000 -        0x28bb9cf2f  libobjcMsgSend26.dylib (973.1) <9E0C8664-E7F4-39D1-AAFC-BD92B255E4E8> /usr/lib/objc/libobjcMsgSend26.dylib
+       0x293b9c000 -        0x293b9cf2f  libobjcMsgSend27.dylib (973.1) <FD424935-55A9-3650-955A-EED3441A1D19> /usr/lib/objc/libobjcMsgSend27.dylib
+       0x29bb9c000 -        0x29bb9cf2f  libobjcMsgSend28.dylib (973.1) <09BA7B97-7DF7-3C7F-932A-B6847662FC49> /usr/lib/objc/libobjcMsgSend28.dylib
+       0x2a3b9c000 -        0x2a3b9cf2f  libobjcMsgSend29.dylib (973.1) <36D5BA3F-2139-30B0-8558-556764BE9813> /usr/lib/objc/libobjcMsgSend29.dylib
+       0x2abb9c000 -        0x2abb9cf2f  libobjcMsgSend30.dylib (973.1) <9F05564A-9D12-372C-98FC-E9F0E6BE4F04> /usr/lib/objc/libobjcMsgSend30.dylib
+       0x2b08b6000 -        0x2b08bcfe5  libRosetta.dylib (385) <E359944B-D230-33F9-A04E-0C3B17C3326E> /usr/lib/libRosetta.dylib
+       0x2b12a5000 -        0x2b12a875b  libsystem_darwindirectory.dylib (129.0.1) <61264923-2AA5-3658-B8C4-550C71E9D4B3> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x2b12a9000 -        0x2b12b3d9b  libsystem_eligibility.dylib (446.1.3) <EDDE8E9C-A2CF-3931-BBB3-321CB852EB30> /usr/lib/system/libsystem_eligibility.dylib
+       0x2b12b4000 -        0x2b12bd42b  libsystem_sanitizers.dylib (32) <7138ED99-7AA0-34EA-B35B-20EF6ADB1EED> /usr/lib/system/libsystem_sanitizers.dylib
+       0x2b12be000 -        0x2b12bea13  libsystem_trial.dylib (511) <6AE48824-EC44-3A8C-B501-BE57DBE892E7> /usr/lib/system/libsystem_trial.dylib
+       0x2b3b9c000 -        0x2b3b9cf2f  libobjcMsgSend31.dylib (973.1) <0985E20F-78C3-3466-A2B2-DBB95F7104A3> /usr/lib/objc/libobjcMsgSend31.dylib
+       0x2bbb9c000 -        0x2bbb9cf2f  libobjcMsgSend32.dylib (973.1) <0D309D58-D576-3E5D-AD4B-6D55AB491702> /usr/lib/objc/libobjcMsgSend32.dylib
+       0x2c3b9c000 -        0x2c3b9cf2f  libobjcMsgSend33.dylib (973.1) <346E0484-48FA-369B-8A64-93B5F5341CFE> /usr/lib/objc/libobjcMsgSend33.dylib
+       0x2cbb9c000 -        0x2cbb9cf2f  libobjcMsgSend34.dylib (973.1) <6A31F809-BCBE-3E01-A367-E91FDACCE324> /usr/lib/objc/libobjcMsgSend34.dylib

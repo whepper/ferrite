@@ -1,0 +1,53 @@
+OK c stand-1 rows=300
+OK c stand-2 rows=300
+OK c stand-3 rows=300
+OK r stand-1 rows=300
+OK r stand-2 rows=300
+OK r stand-3 rows=300
+OK c pair-1 rows=300
+OK r pair-1 rows=300
+OK r pair-2 rows=300
+OK c pair-2 rows=300
+OK c pair-3 rows=300
+OK r pair-3 rows=300
+OK r pair-4 rows=300
+OK c pair-4 rows=300
+OK c pair-5 rows=300
+OK r pair-5 rows=300
+OK r pair-6 rows=300
+OK c pair-6 rows=300
+OK c pair-7 rows=300
+OK r pair-7 rows=300
+OK r pair-8 rows=300
+OK c pair-8 rows=300
+OK c post-1 rows=300
+OK c post-2 rows=300
+OK r post-1 rows=300
+OK r post-2 rows=300
+SERIES_DONE
+c	stand-1	0	300	20	1
+c	stand-2	0	300	20	1
+c	stand-3	0	300	20	1
+r	stand-1	0	300	20	1
+r	stand-2	0	300	20	1
+r	stand-3	0	300	20	1
+c	pair-1	0	300	20	1
+r	pair-1	0	300	20	1
+r	pair-2	0	300	20	1
+c	pair-2	0	300	20	1
+c	pair-3	0	300	20	1
+r	pair-3	0	300	20	1
+r	pair-4	0	300	20	1
+c	pair-4	0	300	20	1
+c	pair-5	0	300	20	1
+r	pair-5	0	300	20	1
+r	pair-6	0	300	20	1
+c	pair-6	0	300	20	1
+c	pair-7	0	300	20	1
+r	pair-7	0	300	20	1
+r	pair-8	0	300	20	1
+c	pair-8	0	300	20	1
+c	post-1	0	300	20	1
+c	post-2	0	300	20	1
+r	post-1	0	300	20	1
+r	post-2	0	300	20	1

@@ -1,0 +1,84 @@
+pair_slowdown_median 6.25195
+pair_slowdown_mean 6.618925
+pair_slowdown_stdev 1.6776261168261368
+pair_speed_median -5.8834
+order C->R n 4 median 6.3721499999999995 min 5.3413 max 6.8651
+order R->C n 4 median 6.0294 min 5.4548 max 10.4871
+bootstrap_ci 5.4548 6.8651
+category_total 374.355 396.645732 5.95443683134993
+contrib short_diagnostic 1.53 +0.65
+contrib tonal_noise 2.78 +0.62
+contrib transient 0.73 +0.18
+contrib music 25.73 +0.77
+contrib speech 16.09 +1.99
+contrib long 53.14 +1.75
+
+PER_WORKLOAD_TABLE
+| Workload | Category | C median ms | Rust median ms | Ratio R/C | Rust slowdown | C IQR ms | Rust IQR ms | C / Rust bytes |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| `m2-click-mono-48k` | short_diagnostic | 0.721 | 0.873 | 1.2110 | +21.10% | 0.022 | 0.024 | 2739 / 2680 |
+| `m2-edge-mono-48k` | short_diagnostic | 0.123 | 0.195 | 1.5855 | +58.55% | 0.007 | 0.008 | 415 / 415 |
+| `m2-impulse-mono-48k` | short_diagnostic | 0.106 | 0.166 | 1.5579 | +55.79% | 0.005 | 0.009 | 308 / 306 |
+| `m2-onset-stereo-48k` | short_diagnostic | 1.200 | 1.762 | 1.4674 | +46.74% | 0.041 | 0.054 | 2318 / 2359 |
+| `m2-silence-stereo-48k` | short_diagnostic | 0.605 | 1.042 | 1.7223 | +72.23% | 0.015 | 0.045 | 735 / 735 |
+| `m2-sine-stereo-48k` | short_diagnostic | 1.742 | 2.377 | 1.3647 | +36.47% | 0.051 | 0.083 | 3104 / 3147 |
+| `m2-stepdown-stereo-48k` | short_diagnostic | 1.196 | 1.734 | 1.4497 | +44.97% | 0.031 | 0.045 | 2209 / 2236 |
+| `m3-multitone-stereo-48k` | tonal_noise | 2.095 | 2.722 | 1.2997 | +29.97% | 0.058 | 0.081 | 4726 / 4819 |
+| `m3-noise-mono-48k` | tonal_noise | 1.047 | 1.118 | 1.0676 | +6.76% | 0.042 | 0.036 | 10601 / 10603 |
+| `m3-onset-stereo-441k` | transient | 1.270 | 1.737 | 1.3681 | +36.81% | 0.039 | 0.062 | 2247 / 2250 |
+| `m3-quiet-sine-stereo-48k` | tonal_noise | 2.006 | 2.413 | 1.2030 | +20.30% | 0.050 | 0.069 | 4189 / 4200 |
+| `m3-sine-stereo-441k` | tonal_noise | 1.932 | 2.432 | 1.2588 | +25.88% | 0.043 | 0.076 | 3014 / 2998 |
+| `m3-sweep-stereo-48k` | tonal_noise | 1.970 | 2.478 | 1.2577 | +25.77% | 0.062 | 0.059 | 4088 / 3988 |
+| `m3-tonal-noise-stereo-48k` | tonal_noise | 1.393 | 1.611 | 1.1565 | +15.65% | 0.043 | 0.042 | 10628 / 10630 |
+| `m6-stress-stereo-48k` | transient | 1.462 | 1.672 | 1.1433 | +14.33% | 0.043 | 0.038 | 10728 / 10728 |
+| `m7-music-stereo-48k` | music | 49.958 | 51.639 | 1.0337 | +3.37% | 0.646 | 1.003 | 251279 / 250926 |
+| `m7-music-stereo-48k-x4` | long | 199.097 | 205.808 | 1.0337 | +3.37% | 2.598 | 4.310 | 999312 / 997957 |
+| `m7-speech-clean-stereo-48k` | speech | 30.125 | 33.941 | 1.1267 | +12.67% | 0.352 | 0.515 | 127971 / 127900 |
+| `m7-speech-pauses-stereo-48k` | speech | 30.037 | 33.848 | 1.1269 | +12.69% | 0.352 | 0.769 | 125996 / 125818 |
+| `m8-music-eroica-stereo-48k` | music | 46.485 | 47.505 | 1.0219 | +2.19% | 0.649 | 0.983 | 235444 / 234229 |
+
+CATEGORY_TABLE
+| Category | Fixtures | C ms | Rust ms | Ratio R/C | Rust slowdown | C share | Rust share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| short diagnostic | 7 | 5.718 | 8.160 | 1.4272 | +42.72% | 1.5% | 2.1% |
+| tonal noise | 6 | 10.422 | 12.744 | 1.2228 | +22.28% | 2.8% | 3.2% |
+| transient | 2 | 2.734 | 3.404 | 1.2449 | +24.49% | 0.7% | 0.9% |
+| music | 2 | 96.323 | 99.198 | 1.0298 | +2.98% | 25.7% | 25.0% |
+| speech | 2 | 60.219 | 67.665 | 1.1236 | +12.36% | 16.1% | 17.1% |
+| long | 1 | 198.939 | 205.476 | 1.0329 | +3.29% | 53.1% | 51.8% |
+
+PROFILE_TABLE
+| Stage | C music | Rust music | C speech | Rust speech |
+|---|---:|---:|---:|---:|---:|
+| s4_scf_quant | 63.3% | 55.0% | 51.8% | 42.4% |
+| frontend_psy | 19.9% | 18.9% | 29.2% | 25.4% |
+| bit_path | 5.5% | 10.2% | 4.0% | 10.6% |
+| memory_feeder | 1.4% | 4.5% | 1.2% | 6.0% |
+| rate_control | 0.9% | 3.0% | 1.1% | 4.9% |
+| driver_api | 3.9% | 2.5% | 5.7% | 4.3% |
+| other | 2.0% | 1.7% | 4.4% | 2.7% |
+
+PORTABLE_TABLE
+portable_median 6.1468845 min 4.97299 max 7.509195 mean 6.25665975
+
+PORTABLE_WORKLOAD
+| `m2-click-mono-48k` | 0.757 | 0.893 | 1.1799 | +17.99% |
+| `m2-edge-mono-48k` | 0.125 | 0.198 | 1.5868 | +58.68% |
+| `m2-impulse-mono-48k` | 0.110 | 0.169 | 1.5422 | +54.22% |
+| `m2-onset-stereo-48k` | 1.246 | 1.795 | 1.4410 | +44.10% |
+| `m2-silence-stereo-48k` | 0.619 | 1.061 | 1.7152 | +71.52% |
+| `m2-sine-stereo-48k` | 1.815 | 2.431 | 1.3389 | +33.89% |
+| `m2-stepdown-stereo-48k` | 1.234 | 1.771 | 1.4349 | +43.49% |
+| `m3-multitone-stereo-48k` | 2.171 | 2.784 | 1.2827 | +28.27% |
+| `m3-noise-mono-48k` | 1.060 | 1.137 | 1.0720 | +7.20% |
+| `m3-onset-stereo-441k` | 1.310 | 1.771 | 1.3526 | +35.26% |
+| `m3-quiet-sine-stereo-48k` | 2.071 | 2.480 | 1.1976 | +19.76% |
+| `m3-sine-stereo-441k` | 2.002 | 2.496 | 1.2468 | +24.68% |
+| `m3-sweep-stereo-48k` | 2.052 | 2.559 | 1.2471 | +24.71% |
+| `m3-tonal-noise-stereo-48k` | 1.423 | 1.640 | 1.1522 | +15.22% |
+| `m6-stress-stereo-48k` | 1.508 | 1.721 | 1.1416 | +14.16% |
+| `m7-music-stereo-48k` | 50.981 | 52.905 | 1.0377 | +3.77% |
+| `m7-music-stereo-48k-x4` | 203.422 | 211.129 | 1.0379 | +3.79% |
+| `m7-speech-clean-stereo-48k` | 31.008 | 34.839 | 1.1236 | +12.36% |
+| `m7-speech-pauses-stereo-48k` | 30.852 | 34.817 | 1.1285 | +12.85% |
+| `m8-music-eroica-stereo-48k` | 47.474 | 48.892 | 1.0299 | +2.99% |

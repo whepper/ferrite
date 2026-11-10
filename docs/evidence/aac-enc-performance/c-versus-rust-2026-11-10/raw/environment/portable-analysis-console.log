@@ -1,0 +1,34 @@
+{
+  "c_pair_median_ms": 383.41975,
+  "r_pair_median_ms": 407.513802,
+  "ratio": 1.062839882400424,
+  "slowdown_pct": 6.283988240042393,
+  "pair_slowdown_median_pct": 6.146884853550594,
+  "pair_slowdown_min_pct": 4.972990163738178,
+  "pair_slowdown_max_pct": 7.509194870585345,
+  "pairs_rust_slower": 8,
+  "pairs": 8,
+  "reps": 10
+}
+
+Per-workload:
+  m2-silence-stereo-48k            C    0.619  R    1.061  ratio 1.7152  +71.52%
+  m2-edge-mono-48k                 C    0.125  R    0.198  ratio 1.5868  +58.68%
+  m2-impulse-mono-48k              C    0.110  R    0.169  ratio 1.5422  +54.22%
+  m2-onset-stereo-48k              C    1.246  R    1.795  ratio 1.4410  +44.10%
+  m2-stepdown-stereo-48k           C    1.234  R    1.771  ratio 1.4349  +43.49%
+  m3-onset-stereo-441k             C    1.309  R    1.771  ratio 1.3526  +35.26%
+  m2-sine-stereo-48k               C    1.816  R    2.431  ratio 1.3389  +33.89%
+  m3-multitone-stereo-48k          C    2.170  R    2.784  ratio 1.2827  +28.27%
+  m3-sweep-stereo-48k              C    2.052  R    2.559  ratio 1.2471  +24.71%
+  m3-sine-stereo-441k              C    2.002  R    2.496  ratio 1.2468  +24.68%
+  m3-quiet-sine-stereo-48k         C    2.071  R    2.480  ratio 1.1976  +19.76%
+  m2-click-mono-48k                C    0.757  R    0.893  ratio 1.1799  +17.99%
+  m3-tonal-noise-stereo-48k        C    1.423  R    1.640  ratio 1.1522  +15.22%
+  m6-stress-stereo-48k             C    1.507  R    1.721  ratio 1.1416  +14.16%
+  m7-speech-pauses-stereo-48k      C   30.852  R   34.817  ratio 1.1285  +12.85%
+  m7-speech-clean-stereo-48k       C   31.008  R   34.839  ratio 1.1236  +12.36%
+  m3-noise-mono-48k                C    1.060  R    1.137  ratio 1.0720  +7.20%
+  m7-music-stereo-48k-x4           C  203.421  R  211.129  ratio 1.0379  +3.79%
+  m7-music-stereo-48k              C   50.981  R   52.905  ratio 1.0377  +3.77%
+  m8-music-eroica-stereo-48k       C   47.474  R   48.892  ratio 1.0299  +2.99%

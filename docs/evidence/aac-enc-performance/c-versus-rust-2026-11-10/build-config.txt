@@ -1,0 +1,185 @@
+# Build and benchmark configuration — C vs Rust — 2026-11-10
+
+## Host
+
+| Item | Value |
+|---|---|
+| Machine | Apple M5 |
+| Logical/physical CPUs | 10 / 10 |
+| Memory | 16 GiB |
+| OS | macOS 27.0.1 (26A434) |
+| Kernel | Darwin 27.0.0 arm64 |
+| Session | 2026-11-10, native series 19:24:35–19:27:47 UTC |
+| CPU affinity | none available; process left to the macOS scheduler |
+| Thermal state | `pmset -g therm`: no thermal/performance warning before or after |
+| Background load | load averages 2.37–3.31; desktop applications (browser, editor, agent) were running |
+
+## Repository under test
+
+- Branch `main`, HEAD `1bd724fa8786ef4003a1513b410400674bd88f52`
+  (`docs(aac-enc): clarify investigation publication note`).
+- HEAD tree `042059f886362950f71529706d9b391f12754547`.
+- `origin/main` equal to HEAD; index empty at the start and end of measurement.
+- The Rust benchmark used a temporary `git checkout-index` copy of HEAD. Its
+  production source is byte-identical to HEAD; the only additions are the
+  benchmark-only example and the test-only fixture dumper/registration. See
+  `identity.txt`.
+
+## C reference source
+
+- Local source root:
+  `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree`.
+- Ferrite backup commit at that source:
+  `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43`.
+- Pinned FDK reference used by all prior oracle evidence:
+  `f14ad40a574a4132df947d15e9fb14bee91cc8a5`.
+- The local `cpp/` tree and the `aac-enc.c`/`aac-dec.c`/`wavreader.*` files
+  are byte-identical to the captured baseline in the backup at
+  `~/backups/fdk-aac-m5.23-worktree-20261016T193606Z/evidence/m522/base/`
+  (`diff -rq` count 0). The C tree was clean at the start
+  (`git status --short -- cpp aac-enc.c wavreader.c wavreader.h` empty).
+- C source aggregate SHA-256 (`ca9eb167…`, 337 files) and key-file hashes are
+  in `identity.txt`.
+- The encoder is the stripped AAC-LC VBR-5, afterburner-on, ADTS build used
+  by the prior oracle and quality evidence; no encoder algorithm was changed.
+
+## C build — native
+
+```sh
+cmake -S "$SRC" -B "$T/build" -DBUILD_PROGRAMS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build "$T/build" --target fdk-aac aac-enc aac-dec -j 10
+```
+
+| Item | Value |
+|---|---|
+| C/C++ compiler | Apple clang 21.0.0 (clang-2100.3.34.2), target `arm64-apple-darwin27.0.0` |
+| CMake | 4.4.4 |
+| Build type | Release |
+| C++ flags | `-O3 -DNDEBUG -arch arm64 -fPIC -fno-exceptions -fno-rtti` |
+| C flags | `-O3 -DNDEBUG -arch arm64` |
+| Default target CPU | `apple-m1` (clang default; no explicit `-mcpu`) |
+| LTO | off |
+| FDK ARM assembly/intrinsic files | none compiled (0 `arm/` objects in the build) |
+| Library | `build/libfdk-aac.2.0.4.dylib`, SHA-256 `5ca558b9…` |
+| CLI encoder | `build/aac-enc`, SHA-256 `cad71cdf…` |
+| CLI decoder | `build/aac-dec`, SHA-256 `fae58916…` |
+
+The rebuilt C encoder reproduces all 19 prior reference C ADTS artifacts in
+`…/opencode/f64-mdct-experiment/c-adts/` byte-for-byte; see
+`raw/validation/c-artifact-comparison.txt`.
+
+## C build — portable
+
+Same source and flags, with `-mcpu=generic` added:
+
+```sh
+cmake -S "$SRC" -B "$T/build-portable" -DBUILD_PROGRAMS=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_FLAGS="-mcpu=generic" -DCMAKE_CXX_FLAGS="-mcpu=generic"
+cmake --build "$T/build-portable" --target fdk-aac -j 10
+```
+
+Library SHA-256 `b10ac824…`. Portable C output is byte-identical to the
+native reference output on all 20 workloads.
+
+## C harness
+
+```sh
+clang -O3 -DNDEBUG -arch arm64 \
+  -I "$SRC/cpp" -I "$SRC/cpp/libAACenc/include" -I "$SRC/cpp/libSYS/include" \
+  -I "$SRC/cpp/libFDK/include" -I "$SRC/cpp/libMpegTPEnc/include" -I "$SRC" \
+  harness/c_bench_corpus.c "$SRC/wavreader.c" \
+  -L "$T/build" -lfdk-aac -Wl,-rpath,"$T/build" \
+  -o bin/c_bench_corpus
+```
+
+Native harness SHA-256 `eef3d0f8…`; portable harness (linked to
+`build-portable`) `9081dd8e…`.
+
+Timed boundary: `aacEncOpen` + all `aacEncoder_SetParam` + `aacEncEncode(NULL)`
+initialization + `aacEncInfo` + all per-frame `aacEncEncode` calls + final
+flush. Untimed: WAV load/parse, output-buffer allocation, `aacEncClose`,
+ADTS validation, hashing, file write, process startup.
+
+## Rust build — native
+
+```sh
+cd "$T/src/ferrite/rust"
+CARGO_TARGET_DIR="$T/rust-target" \
+  cargo build --release --locked --features aac_enc --example bench_corpus
+```
+
+| Item | Value |
+|---|---|
+| rustc | 1.99.1 (58cf8f9c3 2026-10-13), LLVM 23.1.1 |
+| cargo | 1.99.1 (5f94df478 2026-08-27) |
+| Host/target | `aarch64-apple-darwin` |
+| Default target CPU | `apple-m1` (rustc target spec; no explicit `-C target-cpu`) |
+| Profile | release: `opt-level=3`, `debug-assertions=off`, `overflow-checks=off`, LTO off, `codegen-units=16`, `strip=debuginfo` (Cargo defaults; no `[profile.release]` override) |
+| Features | `aac_enc` (also the default) |
+| RUSTFLAGS | none |
+| SIMD | no explicit `core::arch`/NEON intrinsics in the encoder; LLVM auto-vectorization only |
+| Harness | `rust-target/release/examples/bench_corpus`, SHA-256 `177efd64…` |
+
+The example uses only the public production `Encoder` API and was built from
+the HEAD source plus the benchmark example; no `cfg(test)` code is in the
+measured binary.
+
+## Rust build — portable
+
+```sh
+RUSTFLAGS="-C target-cpu=generic" CARGO_TARGET_DIR="$T/rust-target-portable" \
+  cargo build --release --locked --features aac_enc --example bench_corpus
+```
+
+Harness SHA-256 `36c1e6fa…`. Output is byte-identical to the committed Rust
+baseline on all 20 workloads.
+
+## Timing harness and run order
+
+- Both harnesses preload the same 16-bit PCM WAVs before timing.
+- Both construct a fresh encoder per repetition and process the fixture from
+  the beginning.
+- Both feed exactly 1,024 sample frames per channel per call (the last call
+  may be partial); this matches the C encoder's `frameLength` and the Rust
+  `FRAME_LENGTH`.
+- Both include the production output assembly/copy in the timed region but
+  exclude output-buffer allocation, file writing, ADTS validation, and
+  hashing.
+- One untimed warm-up pass per process; 15 measured repetitions per workload
+  in the native series; 10 in the portable series.
+- Repetitions are repetition-major, workload-minor, matching the established
+  checkpoint harness.
+- Native series: 3 standalone C, 3 standalone Rust, 8 alternating C/R pairs,
+  2 post C, 2 post Rust. Portable series: 8 alternating pairs.
+- Alternating order: odd pairs C→R, even pairs R→C.
+
+## Corpus
+
+The 20-workload corpus is the established checkpoint corpus: the 19
+`M58_FIXTURES` (15 deterministic synthetic plus four committed WAVs) and the
+derived 40 s `m7-music-stereo-48k-x4` concatenation; 91.450 s of audio.
+Canonical PCM was materialized from the published crate's own
+`testdata::fixture_samples` generator; the four committed WAV PCM is read by
+that same function. See `corpus-manifest.tsv` for every WAV SHA-256, PCM
+FNV-1a, length, sample rate, channels, frames, and output hashes.
+
+## Reproduction commands
+
+```sh
+# Materialize the 20 WAVs (temporary copy of HEAD; test-only module)
+FIXTURE_OUT="$T/corpus" cargo test --release --locked --features aac_enc --lib \
+  aac_enc::fixture_dump::fixture_dump_tests::dump_all_benchmark_fixtures -- --nocapture
+
+# Native series
+bash harness/run_measurements.sh
+
+# Portable series
+bash harness/run_portable.sh
+
+# Analysis
+python3 analysis/assemble_identity.py
+python3 analysis/analyze.py
+python3 analysis/analyze_portable.py
+python3 analysis/profile_summary.py
+```

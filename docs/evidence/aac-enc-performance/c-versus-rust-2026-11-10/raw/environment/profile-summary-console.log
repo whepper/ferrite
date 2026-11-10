@@ -1,0 +1,32 @@
+=== c music root=1704 top=1654
+  s4_scf_quant        63.32% root   65.24% top
+  frontend_psy        19.95% root   20.56% top
+  bit_path             5.52% root    5.68% top
+  driver_api           3.93% root    4.05% top
+  other                2.05% root    2.12% top
+  memory_feeder        1.41% root    1.45% top
+  rate_control         0.88% root    0.91% top
+=== r music root=1671 top=1602
+  s4_scf_quant        55.00% root   57.37% top
+  frontend_psy        18.91% root   19.73% top
+  bit_path            10.23% root   10.67% top
+  memory_feeder        4.49% root    4.68% top
+  rate_control         3.05% root    3.18% top
+  driver_api           2.51% root    2.62% top
+  other                1.68% root    1.75% top
+=== c speech root=1709 top=1664
+  s4_scf_quant        51.84% root   53.25% top
+  frontend_psy        29.20% root   29.99% top
+  driver_api           5.68% root    5.83% top
+  other                4.39% root    4.51% top
+  bit_path             3.98% root    4.09% top
+  memory_feeder        1.17% root    1.20% top
+  rate_control         1.11% root    1.14% top
+=== r speech root=1655 top=1594
+  s4_scf_quant        42.36% root   43.98% top
+  frontend_psy        25.38% root   26.35% top
+  bit_path            10.57% root   10.98% top
+  memory_feeder        6.04% root    6.27% top
+  rate_control         4.89% root    5.08% top
+  driver_api           4.35% root    4.52% top
+  other                2.72% root    2.82% top

@@ -1,0 +1,143 @@
+impl	workload	symbol	self_samples	pct_root	pct_top	stage
+c	music	FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)	601	35.27	36.34	s4_scf_quant
+c	music	FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)	256	15.02	15.48	s4_scf_quant
+c	music	FDKaacEnc_CalcFormFactor(QC_OUT_CHANNEL**, PSY_OUT_CHANNEL**, int)	105	6.16	6.35	frontend_psy
+c	music	FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)	85	4.99	5.14	s4_scf_quant
+c	music	FDKaacEnc_QuantizeSpectrum(int, int, int, int const*, int const*, int, int const*, short*, int)	82	4.81	4.96	s4_scf_quant
+c	music	encode_once	67	3.93	4.05	driver_api
+c	music	FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)	57	3.35	3.45	frontend_psy
+c	music	dit_fft(int*, int, FIXP_SPK const*, int)	50	2.93	3.02	frontend_psy
+c	music	FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)	45	2.64	2.72	frontend_psy
+c	music	FDKaacEnc_dynBitCount(BITCNTR_STATE*, short const*, unsigned int const*, int const*, int, int, int, int, int const*, SECTION_DATA*, int const*, int const*, int const*, unsigned int)	42	2.46	2.54	bit_path
+c	music	FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)	41	2.41	2.48	frontend_psy
+c	music	FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)	40	2.35	2.42	bit_path
+c	music	fLog2(int, int)	37	2.17	2.24	s4_scf_quant
+c	music	dct_IV(int*, int, int*)	17	1.00	1.03	frontend_psy
+c	music	FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)	15	0.88	0.91	rate_control
+c	music	FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)	14	0.82	0.85	frontend_psy
+c	music	FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)	13	0.76	0.79	s4_scf_quant
+c	music	_platform_memmove	12	0.70	0.73	memory_feeder
+c	music	FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)	11	0.65	0.67	frontend_psy
+c	music	FDKaacEnc_SpreadingMax(int, int const*, int const*, int*)	9	0.53	0.54	other
+c	music	FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)	8	0.47	0.48	other
+c	music	FDK_deinterleave(short const*, short*, unsigned int, unsigned int, unsigned int)	7	0.41	0.42	memory_feeder
+c	music	FDKaacEnc_ChannelElementWrite(TRANSPORTENC*, ELEMENT_INFO*, QC_OUT_CHANNEL**, PSY_OUT_ELEMENT*, PSY_OUT_CHANNEL**, unsigned int, AUDIO_OBJECT_TYPE, signed char, int*, unsigned char)	7	0.41	0.42	bit_path
+c	music	schur_div(int, int, int)	7	0.41	0.42	other
+c	music	fDivNorm(int, int, int*)	6	0.35	0.36	other
+c	music	FDKaacEnc_count7_8_9_10_11(short const*, int, int*)	5	0.29	0.30	other
+c	music	FDKaacEnc_countEsc(short const*, int, int*)	5	0.29	0.30	bit_path
+c	music	_platform_memset	5	0.29	0.30	memory_feeder
+c	music	fLog2(int, int, int*)	5	0.29	0.30	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist	447	26.75	27.90	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse	284	17.00	17.73	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse	83	4.97	5.18	bit_path
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist	73	4.37	4.56	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe11form_factor	57	3.41	3.56	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data	54	3.23	3.37	s4_scf_quant
+r	music	_RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc12block_switchNtB2_11BlockSwitch7process	51	3.05	3.18	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data	50	2.99	3.12	bit_path
+r	music	_RNvNtNtNtCs1QHmLwBrYI8_11ferrite_aac6common3fft7dit_fft7dit_fft	48	2.87	3.00	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags	44	2.63	2.75	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo	37	2.21	2.31	frontend_psy
+r	music	_platform_memmove	33	1.97	2.06	memory_feeder
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant17quantize_spectrum	31	1.86	1.94	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse	30	1.80	1.87	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff	30	1.80	1.87	s4_scf_quant
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr	29	1.74	1.81	rate_control
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff	29	1.74	1.81	bit_path
+r	music	_RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push	19	1.14	1.19	driver_api
+r	music	_platform_memset	18	1.08	1.12	memory_feeder
+r	music	_xzm_free_main	17	1.02	1.06	memory_feeder
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate21calc_max_value_in_sfb	14	0.84	0.87	rate_control
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac6common3dct5dctiv	13	0.78	0.81	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation	11	0.66	0.69	other
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect	11	0.66	0.69	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19map_spectrum_to_q31	11	0.66	0.69	frontend_psy
+r	music	_RNvCs5jUnETJI1A0_12bench_corpus11encode_once	9	0.54	0.56	driver_api
+r	music	_RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame	9	0.54	0.56	driver_api
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc24encode_scale_factor_data	9	0.54	0.56	bit_path
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies	9	0.54	0.56	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame	8	0.48	0.50	rate_control
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q319schur_div	7	0.42	0.44	other
+r	music	_xzm_xzone_malloc_tiny	7	0.42	0.44	memory_feeder
+r	music	_RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac6common4mdctNtB2_4Mdct4mdct	5	0.30	0.31	other
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max	5	0.30	0.31	frontend_psy
+r	music	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount15calc_merge_gain	5	0.30	0.31	other
+r	music	mach_absolute_time	5	0.30	0.31	driver_api
+c	speech	FDKaacEnc_calcSfbDist(int const*, short*, int, int, int)	460	26.92	27.64	s4_scf_quant
+c	speech	FDKaacEnc_EstimateScaleFactors(PSY_OUT_CHANNEL**, QC_OUT_CHANNEL**, int, int, int)	222	12.99	13.34	s4_scf_quant
+c	speech	FDKaacEnc_TnsDetect(TNS_DATA*, TNS_CONFIG const*, TNS_INFO*, int, int const*, int, int)	98	5.73	5.89	frontend_psy
+c	speech	encode_once	97	5.68	5.83	driver_api
+c	speech	dit_fft(int*, int, FIXP_SPK const*, int)	87	5.09	5.23	frontend_psy
+c	speech	FDKaacEnc_CalcFormFactor(QC_OUT_CHANNEL**, PSY_OUT_CHANNEL**, int)	86	5.03	5.17	frontend_psy
+c	speech	FDKaacEnc_QuantizeSpectrum(int, int, int, int const*, int const*, int, int const*, short*, int)	86	5.03	5.17	s4_scf_quant
+c	speech	FDKaacEnc_BlockSwitching(BLOCK_SWITCHING_CONTROL*, int, int, short const*)	75	4.39	4.51	frontend_psy
+c	speech	FDKaacEnc_IntensityStereoProcessing(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int*, int, int, int, int const*, int, int*, int*, PNS_DATA**)	70	4.10	4.21	frontend_psy
+c	speech	FDKaacEnc_calcSfbQuantEnergyAndDist(int*, short*, int, int, int*, int*)	68	3.98	4.09	s4_scf_quant
+c	speech	FDKaacEnc_dynBitCount(BITCNTR_STATE*, short const*, unsigned int const*, int const*, int, int, int, int, int const*, SECTION_DATA*, int const*, int const*, int const*, unsigned int)	33	1.93	1.98	bit_path
+c	speech	dct_IV(int*, int, int*)	30	1.76	1.80	frontend_psy
+c	speech	FDKaacEnc_CheckBandEnergyOptim(int const*, int const*, int const*, int, int*, int*, int)	22	1.29	1.32	frontend_psy
+c	speech	FDKaacEnc_initAvoidHoleFlag(QC_OUT_CHANNEL* const*, PSY_OUT_CHANNEL const* const*, unsigned char (*) [60], TOOLSINFO const*, int, AH_PARAM const*)	21	1.23	1.26	s4_scf_quant
+c	speech	fLog2(int, int)	20	1.17	1.20	s4_scf_quant
+c	speech	FDKaacEnc_count1_2_3_4_5_6_7_8_9_10_11(short const*, int, int*)	18	1.05	1.08	bit_path
+c	speech	FDKaacEnc_codeValues(short*, int, int, FDK_BITSTREAM*)	17	0.99	1.02	bit_path
+c	speech	FDKaacEnc_AdjustThresholds(ADJ_THR_STATE*, QC_OUT_ELEMENT* const*, QC_OUT*, PSY_OUT_ELEMENT const* const*, int, CHANNEL_MAPPING const*)	14	0.82	0.84	rate_control
+c	speech	FDKaacEnc_MsStereoProcessing(PSY_DATA**, PSY_OUT_CHANNEL**, int const*, int*, int*, int, int, int, int, int const*)	13	0.76	0.78	frontend_psy
+c	speech	FDKaacEnc_CalcBandNrgMSOpt(int const*, int const*, int*, int*, int const*, int, int*, int*, int, int*, int*)	12	0.70	0.72	frontend_psy
+c	speech	FDKaacEnc_psyMain(int, PSY_ELEMENT*, PSY_DYNAMIC*, PSY_CONFIGURATION*, PSY_OUT_ELEMENT*, short*, unsigned int, int*, int)	10	0.59	0.60	other
+c	speech	fLog2(int, int, int*)	9	0.53	0.54	s4_scf_quant
+c	speech	FDKaacEnc_SpreadingMax(int, int const*, int const*, int*)	8	0.47	0.48	other
+c	speech	_platform_memset	8	0.47	0.48	memory_feeder
+c	speech	fDivNorm(int, int, int*)	8	0.47	0.48	other
+c	speech	CLpc_Analysis(int*, int, short const*, int, int, int*, int*)	7	0.41	0.42	other
+c	speech	CLpc_AutoToParcor(int*, int, short*, int, int*, int*)	7	0.41	0.42	other
+c	speech	FDKaacEnc_groupShortData(int*, SFB_THRESHOLD*, SFB_ENERGY*, SFB_ENERGY*, SFB_ENERGY*, int, int, int const*, int const*, int*, int*, int*, int, int const*, int)	7	0.41	0.42	other
+c	speech	FDKaacEnc_prepareSfbPe(PE_CHANNEL_DATA*, int const*, int const*, int const*, int const*, int, int, int)	7	0.41	0.42	other
+c	speech	FDK_deinterleave(short const*, short*, unsigned int, unsigned int, unsigned int)	6	0.35	0.36	memory_feeder
+c	speech	FDK_put	6	0.35	0.36	other
+c	speech	FDKaacEnc_peCalculation(PE_DATA*, PSY_OUT_CHANNEL const* const*, QC_OUT_CHANNEL* const*, TOOLSINFO const*, ATS_ELEMENT*, int)	6	0.35	0.36	frontend_psy
+c	speech	_platform_memmove	6	0.35	0.36	memory_feeder
+c	speech	FDKaacEnc_CalcSfbMaxScaleSpec(int const*, int const*, int*, int)	5	0.29	0.30	other
+c	speech	FDKaacEnc_QCMain(QC_STATE*, PSY_OUT**, QC_OUT**, int, CHANNEL_MAPPING*, AUDIO_OBJECT_TYPE, unsigned int, signed char)	5	0.29	0.30	rate_control
+c	speech	mdct_block(mdct_t*, short const*, int, int*, int, int, FIXP_SPK const*, int, short*)	5	0.29	0.30	other
+c	speech	schur_div(int, int, int)	5	0.29	0.30	other
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant13calc_sfb_dist	314	18.97	19.70	s4_scf_quant
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf36estimate_scale_factors_channel_reuse	230	13.90	14.43	s4_scf_quant
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc8bitcount19dyn_bit_count_reuse	110	6.65	6.90	bit_path
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns21autocorr_quarter_lags	72	4.35	4.52	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant30calc_sfb_quant_energy_and_dist	62	3.75	3.89	s4_scf_quant
+r	speech	_RNvNtNtNtCs1QHmLwBrYI8_11ferrite_aac6common3fft7dit_fft7dit_fft	61	3.69	3.83	frontend_psy
+r	speech	_RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc12block_switchNtB2_11BlockSwitch7process	52	3.14	3.26	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc9intensity16intensity_stereo	50	3.02	3.14	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe11form_factor	46	2.78	2.89	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q3112calc_ld_data	45	2.72	2.82	s4_scf_quant
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy18process_pair_reuse	40	2.42	2.51	frontend_psy
+r	speech	_platform_memmove	40	2.42	2.51	memory_feeder
+r	speech	_RNvMs3_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc7encoderNtB5_7Encoder4push	38	2.30	2.38	driver_api
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6bitenc20encode_spectral_data	35	2.11	2.20	bit_path
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate21calc_max_value_in_sfb	33	1.99	2.07	rate_control
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13threshold_vbr20adapt_thresholds_vbr	31	1.87	1.94	rate_control
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf19count_scf_bits_diff	30	1.81	1.88	bit_path
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc5quant17quantize_spectrum	29	1.75	1.82	s4_scf_quant
+r	speech	_xzm_free_main	25	1.51	1.57	memory_feeder
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3scf17calc_spec_pe_diff	21	1.27	1.32	s4_scf_quant
+r	speech	_RNvMs_NtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driverNtB4_13StreamEncoder10step_frame	20	1.21	1.25	driver_api
+r	speech	_platform_memset	20	1.21	1.25	memory_feeder
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac6common3dct5dctiv	18	1.09	1.13	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc4rate13qc_main_frame	17	1.03	1.07	rate_control
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy22check_band_energy_into	17	1.03	1.07	frontend_psy
+r	speech	_xzm_xzone_malloc_tiny	15	0.91	0.94	memory_feeder
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19max_scale_spec_into	14	0.85	0.88	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc2pe14pe_calculation	13	0.79	0.82	other
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy16calc_ms_energies	13	0.79	0.82	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc6energy19map_spectrum_to_q31	12	0.73	0.75	frontend_psy
+r	speech	_RNvNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc13stream_driver16ms_stereo_mirror5apply	9	0.54	0.56	frontend_psy
+r	speech	log2	9	0.54	0.56	other
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc10thresholds13spreading_max	8	0.48	0.50	frontend_psy
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3tns6detect	8	0.48	0.50	frontend_psy
+r	speech	mach_absolute_time	8	0.48	0.50	driver_api
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3q319schur_div	7	0.42	0.44	other
+r	speech	_RNvCs5jUnETJI1A0_12bench_corpus11encode_once	6	0.36	0.38	driver_api
+r	speech	_RNvNtNtCs1QHmLwBrYI8_11ferrite_aac7aac_enc3psy14finish_channel	6	0.36	0.38	other
+r	speech	<deduplicated_symbol>	5	0.30	0.31	other
+r	speech	_RNvMNtNtCs1QHmLwBrYI8_11ferrite_aac6common4mdctNtB2_4Mdct4mdct	5	0.30	0.31	other

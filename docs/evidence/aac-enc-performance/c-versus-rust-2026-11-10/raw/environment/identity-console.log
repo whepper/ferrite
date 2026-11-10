@@ -1,0 +1,21 @@
+# Source and binary identity (2026-11-10 C-vs-Rust benchmark)
+
+## Repository
+head_commit	1bd724fa8786ef4003a1513b410400674bd88f52
+head_tree	042059f886362950f71529706d9b391f12754547
+working_branch	main
+origin_main	1bd724fa8786ef4003a1513b410400674bd88f52
+
+## C reference source
+source_root	/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree
+ferrite_backup_commit	e4258d2a5b55581f5f2b27aa6c1a369bb2503e43
+pinned_reference_commit	f14ad40a574a4132df947d15e9fb14bee91cc8a5
+reference_capture	evidence/m522/base (byte-identical cpp/ and CLI files)
+source_aggregate_sha256	ca9eb167cd9626f65a4b99477239da7e22bf0581c166cb14044f37499becfc4e
+source_file_count	337
+sha256	cpp/libAACenc/src/aacenc.cpp	e113d5ad02a247a392f1db916a91fdb41f746d094c67c01acfcf046d12f45eab
+sha256	cpp/libAACenc/src/aacenc_lib.cpp	098584eef0c2cbbb2d597d4b5e73ed99ad84a5364d38c11f98babe653c828471
+sha256	cpp/libAACenc/src/block_switch.cpp	0c24cb7282d779634fa1d471c61eef2e57094e17dcbdbc68b2122a1f51f83854
+sha256	cpp/libAACenc/src/quantize.cpp	b3ed7f3d0f5e4b9ed275f54c29d01ffe960a50195db4678386bc0401d291aaf2
+sha256	cpp/libAACenc/src/psy_main.cpp	72d426e2663a985419cdcde4c50d2cc3967fd89f98502821ff0773a018e7a47f
+corpus_rows=20 total_audio_s=91.450000
