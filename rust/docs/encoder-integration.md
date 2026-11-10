@@ -154,6 +154,11 @@ Call `flush` exactly once after the last `push`:
 
 ## Error handling
 
+The VBR gain loop may need more than one outer pass to fit a frame into the
+bit budget (FDK's normal retry path). That is handled internally: the converged
+final pass is emitted, so a successful multi-pass frame does not surface as an
+error. `FrameFailed` is reserved for genuinely unrecoverable frame conditions.
+
 | Error | Meaning | Recovery |
 |---|---|---|
 | `UnalignedInput` | Slice length is not a multiple of the channel count | Recoverable; no state changed |

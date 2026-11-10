@@ -41,8 +41,9 @@
 //! 8. `estimate_scale_factors_channel` (S4 inv=2) on the S3-contract
 //!    spectrum (inactive bands zeroed).
 //! 9. `calc_max_value_in_sfb` + `dyn_bit_count` (S5).
-//! 10. `qc_main_frame` (S6 gain loop; crash recovery emits with reduced
-//!    `maxSfbPerGroup` per FDK — multi-pass retry remains a loud skip).
+//! 10. `qc_main_frame` (S6 gain loop; multi-pass bit-budget retry and crash
+//!     recovery both emit the loop's converged final pass per FDK, with
+//!     reduced `maxSfbPerGroup` on crash).
 //! 11. `build_raw_block` + `build_adts_frame` (S8 + transport).
 //!
 //! Flush: the driver steps `ceil((S + 1600) / 1024)` frames with zero
@@ -54,9 +55,10 @@
 //! - Frontend integers carry float residue (`assert_q31_close` scale); MS/PE
 //!   decisions at exact boundaries may flip vs C. Classification separates
 //!   this from structural divergence.
-//! - IS/PNS/multi-pass-retry/large-fill paths are asserted absent per frame;
-//!   hitting one is a `Class::Unsupported` finding, not a silent fallback.
-//!   Crash recovery is the exception: it emits with reduced bandwidth per FDK.
+//! - IS/PNS/large-fill paths are asserted absent per frame; hitting one is a
+//!   `Class::Unsupported` finding, not a silent fallback. Multi-pass bit-budget
+//!   retry and crash recovery are supported: both emit the gain loop's
+//!   converged final pass per FDK (`crash` with reduced bandwidth).
 
 use super::adts::ADTS_HEADER_BITS;
 use super::bitcount::{dyn_bit_count_reuse, BitCountInput, NO_NOISE_PNS};
@@ -471,7 +473,7 @@ pub(crate) struct S2Cap {
 
 /// Typed step failure for the production API mapping (M6.1).
 /// Carries the already-typed errors from QC/S8 writes; notes-only failures
-/// (frontend mismatch, multi-pass policy, low-overlap) carry `None` and map
+/// (frontend mismatch, low-overlap) carry `None` and map
 /// to `SkippedFrame` with the diagnostic notes. Pure diagnostic plumbing:
 /// set at existing early-return sites, never alters decisions.
 #[derive(Debug, Clone)]
@@ -1408,13 +1410,20 @@ impl StreamEncoder {
         snap.max_dyn = qc_out.max_dyn_bits;
         snap.total_avail = qc_out.total_avail;
         snap.static_used = qc_out.static_bits_used;
-        if qc_out.passes.len() != 1 {
-            snap.notes.push(format!(
-                "gain-loop outer passes npass={} (expected 1)",
-                qc_out.passes.len()
-            ));
-            return (None, snap);
-        }
+        // Multi-pass outer gain loop: C's `do..while (!quantizationDone)`
+        // (`qc_main.cpp:903-1112`) is a bit-budget retry, not an error. Pass 1
+        // quantizes at the S4 gain; when the frame exceeds the budget the exit
+        // matrix clears the constraint flags and pass 2 bumps the gain, then
+        // re-quantizes. C emits the final pass, and the loop only exits after
+        // a pass is under budget (the direct exit requires
+        // `sumBits < totalAvailableBits`; the retry branch forces
+        // `quantizationDone = 0` when it is over). Ferrite implements the same
+        // loop and exports the final-pass gain/spectrum/sections, so
+        // `npass > 1` is a converged frame, not a skipped one. Rejecting it
+        // here dropped valid frames on real content (dogfooding, 2026-11-10).
+        // The final pass remains checked by `finalize_bit_consumption`
+        // (budget) and by the static/dyn agreement and frame-write paths
+        // below; nothing about the single-pass case changes.
         if snap.crash != -1 {
             // Crash recovery (FDK `qc_main.cpp:1141-1158` + `crashRecovery`):
             // the gain loop reduced `maxSfbPerGroup` and re-quantized under
@@ -1444,10 +1453,10 @@ impl StreamEncoder {
         //     bit-identical; (d) at/after `final_max` the loop's spectrum
         //     buffer is the `vec![0i16; len]` initialization (quantize
         //     never visits those bands), which equals the q == 0 result of
-        //     quantizing the zeroed spectrum. Frames with multi-pass gain
-        //     loops emit no stream bytes here (loud skip); crash-recovery
-        //     frames emit with reduced `maxSfbPerGroup` per FDK, and the
-        //     argument above covers them regardless.
+        //     quantizing the zeroed spectrum. Multi-pass gain loops and
+        //     crash-recovery frames emit the loop's final pass (reduced
+        //     `maxSfbPerGroup` on crash) per FDK, and the argument above
+        //     covers them regardless.
         let final_max: Vec<usize> = qc_out.final_max_sfb.clone();
         let final_quants: Vec<Vec<i16>> = qc_out.final_quants;
         let final_qmaxs: Vec<Vec<u32>> = qc_out.final_qmaxs;
@@ -5240,6 +5249,98 @@ mod m52_tests {
             mono.push(sample());
         }
         mono
+    }
+
+    /// Regression for the driver's former `npass == 1` skip: a converged
+    /// multi-pass gain loop must emit the final pass, including when a pass
+    /// entered crash recovery.
+    ///
+    /// The production VBR-5 budget is 12,288 bits at 48 kHz stereo; every
+    /// committed fixture is single-pass there, so this test forces the outer
+    /// retry with test-only budget overrides on the deterministic
+    /// `stress-stereo` fixture. At 5,600 bits frame 1 needs more than one
+    /// outer pass; at 4,600 bits it additionally reaches the iteration limit
+    /// and enters crash recovery. Before the fix both frames returned `None`
+    /// with `gain-loop outer passes npass=... (expected 1)` and the public
+    /// encoder aborted. Here every frame, including the retried and
+    /// crash-recovered ones, must emit structurally valid ADTS within the
+    /// forced budget.
+    #[test]
+    fn multi_pass_retry_and_crash_frames_are_emitted_not_skipped() {
+        let pcm = testdata::fixture_samples("stress-stereo");
+        let channels = pcm.len();
+        assert_eq!(channels, 2, "stress-stereo is stereo");
+        let samples = pcm[0].len();
+        let cfg =
+            EncoderConfig::new(48000, channels as u32, FRAME_LENGTH, TransportType::Adts).unwrap();
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut interleaved = Vec::with_capacity(samples * channels);
+        for i in 0..samples {
+            for c in 0..channels {
+                interleaved.push(pcm[c][i]);
+            }
+        }
+        let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+
+        // (forced budget, must also exercise crash recovery)
+        for (budget, require_crash) in [(5_600i32, false), (4_600, true)] {
+            let mut enc = StreamEncoder::new(48000, channels);
+            // Test-only budget override: force the outer retry deterministically.
+            // This changes no production constant and no frame outside this test.
+            enc.init.max_bits = budget;
+            enc.init.max_bits_el = budget;
+
+            let mut multi_pass = 0usize;
+            let mut multi_pass_crash = 0usize;
+            for (f, fr) in frames.iter().enumerate() {
+                let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+                let (bytes, snap) = enc.step_frame(f as u32, &fresh);
+                let b = m52_emit_or_fail(bytes, &snap.notes, "multi-pass-stress", f)
+                    .unwrap_or_else(|e| panic!("budget={budget}: retry frame not emitted: {e}"));
+                assert!(
+                    snap.sum_bits <= snap.total_avail,
+                    "budget={budget} f={f}: final pass over budget sum={} avail={}",
+                    snap.sum_bits,
+                    snap.total_avail
+                );
+                assert_eq!(
+                    snap.total + 56,
+                    (b.len() * 8) as i32,
+                    "budget={budget} f={f}: payload+header accounting"
+                );
+                assert_eq!(b[0], 0xFF, "budget={budget} f={f}: ADTS sync high byte");
+                assert_eq!(
+                    b[1] & 0xF0,
+                    0xF0,
+                    "budget={budget} f={f}: ADTS sync low nibble"
+                );
+                let frame_len = (((b[3] & 0x03) as usize) << 11)
+                    | ((b[4] as usize) << 3)
+                    | ((b[5] as usize) >> 5);
+                assert_eq!(
+                    frame_len,
+                    b.len(),
+                    "budget={budget} f={f}: declared ADTS length"
+                );
+                if snap.npass > 1 {
+                    multi_pass += 1;
+                    if snap.crash != -1 {
+                        multi_pass_crash += 1;
+                    }
+                }
+            }
+            assert!(
+                multi_pass > 0,
+                "budget={budget} must exercise the multi-pass outer loop"
+            );
+            if require_crash {
+                assert!(
+                    multi_pass_crash > 0,
+                    "budget={budget} must exercise multi-pass + crash recovery"
+                );
+            }
+        }
     }
 
     /// Crash recovery emits a valid ADTS frame end to end (track-09

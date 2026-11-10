@@ -142,9 +142,8 @@ pub enum EncodeError {
 /// refinement, source-verified).
 #[derive(Debug, Clone)]
 pub enum EncodeFailure {
-    /// Frame skipped with diagnostic notes (frontend mismatch, multi-pass
-    /// policy trip, low-overlap shape, or an untyped write-path failure
-    /// without a typed error).
+    /// Frame skipped with diagnostic notes (frontend mismatch, low-overlap
+    /// shape, or an untyped write-path failure without a typed error).
     SkippedFrame { notes: Vec<String> },
     /// Crash-marked frame (`crash != -1` in the frame snapshot) that
     /// produced no bytes, or bytes accompanied by diagnostic notes:
@@ -677,7 +676,7 @@ mod tests {
             "frame, got {err:?}"
         );
         // Notes-only skip without a crash marker (frontend mismatch,
-        // multi-pass policy, low-overlap).
+        // low-overlap).
         let err = map_outcome(5, None, None, -1, vec!["geometry len".to_string()]);
         assert!(
             matches!(err, Err(EncodeFailure::SkippedFrame { .. })),

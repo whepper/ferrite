@@ -640,7 +640,7 @@ autocorrelation lane and the float Schur lane.
 | Quantization | Fixed-point quantizer, dead zone off, `MAX_QUANT = 8191` | Exact integer mirror | **1** | `quantize.cpp:116-301`; `quant.rs:94-140` |
 | Scalefactor search / afterburner | `invQuant = 2` full search | Exact integer mirror, `inv = 2` only | **1** (with the `q == -32768` guard difference below) | `sf_estim.cpp:1046-1292`; `scf.rs:94-189,1106-1145` |
 | Bit counting / sectioning | `dynBitCount` + Huffman kernels | Exact integer mirror | **1** | `dyn_bits.cpp`, `bit_cnt.cpp`; `bitcount.rs:94-190` |
-| Rate control / gain loop | VBR branches: grant from maxBits, no reservoir carry, fill alignment, up to 5 iterations, crash recovery | Exact integer mirror; VBR branches only; single-pass policy in the driver | **1** for single-pass; **3** for multi-pass/crash frames (Rust refuses to emit them) | `qc_main.cpp:788-1107,1168-1274`; `rate.rs:100-230,1420-1768`; `stream_driver.rs:1297-1310` |
+| Rate control / gain loop | VBR branches: grant from maxBits, no reservoir carry, fill alignment, up to 5 iterations, crash recovery | Exact integer mirror; VBR branches only; multi-pass retry and crash recovery emit the converged final pass | **2** — exact retry/crash logic; frontend residue changes which frames trigger a retry | `qc_main.cpp:788-1107,1168-1274`; `rate.rs:100-230,1420-1768`; `stream_driver.rs:1413-1431` |
 | Frame assembly / ADTS | SCE/CPE/LFE, fill, `ID_END`, 56-bit ADTS, 13-bit length, `0x7FF` fullness | SCE/CPE only; exact bit writer; same ADTS header | **1** for mono/stereo; **4** for LFE/multi-element | `bitenc.cpp:1182-1322`; `tpenc_adts.cpp:192-237`; `frame.rs:94-185,825-1141`; `adts.rs:94-190` |
 | Flush / delay | Zero-pad to `nDelay = 1600`; output ends after the padded frames | Same law; `PcmFeeder::finish` | **1** | `aacenc_lib.cpp:137,1092-1109`; `pcm.rs:261-283`; `config.rs:272-278` |
 | RAW transport | Supported in C (`TT_MP4_RAW`) | `EncoderConfig` models `TransportType::Raw`, but `Encoder::new` requires ADTS | **4** for production API; configuration model exists | `aacenc_lib.cpp:593-607`; `config.rs:130-139`; `encoder.rs:184-194` |
@@ -680,8 +680,9 @@ These are distinct and should not be conflated:
 - IS is implemented as a Q31 port and integrated before M/S; it is not
   end-to-end bit-identical because those frontend operands are not always
   identical (see D2).
-- No multi-pass/crash frame emission in the Rust production API, although
-  `rate.rs` implements the mechanism.
+- Multi-pass retry and crash recovery are emitted as the gain loop's
+  converged final pass (same as C); frontend residue can change which
+  frames trigger a retry.
 - Init-time `minSnr` comes from committed C snapshots for four operating
   points rather than being recomputed from the formula.
 - Narrower transport/channel/rate scope in the public Rust `Encoder`.
@@ -745,7 +746,10 @@ measured quality result.
    equivalence.
 2. **How often do multi-pass or crash frames occur on real content?** The
    measured 19-stream corpus shows zero in 2,442 frames, with at least 984 bits
-   of headroom (M5.i §5). The mechanism is implemented but unexercised live.
+   of headroom (M5.i §5). The 2026-11-10 dogfooding run (12 albums, 174 tracks,
+   15.5 h) triggered the outer retry on 10 tracks (5.7%); every failure was the
+   first `npass=2` frame, and all ten encoded after the driver gate was
+   removed. Crash recovery remains unobserved on that corpus.
 3. **What is the perceptual effect of the 40 TNS decision flips?** The source
    shows the spectrum changes when the filter is active on both sides; no
    listening or objective quality metric exists.
@@ -889,10 +893,11 @@ A change should be checked at four levels:
   profile change, but it changes output on content where IS fires. Re-run the
   retained C-oracle probes and update the classified residual signatures; do
   not retune IS thresholds to force frontend parity.
-- Adding multi-pass emission is not a profile change, but it changes the
-  effective output on content where the gain loop would retry. It requires new
-  C-oracle fixtures and an explicit note that the previous corpus did not
-  exercise the path.
+- Multi-pass emission is enabled (2026-11-10); it is not a profile change. The
+  previous 19-stream corpus did not exercise the path. The committed regression
+  uses a forced-budget synthetic fixture; real-content validation covered the
+  174-track dogfooding corpus (10 retry triggers). A new C-oracle fixture for
+  the retry path should be added when the reference dump is regenerated.
 - Do not describe a change as "quality improvement" without a listening or
   objective test that is actually run. The afterburner and VBR factor are
   mechanisms, not measured quality claims.

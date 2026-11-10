@@ -2332,6 +2332,46 @@ mod tests {
             .expect("tiny-budget frame converges");
         assert!(out.passes.len() > 1, "retry must trigger");
         assert_eq!(out.total_avail, 2000);
+        // The retry is caused by the first pass exceeding the frame budget;
+        // the exiting (last) pass is within it. This is the C exit-matrix
+        // contract (`qc_main.cpp:1040-1107`), not a stale-state artifact.
+        let pass_total = |p: &PassTrace| {
+            total_consumed_bits(
+                p.el_dyn,
+                p.el_static,
+                0,
+                GLOBAL_EXT_BITS,
+                crate::aac_enc::adts::ADTS_HEADER_BITS as i32,
+            )
+        };
+        let first = &out.passes[0];
+        let last = out.passes.last().unwrap();
+        assert!(
+            pass_total(first) > out.total_avail,
+            "first pass must overshoot: {} <= {}",
+            pass_total(first),
+            out.total_avail
+        );
+        assert!(
+            pass_total(last) <= out.total_avail,
+            "last pass must fit: {} > {}",
+            pass_total(last),
+            out.total_avail
+        );
+        assert!(
+            first.gains[..out.final_gains.len()]
+                .iter()
+                .zip(out.final_gains.iter())
+                .all(|(a, b)| b > a),
+            "retry must raise every gain: first={:?} final={:?}",
+            first.gains,
+            out.final_gains
+        );
+        assert_eq!(
+            out.final_gains,
+            last.gains[..out.final_gains.len()].to_vec(),
+            "exported gains are the last pass's gains"
+        );
         assert!(
             out.total_bits <= 2000,
             "converged frame fits the buffer, got {}",
