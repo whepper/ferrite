@@ -220,8 +220,10 @@ enum Lifecycle {
 /// [`flush`](Self::flush) exactly once to emit the padded tail; the stream is
 /// complete only after a successful `flush`.
 ///
-/// Not `Sync` (and no `Send` promise): owns mutable cross-frame state with
-/// no internal synchronization, mirroring `StreamEncoder`.
+/// No internal synchronization is provided: use one encoder per stream and
+/// serialize `&mut self` access. Moving a finished or open encoder between
+/// threads is safe because it owns only plain data, but concurrent encoding
+/// through one encoder is not supported.
 ///
 /// # Examples
 ///
@@ -290,10 +292,11 @@ impl Encoder {
     /// Empty input is a successful no-op. Unaligned input is rejected before
     /// buffering (recoverable). Any encoding failure poisons the encoder.
     ///
-    /// Provide bounded chunks rather than one whole-file buffer: the feeder
-    /// appends to per-channel buffers and drains from the front, so large
-    /// single pushes can cost roughly O(n²). A chunk target around 8,000
-    /// sample frames per channel is a reasonable starting point.
+    /// Bounded chunks are still recommended for peak memory: the feeder
+    /// copies each push into per-channel buffers, and a whole-file push holds
+    /// the source, that copy, and every returned frame at once. Buffer work
+    /// is linear for any push size; a chunk target around 8,000 sample frames
+    /// per channel keeps peak memory small.
     pub fn push(&mut self, samples: &[i16]) -> Result<Vec<AdtsFrame>, EncodeError> {
         match self.state {
             Lifecycle::Open => {}

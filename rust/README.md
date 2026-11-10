@@ -19,6 +19,22 @@ single-file and directory-batch FLAC-to-M4A (or ADTS) conversion around
 the existing encoder. See `convert/README.md` for supported input, usage,
 and metadata behavior.
 
+## Using the encoder
+
+Applications use the `ferrite-aac` library directly. See
+[`docs/encoder-integration.md`](docs/encoder-integration.md) for the supported
+sample rates and channel layouts, PCM requirements, streaming and finalization
+rules, error handling, memory behavior, and known limitations.
+
+A runnable minimal integration is
+[`examples/aac_encode_adts.rs`](examples/aac_encode_adts.rs):
+
+```sh
+cargo run --release --example aac_encode_adts > example.aac
+```
+
+`aac-convert` in `convert/` is the reference production consumer.
+
 ## Testing and build
 
 All commands run from this directory (the Cargo workspace root).

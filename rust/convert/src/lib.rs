@@ -43,11 +43,10 @@ use shiguredo_mp4::mux::MuxError;
 
 /// Target number of sample frames per encoder push.
 ///
-/// The encoder feeder drains from the front of its per-channel buffers, so
-/// whole-file pushes can become quadratic. This keeps every encoder push
-/// bounded. Decoded FLAC packets are staged separately and are bounded by the
-/// decoder's FLAC block size, which may exceed this value; the whole file is
-/// never buffered.
+/// This keeps every encoder push (and the number of returned frames held at
+/// once) bounded, so conversion memory stays flat. Decoded FLAC packets are
+/// staged separately and are bounded by the decoder's FLAC block size, which
+/// may exceed this value; the whole file is never buffered.
 pub const CHUNK_FRAMES: usize = 8_000;
 
 /// Output container written by the converter.

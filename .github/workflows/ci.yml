@@ -65,6 +65,9 @@ jobs:
             --skip intensity_probe_adts_decodes \
             --skip m511_profile_loop
 
+      - name: Run public encoder API integration tests
+        run: cargo test --locked --features aac_enc --test production_api
+
       - name: Run encoder doctests
         run: cargo test --locked --features aac_enc --doc
 

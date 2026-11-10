@@ -190,6 +190,12 @@ pub struct PcmFeeder {
     channels: u32,
     delay: usize,
     pending: Vec<Vec<i16>>,
+    /// Samples already consumed from the front of each `pending` buffer.
+    ///
+    /// A push extracts every complete frame by advancing this cursor, then
+    /// compacts the consumed prefix once. This keeps large pushes linear
+    /// instead of shifting the remaining samples per emitted frame.
+    read_pos: usize,
     emitted_frames: u64,
     zeros_appended: u64,
     finished: bool,
@@ -204,6 +210,7 @@ impl PcmFeeder {
             channels: config.channels(),
             delay: config.encoder_delay(),
             pending: vec![Vec::new(); channels],
+            read_pos: 0,
             emitted_frames: 0,
             zeros_appended: 0,
             finished: false,
@@ -219,7 +226,13 @@ impl PcmFeeder {
     /// Buffered samples per channel not yet emitted as a frame.
     #[cfg(test)]
     pub fn pending_per_channel(&self) -> usize {
-        self.pending[0].len()
+        self.available()
+    }
+
+    /// Samples per channel awaiting frame extraction.
+    fn available(&self) -> usize {
+        debug_assert!(self.read_pos <= self.pending[0].len());
+        self.pending[0].len() - self.read_pos
     }
 
     /// Frames emitted so far (by `push_interleaved` and `finish`).
@@ -252,10 +265,16 @@ impl PcmFeeder {
                 channels: self.channels,
             });
         }
+        let per_channel = samples.len() / self.channels as usize;
+        for pending in self.pending.iter_mut() {
+            pending.reserve(per_channel);
+        }
         for (i, sample) in samples.iter().enumerate() {
             self.pending[i % self.channels as usize].push(*sample);
         }
-        Ok(self.drain_full_frames())
+        let frames = self.drain_full_frames();
+        self.compact();
+        Ok(frames)
     }
 
     /// End of stream: emit the padded partial frame (if any samples are
@@ -271,36 +290,58 @@ impl PcmFeeder {
         while self.zeros_appended < self.delay as u64 {
             // All channels always hold equal pending lengths (pushes are
             // channel-aligned, drains uniform), so the zero count is shared.
-            let take = self.pending[0].len().min(FRAME_LENGTH);
+            let take = self.available().min(FRAME_LENGTH);
+            let read_pos = self.read_pos;
             let mut frame = Vec::with_capacity(self.channels as usize);
-            for pending in self.pending.iter_mut() {
+            for pending in self.pending.iter() {
                 let mut block = [0i16; FRAME_LENGTH];
-                block[..take].copy_from_slice(&pending[..take]);
-                pending.drain(..take);
+                block[..take].copy_from_slice(&pending[read_pos..read_pos + take]);
                 frame.push(block);
             }
+            self.read_pos += take;
             self.zeros_appended += (FRAME_LENGTH - take) as u64;
             self.emitted_frames += 1;
             frames.push(PcmFrame { channels: frame });
         }
+        self.compact();
         Ok(frames)
     }
 
-    /// Drain every pending complete frame, in order.
+    /// Extract every pending complete frame, advancing the read cursor.
+    ///
+    /// The consumed prefix is not shifted here; [`compact`](Self::compact)
+    /// removes it once after the push.
     fn drain_full_frames(&mut self) -> Vec<PcmFrame> {
         let mut frames = Vec::new();
-        while self.pending[0].len() >= FRAME_LENGTH {
+        while self.available() >= FRAME_LENGTH {
+            let read_pos = self.read_pos;
             let mut frame = Vec::with_capacity(self.channels as usize);
-            for pending in self.pending.iter_mut() {
+            for pending in self.pending.iter() {
                 let mut block = [0i16; FRAME_LENGTH];
-                block.copy_from_slice(&pending[..FRAME_LENGTH]);
-                pending.drain(..FRAME_LENGTH);
+                block.copy_from_slice(&pending[read_pos..read_pos + FRAME_LENGTH]);
                 frame.push(block);
             }
+            self.read_pos += FRAME_LENGTH;
             self.emitted_frames += 1;
             frames.push(PcmFrame { channels: frame });
         }
         frames
+    }
+
+    /// Drop the consumed prefix from each channel buffer.
+    ///
+    /// Called at most once per push/finish. The remaining tail is smaller
+    /// than one frame, so this moves at most `FRAME_LENGTH - 1` samples per
+    /// channel.
+    fn compact(&mut self) {
+        if self.read_pos == 0 {
+            return;
+        }
+        let consumed = self.read_pos;
+        for pending in self.pending.iter_mut() {
+            pending.drain(..consumed);
+        }
+        self.read_pos = 0;
     }
 }
 
@@ -426,6 +467,35 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn large_single_push_matches_chunked_and_compacts_once() {
+        let total = 100_000;
+
+        let (_, whole) = feed_chunks(stereo_48k(), total, &[total]);
+        let (_, chunked) = feed_chunks(stereo_48k(), total, &[8_000]);
+        assert_eq!(
+            flatten(&whole, 2),
+            flatten(&chunked, 2),
+            "one large push and bounded chunks must emit identical samples"
+        );
+
+        let mut feeder = PcmFeeder::new(stereo_48k());
+        let input = interleave(2, total, pattern);
+        let frames = feeder.push_interleaved(&input).unwrap();
+        assert_eq!(frames.len(), total / FRAME_LENGTH);
+        assert_eq!(feeder.read_pos, 0, "push must compact the consumed prefix");
+        assert_eq!(feeder.pending[0].len(), total % FRAME_LENGTH);
+        assert_eq!(feeder.pending_per_channel(), total % FRAME_LENGTH);
+
+        let tail = feeder.finish().unwrap();
+        assert!(!tail.is_empty());
+        assert_eq!(feeder.read_pos, 0);
+        assert!(
+            feeder.pending.iter().all(Vec::is_empty),
+            "finish must leave no consumed prefix or pending samples"
+        );
     }
 
     #[test]
