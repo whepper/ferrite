@@ -234,10 +234,13 @@ impl fmt::Display for ConvertError {
                 write!(f, "could not create a temporary output file in the destination directory")
             }
             Self::TempWrite(_, _) => write!(f, "could not write the temporary output file"),
-            Self::EncoderConfig(_) => {
-                write!(f, "the input format is not supported by the AAC encoder")
+            Self::EncoderConfig(err) => {
+                write!(f, "encoder configuration rejected: {err}")
             }
-            Self::Encoder(_) => write!(f, "AAC encoding failed"),
+            Self::Encoder(err) => write!(
+                f,
+                "AAC encoding failed: {err}; the temporary output was discarded and no output file was published"
+            ),
             Self::AdtsInvalid(reason) => {
                 write!(f, "the encoder produced an invalid ADTS stream ({reason})")
             }
@@ -567,8 +570,8 @@ fn convert_inner(
     if properties.bits_per_sample == 24 {
         diagnostics.warnings.insert(
             0,
-            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order \
-             source precision is discarded"
+            "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no \
+             dithering) before AAC encoding; low-order source precision is discarded"
                 .to_string(),
         );
     }
@@ -697,6 +700,34 @@ mod tests {
         }
         frames.extend(encoder.flush().unwrap());
         frames
+    }
+
+    #[test]
+    fn encoder_error_display_includes_frame_and_reason() {
+        use ferrite_aac::aac_enc::encoder::EncodeFailure;
+        use std::error::Error as _;
+
+        let error = ConvertError::Encoder(EncodeError::FrameFailed {
+            frame_index: 1496,
+            completed_before: 0,
+            kind: EncodeFailure::SkippedFrame {
+                notes: vec!["frontend mismatch".to_string()],
+            },
+        });
+        let text = error.to_string();
+        assert!(text.contains("AAC encoding failed"), "{text}");
+        assert!(text.contains("frame 1496"), "{text}");
+        assert!(text.contains("frame skipped"), "{text}");
+        assert!(text.contains("frontend mismatch"), "{text}");
+        assert!(text.contains("no output file was published"), "{text}");
+        assert!(
+            error
+                .source()
+                .expect("encoder error source")
+                .to_string()
+                .contains("frame 1496"),
+            "source chain must preserve the frame error"
+        );
     }
 
     #[test]

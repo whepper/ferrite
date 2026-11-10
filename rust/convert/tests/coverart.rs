@@ -450,7 +450,7 @@ fn cover_24bit_combined_reports_precision_first() {
     // a valid cover, so no cover warnings appear — but tag warnings do (only
     // `title` is set).
     assert!(
-        diagnostics.warnings[0].starts_with("24-bit FLAC input is converted"),
+        diagnostics.warnings[0].starts_with("24-bit FLAC input is truncated"),
         "{:?}",
         diagnostics.warnings
     );
@@ -500,8 +500,8 @@ fn cover_24bit_unsupported_reports_full_warning_order() {
     assert_eq!(
         diagnostics.warnings,
         [
-            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
-             precision is discarded",
+            "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
+             before AAC encoding; low-order source precision is discarded",
             "missing artist",
             "missing album",
             "missing tracknumber",

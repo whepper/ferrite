@@ -92,8 +92,8 @@ fn accepts_24_bit_input_with_truncation_warning() {
     assert_eq!(
         diagnostics.warnings,
         [
-            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
-          precision is discarded"
+            "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
+             before AAC encoding; low-order source precision is discarded"
         ]
     );
     assert!(output.is_file());
@@ -117,8 +117,8 @@ fn accepts_24_bit_m4a_with_warning_and_gapless() {
     // The precision notice leads; tag warnings for the (tagless) fixture follow.
     assert_eq!(
         diagnostics.warnings[0],
-        "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
-         precision is discarded"
+        "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
+         before AAC encoding; low-order source precision is discarded"
     );
     assert!(
         diagnostics.warnings.iter().any(|w| w.contains("title")),

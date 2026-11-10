@@ -52,13 +52,18 @@ fn converts_one_file() {
 fn conversion_failure_is_nonzero_and_actionable() {
     let directory = TempDir::new("cli-failure");
     let output = directory.join("out.aac");
+    let input = fixture("three-channel-48k-16.flac");
     let result = Command::new(binary())
-        .arg(fixture("three-channel-48k-16.flac"))
+        .arg(&input)
         .arg(&output)
         .output()
         .unwrap();
     assert_eq!(result.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains(&format!("error: {}:", input.display())),
+        "stderr must identify the input: {stderr}"
+    );
     assert!(stderr.contains("unsupported channel count 3"));
     assert!(!output.exists());
 }
@@ -84,8 +89,8 @@ fn accepts_24_bit_with_single_precision_warning() {
     assert!(stderr.starts_with("warning: "), "{stderr}");
     assert!(
         stderr.contains(
-            "24-bit FLAC input is converted to 16-bit PCM before AAC encoding; low-order source \
-             precision is discarded"
+            "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
+             before AAC encoding; low-order source precision is discarded"
         ),
         "{stderr}"
     );

@@ -14,9 +14,9 @@ Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>
                    <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
-using the native Ferrite Rust AAC-LC encoder (VBR-5, derived from FDK AAC). 24-bit FLAC input is converted to
-16-bit PCM before encoding (one warning per file); other bit depths are
-rejected.
+using the native Ferrite Rust AAC-LC encoder (VBR-5, derived from FDK AAC).
+24-bit FLAC input is truncated to 16-bit PCM before encoding (one warning per
+file); other bit depths are rejected.
 
 A regular file input converts one file; a directory input converts every
 discovered FLAC file sequentially, mirroring the input structure.
@@ -54,8 +54,8 @@ fn main() -> ExitCode {
             print_usage();
             ExitCode::from(2)
         }
-        Err(CliError::Conversion(err)) => {
-            eprintln!("error: {err}");
+        Err(CliError::Conversion { input, error }) => {
+            eprintln!("error: {}: {error}", input.display());
             ExitCode::FAILURE
         }
         Err(CliError::Setup(message)) => {
@@ -68,7 +68,10 @@ fn main() -> ExitCode {
 
 enum CliError {
     Usage(String),
-    Conversion(aac_convert::ConvertError),
+    Conversion {
+        input: PathBuf,
+        error: aac_convert::ConvertError,
+    },
     /// Directory-mode fatal setup failure (exit 3): nothing was converted.
     Setup(String),
     /// Batch completed with per-file failures (exit 1); details already printed.
@@ -301,8 +304,12 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
         .explicit_format
         .unwrap_or_else(|| OutputFormat::from_output_path(&cli.output));
     let (summary, diagnostics) =
-        convert_file_with_format_and_tags(&cli.input, &cli.output, format, !cli.no_tags)
-            .map_err(CliError::Conversion)?;
+        convert_file_with_format_and_tags(&cli.input, &cli.output, format, !cli.no_tags).map_err(
+            |error| CliError::Conversion {
+                input: cli.input.clone(),
+                error,
+            },
+        )?;
     for warning in &diagnostics.warnings {
         eprintln!("warning: {}: {warning}", cli.input.display());
     }

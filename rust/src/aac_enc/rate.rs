@@ -319,6 +319,20 @@ pub enum QcError {
     BitresTooLow,
 }
 
+impl std::fmt::Display for QcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::QuantError => write!(
+                f,
+                "quantization/rate control could not satisfy the frame constraints"
+            ),
+            Self::BitresTooLow => write!(f, "the bit reservoir is too small for the frame"),
+        }
+    }
+}
+
+impl std::error::Error for QcError {}
+
 fn fix_min(a: i32, b: i32) -> i32 {
     a.min(b)
 }

@@ -16,7 +16,8 @@
 //!   value is the trimmed value. Empty/whitespace-only values are treated as
 //!   absent.
 //! - Single-valued atoms use the first non-empty value; missing slots warn,
-//!   conversion succeeds.
+//!   conversion succeeds. Multiple distinct values for a recognized text key
+//!   are reduced to the first and reported in one per-file warning.
 //! - `tracknumber`/`discnumber` accept `N` or `N/M` (whitespace around `/`
 //!   tolerated); totals fall back to `tracktotal`/`totaltracks` and
 //!   `disctotal`/`totaldiscs`; unparseable numbers skip the atom with a
@@ -360,6 +361,14 @@ pub(crate) fn build_tag_set(pairs: &[(String, TagValue)]) -> TagSet {
     set.composer = text_slot(&lowered, "composer", &mut set.warnings);
     set.comment = text_slot(&lowered, "comment", &mut set.warnings);
 
+    let reduced = reduced_multi_value_keys(&lowered);
+    if !reduced.is_empty() {
+        set.warnings.push(format!(
+            "multi-valued tags reduced to first value: {}",
+            reduced.join(", ")
+        ));
+    }
+
     let mut unmapped = BTreeSet::new();
     for (key, _) in &lowered {
         if !RECOGNIZED_KEYS.contains(&key.as_str()) {
@@ -396,6 +405,45 @@ fn text_slot(
         warnings.push(format!("missing {key}"));
     }
     None
+}
+
+/// Recognized text keys whose first non-empty value is written.
+///
+/// Used only to disclose deliberate first-value reduction; key order is the
+/// stable warning order.
+const MULTI_VALUE_TEXT_KEYS: &[&str] = &[
+    "title",
+    "artist",
+    "album",
+    "albumartist",
+    "genre",
+    "composer",
+    "comment",
+];
+
+/// Keys with more than one distinct non-empty text value.
+///
+/// Duplicate spellings of the same value are not a reduction and do not warn.
+/// Values are trimmed exactly like [`text_slot`].
+fn reduced_multi_value_keys(pairs: &[(String, &TagValue)]) -> Vec<&'static str> {
+    let mut reduced = Vec::new();
+    for key in MULTI_VALUE_TEXT_KEYS {
+        let mut values = BTreeSet::new();
+        for (candidate, value) in pairs {
+            if candidate == key {
+                if let TagValue::Text(text) = value {
+                    let trimmed = text.trim();
+                    if !trimmed.is_empty() {
+                        values.insert(trimmed);
+                    }
+                }
+            }
+        }
+        if values.len() > 1 {
+            reduced.push(*key);
+        }
+    }
+    reduced
 }
 
 /// `date`-wins-over-`year` shared slot (G0 §2 row 7).
@@ -578,6 +626,31 @@ mod tests {
         ]));
         assert_eq!(set.title.as_deref(), Some("First Title"));
         assert_eq!(set.artist.as_deref(), Some("First Artist"));
+        assert!(
+            set.warnings
+                .iter()
+                .any(|w| w == "multi-valued tags reduced to first value: title, artist"),
+            "{:?}",
+            set.warnings
+        );
+    }
+
+    #[test]
+    fn duplicate_text_values_do_not_trigger_reduction_warning() {
+        let set = build_tag_set(&pairs(&[
+            ("artist", "Same Artist"),
+            ("ARTIST", " Same Artist "),
+            ("albumartist", "Same Album Artist"),
+            ("ALBUMARTIST", "Same Album Artist"),
+        ]));
+        assert_eq!(set.artist.as_deref(), Some("Same Artist"));
+        assert!(
+            !set.warnings
+                .iter()
+                .any(|w| w.starts_with("multi-valued tags reduced")),
+            "{:?}",
+            set.warnings
+        );
     }
 
     #[test]

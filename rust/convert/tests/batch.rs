@@ -873,7 +873,7 @@ fn cli_batch_24_bit_warns_once_per_affected_file() {
     // also be present; they are out of scope for this assertion.)
     let precision: Vec<&str> = stderr
         .lines()
-        .filter(|line| line.contains("24-bit FLAC input is converted to 16-bit PCM"))
+        .filter(|line| line.contains("24-bit FLAC input is truncated to 16-bit PCM"))
         .collect();
     assert_eq!(precision.len(), 1, "{stderr}");
     assert!(precision[0].contains("deep.flac"), "{stderr}");
@@ -927,7 +927,7 @@ fn cli_batch_24_bit_no_tags_still_warns_about_precision() {
     // warnings but must preserve it.
     let precision: Vec<&str> = stderr
         .lines()
-        .filter(|line| line.contains("24-bit FLAC input is converted to 16-bit PCM"))
+        .filter(|line| line.contains("24-bit FLAC input is truncated to 16-bit PCM"))
         .collect();
     assert_eq!(precision.len(), 1, "{stderr}");
     assert!(

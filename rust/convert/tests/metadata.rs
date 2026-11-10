@@ -236,6 +236,14 @@ fn edge_year_fallback_tracktotal_and_unmapped() {
         "{:?}",
         diagnostics.warnings
     );
+    assert!(
+        diagnostics
+            .warnings
+            .iter()
+            .any(|w| w == "multi-valued tags reduced to first value: artist"),
+        "{:?}",
+        diagnostics.warnings
+    );
 
     let bytes = fs::read(&output).unwrap();
     let root = parse_mp4(&bytes);

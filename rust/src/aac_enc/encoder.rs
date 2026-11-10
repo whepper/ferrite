@@ -187,7 +187,15 @@ impl std::fmt::Display for EncodeError {
     }
 }
 
-impl std::error::Error for EncodeError {}
+impl std::error::Error for EncodeError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Config(err) => Some(err),
+            Self::FrameFailed { kind, .. } => Some(kind),
+            _ => None,
+        }
+    }
+}
 
 impl std::fmt::Display for EncodeFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -198,13 +206,21 @@ impl std::fmt::Display for EncodeFailure {
             EncodeFailure::CrashedFrame { notes } => {
                 write!(f, "crash-marked frame discarded [{}]", notes.join("; "))
             }
-            EncodeFailure::QcFailed(e) => write!(f, "rate-control failure: {e:?}"),
-            EncodeFailure::FrameWrite(e) => write!(f, "bitstream write failure: {e:?}"),
+            EncodeFailure::QcFailed(e) => write!(f, "rate-control failure: {e}"),
+            EncodeFailure::FrameWrite(e) => write!(f, "bitstream write failure: {e}"),
         }
     }
 }
 
-impl std::error::Error for EncodeFailure {}
+impl std::error::Error for EncodeFailure {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::QcFailed(err) => Some(err),
+            Self::FrameWrite(err) => Some(err),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Lifecycle {
@@ -708,6 +724,39 @@ mod tests {
             idx += 1;
         }
         assert_eq!(idx, 7, "5000 samples + delay pad at 48k mono");
+    }
+
+    #[test]
+    fn frame_failure_display_and_source_preserve_cause() {
+        use std::error::Error as _;
+
+        let qc = EncodeError::FrameFailed {
+            frame_index: 42,
+            completed_before: 1,
+            kind: EncodeFailure::QcFailed(QcError::BitresTooLow),
+        };
+        let text = qc.to_string();
+        assert!(text.contains("frame 42"), "{text}");
+        assert!(text.contains("bit reservoir is too small"), "{text}");
+        let kind = qc.source().expect("frame error source");
+        assert!(kind.to_string().contains("rate-control failure"), "{kind}");
+        assert!(
+            kind.source()
+                .expect("QC error source")
+                .to_string()
+                .contains("bit reservoir"),
+            "QC source must be preserved"
+        );
+
+        let frame = EncodeError::FrameFailed {
+            frame_index: 7,
+            completed_before: 0,
+            kind: EncodeFailure::FrameWrite(FrameError::BadFrameLength("test")),
+        };
+        assert!(
+            frame.to_string().contains("bad frame length: test"),
+            "{frame}"
+        );
     }
 
     #[test]

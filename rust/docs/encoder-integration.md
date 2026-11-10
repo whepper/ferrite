@@ -227,4 +227,7 @@ the complete pattern:
 - publish through a temporary file only after success,
 - map `EncodeError` into application errors.
 
-See `convert/src/lib.rs` and `convert/README.md`.
+See `convert/src/lib.rs` and `convert/README.md`. The application-facing
+contract, including PCM precision, metadata preservation, error reporting,
+atomic publication, and gapless signalling, is in
+[`aac-convert-integration-contract.md`](aac-convert-integration-contract.md).

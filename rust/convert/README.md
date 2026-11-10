@@ -13,6 +13,10 @@ frame's validated raw access-unit payload (`AdtsFrame::raw_payload`) and the
 configuration's AudioSpecificConfig (`EncoderConfig::audio_specific_config`)
 are handed to the muxer. The encoded audio is identical for both containers.
 
+The application-facing contract (input precision, metadata, errors, atomic
+publication, gapless signaling) is documented in
+[`docs/aac-convert-integration-contract.md`](../docs/aac-convert-integration-contract.md).
+
 ## Supported input
 
 - Native FLAC files: one file, or a directory tree of files (batch mode).
@@ -144,6 +148,11 @@ cargo run -p aac-convert -- --no-tags album/ /tmp/out/
   and `ignore <path>` lines; `--quiet` prints only the summary on stdout while
   keeping failure diagnostics on stderr. Tag warnings are printed as
   `warning: <in>: <message>` on stderr in every mode.
+- **Failure detail.** Single-file failures use the same
+  `error: <input>: <message>` form as batch failures. Encoder failures include
+  the failing frame index, the underlying failure category/reason, and an
+  explicit statement that the temporary output was discarded and no output
+  file was published.
 - **Exit codes.** `0`: at least one file converted (or a clean dry-run plan),
   zero failures — including a valid batch in which every file was skipped via
   `--skip-existing`. `1`: batch completed with one or more per-file failures
@@ -234,7 +243,17 @@ Rules (G0 §2, authoritative):
 - Keys match ASCII case-insensitively; values are trimmed; the stored value
   is the trimmed value. Empty or whitespace-only values are treated as absent.
 - Single-valued atoms use the first non-empty value. Missing values produce
-  a per-file `warning:` line on stderr; conversion still succeeds.
+  a per-file `warning:` line on stderr; conversion still succeeds. When a
+  recognized text key has more than one distinct non-empty value, the first
+  is kept and one per-file warning names the reduced keys:
+  `multi-valued tags reduced to first value: artist, composer`. Identical
+  repeated values do not warn.
+- The M4A core atoms are deliberately written once, as single-valued items.
+  This avoids duplicate or conflicting atoms and keeps output deterministic
+  across players that ignore or flatten repeated values. Preserving every
+  value would require multiple `data` boxes under one item (mutagen and
+  FFmpeg can read them, but player support is not uniform); that is a
+  separate metadata model, not part of this contract.
 - `tracknumber`/`discnumber` accept `N` or `N/M` (whitespace around `/` is
   tolerated); totals fall back to `tracktotal`/`totaltracks` and
   `disctotal`/`totaldiscs`, else `0` (unknown). Unparseable numbers skip the
@@ -247,6 +266,12 @@ Rules (G0 §2, authoritative):
   MusicBrainz IDs, ISRC, label, catalogue number, barcode, `encoder`, and
   anything else outside the table) are ignored for output, counted in the
   verbose-only `unmapped` diagnostic, and never an error.
+- There is no stable, universally read core M4A atom for ISRC, barcode,
+  publisher/label, catalogue number, or copyright in the supported tag
+  subset. They are therefore not guessed into freeform atoms. A future
+  explicit freeform mapping (`----:com.apple.iTunes:...`) would need its own
+  compatibility tests and a documented conflict policy; until then, keep
+  those identifiers in the source FLAC and read them from there.
 
 `--no-tags` omits user metadata from M4A output (gapless `iTunSMPB` signalling
 and `M4A ` brands stay); it is accepted for ADTS output as a no-op. ADTS
@@ -365,9 +390,12 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 ## Scope limits
 
 - Core Vorbis-comment text tags and single JPEG/PNG cover art are supported
-  for M4A (see Metadata). Loudness tagging (ReplayGain 2.0 and
+  for M4A (see Metadata). Core text fields are single-valued: extra distinct
+  values are reduced to the first and reported in a per-file warning. ISRC,
+  barcode, publisher/label, catalogue number, copyright, and MusicBrainz IDs
+  are not mapped. Loudness tagging (ReplayGain 2.0 and
   `iTunNORM`) is implemented and shipped for M4A (see Loudness). Still out
-  of scope: multi-image galleries, resampling,
+  of scope: multi-value metadata, multi-image galleries, resampling,
   downmixing, VBR 1–4, and parallel conversion.
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
