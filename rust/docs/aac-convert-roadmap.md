@@ -605,3 +605,103 @@ The 0.1.0 product contract is frozen as §10.5 (by reference, with §10.4
 decisions). The release itself is not ready: blockers §10.7 items 2–4
 remain. Recommended next milestone: M2 clean-tree verification at the
 release commit, then M3 docs + notices.
+
+## 11. M3 documentation, notices, and distribution readiness (2026-11-10)
+
+M3 record. Working basis: RC `a1cb226` (parent `9a4bead`), evidence
+commit `93042a8`, verification report
+`releases/0.1.0-verification.md` (verdict: VERIFIED WITH LIMITATIONS).
+M3 adds documents only; no code, dependency, lockfile, or license-text
+changes. No commit, tag, push, or binary publication.
+
+### 11.1 Documentation audit findings
+
+- Product identity is consistent across root README, `rust/README.md`,
+  `convert/README.md`, `encoder-integration.md`, the integration
+  contract, and this roadmap: standalone native Rust AAC-LC VBR-5
+  encoder + FLAC-to-M4A converter, `ferrite-aac 0.1.0` /
+  `aac-convert 0.1.0`, MSRV 1.99.1, no MusicPack integration.
+- Installation/usage, input/output matrix, batch rules, metadata/cover
+  behavior, and error handling agree between `convert/README.md` and the
+  frozen contract; the M2 probes reproduced every documented behavior.
+- Technical claims are bounded by implementation and M2 evidence:
+  fixed VBR-5, 44.1/48 kHz mono/stereo, `i16` with documented 24-bit
+  truncation, `iTunSMPB` qualified to verified decode paths, ReplayGain
+  2.0 at −18.0 LUFS with documented omission rules, no universal-playback
+  or perceptual-equivalence claims.
+- Two documentation-level observations, no code action: (a) mixed
+  rate/channel layouts in one album directory receive track-level
+  loudness only (album atoms omitted with a warning) — implemented,
+  tested, and now stated in the release notes; the L3 closeout's pending
+  owner acknowledgment (F3) is folded into human sign-off item 6 below;
+  (b) the pre-existing `v3.0.0` git tag points at a legacy upstream
+  commit and is unrelated to Ferrite 0.1.0 — no 0.1.0 tag is created in
+  M3.
+- No contradictions requiring correction were found; no existing document
+  was edited in M3.
+
+### 11.2 New documents
+
+- `releases/0.1.0.md` — user-facing draft release notes (DRAFT, no date,
+  no binaries, no clearance claim), covering identity, capabilities,
+  formats, CLI examples, metadata/artwork, qualified gapless behavior,
+  performance evidence vs guarantees, limitations, build instructions,
+  and licensing status.
+- `releases/0.1.0-third-party-audit.md` — dependency/license inventory
+  from the committed lockfile and RC graph, AAC patent issue checklist,
+  and the human sign-off table (all PENDING).
+
+### 11.3 Platform support matrix (evidence-based)
+
+| Platform | Status | Basis |
+|---|---|---|
+| macOS ARM64 | Verified on M2 | Release + debug builds, full suites, ffmpeg + `afinfo` probes, macOS 27.0.1 |
+| macOS x86_64 | Buildable, not tested | No hardware evidence; no claim |
+| Linux x86_64 | Covered by CI configuration | `ubuntu-latest` jobs (build, suites, decode validation); not executed in M2 |
+| Linux ARM64 | Buildable, not tested | No evidence; no claim |
+| Windows x86_64 | Not currently supported | Hard-link publication contract unvalidated; no CI; no verdict |
+
+No platform support is claimed from Rust target availability alone.
+
+### 11.4 Proposed release artifacts (plan only — nothing built or published)
+
+1. Workspace source bundle (corresponding sources, `Cargo.lock`,
+   `NOTICE`, `LICENSE-FDK-AAC`, third-party notices) — the only supported
+   model today.
+2. macOS ARM64 binary + SHA-256, with version output and build provenance
+   recorded — after approvals.
+3. Linux x86_64 binary + SHA-256 — after CI validation of the release commit.
+4. macOS x86_64, Linux ARM64, Windows binaries — only if validated; no
+   commitment now.
+5. Third-party notices and license texts alongside every artifact.
+
+Reproducibility note: builds are `--locked` with a pinned toolchain, but
+no reproducible-bit-identical claim is made; the release should document
+the exact build environment instead.
+
+### 11.5 Release-readiness checklist
+
+| Item | State |
+|---|---|
+| Product documentation (README, contract, integration guide) | COMPLETE |
+| Release notes draft (`releases/0.1.0.md`) | COMPLETE (DRAFT, unapproved) |
+| Package metadata (0.1.0, FDK-AAC, MSRV 1.99.1) | COMPLETE |
+| Dependency inventory (`0.1.0-third-party-audit.md` §§1–4) | COMPLETE (technical findings) |
+| Third-party notices shippable | PENDING (human review, audit §7 item 3) |
+| Human licensing sign-off | BLOCKED (all audit §7 rows PENDING) |
+| AAC patent review | BLOCKED (audit §6 checklist open) |
+| Platform support defined | COMPLETE (§11.3) |
+| CI status (Ubuntu config green by design) | PENDING (release-commit run outstanding) |
+| Release artifacts | PENDING (plan only, §11.4) |
+| Checksums | PENDING (with artifacts) |
+| Final release verification | PENDING (post-approval rebuild + test log) |
+| Git tag and publication approval | BLOCKED (requires all legal rows first) |
+
+Technical work is complete; every remaining item is an approval or an
+approval-gated action.
+
+### Verdict: M3 COMPLETE WITH BLOCKERS
+
+M3's documentation and audit deliverables are done. The blockers are
+human/legal approvals (audit §7) and the approval-gated release actions
+above — not further technical work known at this time.
