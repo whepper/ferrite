@@ -17,6 +17,10 @@ The application-facing contract (input precision, metadata, errors, atomic
 publication, gapless signaling) is documented in
 [`docs/aac-convert-integration-contract.md`](../docs/aac-convert-integration-contract.md).
 
+For an end-user walkthrough covering installation, single-file conversion,
+batch jobs, metadata, safe reruns, exit codes and troubleshooting, see the
+[Ferrite User Manual](../docs/user-manual.md).
+
 ## Supported input
 
 - Native FLAC files: one file, or a directory tree of files (batch mode).
