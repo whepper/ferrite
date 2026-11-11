@@ -16,8 +16,8 @@ feature) plus shared DSP/transport modules.
 
 This directory contains the `aac-convert` application, supporting
 single-file and directory-batch FLAC-to-M4A (or ADTS) conversion around
-the existing encoder. See `convert/README.md` for supported input, usage,
-and metadata behavior.
+the existing encoder. See `convert/README.md` for the detailed behavior reference and
+`docs/user-manual.md` for the end-user guide.
 
 ## Using the encoder
 
@@ -41,7 +41,8 @@ All commands run from this directory (the Cargo workspace root).
 
 See the root `../README.md` (“Build and test”) and
 `../.github/workflows/ci.yml` for the normal validation workflow, and
-`convert/README.md` for `aac-convert` usage and tests.
+`convert/README.md` for the detailed `aac-convert` reference and
+`docs/user-manual.md` for the end-user walkthrough.
 
 ### Prerequisites
 
