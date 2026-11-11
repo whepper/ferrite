@@ -25,8 +25,9 @@ complete.)
   a reference oracle** — it is not compiled, linked, or executed by any
   production Rust build (see "Production vs reference tooling" below).
 
-See `rust/README.md` for the crate layout and `rust/convert/README.md`
-for `aac-convert` usage, options, and metadata behavior.
+See `rust/docs/user-manual.md` for the end-user guide to building and using
+`aac-convert`, and `rust/convert/README.md` for its complete CLI and metadata
+reference. `rust/README.md` describes the workspace and encoder library.
 
 Repository layout: `rust/` is the production workspace; `docs/` is indexed
 in `docs/README.md`; `tools/` holds oracle/benchmark provenance tooling;
