@@ -33,8 +33,10 @@
 //! 5. [`intensity_stereo`] decision and in-place processing, then
 //!    [`ms_stereo_mirror`] (exact integer port of `ms_stereo.cpp`,
 //!    including the IS-band skip and `MS_SOME` rules). Short-block
-//!    mid/side Ld is the fresh grouped `LdDataVector` refresh
-//!    ([`grouped_ms_vectors`], `psy_main.cpp:1078-1084`), not stale history.
+//!    mid/side energies and Ld are the canonical grouped vectors the
+//!    psychoacoustic model already produced ([`GroupedOutput`],
+//!    `psy_main.cpp:1078-1084`), consumed as-is; long blocks use the
+//!    pre-grouping `MsOutput` lane, which is fresh there.
 //!    PNS is off by configuration (`NO_NOISE_PNS`, zero noise energies).
 //! 6. `form_factor` + `pe_calculation` (S1), `static_bits_{sce,cpe}`.
 //! 7. `adapt_thresholds_vbr` (S2, evolves ATS chaos).
@@ -76,7 +78,8 @@ use super::intensity::intensity_stereo;
 use super::pcm::PcmFeeder;
 use super::pe::{form_factor, pe_calculation, AtsElement, PeChannelInput};
 use super::psy::{
-    process_pair_reuse, ChannelInput, ChannelOutput, MsOutput, PsyChannel, PsyScratch, PsyTables,
+    process_pair_reuse, ChannelInput, ChannelOutput, GroupedOutput, MsOutput, PsyChannel,
+    PsyScratch, PsyTables,
 };
 use super::psy_config::load_cfg;
 use super::q31::calc_ld_data;
@@ -159,17 +162,24 @@ fn threshold_ld_of(stored: &[i32]) -> Vec<i32> {
         .collect()
 }
 
-/// Fresh grouped mid/side stored sums plus their Ld refresh for short
-/// blocks.
+/// Test-only equivalence oracle: fresh grouped mid/side stored sums plus
+/// their Ld refresh for short blocks.
 ///
 /// Mirrors `FDKaacEnc_groupShortData`'s MS branch (`grp_data.cpp:211-224`:
 /// per-group `nrgAddSaturate` window sums over the active bands) followed
 /// by the short-frame MS Ld refresh (`psy_main.cpp:1078-1084`:
 /// `LdDataVector(&sfbEnergyMS.Long[sfbGrp], &sfbEnergyMSLdData[sfbGrp])`).
 /// `saturating_add` is `nrgAddSaturate` for non-negative energies; bands
-/// past `ms_active` keep 0, matching the driver's existing stride-pad
-/// convention (unread by the `maxSfbPerGroup`-bounded MS decision).
+/// past `ms_active` keep 0, matching the driver's stride-pad convention
+/// (unread by the `maxSfbPerGroup`-bounded MS decision).
 /// Returns `(mid_stored, side_stored, mid_ld, side_ld)`, each `cnt` long.
+///
+/// Production does **not** call this: the canonical values are produced
+/// once in `psy.rs` and carried in [`GroupedOutput`]. This function is kept
+/// `#[cfg(test)]` as an independent implementation for the fixture tests
+/// (reference operands) and the grouped-vector equivalence checks, so a
+/// production caller would fail to compile.
+#[cfg(test)]
 fn grouped_ms_vectors(
     mid: &[Vec<i32>],
     side: &[Vec<i32>],
@@ -214,7 +224,9 @@ fn q31_of_ld_vec(ld: &[f64]) -> Vec<i32> {
 }
 
 /// Window ranges per group for short blocks: group `g` owns
-/// `lens[0]+...+lens[g-1] .. +lens[g]` of the 8 windows.
+/// `lens[0]+...+lens[g-1] .. +lens[g]` of the 8 windows. Test-only, used by
+/// the [`grouped_ms_vectors`] oracle.
+#[cfg(test)]
 fn group_windows(groups: u8, lens: &[u8; 4]) -> Vec<(usize, usize)> {
     let mut out = Vec::with_capacity(groups as usize);
     let mut w = 0usize;
@@ -599,11 +611,6 @@ pub(crate) struct StreamEncoder {
     padding_rest: i32,
     short_sp: usize,
     long_ac: usize,
-    /// Mid/side log-energy history per channel (mirrors C
-    /// `sfbEnergyMSLdData`: float-lane conversion on long frames, grouped
-    /// `LdDataVector` refresh on short frames (`psy_main.cpp:1078-1084`);
-    /// init zeros like encoder RAM).
-    stale_ms_ld: Vec<Vec<i32>>,
 }
 
 impl StreamEncoder {
@@ -681,7 +688,6 @@ impl StreamEncoder {
             padding_rest: sample_rate as i32,
             short_sp,
             long_ac,
-            stale_ms_ld: (0..channels).map(|_| vec![0i32; 64]).collect(),
         }
     }
 
@@ -703,6 +709,18 @@ impl StreamEncoder {
     }
 }
 
+/// Fresh grouped short-block mid/side vectors for one channel half, moved
+/// out of the psychoacoustic [`GroupedOutput`] (canonical source for the
+/// short-block MS decision: no recomputation, no copy).
+pub(crate) struct GroupedMs {
+    /// Grouped stored energies (`GroupedOutput::ms_energies`), grouped stride
+    /// layout with zero padding bands.
+    pub energies: Vec<i32>,
+    /// Exact `CalcLdData` of `energies` (`GroupedOutput::ms_ld`), Q31, with
+    /// the `i32::MIN` sentinel on padding bands.
+    pub ld: Vec<i32>,
+}
+
 /// Owned frontend outputs for one frame (pre-MS working sets).
 pub(crate) struct FrontendOut {
     pub seqs: Vec<WindowSequence>,
@@ -710,6 +728,35 @@ pub(crate) struct FrontendOut {
     pub ms: Option<MsOutput>,
     pub live: Vec<LiveChannel>,
     pub max_common: usize,
+    /// Canonical grouped MS vectors for the left channel (mid half).
+    pub ms_grouped_l: Option<GroupedMs>,
+    /// Canonical grouped MS vectors for the right channel (side half).
+    pub ms_grouped_r: Option<GroupedMs>,
+}
+
+/// Move the canonical grouped MS vectors out of a [`GroupedOutput`], checking
+/// that the grouped stride layout matches the live band span. `None` for long
+/// blocks (no grouped output exists there); a layout mismatch is a structural
+/// finding, never a silent truncation.
+fn take_grouped_ms(
+    grouped: Option<GroupedOutput>,
+    channel: usize,
+    cnt: usize,
+) -> Result<Option<GroupedMs>, String> {
+    let Some(g) = grouped else {
+        return Ok(None);
+    };
+    if g.ms_energies.len() != cnt || g.ms_ld.len() != cnt {
+        return Err(format!(
+            "ch{channel} grouped MS span e={} ld={} != cnt {cnt}",
+            g.ms_energies.len(),
+            g.ms_ld.len()
+        ));
+    }
+    Ok(Some(GroupedMs {
+        energies: g.ms_energies,
+        ld: g.ms_ld,
+    }))
 }
 
 impl StreamEncoder {
@@ -758,7 +805,7 @@ impl StreamEncoder {
             grouping: groupings[0],
             is_lfe: false,
         };
-        let (out_l, out_r, ms) = if self.channels == 2 {
+        let (mut out_l, mut out_r, ms) = if self.channels == 2 {
             let rin = ChannelInput {
                 spectrum: &mut tail[0],
                 seq: seqs[1],
@@ -897,12 +944,24 @@ impl StreamEncoder {
         } else {
             out_l.max_sfb_per_group
         };
+        // --- Canonical grouped MS vectors (short blocks) ---
+        // The pre-grouping `MsOutput` Ld lane is stale by C design on short
+        // frames; the fresh values are the model's `GroupedOutput` vectors.
+        // Move them out here so the MS decision borrows exactly what the
+        // psychoacoustic model produced (no re-regroup, no `CalcLdData`).
+        let ms_grouped_l = take_grouped_ms(out_l.grouped.take(), 0, live[0].cnt)?;
+        let ms_grouped_r = match out_r.as_mut() {
+            Some(o) => take_grouped_ms(o.grouped.take(), 1, live[1].cnt)?,
+            None => None,
+        };
         Ok(FrontendOut {
             seqs,
             groupings,
             ms,
             live,
             max_common,
+            ms_grouped_l,
+            ms_grouped_r,
         })
     }
 
@@ -944,6 +1003,8 @@ impl StreamEncoder {
             ms,
             mut live,
             max_common,
+            ms_grouped_l,
+            ms_grouped_r,
         } = fe;
 
         let cnt = live[0].cnt;
@@ -981,50 +1042,35 @@ impl StreamEncoder {
         snap.is_digest = is_digest;
 
         // --- MS mirror (stereo) ---
-        // Mid/side STORED energies are always fresh (grouped sums on
-        // short, mirroring the `groupShortData` MS branch). Mid/side Ld
-        // is fresh on every frame: grouped-`LdDataVector` refresh on
-        // short (`psy_main.cpp:1078-1084`), float-lane conversion on long.
-        // The persistent history mirrors C's `sfbEnergyMSLdData`, which the
-        // short regroup refreshes in place.
+        // Short blocks consume the canonical grouped mid/side stored sums and
+        // their exact `LdDataVector` refresh from `GroupedOutput`
+        // (`grp_data.cpp:211-224`, `psy_main.cpp:1078-1084`) — the same
+        // vectors the energy/threshold grouping produced, borrowed in place.
+        // Long blocks use the pre-grouping `MsOutput` lane, which is fresh
+        // there (`CalcBandNrgMSOpt` with `calcLd`); its Ld is float-domain and
+        // needs the documented Q31 conversion.
         let (digest, mask_vec) = if self.channels == 2 {
             let ms_out = ms.as_ref().expect("stereo ms");
-            let per = live[0].per;
-            let cnt = live[0].cnt;
             let short = seqs[0] == WindowSequence::Short;
-            let (em_st, es_st, em_ld, es_ld): (Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>) = if short {
-                // Grouped sums + fresh grouped `LdDataVector` refresh in
-                // one call (`groupShortData` MS branch + the
-                // `psy_main.cpp:1078-1084` refresh); the history write
-                // mirrors C refreshing `sfbEnergyMSLdData` in place.
-                let ms_active = ms_out.mid[0].len();
-                let (em, es, eml, esl) = grouped_ms_vectors(
-                    &ms_out.mid,
-                    &ms_out.side,
-                    groupings[0].0,
-                    &groupings[0].1,
-                    per,
-                    cnt,
-                    ms_active,
-                );
-                for c in 0..2 {
-                    let src = if c == 0 { &eml } else { &esl };
-                    let n = src.len().min(self.stale_ms_ld[c].len());
-                    self.stale_ms_ld[c][..n].copy_from_slice(&src[..n]);
-                }
-                (em, es, eml, esl)
+            let long_eml: Vec<i32>;
+            let long_esl: Vec<i32>;
+            let (em_st, es_st, em_ld, es_ld): (&[i32], &[i32], &[i32], &[i32]) = if short {
+                let gl = ms_grouped_l
+                    .as_ref()
+                    .expect("short left grouped MS (mid half)");
+                let gr = ms_grouped_r
+                    .as_ref()
+                    .expect("short right grouped MS (side half)");
+                (&gl.energies, &gr.energies, &gl.ld, &gr.ld)
             } else {
-                // Fresh mid/side Ld from the float lane (computed pre
-                // down-shift + scale correction, like C), converted to Q31.
-                // (Known float-to-Q31 approximation, out of scope here.)
-                let eml = q31_of_ld_vec(&ms_out.mid_ld[0]);
-                let esl = q31_of_ld_vec(&ms_out.side_ld[0]);
-                for c in 0..2 {
-                    let src = if c == 0 { &eml } else { &esl };
-                    let n = src.len().min(self.stale_ms_ld[c].len());
-                    self.stale_ms_ld[c][..n].copy_from_slice(&src[..n]);
-                }
-                (ms_out.mid[0].clone(), ms_out.side[0].clone(), eml, esl)
+                long_eml = q31_of_ld_vec(&ms_out.mid_ld[0]);
+                long_esl = q31_of_ld_vec(&ms_out.side_ld[0]);
+                (
+                    &ms_out.mid[0][..],
+                    &ms_out.side[0][..],
+                    &long_eml,
+                    &long_esl,
+                )
             };
             let (l, r) = live.split_at_mut(1);
             let (c0, c1) = (&mut l[0], &mut r[0]);
@@ -1042,10 +1088,10 @@ impl StreamEncoder {
                 tld_r: c1.t_ld.clone(),
                 spread_l: c0.spread.clone(),
                 spread_r: c1.spread.clone(),
-                em: em_st.clone(),
-                es: es_st.clone(),
-                em_ld: em_ld.clone(),
-                es_ld: es_ld.clone(),
+                em: em_st.to_vec(),
+                es: es_st.to_vec(),
+                em_ld: em_ld.to_vec(),
+                es_ld: es_ld.to_vec(),
                 offsets: c0.offsets.clone(),
                 cnt: c0.cnt,
                 per: c0.per,
@@ -1063,10 +1109,10 @@ impl StreamEncoder {
                 &mut c1.e_ld,
                 &mut c0.t_ld,
                 &mut c1.t_ld,
-                &em_st,
-                &es_st,
-                &em_ld,
-                &es_ld,
+                em_st,
+                es_st,
+                em_ld,
+                es_ld,
                 &mut c0.spread,
                 &mut c1.spread,
                 &mut c0.spec_q31,
@@ -2014,6 +2060,115 @@ mod phase1_tests {
         assert!(
             eml.iter().any(|&v| v != i32::MIN),
             "fresh Ld differs from stale-zero history"
+        );
+    }
+
+    /// Production short-block MS consumption: `frontend()` hands the MS
+    /// decision the model's canonical `GroupedOutput` vectors. Compared here
+    /// against the test-only `grouped_ms_vectors` oracle on the same
+    /// per-window `MsOutput` inputs: exact equality on **every** band (`cnt`
+    /// span, active + stride padding), for two distinct grouping patterns.
+    /// Long frames carry no grouped MS (`None`) because they use the
+    /// pre-grouping lane instead.
+    #[test]
+    fn phase1c_short_ms_grouped_vectors_match_regroup_oracle() {
+        let mut patterns: Vec<(u8, [u8; 4])> = Vec::new();
+        let mut short_frames = 0usize;
+        let mut long_frames = 0usize;
+        for (name, last_frame) in [
+            ("onset-stereo", 24u32),
+            ("stepdown-stereo", 2u32),
+            ("multitone-stereo", 2u32),
+        ] {
+            let pcm = testdata::fixture_samples(name);
+            assert_eq!(pcm.len(), 2, "{name} stereo fixture");
+            let s = pcm[0].len();
+            assert_eq!(pcm[1].len(), s, "{name} channel lengths");
+            let cfg = EncoderConfig::new(48000, 2, FRAME_LENGTH, TransportType::Adts).expect("cfg");
+            let mut feeder = PcmFeeder::new(cfg);
+            let mut interleaved = Vec::with_capacity(s * 2);
+            for (&l, &r) in pcm[0].iter().zip(pcm[1].iter()) {
+                interleaved.push(l);
+                interleaved.push(r);
+            }
+            let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+            frames.extend(feeder.finish().expect("finish"));
+            let mut enc = StreamEncoder::new(48000, 2);
+            let sfb_cnt = enc.tables.short_cfg.sfb_count();
+            let active = enc.tables.short_cfg.sfb_active();
+            for f in 0..=last_frame {
+                let fresh: Vec<[i16; 1024]> = frames[f as usize]
+                    .channels()
+                    .iter()
+                    .map(|b| {
+                        let mut block = [0i16; 1024];
+                        block.copy_from_slice(&b[..1024]);
+                        block
+                    })
+                    .collect();
+                let fe = enc.frontend(f, fresh).expect("frontend");
+                if fe.seqs[0] != WindowSequence::Short {
+                    long_frames += 1;
+                    assert!(
+                        fe.ms_grouped_l.is_none() && fe.ms_grouped_r.is_none(),
+                        "{name} f{f}: long frame has no grouped MS"
+                    );
+                    continue;
+                }
+                short_frames += 1;
+                let ms = fe.ms.as_ref().expect("stereo MsOutput");
+                let gl = fe.ms_grouped_l.as_ref().expect("left grouped MS");
+                let gr = fe.ms_grouped_r.as_ref().expect("right grouped MS");
+                let (groups, lens) = fe.groupings[0];
+                assert_eq!(
+                    fe.groupings[1], fe.groupings[0],
+                    "{name} f{f} grouping sync"
+                );
+                let per = fe.live[0].per;
+                let cnt = fe.live[0].cnt;
+                assert_eq!(per, sfb_cnt, "{name} f{f} stride == short sfb count");
+                assert_eq!(cnt, groups as usize * per, "{name} f{f} cnt == groups*per");
+                let ms_active = ms.mid[0].len();
+                let (em, es, eml, esl) =
+                    grouped_ms_vectors(&ms.mid, &ms.side, groups, &lens, per, cnt, ms_active);
+                // Exact equivalence on the full grouped span, both halves.
+                assert_eq!(gl.energies, em, "{name} f{f} ch0 ms_energies == oracle");
+                assert_eq!(gl.ld, eml, "{name} f{f} ch0 ms_ld == oracle CalcLdData");
+                assert_eq!(gr.energies, es, "{name} f{f} ch1 ms_energies == oracle");
+                assert_eq!(gr.ld, esl, "{name} f{f} ch1 ms_ld == oracle CalcLdData");
+                // Padding bands and active-band bounds (explicit contract).
+                for grp in 0..groups as usize {
+                    let base = grp * per;
+                    for b in active..per {
+                        assert_eq!(gl.energies[base + b], 0, "{name} f{f} ch0 pad {base}+{b}");
+                        assert_eq!(gl.ld[base + b], calc_ld_data(0), "{name} f{f} ch0 pad Ld");
+                        assert_eq!(gr.energies[base + b], 0, "{name} f{f} ch1 pad {base}+{b}");
+                        assert_eq!(gr.ld[base + b], calc_ld_data(0), "{name} f{f} ch1 pad Ld");
+                    }
+                }
+                assert!(
+                    fe.max_common <= active,
+                    "{name} f{f} max_sfb_per_group within active bands"
+                );
+                // Non-degeneracy: the frame exercises real grouped energy, so
+                // the equality is not a zero-vs-zero artifact.
+                assert!(
+                    gl.energies.iter().any(|&v| v != 0),
+                    "{name} f{f} nonzero grouped mid"
+                );
+                patterns.push((groups, lens));
+            }
+        }
+        assert!(short_frames >= 3, "short frames: {short_frames}");
+        assert!(
+            long_frames >= 1,
+            "long frames in the same runs: {long_frames}"
+        );
+        patterns.sort_unstable();
+        patterns.dedup();
+        assert!(
+            patterns.len() >= 2,
+            "expected distinct grouping patterns, got {patterns:?}"
         );
     }
 
