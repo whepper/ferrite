@@ -14,6 +14,11 @@ fn help_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
+        stdout.starts_with(&format!("aac-convert {}\n", env!("CARGO_PKG_VERSION"))),
+        "help header must carry the application name and version: {stdout}"
+    );
+    assert!(output.stderr.is_empty(), "help is requested output");
+    assert!(
         stdout.contains(
             "Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both]"
         ),
@@ -26,6 +31,24 @@ fn help_succeeds() {
     assert!(stdout.contains("--cover-art embedded"));
     assert!(stdout.contains("--cover-art external"));
     assert!(stdout.contains("--cover-art both"));
+}
+
+#[test]
+fn version_reports_package_version_on_stderr() {
+    for flag in ["--version", "-V"] {
+        let output = Command::new(binary()).arg(flag).output().unwrap();
+        assert!(output.status.success(), "{flag} must succeed");
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr),
+            format!("aac-convert {}\n", env!("CARGO_PKG_VERSION")),
+            "{flag}"
+        );
+        assert!(
+            output.stdout.is_empty(),
+            "version output must never pollute stdout: {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
 }
 
 #[test]
@@ -52,6 +75,16 @@ fn converts_one_file() {
     );
     let stdout = String::from_utf8_lossy(&result.stdout);
     assert!(stdout.contains("converted"));
+    assert!(
+        !stdout.contains(&format!("aac-convert {}", env!("CARGO_PKG_VERSION"))),
+        "the version banner must stay off stdout: {stdout}"
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert_eq!(
+        stderr,
+        format!("aac-convert {}\n", env!("CARGO_PKG_VERSION")),
+        "normal execution identifies itself on stderr"
+    );
     assert!(output.is_file());
 }
 
@@ -89,11 +122,18 @@ fn accepts_24_bit_with_single_precision_warning() {
         "stderr: {}",
         String::from_utf8_lossy(&result.stderr)
     );
-    // ADTS carries no tags: exactly one stderr line, the precision notice
+    // ADTS carries no tags: just the startup banner and the precision notice
     // (`warning: <input>: <message>` per CLI convention).
     let stderr = String::from_utf8_lossy(&result.stderr);
-    assert_eq!(stderr.lines().count(), 1, "{stderr}");
-    assert!(stderr.starts_with("warning: "), "{stderr}");
+    assert!(
+        stderr.starts_with(&format!("aac-convert {}\n", env!("CARGO_PKG_VERSION"))),
+        "{stderr}"
+    );
+    let warnings: Vec<&str> = stderr
+        .lines()
+        .filter(|line| line.starts_with("warning: "))
+        .collect();
+    assert_eq!(warnings.len(), 1, "{stderr}");
     assert!(
         stderr.contains(
             "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \

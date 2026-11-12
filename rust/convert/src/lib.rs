@@ -424,7 +424,8 @@ pub fn convert_file(input: &Path, output: &Path) -> Result<ConversionSummary, Co
 /// is written and the `mdhd`/`tkhd`/`mvhd` durations keep the full
 /// encoded-stream timeline (see the crate README for the evidence and the
 /// duration-display consequence). M4A additionally carries the G0-approved
-/// core Vorbis-comment text tags; ADTS carries no tags.
+/// core Vorbis-comment text tags and the `©too` encoder identification
+/// (`Ferrite <version>`); ADTS carries no tags.
 ///
 /// Output publication is identical for both formats: a same-directory
 /// temporary file is flushed, synced, and hard-linked to the destination,
@@ -448,10 +449,11 @@ pub fn convert_file_with_format(
 ///
 /// Behaves like [`convert_file_with_format`], except `write_tags` selects
 /// whether M4A output carries user metadata atoms (`true`) or gapless
-/// signalling only (`false`, the `--no-tags` CLI behavior). The flag is a
-/// no-op for ADTS output, which never carries tags. The returned
-/// [`TagDiagnostics`] report mapped atoms, unmapped keys, and warnings for
-/// the converted file; warnings never change the success outcome.
+/// signalling plus the `©too` encoder identification only (`false`, the
+/// `--no-tags` CLI behavior). The flag is a no-op for ADTS output, which
+/// never carries metadata. The returned [`TagDiagnostics`] report mapped
+/// atoms, unmapped keys, and warnings for the converted file; warnings never
+/// change the success outcome.
 ///
 /// Single-file M4A conversions with tags run the loudness pre-pass for the
 /// degenerate one-member album before converting (no second publication).
@@ -716,6 +718,13 @@ fn convert_inner(
     // cover art (L2 ilst order). Loudness warnings follow tag/cover warnings.
     // ADTS and `--no-tags` conversions never carry loudness.
     let mut tag_ilst = tag_ilst;
+    // Every M4A file identifies its encoder. This is deliberately independent
+    // of `write_tags`: `--no-tags` omits user metadata, not the identification
+    // of the generated file. It is inserted before user atoms so it cannot be
+    // displaced by any source-derived metadata, and ADTS writes none.
+    if is_m4a {
+        tag_ilst.insert(0, meta::encoder_identification_atom()?);
+    }
     if let Some(precomputed) = loudness {
         debug_assert!(
             is_m4a && write_tags,

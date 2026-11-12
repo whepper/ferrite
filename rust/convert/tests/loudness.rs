@@ -124,11 +124,13 @@ fn tone_single_file_writes_complete_loudness_set() {
         "{:?}",
         diagnostics.warnings
     );
-    // ilst order: iTunSMPB item, then the five loudness atoms (no text/covr).
+    // ilst order: iTunSMPB item, the encoder identification, then the five
+    // loudness atoms (no text/covr).
     assert_eq!(
         ilst_layout(&bytes),
         [
             ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
             ("----".to_string(), "REPLAYGAIN_TRACK_GAIN".to_string()),
             ("----".to_string(), "REPLAYGAIN_TRACK_PEAK".to_string()),
             ("----".to_string(), "REPLAYGAIN_ALBUM_GAIN".to_string()),
@@ -212,10 +214,14 @@ fn clip_spike_adjusts_gain_and_preserves_peak() {
 #[test]
 fn silence_omits_atoms_and_warns_but_converts() {
     let (bytes, diagnostics) = convert_single("loud-silence-48k-16.flac", true);
-    // Only the gapless item remains; audio still converted.
+    // Only the gapless item and encoder identification remain; audio still
+    // converted.
     assert_eq!(
         ilst_layout(&bytes),
-        [("----".to_string(), "iTunSMPB".to_string())]
+        [
+            ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
+        ]
     );
     assert!(
         diagnostics
@@ -241,7 +247,10 @@ fn short_committed_fixtures_omit_loudness_by_construction() {
     let (bytes, diagnostics) = convert_single("stereo-48k-16.flac", true);
     assert_eq!(
         ilst_layout(&bytes),
-        [("----".to_string(), "iTunSMPB".to_string())]
+        [
+            ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
+        ]
     );
     assert!(
         diagnostics
@@ -273,6 +282,7 @@ fn tagged_cover_coexists_with_loudness_in_order() {
         ilst_layout(&bytes),
         [
             ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
             // Text atoms use Latin-1 `©` (0xA9), which lossy-converts here.
             ("\u{fffd}nam".to_string(), String::new()),
             ("\u{fffd}ART".to_string(), String::new()),
@@ -358,6 +368,7 @@ fn incomplete_album_keeps_track_atoms_and_omits_album_atoms() {
         ilst_layout(&tone),
         [
             ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
             ("----".to_string(), "REPLAYGAIN_TRACK_GAIN".to_string()),
             ("----".to_string(), "REPLAYGAIN_TRACK_PEAK".to_string()),
             ("----".to_string(), "iTunNORM".to_string()),
@@ -366,7 +377,10 @@ fn incomplete_album_keeps_track_atoms_and_omits_album_atoms() {
     let silence = fs::read(directory.join("out/loud-silence-48k-16.m4a")).unwrap();
     assert_eq!(
         ilst_layout(&silence),
-        [("----".to_string(), "iTunSMPB".to_string())]
+        [
+            ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
+        ]
     );
     // The album-level omission names the silent member on each file concerned.
     for result in &outcome.results {
@@ -589,7 +603,8 @@ fn mixed_layout_album_keeps_track_tags_and_omits_album_tags() {
 
 #[test]
 fn no_tags_adts_and_dry_run_skip_analysis() {
-    // `--no-tags`: gapless signalling only, no warnings at all.
+    // `--no-tags`: gapless signalling plus encoder identification only, no
+    // warnings at all.
     let directory = TempDir::new("loud-no-tags");
     let output = directory.join("out.m4a");
     let (_, diagnostics) = convert_file_with_format_and_tags(
@@ -608,7 +623,10 @@ fn no_tags_adts_and_dry_run_skip_analysis() {
     let bytes = fs::read(&output).unwrap();
     assert_eq!(
         ilst_layout(&bytes),
-        [("----".to_string(), "iTunSMPB".to_string())]
+        [
+            ("----".to_string(), "iTunSMPB".to_string()),
+            ("\u{fffd}too".to_string(), String::new()),
+        ]
     );
 
     // ADTS carries no tags regardless of the flag.

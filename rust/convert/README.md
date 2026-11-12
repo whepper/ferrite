@@ -84,9 +84,14 @@ files. It defaults to the number of available logical CPUs; `--jobs 1` is
 strictly sequential. It is a batch-only option and is a usage error for a
 single-file input.
 
-`--help`, `--version`, and `--` are supported. Exit codes: `0` success,
-`1` conversion failure, `2` command-line usage error. Directory batch mode
-adds exit code `3` for fatal setup errors (see below).
+`--help`, `--version`, and `--` are supported. `--help` prints the
+application name and version in its header. `--version` prints
+`aac-convert <version>` to stderr, and normal execution prints the same
+application/version banner to stderr (`--quiet` and `--dry-run` suppress it).
+Stdout stays reserved for script-friendly conversion results. Both identities
+use the Cargo package version (`CARGO_PKG_VERSION`) as their only source.
+Exit codes: `0` success, `1` conversion failure, `2` command-line usage error.
+Directory batch mode adds exit code `3` for fatal setup errors (see below).
 
 ## Batch conversion (directory input)
 
@@ -278,8 +283,22 @@ universal gapless playback.
 
 ## Metadata
 
-M4A output carries the G0-approved core Vorbis-comment text tags read from
-the source FLAC file:
+M4A output carries a standard `©too` (Tool) atom identifying the generating
+encoder, plus the G0-approved core Vorbis-comment text tags read from the
+source FLAC file.
+
+| Encoder metadata | M4A atom | Value |
+|---|---|---|
+| Application identity | `©too` | `Ferrite <version>` |
+
+`<version>` comes from Cargo package metadata (`CARGO_PKG_VERSION`); there is
+no separately maintained version constant. This atom is technical output
+metadata, not a copy of source tags: it is written for every M4A file,
+including with `--no-tags`, and no source Vorbis comment is mapped to `©too`,
+so a source `encoder` or `tool` tag can never overwrite or duplicate it. ADTS
+has no metadata container and never carries it.
+
+The source Vorbis-comment mapping is:
 
 | Vorbis key | M4A atom |
 |---|---|
@@ -328,7 +347,9 @@ Rules (revised metadata policy):
 - Deferred or unknown keys (BPM, compilation, sort fields, grouping, lyrics,
   MusicBrainz IDs, ISRC, label, catalogue number, barcode, `encoder`, and
   anything else outside the table) are ignored for output, counted in the
-  verbose-only `unmapped` diagnostic, and never an error.
+  verbose-only `unmapped` diagnostic, and never an error. The always-present
+  `©too` encoder identification is generated independently and is never
+  derived from these keys.
 - There is no stable, universally read core M4A atom for ISRC, barcode,
   publisher/label, catalogue number, or copyright in the supported tag
   subset. They are therefore not guessed into freeform atoms. A future
@@ -337,9 +358,10 @@ Rules (revised metadata policy):
   those identifiers in the source FLAC and read them from there.
 
 `--no-tags` omits user metadata from M4A output (gapless `iTunSMPB` signalling
-and `M4A ` brands stay); it is accepted for ADTS output as a no-op. ADTS
-output never carries tags. Tags never alter the AAC audio: M4A payloads are
-byte-identical with or without tags, and gapless signalling is unchanged.
+and the `©too` encoder identification stay); it is accepted for ADTS output as
+a no-op. ADTS output never carries tags or the encoder atom. Tags never alter
+the AAC audio: M4A payloads are byte-identical with or without tags, and
+gapless signalling is unchanged.
 
 ## Cover art
 

@@ -589,6 +589,22 @@ fn text_atom(name: &[u8; 4], value: &str) -> Result<Vec<u8>, ConvertError> {
     boxed(name, &data).map_err(|_| ConvertError::Metadata("tag data too large"))
 }
 
+/// Encoder identification atom for every M4A output: `©too` (Tool) with
+/// `Ferrite <version>`.
+///
+/// This is technical output metadata, not a copy of source tags: the value is
+/// built from Cargo package metadata (`CARGO_PKG_VERSION`) and is written by
+/// the muxing path for every M4A file, including `--no-tags`. Source Vorbis
+/// comments cannot produce this atom (no source key maps to `©too`), so a
+/// source `encoder`/`tool` tag can never overwrite it. ADTS has no metadata
+/// container and never carries it.
+pub(crate) fn encoder_identification_atom() -> Result<Vec<u8>, ConvertError> {
+    text_atom(
+        b"\xa9too",
+        &format!("Ferrite {}", env!("CARGO_PKG_VERSION")),
+    )
+}
+
 /// One `trkn`/`disk` number-pair atom.
 ///
 /// Value layout mirrors mutagen (`__render_pair` / `__render_pair_no_trailing`):

@@ -84,7 +84,9 @@ it must not silently change the existing `i16` contract.
   album artist, date/year, genre, composer, comment;
 - one embedded JPEG or PNG cover image;
 - generated ReplayGain 2.0 and `iTunNORM` atoms;
-- `iTunSMPB` gapless signalling.
+- `iTunSMPB` gapless signalling;
+- a `©too` encoder identification with the value `Ferrite <version>`, built
+  from Cargo package metadata and written to every M4A output.
 
 Behavior:
 
@@ -99,7 +101,7 @@ Behavior:
 - Artwork selection is deterministic: front cover, then other typed pictures,
   then untyped pictures, in source order. JPEG/PNG only, maximum 16 MiB.
 - `--no-tags` omits user tags, cover art, and loudness atoms; it does not
-  change audio payloads or `iTunSMPB`.
+  change audio payloads, `iTunSMPB`, or the `©too` encoder identification.
 - Tags never alter the AAC payload. The encoded AAC access units are
   byte-identical with and without tags.
 

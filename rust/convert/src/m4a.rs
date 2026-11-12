@@ -114,9 +114,10 @@ impl M4aWriter {
     /// `edts`/`elst` entry when the experimental `edit_list` switch is set)
     /// and rewriting the `ftyp` brand to the Apple-style `M4A` set CoreAudio
     /// requires. `extra_ilst` holds complete `ilst` child boxes (M4A text
-    /// atoms) appended after the `iTunSMPB` item; an empty slice writes
-    /// gapless signalling only. The rewritten `moov` must be the final box
-    /// so growth only extends the file; anything else fails without publishing.
+    /// atoms, starting with the caller's encoder identification) appended
+    /// after the `iTunSMPB` item; an empty slice writes gapless signalling
+    /// only. The rewritten `moov` must be the final box so growth only
+    /// extends the file; anything else fails without publishing.
     pub(crate) fn finish(
         &mut self,
         accounting: &GaplessAccounting,

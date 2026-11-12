@@ -13,6 +13,12 @@ use aac_convert::{
     OutputFormat,
 };
 
+const APP_NAME: &str = "aac-convert";
+/// Single source of truth for the application and encoder version: Cargo
+/// package metadata. The library crate builds the `©too` encoder value from
+/// the same variable.
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 const USAGE: &str = "\
 Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both] [--no-tags]
                    <input.flac> <output>
@@ -60,6 +66,10 @@ selects ADTS. Existing output files are never overwritten.
 ";
 
 fn print_usage() {
+    // The header carries the application identity; the version comes from
+    // Cargo package metadata (no separate constant to drift).
+    println!("{APP_NAME} {VERSION}");
+    println!();
     print!("{USAGE}");
 }
 
@@ -170,7 +180,9 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     return Ok(None);
                 }
                 Some("-V" | "--version") => {
-                    println!("aac-convert {}", env!("CARGO_PKG_VERSION"));
+                    // Version reporting is diagnostic output: keep stdout free
+                    // for script-friendly conversion results.
+                    eprintln!("{APP_NAME} {VERSION}");
                     return Ok(None);
                 }
                 Some("--") => {
@@ -346,6 +358,12 @@ fn run() -> Result<(), CliError> {
         Some(cli) => cli,
         None => return Ok(()),
     };
+    // Startup banner: stderr only, so stdout keeps the script-friendly result
+    // stream. `--quiet` suppresses it with the rest of the non-essential
+    // chatter, and dry runs keep stderr for real diagnostics only.
+    if !cli.quiet && !cli.dry_run {
+        eprintln!("{APP_NAME} {VERSION}");
+    }
     match dispatch_input(&cli.input)? {
         InputKind::File => run_single_file(&cli),
         InputKind::Directory => run_batch(&cli),

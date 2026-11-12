@@ -328,13 +328,17 @@ fn cli_no_tags_omits_covr_and_suppresses_cover_warnings() {
         String::from_utf8_lossy(&result.stderr)
     );
     // No warnings at all: tag warnings and cover warnings are both suppressed.
+    let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(
-        String::from_utf8_lossy(&result.stderr).is_empty(),
-        "{}",
-        String::from_utf8_lossy(&result.stderr)
+        !stderr.contains("warning:") && !stderr.contains("error:"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.starts_with(&format!("aac-convert {}\n", env!("CARGO_PKG_VERSION"))),
+        "{stderr}"
     );
     let bytes = fs::read(&output).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
 
     // Gapless signalling is preserved exactly: the same conversion with tags
     // carries an identical iTunSMPB value, only with user atoms appended.
@@ -763,7 +767,7 @@ fn no_tags_never_extracts_cover_art() {
         diagnostics.warnings
     );
     let bytes = fs::read(&output).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
 }
 
 #[test]
@@ -1260,7 +1264,7 @@ fn cli_no_tags_disables_external_cover_extraction() {
     );
     assert!(!output.join("album/cover.jpg").exists());
     let bytes = fs::read(output.join("album/one.m4a")).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
 }
 
 #[test]

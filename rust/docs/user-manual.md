@@ -127,12 +127,12 @@ Warnings, such as the 24-bit precision notice or metadata warnings, are printed 
 |---|---|
 | `--format m4a` | Write audio-only M4A. |
 | `--format adts` | Write an ADTS AAC stream. |
-| `--no-tags` | Omit user metadata from M4A. Accepted for ADTS as a no-op. |
+| `--no-tags` | Omit user metadata from M4A. Encoder identification is retained. Accepted for ADTS as a no-op. |
 | `--cover-art embedded` | Embed selected cover art in the M4A (default). |
 | `--cover-art external` | Do not embed; write `cover.jpg` or `cover.png` beside the output. |
 | `--cover-art both` | Embed and write the same selected cover art externally. |
 | `-h`, `--help` | Display command help. |
-| `-V`, `--version` | Display the application version. |
+| `-V`, `--version` | Display the application version (written to stderr). |
 | `--` | End option parsing; subsequent arguments are paths. |
 
 Existing output files are **never overwritten**. There is no force or overwrite option in 0.1.0. Choose a new output path when the destination already exists.
@@ -207,14 +207,14 @@ aac-convert --format adts "music/" "converted-adts/"
 | `--dry-run` | Preview the planned conversions without writing files or decoding audio. |
 | `--skip-existing` | Skip destinations that already exist, enabling safe reruns. |
 | `--jobs N` | Process at most `N` files concurrently. Default: available logical CPUs. `--jobs 1` is strictly sequential. |
-| `--no-tags` | Omit user metadata, cover art and loudness tags from M4A. |
+| `--no-tags` | Omit user metadata, cover art and loudness tags from M4A. Encoder identification is retained. |
 | `--cover-art embedded` | Embed selected cover art (the default). |
 | `--cover-art external` | Write `cover.jpg`/`cover.png` beside each album's audio instead of embedding. |
 | `--cover-art both` | Embed and write the same selected cover art externally. |
 | `-v`, `--verbose` | Show extra per-file audio and metadata details, including ignored-entry reasons. |
 | `-q`, `--quiet` | Print only the final summary on standard output. Failure diagnostics remain on standard error. |
 | `-h`, `--help` | Display command help. |
-| `-V`, `--version` | Display the application version. |
+| `-V`, `--version` | Display the application version (written to stderr). |
 
 If both `--recursive` and `--no-recursive` are present, the last one wins. `--verbose` and `--quiet` conflict and cannot be used together.
 
@@ -341,6 +341,8 @@ An output root inside the input tree is allowed because generated `.m4a` and `.a
 
 M4A output can preserve selected metadata from FLAC Vorbis comments. ADTS output carries no tags.
 
+Every M4A file also carries a `©too` (Tool) atom with the value `Ferrite <version>`. This identifies the encoder that generated the file; it is technical output metadata, is written even with `--no-tags`, and is never overwritten by source tags.
+
 ### Text tags
 
 The following source tags are mapped:
@@ -423,7 +425,7 @@ Silence or unmeasurable audio omits loudness atoms with a warning. `--no-tags`, 
 
 ### What `--no-tags` means
 
-For M4A, `--no-tags` omits user text tags, cover art (embedded or external) and loudness atoms. It does **not** remove the M4A gapless signalling described below. The AAC audio payload is byte-identical with and without user tags.
+For M4A, `--no-tags` omits user text tags, cover art (embedded or external) and loudness atoms. It does **not** remove the M4A gapless signalling described below, nor the `©too` encoder identification. The AAC audio payload is byte-identical with and without user tags.
 
 ## 7. Gapless playback and timing
 

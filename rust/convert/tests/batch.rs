@@ -1063,7 +1063,11 @@ fn cli_batch_reports_ok_lines_and_summary_with_exit_zero() {
         "{lines:?}"
     );
     assert_eq!(
-        lines[1], "ok a.flac -> a.m4a (14 frames, 1922 bytes)",
+        // +37 bytes over the pre-metadata baseline: the always-written
+        // `©too` atom (8-byte atom header + 8-byte `data` header + 8-byte
+        // type/locale + 13-byte "Ferrite 0.1.0" value).
+        lines[1],
+        "ok a.flac -> a.m4a (14 frames, 1959 bytes)",
         "{lines:?}"
     );
     assert!(
@@ -1484,7 +1488,7 @@ fn cli_batch_verbose_reports_ignores_and_details() {
     assert!(
         lines
             .iter()
-            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1922 bytes, 48000 Hz, stereo")),
+            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1959 bytes, 48000 Hz, stereo")),
         "{lines:?}"
     );
 }

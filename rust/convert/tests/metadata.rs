@@ -25,6 +25,11 @@ fn binary() -> &'static str {
     env!("CARGO_BIN_EXE_aac-convert")
 }
 
+/// The encoder identification written to every M4A output.
+fn encoder_identification() -> String {
+    format!("Ferrite {}", env!("CARGO_PKG_VERSION"))
+}
+
 fn run_cli(args: &[&str]) -> std::process::Output {
     Command::new(binary()).args(args).output().unwrap()
 }
@@ -94,6 +99,7 @@ fn core_tags_round_trip_stereo() {
         ilst_types(&bytes),
         vec![
             *b"----",
+            *b"\xa9too",
             *b"\xa9nam",
             *b"\xa9ART",
             *b"\xa9alb",
@@ -105,6 +111,11 @@ fn core_tags_round_trip_stereo() {
             *b"\xa9wrt",
             *b"\xa9cmt",
         ]
+    );
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9too"),
+        vec![encoder_identification()],
+        "every M4A identifies the generating encoder"
     );
     assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9nam"), vec!["Core Title"]);
     assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9ART"), vec!["Core Artist"]);
@@ -423,7 +434,7 @@ fn unicode_tags_round_trip_trimmed() {
 }
 
 #[test]
-fn untagged_input_writes_gapless_only() {
+fn untagged_input_writes_gapless_and_encoder_only() {
     let directory = TempDir::new("meta-untagged");
     let output = directory.join("plain.m4a");
     let (_, diagnostics) = convert_file_with_format_and_tags(
@@ -444,7 +455,49 @@ fn untagged_input_writes_gapless_only() {
     );
 
     let bytes = fs::read(&output).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9too"),
+        vec![encoder_identification()],
+        "encoder identification is present without any source tags"
+    );
+    assert!(temp_output_files(directory.path()).is_empty());
+}
+
+#[test]
+fn source_encoder_tag_cannot_overwrite_encoder_identification() {
+    // The committed fixture's only source tag is `encoder` (ffmpeg's
+    // generator string). It is unmapped and must never replace or duplicate
+    // the generated `©too` atom.
+    let directory = TempDir::new("meta-source-encoder");
+    let output = directory.join("out.m4a");
+    let (_, diagnostics) = convert_file_with_format_and_tags(
+        &fixture("stereo-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+    )
+    .unwrap();
+    assert_eq!(diagnostics.unmapped, vec!["encoder"]);
+
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9too"),
+        vec![encoder_identification()],
+        "exactly one ©too atom, carrying the Ferrite value"
+    );
+    assert_eq!(
+        ilst_types(&bytes)
+            .iter()
+            .filter(|kind| *kind == b"\xa9too")
+            .count(),
+        1,
+        "source metadata must not add a second ©too atom"
+    );
     assert!(temp_output_files(directory.path()).is_empty());
 }
 
@@ -474,7 +527,14 @@ fn no_tags_flag_omits_atoms_but_counts_unmapped() {
     );
 
     let bytes = fs::read(&output).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9too"),
+        vec![encoder_identification()],
+        "--no-tags omits user metadata but keeps encoder identification"
+    );
 
     // Unmapped counting continues under the flag (edge fixture has 5).
     let edge_out = directory.join("edge-notags.m4a");
@@ -506,7 +566,16 @@ fn adts_never_carries_tags() {
     convert_file(&fixture("stereo-48k-16.flac"), &plain).unwrap();
 
     // Byte-identical to the untagged ADTS conversion; no tags read or written.
-    assert_eq!(fs::read(&tagged).unwrap(), fs::read(&plain).unwrap());
+    let bytes = fs::read(&tagged).unwrap();
+    assert_eq!(bytes, fs::read(&plain).unwrap());
+    assert!(
+        !bytes.windows(4).any(|window| window == b"ilst"),
+        "ADTS has no MP4 metadata container"
+    );
+    assert!(
+        !bytes.windows(4).any(|window| window == b"\xa9too"),
+        "ADTS must not attempt to write the MP4 encoder atom"
+    );
     assert_eq!(tagged_diagnostics.mapped, 0);
     assert!(tagged_diagnostics.unmapped.is_empty());
     assert!(tagged_diagnostics.warnings.is_empty());
@@ -585,13 +654,23 @@ fn cli_no_tags_m4a_omits_atoms_and_warnings() {
         "stderr: {}",
         String::from_utf8_lossy(&result.stderr)
     );
+    let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(
-        String::from_utf8_lossy(&result.stderr).is_empty(),
-        "no warnings under --no-tags: {}",
-        String::from_utf8_lossy(&result.stderr)
+        !stderr.contains("warning:") && !stderr.contains("error:"),
+        "no warnings under --no-tags: {stderr}"
+    );
+    assert!(
+        stderr.starts_with(&format!("aac-convert {}\n", env!("CARGO_PKG_VERSION"))),
+        "normal execution banner on stderr: {stderr}"
     );
     let bytes = fs::read(&output).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9too"),
+        vec![encoder_identification()]
+    );
 }
 
 #[test]
@@ -753,7 +832,7 @@ fn cli_batch_no_tags_real_run_omits_user_atoms() {
     for name in ["core.m4a", "plain.m4a"] {
         let bytes = fs::read(output.join(name)).unwrap();
         assert_eq!(&bytes[8..12], b"M4A ", "{name}");
-        assert_eq!(ilst_types(&bytes), vec![*b"----"], "{name}");
+        assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"], "{name}");
         let root = parse_mp4(&bytes);
         assert!(
             !mp4_itunsmpb(&bytes, &root).is_empty(),
@@ -840,7 +919,7 @@ fn batch_no_tags_skips_writing_but_reports_unmapped() {
         other => panic!("unexpected outcome: {other:?}"),
     }
     let bytes = fs::read(output.join("edge.m4a")).unwrap();
-    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+    assert_eq!(ilst_types(&bytes), vec![*b"----", *b"\xa9too"]);
     assert!(temp_output_files(&output).is_empty());
 }
 
