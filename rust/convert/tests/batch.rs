@@ -1065,7 +1065,7 @@ fn cli_batch_reports_ok_lines_and_summary_with_exit_zero() {
     assert_eq!(
         // +37 bytes over the pre-metadata baseline: the always-written
         // `©too` atom (8-byte atom header + 8-byte `data` header + 8-byte
-        // type/locale + 13-byte "Ferrite 0.1.0" value).
+        // type/locale + 13-byte "Ferrite 0.2.0" value).
         lines[1],
         "ok a.flac -> a.m4a (14 frames, 1959 bytes)",
         "{lines:?}"

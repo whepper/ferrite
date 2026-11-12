@@ -12,8 +12,8 @@ following into the `aac-convert` binary except where noted.
 
 | Package | Version | License field | Evidence |
 |---|---|---|---|
-| `ferrite-aac` (codec, path dependency `rust/`) | 0.1.0 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
-| `aac-convert` (this application) | 0.1.0 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
+| `ferrite-aac` (codec, path dependency `rust/`) | 0.2.0 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
+| `aac-convert` (this application) | 0.2.0 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
 
 The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
 `license = "FDK-AAC"` (the standard SPDX identifier) and also sets

@@ -534,7 +534,7 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 There is no standalone `cargo package` for `aac-convert`: its path
 dependency on the workspace-local, unpublished `ferrite-aac` crate cannot
 resolve against the public registry (the package is unpublished, so no
-version satisfies the required `^0.1.0`), and publishing `ferrite-aac` is
+version satisfies the required `^0.2.0`), and publishing `ferrite-aac` is
 out of scope. The supported distribution
 model is a **workspace source bundle built with the pinned toolchain**:
 

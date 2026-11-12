@@ -7,7 +7,7 @@ not describe the psychoacoustic or quantization internals.
 
 ## Dependency
 
-The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.1.0`). The
+The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.2.0`). The
 supported path today is a source dependency; this repository does not yet
 publish a stable crates.io release contract.
 
@@ -206,7 +206,7 @@ encoders for independent streams.
 - Whole-buffer pushes are linear in buffer work but hold the input, feeder
   copy, and all returned frames at once; use bounded chunks to keep peak
   memory low.
-- The crate is source-consumed and version `0.1.0`; the public API and MSRV are
+- The crate is source-consumed and version `0.2.0`; the public API and MSRV are
   not yet a stable published contract.
 - Licensing is the FDK-AAC license (see `rust/NOTICE` and
   `rust/LICENSE-FDK-AAC`); it is not a general-purpose permissive license, and
