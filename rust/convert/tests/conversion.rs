@@ -114,15 +114,16 @@ fn accepts_24_bit_m4a_with_warning_and_gapless() {
     assert_eq!(summary.properties.bits_per_sample, 24);
     assert_eq!(summary.encoded_frames, 3);
 
-    // The precision notice leads; tag warnings for the (tagless) fixture follow.
+    // The precision notice leads; absent optional tags are silent, leaving
+    // only loudness warnings for the short fixture.
     assert_eq!(
         diagnostics.warnings[0],
         "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
          before AAC encoding; low-order source precision is discarded"
     );
     assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("title")),
-        "{:?}",
+        !diagnostics.warnings.iter().any(|w| w.contains("missing")),
+        "absence of optional tags must be silent: {:?}",
         diagnostics.warnings
     );
 

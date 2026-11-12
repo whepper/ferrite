@@ -13,9 +13,11 @@ complete.)
   - `ferrite-aac` (`ferrite_aac`) — AAC-LC encoder library (**VBR-5
     profile**) plus shared DSP/transport modules.
   - `aac-convert` — FLAC-to-AAC application: single-file and batch
-    conversion to audio-only M4A or ADTS, with core Vorbis-comment tags,
-    cover art, Apple `iTunSMPB` gapless signalling, and native ReplayGain
-    2.0 + `iTunNORM` loudness metadata (fixed −18.0 LUFS reference).
+    conversion to audio-only M4A or ADTS, with live batch progress, core
+    Vorbis-comment tags (including multi-value `; ` joining), embedded or
+    externally extracted cover art, Apple `iTunSMPB` gapless signalling, and
+    native ReplayGain 2.0 + `iTunNORM` loudness metadata (fixed −18.0 LUFS
+    reference).
   - The encoder has no FFI surface; there is no decoder crate in this
     repository.
 - The upstream Fraunhofer FDK AAC C/C++ implementation is **not

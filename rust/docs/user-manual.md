@@ -128,11 +128,16 @@ Warnings, such as the 24-bit precision notice or metadata warnings, are printed 
 | `--format m4a` | Write audio-only M4A. |
 | `--format adts` | Write an ADTS AAC stream. |
 | `--no-tags` | Omit user metadata from M4A. Accepted for ADTS as a no-op. |
+| `--cover-art embedded` | Embed selected cover art in the M4A (default). |
+| `--cover-art external` | Do not embed; write `cover.jpg` or `cover.png` beside the output. |
+| `--cover-art both` | Embed and write the same selected cover art externally. |
 | `-h`, `--help` | Display command help. |
 | `-V`, `--version` | Display the application version. |
 | `--` | End option parsing; subsequent arguments are paths. |
 
 Existing output files are **never overwritten**. There is no force or overwrite option in 0.1.0. Choose a new output path when the destination already exists.
+
+Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg` or `cover.png` beside the output is left untouched.
 
 Single-file mode does not accept batch-only options such as `--recursive`, `--dry-run`, `--skip-existing`, `--verbose` or `--quiet`.
 
@@ -202,7 +207,10 @@ aac-convert --format adts "music/" "converted-adts/"
 | `--dry-run` | Preview the planned conversions without writing files or decoding audio. |
 | `--skip-existing` | Skip destinations that already exist, enabling safe reruns. |
 | `--no-tags` | Omit user metadata, cover art and loudness tags from M4A. |
-| `-v`, `--verbose` | Show extra per-file audio and metadata details. |
+| `--cover-art embedded` | Embed selected cover art (the default). |
+| `--cover-art external` | Write `cover.jpg`/`cover.png` beside each album's audio instead of embedding. |
+| `--cover-art both` | Embed and write the same selected cover art externally. |
+| `-v`, `--verbose` | Show extra per-file audio and metadata details, including ignored-entry reasons. |
 | `-q`, `--quiet` | Print only the final summary on standard output. Failure diagnostics remain on standard error. |
 | `-h`, `--help` | Display command help. |
 | `-V`, `--version` | Display the application version. |
@@ -227,6 +235,9 @@ aac-convert --format adts "music/" "aac/"
 # Show sample rate, channels, bit depth, and tag diagnostics.
 aac-convert --verbose "music/" "m4a/"
 
+# Write cover.jpg/cover.png beside each album instead of embedding artwork.
+aac-convert --cover-art external "music/" "m4a/"
+
 # Keep the final summary but suppress normal per-file progress.
 aac-convert --quiet "music/" "m4a/"
 ```
@@ -238,6 +249,17 @@ aac-convert --quiet "music/" "m4a/"
 - Hidden files and directories are included.
 - Directory symlinks are not followed. Symlinks to regular FLAC files are converted at their link path.
 - Processing order is deterministic: paths are byte-sorted by relative path.
+
+With `--verbose`, each ignored entry reports the planner's reason when one can be established:
+
+```text
+ignore notes.txt (unsupported extension)
+ignore pipe (not a regular file)
+ignore CD2/track.flac (excluded by --no-recursive)
+ignore artwork-link (symlinked dir, not followed)
+```
+
+These are informational; ignored entries never count as conversion failures.
 
 Conversion is sequential; this release does not process multiple files in parallel.
 
@@ -251,7 +273,7 @@ Use `--dry-run` to inspect the plan before conversion:
 aac-convert --dry-run "music/" "converted/"
 ```
 
-A dry run performs discovery, output mapping and destination-collision checks, but it does not create files or directories and does not decode audio. Its final line begins with `dry-run:`.
+A dry run performs discovery, output mapping and destination-collision checks, but it does not create files or directories, does not decode audio, and does not read or write cover art. Its final line begins with `dry-run:`.
 
 ### Resume a partial batch
 
@@ -306,15 +328,32 @@ The following source tags are mapped:
 | `COMPOSER` | Composer |
 | `COMMENT` | Comment |
 
-Keys are matched case-insensitively and values are trimmed. Core M4A atoms are single-valued: the first non-empty value is kept. When a recognized text key has multiple distinct non-empty values, the converter emits one warning listing the affected keys. Identical repeated values do not cause a warning.
+Keys are matched case-insensitively and values are trimmed. Missing optional fields are silent: an untagged file, an absent `COMMENT`, or missing artwork does not produce a warning. Warnings are reserved for malformed, invalid, unsupported, or genuinely lossy metadata, such as an unparseable track number.
+
+Each mapped field becomes one M4A text atom. If the source repeats a key, distinct non-empty values are preserved in source order and joined with `; `:
+
+```text
+ARTIST=Artist A
+ARTIST=Artist B
+```
+
+becomes:
+
+```text
+Artist A; Artist B
+```
+
+Exact duplicates are removed while keeping the first occurrence, and empty values are ignored. This applies to `TITLE`, `ARTIST`, `ALBUM`, `ALBUMARTIST`, `DATE`/`YEAR` (the selected key only), `GENRE`, `COMPOSER`, and `COMMENT`. `DATE` and `YEAR` are never joined with each other; `DATE` wins when both are present. This is a readable single-atom mapping, not a lossless copy of the original Vorbis comment list.
+
+Numeric `TRACKNUMBER` and `DISCNUMBER` fields are not joined. If they repeat, the first value is used and a warning notes that the numeric destination cannot hold the additional values.
 
 Unmapped tags (for example, ISRC, barcode, publisher/label, catalogue number, copyright, MusicBrainz IDs, BPM, lyrics and sort fields) are not written. With `--verbose`, the converter reports the number of mapped and unmapped tags and lists unmapped keys.
 
-Missing or invalid tag values produce warnings rather than failing an otherwise valid conversion.
+Missing optional fields do not warn. Malformed values, unsupported values and lossy numeric reductions still produce warnings rather than failing an otherwise valid conversion.
 
 ### Cover art
 
-M4A output embeds at most one JPEG or PNG image:
+M4A output can carry at most one JPEG or PNG image:
 
 - Front cover is preferred.
 - Other typed pictures are considered next.
@@ -322,9 +361,27 @@ M4A output embeds at most one JPEG or PNG image:
 - Original order is retained within each group.
 - Maximum image size is 16 MiB.
 
-Image type is identified from its file signature, not just its declared MIME type. Unsupported, invalid, oversized or missing images produce warnings and do not fail audio conversion. If one candidate is not eligible, the next candidate can be considered.
+Image type is identified from its file signature, not just its declared MIME type. Empty, unsupported, invalid or oversized images produce warnings and do not fail audio conversion. If one candidate is not eligible, the next candidate can be considered. Absent artwork is silent.
 
-`--no-tags` also omits cover art.
+`--cover-art` selects what happens:
+
+| Mode | Embed in M4A | Write external file |
+|---|---:|---:|
+| `embedded` (default) | Yes | No |
+| `external` | No | Yes |
+| `both` | Yes | Yes |
+
+External files are named `cover.jpg` for JPEG and `cover.png` for PNG. They are written in the same output directory as the converted audio (for a batch, the mirrored album directory under the output root). The original image bytes are preserved exactly; the converter does not recompress or resize them.
+
+One cover file is written per output directory, not per track. Before writing, the converter checks all planned tracks that target the directory:
+
+- If every eligible image is identical, one external file is written.
+- If different images are found, a warning names the affected directory and external artwork is skipped for that directory. Audio conversion continues normally. No arbitrary first image and no partial file is published. All planned tracks take part in this check, including tracks skipped under `--skip-existing` and tracks that later fail conversion, so a failed track with different artwork can veto external publication for its directory.
+- If no track has eligible artwork, no file is written.
+
+External cover publication never overwrites an existing `cover.jpg` or `cover.png`; the existing file is left untouched. With `--skip-existing`, an album whose audio outputs already exist can still receive an external cover if no cover file exists yet. Dry runs create no artwork.
+
+`--no-tags` disables both embedding and external extraction, and suppresses cover warnings. ADTS output never carries or writes cover art, regardless of `--cover-art`.
 
 ### ReplayGain and iTunes Sound Check
 
@@ -336,7 +393,7 @@ Silence or unmeasurable audio omits loudness atoms with a warning. `--no-tags`, 
 
 ### What `--no-tags` means
 
-For M4A, `--no-tags` omits user text tags, cover art and loudness atoms. It does **not** remove the M4A gapless signalling described below. The AAC audio payload is byte-identical with and without user tags.
+For M4A, `--no-tags` omits user text tags, cover art (embedded or external) and loudness atoms. It does **not** remove the M4A gapless signalling described below. The AAC audio payload is byte-identical with and without user tags.
 
 ## 7. Gapless playback and timing
 
@@ -368,7 +425,22 @@ An abrupt process termination, machine shutdown or power loss can leave a hidden
 
 ### Batch progress
 
-Normal batch mode prints a header, per-file results and a final summary. The per-file forms include:
+Normal batch mode prints live progress to **standard error**, in processing order. M4A runs with tags first print a preparation line for the loudness pre-pass (and artwork pre-scan when external cover art is requested):
+
+```text
+preparing 111 files (loudness)...
+[  1/111] Artist/Album/01 - Track.flac  encoding...
+[  1/111] Artist/Album/01 - Track.flac  done
+[  2/111] Artist/Album/02 - Track.flac  encoding...
+[  2/111] Artist/Album/02 - Track.flac  done
+[  3/111] Artist/Album/03 - Track.flac  skipped (already exists)
+[  4/111] Artist/Album/04 - Track.flac  encoding...
+[  4/111] Artist/Album/04 - Track.flac  failed (UnsupportedChannels)
+```
+
+The counter is the item position and the total planned items. Per-file warnings appear on stderr immediately after the item's `done` line, not after the whole batch. Long nested paths are printed in full.
+
+Machine-readable per-file results and the final summary remain on **standard output**, in processing order:
 
 ```text
 ok <input> -> <output> (<frames> frames, <bytes> bytes)
@@ -376,7 +448,7 @@ skip <input> -> <output> (exists)
 fail <input>: <category>
 ```
 
-Failures have a corresponding diagnostic on standard error:
+Failures also have a corresponding diagnostic on standard error:
 
 ```text
 error: <input>: <message>
@@ -388,21 +460,24 @@ The final summary has this form:
 summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<seconds>s)
 ```
 
-With `--skip-existing`, the summary also includes a skipped count. A dry-run summary begins with `dry-run:`.
+With `--skip-existing`, the summary also includes a skipped count. A dry-run summary begins with `dry-run:`. Dry runs print the plan on stdout and never emit `encoding...` progress.
 
 ### Warnings and verbose output
 
 Warnings are printed to standard error in every mode, including quiet mode. Examples include:
 
 - 24-bit input was truncated to 16-bit PCM.
-- Multiple distinct values were reduced to the first value.
-- A tag value was missing or invalid.
-- Cover art was unsupported or could not be embedded.
+- Multiple numeric track/disc values were reduced to the first value.
+- A tag value was malformed or unsupported.
+- Cover art was invalid, unsupported or oversized.
+- Different tracks in one output directory selected conflicting cover images.
 - Loudness could not be calculated.
 
-`--verbose` adds sample rate, channel count and source bit depth to successful per-file lines, plus tag counts, unmapped keys and ignored paths.
+Missing optional metadata fields (for example, no `COMMENT` or no cover art) are silent. Preserving multiple text values with `; ` is normal behavior and does not warn.
 
-`--quiet` suppresses normal progress on standard output and leaves the final summary. Error and warning diagnostics still appear on standard error.
+`--verbose` adds sample rate, channel count and source bit depth to successful per-file lines, plus tag counts, unmapped keys and ignored paths with their planner reasons.
+
+`--quiet` suppresses live progress and per-file result lines on standard output, leaving the final summary. Error and warning diagnostics still appear on standard error.
 
 ### Exit codes
 
@@ -462,7 +537,7 @@ Ferrite 0.1.0 is deliberately focused:
 - 44.1/48 kHz, mono/stereo.
 - 16-bit encoder input; 24-bit FLAC is truncated with no dithering.
 - No resampling or downmixing.
-- Single-valued core metadata, one JPEG/PNG cover image; no identifier mapping.
+- Single-atom core metadata (repeated text values joined with `; `), one JPEG/PNG cover image per output directory (embedded and/or external); no identifier mapping.
 - Sequential batch conversion; no parallel processing.
 - Hard-link-capable output filesystem required.
 - No universal gapless, perceptual transparency or bit-exact FDK equivalence claim.

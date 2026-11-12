@@ -14,11 +14,17 @@ fn help_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>")
+        stdout.contains(
+            "Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both]"
+        ),
+        "{stdout}"
     );
     assert!(stdout.contains("--no-tags"));
     assert!(stdout.contains("16-bit"));
     assert!(stdout.contains("--format m4a"));
+    assert!(stdout.contains("--cover-art embedded"));
+    assert!(stdout.contains("--cover-art external"));
+    assert!(stdout.contains("--cover-art both"));
 }
 
 #[test]
@@ -178,4 +184,27 @@ fn missing_format_value_is_a_usage_error() {
     let result = Command::new(binary()).arg("--format").output().unwrap();
     assert_eq!(result.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&result.stderr).contains("--format requires"));
+}
+
+#[test]
+fn missing_cover_art_value_is_a_usage_error() {
+    let result = Command::new(binary()).arg("--cover-art").output().unwrap();
+    assert_eq!(result.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("--cover-art requires"));
+}
+
+#[test]
+fn invalid_cover_art_value_is_a_usage_error() {
+    let directory = TempDir::new("cli-bad-cover-art");
+    let output = directory.join("out.m4a");
+    let result = Command::new(binary())
+        .arg("--cover-art")
+        .arg("sidecar")
+        .arg(fixture("stereo-48k-16.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("invalid cover-art mode"));
+    assert!(!output.exists());
 }

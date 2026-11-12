@@ -16,7 +16,10 @@ feature) plus shared DSP/transport modules.
 
 This directory contains the `aac-convert` application, supporting
 single-file and directory-batch FLAC-to-M4A (or ADTS) conversion around
-the existing encoder. See `convert/README.md` for the detailed behavior reference and
+the existing encoder. Batch progress is written live to stderr while
+machine-readable per-file results and the final summary stay on stdout;
+cover art can be embedded, extracted as `cover.jpg`/`cover.png`, or both.
+See `convert/README.md` for the detailed behavior reference and
 `docs/user-manual.md` for the end-user guide.
 
 ## Using the encoder

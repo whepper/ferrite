@@ -189,6 +189,17 @@ impl Drop for TempOutput {
     }
 }
 
+/// Publish arbitrary bytes at `output` through the same temporary-file,
+/// flush/sync, atomic-hard-link path used for audio output.
+///
+/// The hard link refuses to replace an existing destination, so external
+/// cover-art publication inherits the converter's no-overwrite guarantee.
+pub(crate) fn publish_bytes(output: &Path, bytes: &[u8]) -> Result<(), ConvertError> {
+    let mut temp = TempOutput::create(output)?;
+    temp.write_all(bytes)?;
+    temp.publish(output)
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, Barrier};

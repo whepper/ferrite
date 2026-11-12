@@ -12,8 +12,10 @@
 //! decoders present exactly the source audio. M4A additionally carries the
 //! G0-approved core Vorbis-comment text tags (title, artist, album, track and
 //! disc numbers with totals, album artist, date/year, genre, composer,
-//! comment); ADTS carries no tags. No edit list is written and the duration
-//! fields keep the encoded-stream timeline; see the README.
+//! comment) and at most one JPEG/PNG cover image. Cover art can be embedded in
+//! the `covr` atom, extracted as `cover.jpg`/`cover.png`, or both; ADTS carries
+//! no tags or cover art. No edit list is written and the duration fields keep
+//! the encoded-stream timeline; see the README.
 //!
 //! The encoder's `i16` PCM interface is unchanged; 24-bit input is reduced
 //! to 16-bit PCM by truncation in the decode path, with a per-file warning
@@ -34,6 +36,7 @@ mod output;
 
 use std::error::Error as StdError;
 use std::fmt;
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -86,6 +89,89 @@ impl fmt::Display for OutputFormat {
     }
 }
 
+/// Cover-art handling requested by the CLI or library caller.
+///
+/// The default is [`Embedded`](Self::Embedded), preserving the historical
+/// behavior. Extraction is available only for M4A output with user metadata
+/// enabled; ADTS and `--no-tags` conversions never process artwork.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CoverArtMode {
+    /// Embed selected artwork in the M4A `covr` atom (default).
+    #[default]
+    Embedded,
+    /// Do not embed artwork; write `cover.jpg`/`cover.png` externally.
+    External,
+    /// Embed and write the same selected artwork externally.
+    Both,
+}
+
+impl CoverArtMode {
+    /// True when the selected image is embedded in M4A output.
+    pub fn embeds(self) -> bool {
+        matches!(self, Self::Embedded | Self::Both)
+    }
+
+    /// True when the selected image is written next to the audio output.
+    pub fn extracts(self) -> bool {
+        matches!(self, Self::External | Self::Both)
+    }
+}
+
+impl fmt::Display for CoverArtMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Embedded => "embedded",
+            Self::External => "external",
+            Self::Both => "both",
+        })
+    }
+}
+
+impl std::str::FromStr for CoverArtMode {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "embedded" => Ok(Self::Embedded),
+            "external" => Ok(Self::External),
+            "both" => Ok(Self::Both),
+            _ => Err(format!(
+                "invalid cover-art mode: {value} (expected embedded, external, or both)"
+            )),
+        }
+    }
+}
+
+/// What happened while publishing one external cover-art file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CoverArtAction {
+    /// The image was published atomically under a new name.
+    Written,
+    /// A file already existed at the destination and was left untouched.
+    Existing,
+    /// Different tracks in one output directory selected different images;
+    /// external publication was skipped for that directory.
+    Conflicted,
+    /// External artwork publication failed; audio conversion is unaffected.
+    Failed {
+        /// User-facing detail for stderr.
+        message: String,
+    },
+}
+
+/// One external cover-art outcome for an output directory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverArtReport {
+    /// Target directory (relative to the output root in batch mode, or the
+    /// resolved output parent for a single-file conversion).
+    pub directory: PathBuf,
+    /// Intended file name (`cover.jpg` or `cover.png`); `None` for a conflict,
+    /// where no image was selected for publication.
+    pub file_name: Option<String>,
+    /// What happened.
+    pub action: CoverArtAction,
+}
+
 /// Properties of the supported FLAC input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AudioProperties {
@@ -110,20 +196,22 @@ pub struct ConversionSummary {
 
 /// Per-file user-metadata diagnostics for an M4A conversion.
 ///
-/// Counts what the G0 core-9 mapping produced for one input: mapped atoms
+/// Counts what the G0 core mapping produced for one input: mapped atoms
 /// actually written, unmapped (deferred or unknown) keys seen, and warnings
-/// for missing or invalid values. Warnings never fail the conversion.
-/// ADTS conversions and `--no-tags` M4A conversions report no mapped atoms;
-/// `--no-tags` additionally suppresses warnings while unmapped keys are
-/// still counted.
+/// for malformed, invalid, unsupported, or genuinely lossy values. Missing
+/// optional fields (including absent artwork) are silent. Warnings never fail
+/// the conversion. ADTS conversions and `--no-tags` M4A conversions report no
+/// mapped atoms; `--no-tags` additionally suppresses warnings while unmapped
+/// keys are still counted.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TagDiagnostics {
     /// Number of M4A metadata atoms written (`0`–`10`).
     pub mapped: usize,
     /// Distinct unmapped Vorbis keys seen, lowercased and sorted.
     pub unmapped: Vec<String>,
-    /// Per-file warnings for missing, empty, or invalid values, plus the
-    /// 24-bit precision-reduction notice when the source exceeds 16 bits.
+    /// Per-file warnings for invalid or unsupported values, lossy numeric
+    /// reductions, and invalid/unsupported artwork; plus the 24-bit
+    /// precision-reduction notice when the source exceeds 16 bits.
     pub warnings: Vec<String>,
 }
 
@@ -351,7 +439,7 @@ pub fn convert_file_with_format(
     output: &Path,
     format: OutputFormat,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, format, None, true, None).map(|(summary, _, _)| summary)
+    convert_inner(input, output, format, None, true, true, None).map(|(summary, _, _)| summary)
 }
 
 /// Convert one FLAC file to ADTS or M4A with explicit metadata control.
@@ -376,8 +464,65 @@ pub fn convert_file_with_format_and_tags(
     } else {
         None
     };
-    convert_inner(input, output, format, None, write_tags, loudness.as_ref())
-        .map(|(summary, _, diagnostics)| (summary, diagnostics))
+    convert_inner(
+        input,
+        output,
+        format,
+        None,
+        write_tags,
+        true,
+        loudness.as_ref(),
+    )
+    .map(|(summary, _, diagnostics)| (summary, diagnostics))
+}
+
+/// Convert one FLAC file with explicit user-metadata and cover-art control.
+///
+/// Behaves like [`convert_file_with_format_and_tags`], except
+/// [`CoverArtMode`] selects whether selected artwork is embedded, written
+/// externally as `cover.jpg`/`cover.png`, or both. External publication uses
+/// the same atomic no-overwrite path as audio output; an existing cover file
+/// is left untouched. Artwork publication problems are returned as reports
+/// and never turn a successful audio conversion into an error.
+///
+/// Cover-art modes apply only to M4A output with tags enabled. ADTS output and
+/// `write_tags == false` (`--no-tags`) never embed or extract artwork.
+pub fn convert_file_with_format_tags_and_cover_art(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    write_tags: bool,
+    cover_art: CoverArtMode,
+) -> Result<(ConversionSummary, TagDiagnostics, Vec<CoverArtReport>), ConvertError> {
+    let interesting = matches!(format, OutputFormat::M4a) && write_tags;
+    let extract = interesting && cover_art.extracts();
+    // Pre-read only when extraction is requested. Text diagnostics still come
+    // from the conversion's own metadata pass, so cover warnings are not
+    // duplicated.
+    let selected = if extract {
+        meta::read_cover(input).ok().and_then(|(cover, _)| cover)
+    } else {
+        None
+    };
+    let loudness = if interesting {
+        Some(loudness::analyze_single(input))
+    } else {
+        None
+    };
+    let (summary, _, diagnostics) = convert_inner(
+        input,
+        output,
+        format,
+        None,
+        write_tags,
+        interesting && cover_art.embeds(),
+        loudness.as_ref(),
+    )?;
+    let reports = match selected {
+        Some(cover) => vec![publish_single_external_cover(output, &cover)],
+        None => Vec::new(),
+    };
+    Ok((summary, diagnostics, reports))
 }
 
 /// Convert one FLAC file with explicit metadata control plus precomputed
@@ -393,6 +538,7 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
     output: &Path,
     format: OutputFormat,
     write_tags: bool,
+    embed_cover: bool,
     loudness: Option<&loudness::FileLoudness>,
 ) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
     if matches!(format, OutputFormat::M4a) && write_tags {
@@ -401,8 +547,16 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
             "batch M4A conversions with tags always carry pre-pass loudness"
         );
     }
-    convert_inner(input, output, format, None, write_tags, loudness)
-        .map(|(summary, _, diagnostics)| (summary, diagnostics))
+    convert_inner(
+        input,
+        output,
+        format,
+        None,
+        write_tags,
+        embed_cover,
+        loudness,
+    )
+    .map(|(summary, _, diagnostics)| (summary, diagnostics))
 }
 
 /// Experimental M4A signalling switch (M7.9 prototype, retained for research).
@@ -442,6 +596,7 @@ pub fn convert_file_m4a_experiment(
         OutputFormat::M4a,
         Some(experiment),
         true,
+        true,
         loudness.as_ref(),
     )
     .map(|(summary, _, _)| summary)
@@ -453,6 +608,7 @@ fn convert_inner(
     format: OutputFormat,
     experiment: Option<GaplessExperiment>,
     write_tags: bool,
+    embed_cover: bool,
     loudness: Option<&loudness::FileLoudness>,
 ) -> Result<(ConversionSummary, u64, TagDiagnostics), ConvertError> {
     let paths = output::resolve_paths(input, output)?;
@@ -525,12 +681,18 @@ fn convert_inner(
     let (tag_ilst, mut diagnostics) = match (is_m4a, write_tags) {
         (false, _) => (Vec::new(), TagDiagnostics::default()),
         (true, true) => {
-            let set = meta::read_tags(&paths.input, true)?;
+            let mut set = meta::read_tags(&paths.input, true)?;
             let diagnostics = TagDiagnostics {
                 mapped: set.mapped_count(),
                 unmapped: set.unmapped.clone(),
                 warnings: set.warnings.clone(),
             };
+            // External-only mode still selects artwork so invalid/unsupported
+            // candidates warn, but the selected image is not serialized into
+            // the M4A.
+            if !embed_cover {
+                set.cover = None;
+            }
             (set.ilst_children()?, diagnostics)
         }
         (true, false) => {
@@ -586,6 +748,48 @@ fn convert_inner(
         source_frames,
         diagnostics,
     ))
+}
+
+/// Publish one selected cover image next to an already-published audio file.
+///
+/// Publication is non-fatal by design: the audio output is already complete,
+/// so an existing or unwritable cover file becomes a report, not an error.
+fn publish_single_external_cover(output: &Path, cover: &meta::CoverArt) -> CoverArtReport {
+    let resolved = output
+        .canonicalize()
+        .unwrap_or_else(|_| output.to_path_buf());
+    let directory = resolved
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    let file_name = cover.file_name();
+    let action = publish_cover_file(&directory.join(&file_name), &cover.data);
+    CoverArtReport {
+        directory,
+        file_name: Some(file_name),
+        action,
+    }
+}
+
+/// Atomically publish a cover file without ever replacing an existing path.
+pub(crate) fn publish_cover_file(destination: &Path, bytes: &[u8]) -> CoverArtAction {
+    match fs::symlink_metadata(destination) {
+        Ok(_) => CoverArtAction::Existing,
+        Err(err) if err.kind() == io::ErrorKind::NotFound => {
+            match output::publish_bytes(destination, bytes) {
+                Ok(()) => CoverArtAction::Written,
+                // A concurrent writer won between the check and the link.
+                Err(ConvertError::OutputExists(_)) => CoverArtAction::Existing,
+                Err(err) => CoverArtAction::Failed {
+                    message: err.to_string(),
+                },
+            }
+        }
+        Err(err) => CoverArtAction::Failed {
+            message: format!("could not inspect cover destination: {err}"),
+        },
+    }
 }
 
 fn encode_chunks(

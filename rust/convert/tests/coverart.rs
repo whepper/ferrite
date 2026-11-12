@@ -8,10 +8,16 @@
 mod common;
 
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
-use aac_convert::batch::{execute_plan, plan_batch, BatchFileOutcome};
-use aac_convert::{convert_file_with_format_and_tags, OutputFormat};
+use aac_convert::batch::{
+    execute_plan, execute_plan_with_options, plan_batch, BatchFileOutcome, BatchOptions,
+};
+use aac_convert::{
+    convert_file_with_format_and_tags, convert_file_with_format_tags_and_cover_art, CoverArtAction,
+    CoverArtMode, OutputFormat,
+};
 use common::{
     fixture, mp4_ilst_children, mp4_ilst_cover, mp4_ilst_text, mp4_itunsmpb, mp4_mdhd, parse_adts,
     parse_mp4, temp_output_files, TempDir,
@@ -77,6 +83,14 @@ fn ilst_types(bytes: &[u8]) -> Vec<[u8; 4]> {
         .into_iter()
         .map(|(kind, _)| kind)
         .collect()
+}
+
+fn first_cover_bytes(fixture_name: &str) -> Vec<u8> {
+    flac_visuals(&fixture(fixture_name))
+        .into_iter()
+        .next()
+        .expect("fixture must carry a picture")
+        .1
 }
 
 fn stdout_lines(output: &std::process::Output) -> Vec<String> {
@@ -216,8 +230,8 @@ fn unsupported_format_skipped_with_warning() {
         diagnostics.warnings
     );
     assert!(
-        diagnostics.warnings.iter().any(|w| w == "missing cover"),
-        "{:?}",
+        !diagnostics.warnings.iter().any(|w| w.contains("missing")),
+        "absent/ineligible artwork must not add missing-field warnings: {:?}",
         diagnostics.warnings
     );
 
@@ -444,11 +458,10 @@ fn cover_24bit_combined_reports_precision_first() {
     assert_eq!(summary.properties.bits_per_sample, 24);
     assert_eq!(summary.encoded_frames, 3);
 
-    // Required order: (1) precision notice, (2) text-tag warnings,
-    // (3) cover-art warnings, (4) loudness warnings (L3: short fixtures are
-    // unmeasurable, so loudness warns after cover warnings). The fixture has
-    // a valid cover, so no cover warnings appear — but tag warnings do (only
-    // `title` is set).
+    // Required order: (1) precision notice, (2) text-tag warnings (none for
+    // absent optional fields), (3) cover-art warnings, (4) loudness warnings
+    // (L3: short fixtures are unmeasurable, so loudness warns after cover
+    // warnings). The fixture has a valid cover, so no cover warnings appear.
     assert!(
         diagnostics.warnings[0].starts_with("24-bit FLAC input is truncated"),
         "{:?}",
@@ -459,13 +472,8 @@ fn cover_24bit_combined_reports_precision_first() {
             .warnings
             .iter()
             .filter(|w| !w.starts_with("loudness:"))
-            .any(|w| w.contains("cover")),
-        "valid cover must warn about nothing: {:?}",
-        diagnostics.warnings
-    );
-    assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("artist")),
-        "{:?}",
+            .any(|w| w.contains("cover") || w.contains("missing")),
+        "valid cover and absent optional tags must warn about nothing: {:?}",
         diagnostics.warnings
     );
 
@@ -483,9 +491,9 @@ fn cover_24bit_combined_reports_precision_first() {
 #[test]
 fn cover_24bit_unsupported_reports_full_warning_order() {
     // F1: all warning categories in one conversion, asserted in exact order:
-    // (1) precision notice, (2) text-tag warnings in slot order,
-    // (3) cover-art warnings in selection order, (4) loudness warnings (L3:
-    // short fixtures are unmeasurable, so loudness warns last).
+    // (1) precision notice, (2) absent optional tags are silent (no text-tag
+    // warnings), (3) cover-art warnings in selection order, (4) loudness
+    // warnings (L3: short fixtures are unmeasurable, so loudness warns last).
     let directory = TempDir::new("cover-24bit-order");
     let output = directory.join("cover.m4a");
     let (summary, diagnostics) = convert_file_with_format_and_tags(
@@ -502,17 +510,7 @@ fn cover_24bit_unsupported_reports_full_warning_order() {
         [
             "24-bit FLAC input is truncated to 16-bit PCM (arithmetic right shift, no dithering) \
              before AAC encoding; low-order source precision is discarded",
-            "missing artist",
-            "missing album",
-            "missing tracknumber",
-            "missing discnumber",
-            "missing albumartist",
-            "missing date/year",
-            "missing genre",
-            "missing composer",
-            "missing comment",
             "unsupported cover image format: skipped",
-            "missing cover",
             "loudness: no measurable signal: omitting loudness tags for this track",
             "loudness: album is incomplete (unanalyzable: cover-unsupported-48k-24.flac): \
              omitting album-level loudness tags",
@@ -524,6 +522,707 @@ fn cover_24bit_unsupported_reports_full_warning_order() {
     let list = root.require("udta").require("meta").require("ilst");
     assert_eq!(mp4_ilst_cover(&bytes, list), None);
     assert!(temp_output_files(directory.path()).is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// External cover-art modes (Scope C)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn external_mode_writes_jpeg_without_embedding() {
+    let expected = first_cover_bytes("tagged-cover-jpeg-48k-16.flac");
+    let directory = TempDir::new("cover-external-jpeg");
+    let output = directory.join("out.m4a");
+    let (_, diagnostics, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-jpeg-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    assert_eq!(diagnostics.mapped, 2);
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_cover(&bytes, list),
+        None,
+        "external must not embed"
+    );
+    assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9nam"), vec!["Cover Title"]);
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9ART"),
+        vec!["Cover Artist"]
+    );
+    assert!(
+        !mp4_itunsmpb(&bytes, &root).is_empty(),
+        "gapless signalling must survive external cover mode"
+    );
+    assert_eq!(
+        fs::read(directory.join("cover.jpg")).unwrap(),
+        expected,
+        "original JPEG bytes must be preserved"
+    );
+    assert!(!directory.join("cover.png").exists());
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0].file_name.as_deref(), Some("cover.jpg"));
+    assert_eq!(reports[0].action, CoverArtAction::Written);
+    let resolved_parent = output
+        .canonicalize()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    assert_eq!(reports[0].directory, resolved_parent);
+    assert!(temp_output_files(directory.path()).is_empty());
+}
+
+#[test]
+fn both_mode_embeds_and_extracts_the_same_jpeg() {
+    let expected = first_cover_bytes("tagged-cover-jpeg-48k-16.flac");
+    let directory = TempDir::new("cover-both-jpeg");
+    let output = directory.join("out.m4a");
+    let (_, _, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-jpeg-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::Both,
+    )
+    .unwrap();
+
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    let (data_type, embedded) = mp4_ilst_cover(&bytes, list).expect("both must embed");
+    assert_eq!(data_type, 13);
+    assert_eq!(embedded, expected);
+    assert_eq!(fs::read(directory.join("cover.jpg")).unwrap(), expected);
+    assert_eq!(reports[0].action, CoverArtAction::Written);
+}
+
+#[test]
+fn external_mode_uses_cover_png_for_png_artwork() {
+    let expected = first_cover_bytes("tagged-cover-png-48k-16.flac");
+    let directory = TempDir::new("cover-external-png");
+    let output = directory.join("out.m4a");
+    let (_, _, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-png-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(mp4_ilst_cover(&bytes, list), None);
+    assert_eq!(fs::read(directory.join("cover.png")).unwrap(), expected);
+    assert!(!directory.join("cover.jpg").exists());
+    assert_eq!(reports[0].file_name.as_deref(), Some("cover.png"));
+}
+
+#[test]
+fn external_cover_mode_keeps_text_and_loudness_atoms() {
+    let directory = TempDir::new("cover-external-loudness");
+    let output = directory.join("out.m4a");
+    let (_, _, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("loud-tagged-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    assert_eq!(reports[0].action, CoverArtAction::Written);
+    assert!(directory.join("cover.jpg").is_file());
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(
+        mp4_ilst_cover(&bytes, list),
+        None,
+        "external must not embed"
+    );
+    assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9nam"), vec!["Loud Title"]);
+    assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9ART"), vec!["Loud Artist"]);
+    let freeform: Vec<u8> = mp4_ilst_children(&bytes, list)
+        .into_iter()
+        .filter(|(kind, _)| kind == b"----")
+        .flat_map(|(_, child)| child)
+        .collect();
+    let freeform = String::from_utf8_lossy(&freeform);
+    assert!(
+        freeform.contains("REPLAYGAIN_TRACK_GAIN") && freeform.contains("iTunNORM"),
+        "loudness atoms must survive external cover mode"
+    );
+}
+
+#[test]
+fn external_mode_with_no_artwork_writes_nothing_and_is_silent() {
+    let directory = TempDir::new("cover-external-absent");
+    let output = directory.join("out.m4a");
+    let (_, diagnostics, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("stereo-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    assert!(reports.is_empty(), "{reports:?}");
+    assert!(!directory.join("cover.jpg").exists());
+    assert!(!directory.join("cover.png").exists());
+    assert!(
+        !diagnostics
+            .warnings
+            .iter()
+            .any(|warning| warning.to_ascii_lowercase().contains("cover")),
+        "{:?}",
+        diagnostics.warnings
+    );
+}
+
+#[test]
+fn external_mode_with_unsupported_artwork_writes_nothing() {
+    let directory = TempDir::new("cover-external-unsupported");
+    let output = directory.join("out.m4a");
+    let (_, diagnostics, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-unsupported-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    assert!(reports.is_empty(), "{reports:?}");
+    assert!(!directory.join("cover.jpg").exists());
+    assert!(!directory.join("cover.png").exists());
+    assert!(
+        diagnostics
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unsupported cover image format")),
+        "{:?}",
+        diagnostics.warnings
+    );
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(mp4_ilst_cover(&bytes, list), None);
+}
+
+#[test]
+fn external_mode_never_overwrites_existing_cover() {
+    let directory = TempDir::new("cover-external-existing");
+    let output = directory.join("out.m4a");
+    fs::write(directory.join("cover.jpg"), b"user-supplied-cover").unwrap();
+    let (_, _, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-jpeg-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+        CoverArtMode::External,
+    )
+    .unwrap();
+
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0].action, CoverArtAction::Existing);
+    assert_eq!(
+        fs::read(directory.join("cover.jpg")).unwrap(),
+        b"user-supplied-cover"
+    );
+    assert!(output.is_file(), "audio conversion must still succeed");
+}
+
+#[test]
+fn no_tags_never_extracts_cover_art() {
+    let directory = TempDir::new("cover-external-notags");
+    let output = directory.join("out.m4a");
+    let (_, diagnostics, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-jpeg-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        false,
+        CoverArtMode::Both,
+    )
+    .unwrap();
+
+    assert!(reports.is_empty(), "{reports:?}");
+    assert!(!directory.join("cover.jpg").exists());
+    assert!(
+        diagnostics.warnings.is_empty(),
+        "{:?}",
+        diagnostics.warnings
+    );
+    let bytes = fs::read(&output).unwrap();
+    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+}
+
+#[test]
+fn adts_cover_art_mode_is_a_noop() {
+    let directory = TempDir::new("cover-external-adts");
+    let output = directory.join("out.aac");
+    let (_, diagnostics, reports) = convert_file_with_format_tags_and_cover_art(
+        &fixture("tagged-cover-jpeg-48k-16.flac"),
+        &output,
+        OutputFormat::Adts,
+        true,
+        CoverArtMode::Both,
+    )
+    .unwrap();
+
+    assert!(reports.is_empty(), "{reports:?}");
+    assert!(!directory.join("cover.jpg").exists());
+    assert!(
+        diagnostics.warnings.is_empty(),
+        "{:?}",
+        diagnostics.warnings
+    );
+    let bytes = fs::read(&output).unwrap();
+    assert_eq!(bytes[0], 0xFF);
+    assert_eq!(bytes[1] & 0xF0, 0xF0);
+}
+
+#[test]
+fn batch_external_publishes_one_cover_for_identical_album_art() {
+    let expected = first_cover_bytes("tagged-cover-jpeg-48k-16.flac");
+    let workspace = TempDir::new("cover-batch-identical");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album/two.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(execution.outcome.summary.converted, 2);
+    assert_eq!(execution.cover_art.len(), 1, "{:?}", execution.cover_art);
+    assert_eq!(execution.cover_art[0].directory, PathBuf::from("album"));
+    assert_eq!(
+        execution.cover_art[0].file_name.as_deref(),
+        Some("cover.jpg")
+    );
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Written);
+    assert_eq!(fs::read(output.join("album/cover.jpg")).unwrap(), expected);
+
+    for name in ["one.m4a", "two.m4a"] {
+        let bytes = fs::read(output.join("album").join(name)).unwrap();
+        let root = parse_mp4(&bytes);
+        let list = root.require("udta").require("meta").require("ilst");
+        assert_eq!(mp4_ilst_cover(&bytes, list), None, "{name}");
+    }
+}
+
+#[test]
+fn batch_conflicting_covers_skip_publication_but_convert_audio() {
+    let workspace = TempDir::new("cover-batch-conflict");
+    let input = workspace.join("in");
+    seed_file(&input, "album/jpeg.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album/png.flac", "tagged-cover-png-48k-16.flac");
+    let output = workspace.join("out");
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 2);
+    assert_eq!(execution.outcome.summary.failed, 0);
+    assert_eq!(execution.cover_art.len(), 1, "{:?}", execution.cover_art);
+    assert_eq!(execution.cover_art[0].directory, PathBuf::from("album"));
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Conflicted);
+    assert!(
+        !output.join("album/cover.jpg").exists(),
+        "no arbitrarily selected JPEG may be published"
+    );
+    assert!(
+        !output.join("album/cover.png").exists(),
+        "no arbitrarily selected PNG may be published"
+    );
+    assert!(output.join("album/jpeg.m4a").is_file());
+    assert!(output.join("album/png.m4a").is_file());
+    assert!(temp_output_files(&output).is_empty());
+}
+
+#[test]
+fn batch_conflict_includes_skipped_existing_tracks() {
+    // The retained track's source still votes in the artwork comparison,
+    // even though its audio is never converted.
+    let workspace = TempDir::new("cover-batch-skip-conflict");
+    let input = workspace.join("in");
+    seed_file(&input, "album/old.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album/new.flac", "tagged-cover-png-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(output.join("album")).unwrap();
+    fs::write(output.join("album/old.m4a"), b"retained-audio").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            skip_existing: true,
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 1);
+    assert_eq!(execution.outcome.summary.failed, 0);
+    assert_eq!(execution.outcome.summary.skipped, 1);
+    for result in &execution.outcome.results {
+        match result.relative_input.to_str() {
+            Some("album/new.flac") => assert!(
+                matches!(result.outcome, BatchFileOutcome::Converted { .. }),
+                "new track must convert: {result:?}"
+            ),
+            Some("album/old.flac") => assert!(
+                matches!(result.outcome, BatchFileOutcome::Skipped),
+                "retained track must skip: {result:?}"
+            ),
+            other => panic!("unexpected plan entry: {other:?}"),
+        }
+    }
+    assert_eq!(execution.cover_art.len(), 1, "{:?}", execution.cover_art);
+    assert_eq!(execution.cover_art[0].directory, PathBuf::from("album"));
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Conflicted);
+    assert_eq!(
+        fs::read(output.join("album/old.m4a")).unwrap(),
+        b"retained-audio",
+        "the retained audio file must remain untouched"
+    );
+    assert!(output.join("album/new.m4a").is_file());
+    assert!(
+        !output.join("album/cover.jpg").exists(),
+        "conflicting JPEG must not be published"
+    );
+    assert!(
+        !output.join("album/cover.png").exists(),
+        "conflicting PNG must not be published"
+    );
+    assert!(temp_output_files(&output).is_empty());
+}
+
+#[test]
+fn batch_conflicting_jpegs_skip_publication_but_convert_audio() {
+    // Same format, different bytes: the format alone never decides identity.
+    let first = first_cover_bytes("tagged-cover-jpeg-48k-16.flac");
+    let second = first_cover_bytes("tagged-cover-jpeg-alt-48k-16.flac");
+    assert_eq!(&first[..2], &[0xFF, 0xD8]);
+    assert_eq!(&second[..2], &[0xFF, 0xD8]);
+    assert_ne!(first, second, "fixtures must carry different JPEG bytes");
+
+    let workspace = TempDir::new("cover-batch-jpeg-conflict");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(
+        &input,
+        "album/two.flac",
+        "tagged-cover-jpeg-alt-48k-16.flac",
+    );
+    let output = workspace.join("out");
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 2);
+    assert_eq!(execution.outcome.summary.failed, 0);
+    assert_eq!(execution.cover_art.len(), 1, "{:?}", execution.cover_art);
+    assert_eq!(execution.cover_art[0].directory, PathBuf::from("album"));
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Conflicted);
+    assert!(
+        !output.join("album/cover.jpg").exists(),
+        "no arbitrarily selected JPEG may be published"
+    );
+    assert!(!output.join("album/cover.png").exists());
+    assert!(output.join("album/one.m4a").is_file());
+    assert!(output.join("album/two.m4a").is_file());
+    assert!(temp_output_files(&output).is_empty());
+}
+
+#[test]
+fn batch_external_never_overwrites_existing_cover() {
+    let workspace = TempDir::new("cover-batch-existing");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(output.join("album")).unwrap();
+    fs::write(output.join("album/cover.jpg"), b"sentinel-cover").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 1);
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Existing);
+    assert_eq!(
+        fs::read(output.join("album/cover.jpg")).unwrap(),
+        b"sentinel-cover"
+    );
+}
+
+#[test]
+fn batch_external_can_complete_cover_for_retained_outputs() {
+    let workspace = TempDir::new("cover-batch-skip");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(output.join("album")).unwrap();
+    fs::write(output.join("album/one.m4a"), b"retained-audio").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            skip_existing: true,
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.skipped, 1);
+    assert_eq!(
+        fs::read(output.join("album/one.m4a")).unwrap(),
+        b"retained-audio"
+    );
+    assert_eq!(execution.cover_art[0].action, CoverArtAction::Written);
+    assert!(output.join("album/cover.jpg").is_file());
+}
+
+#[test]
+fn batch_external_dry_run_creates_no_output_or_artwork() {
+    let workspace = TempDir::new("cover-batch-dry");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            dry_run: true,
+            cover_art: CoverArtMode::Both,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 1);
+    assert!(execution.cover_art.is_empty(), "{:?}", execution.cover_art);
+    assert!(!output.exists(), "dry run must create nothing");
+}
+
+#[test]
+fn cli_cover_art_modes_and_conflict_warning() {
+    let workspace = TempDir::new("cli-cover-external");
+    let input = workspace.join("in");
+    seed_file(&input, "album/jpeg.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album/png.flac", "tagged-cover-png-48k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--cover-art",
+        "both",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains(
+            "warning: external cover art not written for album: \
+             source tracks contain different cover images"
+        ),
+        "{stderr}"
+    );
+    // Audio still converted and was embedded under both mode.
+    for name in ["jpeg.m4a", "png.m4a"] {
+        let bytes = fs::read(output.join("album").join(name)).unwrap();
+        let root = parse_mp4(&bytes);
+        let list = root.require("udta").require("meta").require("ilst");
+        assert!(mp4_ilst_cover(&bytes, list).is_some(), "{name}");
+    }
+    assert!(!output.join("album/cover.jpg").exists());
+    assert!(!output.join("album/cover.png").exists());
+}
+
+#[test]
+fn cli_single_file_external_and_both_modes() {
+    let workspace = TempDir::new("cli-cover-single");
+    let external = workspace.join("external.m4a");
+    let result = run_cli(&[
+        "--cover-art",
+        "external",
+        fixture("tagged-cover-jpeg-48k-16.flac").to_str().unwrap(),
+        external.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(workspace.join("cover.jpg").is_file());
+    let bytes = fs::read(&external).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(mp4_ilst_cover(&bytes, list), None);
+    assert!(
+        String::from_utf8_lossy(&result.stderr).contains("cover "),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+
+    let nested = workspace.join("both");
+    fs::create_dir(&nested).unwrap();
+    let both = nested.join("track.m4a");
+    let result = run_cli(&[
+        "--cover-art=both",
+        fixture("tagged-cover-jpeg-48k-16.flac").to_str().unwrap(),
+        both.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    assert!(nested.join("cover.jpg").is_file());
+    let bytes = fs::read(&both).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert!(mp4_ilst_cover(&bytes, list).is_some());
+}
+
+#[test]
+fn cli_cover_art_external_and_default_embedded() {
+    let workspace = TempDir::new("cli-cover-modes");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+
+    let external = workspace.join("external");
+    let result = run_cli(&[
+        "--cover-art",
+        "external",
+        input.to_str().unwrap(),
+        external.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    assert!(external.join("album/cover.jpg").is_file());
+    let bytes = fs::read(external.join("album/one.m4a")).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert_eq!(mp4_ilst_cover(&bytes, list), None);
+
+    // Default remains embedded with no external file.
+    let embedded = workspace.join("embedded");
+    let result = run_cli(&[input.to_str().unwrap(), embedded.to_str().unwrap()]);
+    assert_eq!(result.status.code(), Some(0));
+    assert!(!embedded.join("album/cover.jpg").exists());
+    let bytes = fs::read(embedded.join("album/one.m4a")).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    assert!(mp4_ilst_cover(&bytes, list).is_some());
+}
+
+#[test]
+fn cli_no_tags_disables_external_cover_extraction() {
+    let workspace = TempDir::new("cli-cover-notags-external");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+    let result = run_cli(&[
+        "--no-tags",
+        "--cover-art",
+        "both",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!output.join("album/cover.jpg").exists());
+    let bytes = fs::read(output.join("album/one.m4a")).unwrap();
+    assert_eq!(ilst_types(&bytes), vec![*b"----"]);
+}
+
+#[test]
+fn cli_cover_art_invalid_mode_is_a_usage_error() {
+    let workspace = TempDir::new("cli-cover-invalid");
+    let output = workspace.join("out.m4a");
+    let result = run_cli(&[
+        "--cover-art",
+        "sidecar",
+        fixture("stereo-48k-16.flac").to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&result.stderr).contains("invalid cover-art mode"),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!output.exists());
+}
+
+#[test]
+fn cli_cover_art_dry_run_creates_no_artwork() {
+    let workspace = TempDir::new("cli-cover-dry");
+    let input = workspace.join("in");
+    seed_file(&input, "album/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    let output = workspace.join("out");
+    let result = run_cli(&[
+        "--dry-run",
+        "--cover-art",
+        "both",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    assert!(!output.exists(), "dry run must create nothing");
 }
 
 #[test]

@@ -11,7 +11,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use aac_convert::batch::{execute_plan, plan_batch, BatchError, BatchFileOutcome};
+use aac_convert::batch::{
+    execute_plan, execute_plan_with_options_and_progress, plan_batch, BatchError, BatchEvent,
+    BatchFileOutcome, BatchOptions, BatchPlan, NON_RECURSIVE_REASON, NON_REGULAR_FILE_REASON,
+    SYMLINKED_DIR_REASON, UNSUPPORTED_EXTENSION_REASON,
+};
 use aac_convert::OutputFormat;
 use common::{fixture, mp4_itunsmpb, mp4_mdhd, parse_adts, parse_mp4, TempDir};
 
@@ -155,6 +159,189 @@ fn nested_recursive_run_mirrors_structure_in_sorted_order() {
 }
 
 #[test]
+fn progress_events_follow_plan_order_with_one_terminal_event_each() {
+    let workspace = TempDir::new("batch-progress-order");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    seed_file(&input, "b.flac", "three-channel-48k-16.flac");
+    seed_file(&input, "c.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("c.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    assert_eq!(plan.entries.len(), 3);
+    let mut events = Vec::new();
+    let execution = execute_plan_with_options_and_progress(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            skip_existing: true,
+            ..BatchOptions::default()
+        },
+        |event| events.push(event),
+    )
+    .unwrap();
+
+    let kinds: Vec<&str> = events
+        .iter()
+        .map(|event| match event {
+            BatchEvent::Preparing { .. } => "preparing",
+            BatchEvent::Started(_) => "started",
+            BatchEvent::Converted { .. } => "converted",
+            BatchEvent::Skipped(_) => "skipped",
+            BatchEvent::Failed { .. } => "failed",
+            BatchEvent::Planned(_) => "planned",
+        })
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            "preparing",
+            "started",
+            "converted",
+            "started",
+            "failed",
+            "skipped"
+        ],
+        "{events:?}"
+    );
+
+    let inputs: Vec<PathBuf> = events
+        .iter()
+        .filter_map(|event| {
+            let item = match event {
+                BatchEvent::Preparing { .. } => return None,
+                BatchEvent::Started(item)
+                | BatchEvent::Skipped(item)
+                | BatchEvent::Planned(item)
+                | BatchEvent::Converted { item, .. }
+                | BatchEvent::Failed { item, .. } => item,
+            };
+            assert_eq!(item.total, 3);
+            Some(item.relative_input.clone())
+        })
+        .collect();
+    assert_eq!(
+        inputs,
+        vec![
+            PathBuf::from("a.flac"),
+            PathBuf::from("a.flac"),
+            PathBuf::from("b.flac"),
+            PathBuf::from("b.flac"),
+            PathBuf::from("c.flac"),
+        ]
+    );
+
+    for index in 1..=3 {
+        let terminal = events
+            .iter()
+            .filter(|event| {
+                let item = match event {
+                    BatchEvent::Preparing { .. } => return false,
+                    BatchEvent::Started(item)
+                    | BatchEvent::Skipped(item)
+                    | BatchEvent::Planned(item)
+                    | BatchEvent::Converted { item, .. }
+                    | BatchEvent::Failed { item, .. } => item,
+                };
+                item.index == index && !matches!(event, BatchEvent::Started(_))
+            })
+            .count();
+        assert_eq!(terminal, 1, "item {index} terminal count: {events:?}");
+    }
+    assert_eq!(execution.outcome.summary.converted, 1, "a.flac converts");
+    assert_eq!(execution.outcome.summary.failed, 1, "b.flac fails");
+    assert_eq!(execution.outcome.summary.skipped, 1, "c.m4a is retained");
+    assert_eq!(fs::read(output.join("c.m4a")).unwrap(), b"sentinel");
+}
+
+#[test]
+fn dry_run_progress_never_emits_started_or_encodes() {
+    let workspace = TempDir::new("batch-progress-dry");
+    let input = workspace.join("in");
+    seed_file(&input, "free.flac", "stereo-48k-16.flac");
+    seed_file(&input, "taken.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("taken.m4a"), b"sentinel").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let mut events = Vec::new();
+    let execution = execute_plan_with_options_and_progress(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            dry_run: true,
+            ..BatchOptions::default()
+        },
+        |event| events.push(event),
+    )
+    .unwrap();
+
+    assert!(
+        events
+            .iter()
+            .all(|event| !matches!(event, BatchEvent::Started(_) | BatchEvent::Preparing { .. })),
+        "dry runs must not pretend to encode or analyze: {events:?}"
+    );
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event, BatchEvent::Planned(_)))
+            .count(),
+        1
+    );
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(event, BatchEvent::Failed { .. }))
+            .count(),
+        1
+    );
+    assert_eq!(execution.outcome.summary.converted, 1);
+    assert_eq!(execution.outcome.summary.existing, 1);
+    assert_eq!(fs::read(output.join("taken.m4a")).unwrap(), b"sentinel");
+}
+
+#[test]
+fn empty_plan_emits_no_events_and_zero_summary() {
+    let workspace = TempDir::new("batch-progress-empty");
+    let plan = BatchPlan {
+        input_root: workspace.join("in"),
+        output_root: workspace.join("out"),
+        entries: Vec::new(),
+        ignored: Vec::new(),
+        discovery_failures: Vec::new(),
+    };
+    let mut events = Vec::new();
+    let execution = execute_plan_with_options_and_progress(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            dry_run: true,
+            ..BatchOptions::default()
+        },
+        |event| events.push(event),
+    )
+    .unwrap();
+    assert!(events.is_empty(), "{events:?}");
+    assert!(execution.outcome.results.is_empty());
+    assert_eq!(
+        execution.outcome.summary,
+        aac_convert::batch::BatchSummary {
+            converted: 0,
+            failed: 0,
+            existing: 0,
+            ignored: 0,
+            skipped: 0,
+        }
+    );
+    assert!(execution.cover_art.is_empty());
+    assert!(!workspace.join("out").exists());
+}
+
+#[test]
 fn no_recursive_converts_only_top_level_but_tallies_nested() {
     let workspace = TempDir::new("batch-nonrec");
     let input = workspace.join("in");
@@ -228,6 +415,76 @@ fn extension_case_variants_map_to_lowercase_batch_extensions() {
             "non-canonical batch extension {extension}"
         );
     }
+}
+
+#[test]
+fn ignored_entries_report_planner_reasons() {
+    let workspace = TempDir::new("batch-ignore-reasons");
+    let input = workspace.join("in");
+    seed_file(&input, "top.flac", "stereo-48k-16.flac");
+    seed_file(&input, "sub/nested.flac", "mono-441k-16.flac");
+    write_text(&input, "note.txt", b"not audio");
+    write_text(&input, "extensionless", b"no extension");
+
+    let output = workspace.join("out");
+    let top_only = plan_batch(&input, &output, OutputFormat::M4a, false).unwrap();
+    for (path, reason) in [
+        ("note.txt", UNSUPPORTED_EXTENSION_REASON),
+        ("extensionless", UNSUPPORTED_EXTENSION_REASON),
+        ("sub/nested.flac", NON_RECURSIVE_REASON),
+    ] {
+        assert!(
+            top_only
+                .ignored
+                .iter()
+                .any(|ignored| ignored.relative == *Path::new(path)
+                    && ignored.reason == Some(reason)),
+            "missing reason {reason} for {path}: {:?}",
+            top_only.ignored
+        );
+    }
+
+    let recursive = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    assert_eq!(recursive.entries.len(), 2);
+    for (path, reason) in [
+        ("note.txt", UNSUPPORTED_EXTENSION_REASON),
+        ("extensionless", UNSUPPORTED_EXTENSION_REASON),
+    ] {
+        assert!(
+            recursive
+                .ignored
+                .iter()
+                .any(|ignored| ignored.relative == *Path::new(path)
+                    && ignored.reason == Some(reason)),
+            "missing reason {reason} for {path}: {:?}",
+            recursive.ignored
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn non_regular_entries_report_their_reason() {
+    let workspace = TempDir::new("batch-ignore-fifo");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let fifo = input.join("pipe");
+    let created = Command::new("mkfifo").arg(&fifo).status();
+    if !created.map(|status| status.success()).unwrap_or(false) {
+        eprintln!("mkfifo is not available; non-regular entry test skipped");
+        return;
+    }
+
+    let plan = plan_batch(&input, &workspace.join("out"), OutputFormat::M4a, true).unwrap();
+    assert_eq!(plan.entries.len(), 1);
+    assert!(
+        plan.ignored
+            .iter()
+            .any(|ignored| ignored.relative == *Path::new("pipe")
+                && ignored.reason == Some(NON_REGULAR_FILE_REASON)),
+        "{:?}",
+        plan.ignored
+    );
 }
 
 #[test]
@@ -715,8 +972,10 @@ fn symlinked_directories_are_not_descended_but_files_are() {
     assert!(
         plan.ignored
             .iter()
-            .any(|i| i.relative == *Path::new("linked-dir")),
-        "symlinked dirs are ignored, never descended"
+            .any(|i| i.relative == *Path::new("linked-dir")
+                && i.reason == Some(SYMLINKED_DIR_REASON)),
+        "symlinked dirs are ignored with a reason, never descended: {:?}",
+        plan.ignored
     );
     assert_eq!(plan.discovery_failures.len(), 1);
     assert_eq!(
@@ -814,6 +1073,142 @@ fn cli_batch_reports_ok_lines_and_summary_with_exit_zero() {
         lines[3].starts_with("summary: 2 converted, 0 failed, 0 existing, 0 ignored ("),
         "{lines:?}"
     );
+}
+
+#[test]
+fn cli_batch_writes_live_progress_to_stderr_and_results_to_stdout() {
+    let workspace = TempDir::new("cli-batch-progress");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    seed_file(&input, "sub/b.flac", "mono-441k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains("preparing 2 files (loudness)..."),
+        "pre-pass feedback must precede per-file progress: {stderr}"
+    );
+    // Live per-file progress is stderr-only, in plan order, with the total.
+    let progress: Vec<&str> = stderr
+        .lines()
+        .filter(|line| line.starts_with('['))
+        .collect();
+    assert_eq!(
+        progress,
+        [
+            "[1/2] a.flac  encoding...",
+            "[1/2] a.flac  done",
+            "[2/2] sub/b.flac  encoding...",
+            "[2/2] sub/b.flac  done",
+        ],
+        "{stderr}"
+    );
+    // Stdout keeps the scriptable result and summary shapes.
+    let lines = stdout_lines(&result);
+    assert!(
+        lines.iter().any(|l| l.starts_with("ok a.flac -> a.m4a ")),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("ok sub/b.flac -> sub/b.m4a ")),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .last()
+            .unwrap()
+            .starts_with("summary: 2 converted, 0 failed, 0 existing, 0 ignored ("),
+        "{lines:?}"
+    );
+}
+
+#[test]
+fn cli_batch_progress_keeps_long_nested_paths_visible() {
+    let workspace = TempDir::new("cli-batch-long-progress");
+    let input = workspace.join("in");
+    let long_name = format!("{}.flac", "very-long-track-name-".repeat(6));
+    seed_file(
+        &input,
+        &format!("album/disc/{long_name}"),
+        "stereo-48k-16.flac",
+    );
+    let output = workspace.join("out");
+
+    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains(&format!("[1/1] album/disc/{long_name}  encoding...")),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains(&format!("[1/1] album/disc/{long_name}  done")),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn cli_batch_quiet_suppresses_progress_but_keeps_findings() {
+    let workspace = TempDir::new("cli-batch-quiet-progress");
+    let input = workspace.join("in");
+    seed_file(&input, "good.flac", "stereo-48k-16.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&["--quiet", input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(result.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        !stderr.contains("encoding...") && !stderr.contains("done"),
+        "quiet must suppress normal progress: {stderr}"
+    );
+    assert!(
+        stderr.contains("error: bad.flac:"),
+        "failures remain visible: {stderr}"
+    );
+    let lines = stdout_lines(&result);
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(lines[0].starts_with("summary: "), "{lines:?}");
+}
+
+#[test]
+fn cli_batch_dry_run_prints_plan_without_progress_lines() {
+    let workspace = TempDir::new("cli-batch-dry-progress");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--dry-run",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(0));
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.is_empty(),
+        "dry runs must not pretend to encode: {stderr}"
+    );
+    let lines = stdout_lines(&result);
+    assert!(
+        lines.iter().any(|l| l == "plan a.flac -> a.m4a"),
+        "{lines:?}"
+    );
+    assert!(!output.exists());
 }
 
 #[test]
@@ -1073,7 +1468,12 @@ fn cli_batch_verbose_reports_ignores_and_details() {
         lines[0].starts_with("batch: 1 files, format M4A, recursive"),
         "{lines:?}"
     );
-    assert!(lines.iter().any(|l| l == "ignore skip.txt"), "{lines:?}");
+    assert!(
+        lines
+            .iter()
+            .any(|l| l == "ignore skip.txt (unsupported extension)"),
+        "{lines:?}"
+    );
     assert!(
         lines
             .iter()
@@ -1423,7 +1823,11 @@ fn cli_skip_existing_rerun_succeeds_without_modifying_outputs() {
             .starts_with("summary: 0 converted, 0 failed, 0 existing, 0 ignored, 2 skipped ("),
         "{lines:?}"
     );
-    assert!(String::from_utf8_lossy(&skipped.stderr).is_empty());
+    assert!(
+        !String::from_utf8_lossy(&skipped.stderr).contains("warning:"),
+        "skip rerun must not warn: {}",
+        String::from_utf8_lossy(&skipped.stderr)
+    );
     assert_eq!(fs::read(output.join("a.m4a")).unwrap(), before_a);
     assert_eq!(fs::read(output.join("b.m4a")).unwrap(), before_b);
 }

@@ -74,12 +74,11 @@ fn core_tags_round_trip_stereo() {
         "{:?}",
         diagnostics.unmapped
     );
-    // Fully tagged but imageless: the S1.3 cover slot reports `missing cover`,
-    // then L3 loudness warnings (the 0.25 s fixture is unmeasurable).
+    // Fully tagged but imageless: absent artwork is silent, leaving only the
+    // L3 loudness warnings (the 0.25 s fixture is unmeasurable).
     assert_eq!(
         diagnostics.warnings,
         [
-            "missing cover",
             "loudness: no measurable signal: omitting loudness tags for this track",
             "loudness: album is incomplete (unanalyzable: tagged-core-48k-16.flac): \
              omitting album-level loudness tags",
@@ -206,7 +205,8 @@ fn edge_year_fallback_tracktotal_and_unmapped() {
     )
     .unwrap();
 
-    // title trimmed, first artist wins, year used, totals from fallbacks.
+    // title trimmed, artist values joined in source order, year used, totals
+    // from fallbacks.
     assert_eq!(diagnostics.mapped, 7);
     assert_eq!(
         diagnostics.unmapped,
@@ -218,29 +218,16 @@ fn edge_year_fallback_tracktotal_and_unmapped() {
             "musicbrainz_trackid"
         ]
     );
+    // Missing optional fields (albumartist, composer, comment) are silent;
+    // preserving multiple artist values is not a lossy reduction.
     assert!(
-        diagnostics
+        !diagnostics
             .warnings
             .iter()
-            .any(|w| w.contains("albumartist")),
-        "{:?}",
-        diagnostics.warnings
-    );
-    assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("composer")),
-        "{:?}",
-        diagnostics.warnings
-    );
-    assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("comment")),
-        "{:?}",
-        diagnostics.warnings
-    );
-    assert!(
-        diagnostics
-            .warnings
-            .iter()
-            .any(|w| w == "multi-valued tags reduced to first value: artist"),
+            .any(|w| w.contains("albumartist")
+                || w.contains("composer")
+                || w.contains("comment")
+                || w.contains("multi-valued tags reduced")),
         "{:?}",
         diagnostics.warnings
     );
@@ -254,7 +241,7 @@ fn edge_year_fallback_tracktotal_and_unmapped() {
     );
     assert_eq!(
         mp4_ilst_text(&bytes, list, b"\xa9ART"),
-        vec!["First Artist"]
+        vec!["First Artist; Second Artist"]
     );
     assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9day"), vec!["2001"]);
     assert_eq!(mp4_ilst_pair(&bytes, list, b"trkn"), Some((7, 9)));
@@ -266,6 +253,85 @@ fn edge_year_fallback_tracktotal_and_unmapped() {
             "{atom:?} must not be written"
         );
     }
+    assert!(temp_output_files(directory.path()).is_empty());
+}
+
+#[test]
+fn multi_value_tags_are_preserved_in_single_text_atoms() {
+    let directory = TempDir::new("meta-multi-value");
+    let output = directory.join("multi.m4a");
+    let (_, diagnostics) = convert_file_with_format_and_tags(
+        &fixture("tagged-multivalue-48k-16.flac"),
+        &output,
+        OutputFormat::M4a,
+        true,
+    )
+    .unwrap();
+
+    assert_eq!(diagnostics.mapped, 10);
+    assert_eq!(
+        diagnostics.unmapped,
+        vec!["encoder"],
+        "only the ffmpeg encoder comment is deferred"
+    );
+    assert!(
+        !diagnostics
+            .warnings
+            .iter()
+            .any(|w| w.contains("missing") || w.contains("reduced to first value")),
+        "absent fields and normal multi-value preservation must not warn: {:?}",
+        diagnostics.warnings
+    );
+    assert!(
+        diagnostics
+            .warnings
+            .iter()
+            .any(|w| w.contains("multi-valued tracknumber")),
+        "numeric track reduction is genuinely lossy and must warn: {:?}",
+        diagnostics.warnings
+    );
+    assert!(
+        diagnostics
+            .warnings
+            .iter()
+            .any(|w| w.contains("multi-valued discnumber")),
+        "numeric disc reduction is genuinely lossy and must warn: {:?}",
+        diagnostics.warnings
+    );
+
+    let bytes = fs::read(&output).unwrap();
+    let root = parse_mp4(&bytes);
+    let list = root.require("udta").require("meta").require("ilst");
+    // Source order retained, exact duplicates removed, empty values ignored.
+    assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9nam"), vec!["Multi Title"]);
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9ART"),
+        vec!["Artist B; Artist A"]
+    );
+    assert_eq!(mp4_ilst_text(&bytes, list, b"\xa9alb"), vec!["Multi Album"]);
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"aART"),
+        vec!["Album Artist One; Album Artist Two"]
+    );
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9day"),
+        vec!["2020-01-01; 2019-01-01"]
+    );
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9gen"),
+        vec!["Genre One; Genre Two"]
+    );
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9wrt"),
+        vec!["Composer One; Composer Two"]
+    );
+    assert_eq!(
+        mp4_ilst_text(&bytes, list, b"\xa9cmt"),
+        vec!["Comment One; Comment Two"]
+    );
+    // Numeric fields are not joined: first value wins.
+    assert_eq!(mp4_ilst_pair(&bytes, list, b"trkn"), Some((7, 9)));
+    assert_eq!(mp4_ilst_pair(&bytes, list, b"disk"), Some((1, 3)));
     assert!(temp_output_files(directory.path()).is_empty());
 }
 
@@ -300,8 +366,8 @@ fn invalid_numbers_skip_atom_with_warning() {
         diagnostics.warnings
     );
     assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("comment")),
-        "{:?}",
+        !diagnostics.warnings.iter().any(|w| w.contains("comment")),
+        "whitespace-only comment is absent, not invalid: {:?}",
         diagnostics.warnings
     );
 
@@ -334,17 +400,13 @@ fn unicode_tags_round_trip_trimmed() {
         "{:?}",
         diagnostics.unmapped
     );
-    // Only the two written slots are silent; the rest still warn per G0.
+    // Only the two written slots are silent; absent optional fields no longer
+    // warn. Check that no tag warning mentions an absent field.
     assert!(
         !diagnostics
             .warnings
             .iter()
-            .any(|w| w.contains("title") || w.contains("comment")),
-        "{:?}",
-        diagnostics.warnings
-    );
-    assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("artist")),
+            .any(|w| w.contains("missing") || w.contains("artist")),
         "{:?}",
         diagnostics.warnings
     );
@@ -376,8 +438,8 @@ fn untagged_input_writes_gapless_only() {
     // at generation time); it is deferred, hence unmapped, never an error.
     assert_eq!(diagnostics.unmapped, vec!["encoder"]);
     assert!(
-        diagnostics.warnings.iter().any(|w| w.contains("title")),
-        "{:?}",
+        !diagnostics.warnings.iter().any(|w| w.contains("missing")),
+        "absence of optional tags must be silent: {:?}",
         diagnostics.warnings
     );
 
@@ -679,11 +741,12 @@ fn cli_batch_no_tags_real_run_omits_user_atoms() {
         "stderr: {}",
         String::from_utf8_lossy(&result.stderr)
     );
-    // No per-file warnings under --no-tags.
+    // No per-file warnings under --no-tags; live progress lines are expected
+    // on stderr and are not warnings.
+    let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(
-        String::from_utf8_lossy(&result.stderr).is_empty(),
-        "no warnings under --no-tags: {}",
-        String::from_utf8_lossy(&result.stderr)
+        !stderr.contains("warning:") && !stderr.contains("error:"),
+        "no warnings under --no-tags: {stderr}"
     );
 
     // Both outputs exist and carry gapless signalling only; brands stay.
@@ -733,12 +796,11 @@ fn batch_tags_flow_through_outcome() {
                 if result.relative_input.ends_with("core.flac") {
                     assert_eq!(tags.mapped, 10, "{:?}", result.relative_input);
                     assert!(tags.unmapped.is_empty());
-                    // Fully tagged but imageless (S1.3 cover slot), then L3
-                    // loudness warnings (0.25 s fixtures are unmeasurable).
+                    // Absent artwork is silent; only L3 loudness warnings
+                    // remain (0.25 s fixtures are unmeasurable).
                     assert_eq!(
                         tags.warnings,
                         [
-                            "missing cover",
                             "loudness: no measurable signal: omitting loudness tags for this track",
                             "loudness: album is incomplete (unanalyzable: core.flac, plain.flac): \
                              omitting album-level loudness tags",
@@ -746,7 +808,11 @@ fn batch_tags_flow_through_outcome() {
                     );
                 } else {
                     assert_eq!(tags.mapped, 0, "{:?}", result.relative_input);
-                    assert!(tags.warnings.iter().any(|w| w.contains("title")));
+                    assert!(
+                        !tags.warnings.iter().any(|w| w.contains("missing")),
+                        "absence of optional tags must be silent: {:?}",
+                        tags.warnings
+                    );
                 }
             }
             other => panic!("unexpected outcome: {other:?}"),

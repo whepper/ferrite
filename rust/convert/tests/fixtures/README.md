@@ -23,9 +23,11 @@ The files are intentionally tiny:
 | `tagged-core-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus all ten core Vorbis comments (`date` and `year` both present; `date` must win) |
 | `tagged-core-441k-16.flac` | Same audio as `mono-441k-16.flac` plus `title`/`artist`/`album`/`tracknumber` (`3/9`)/`date` |
 | `tagged-edge-48k-16.flac` | Case/whitespace/multi-value handling, `year`-only dating, `tracktotal`/`disctotal` fallbacks, and deferred keys (`bpm`, `compilation`, `grouping`, MusicBrainz ID, `label`) that must stay unmapped |
+| `tagged-multivalue-48k-16.flac` | Multiple distinct values for all mapped text fields, repeated identical values, an empty `comment` value, two `date` values, and repeated numeric `tracknumber`/`discnumber` values that must not be joined |
 | `tagged-invalid-48k-16.flac` | Unparseable `tracknumber`/`discnumber` and whitespace-only `comment`; those atoms must be skipped with warnings while valid tags are still written |
 | `tagged-unicode-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus padded non-ASCII `title` (`café 🎵`) and `comment`; stored values must trim to the intended Unicode strings |
 | `tagged-cover-jpeg-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus front-cover JPEG and `title`/`artist`; must embed `covr` (type 13) last |
+| `tagged-cover-jpeg-alt-48k-16.flac` | Same audio and tags as `tagged-cover-jpeg-48k-16.flac` with different JPEG bytes; pairs with it to exercise same-format artwork conflicts |
 | `tagged-cover-png-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus front-cover PNG and `title`; must embed `covr` (type 14) last |
 | `tagged-cover-unsupported-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus front-cover GIF and `title`; GIF must be skipped with a warning and no `covr` written |
 | `tagged-cover-legacy-48k-16.flac` | Same audio as `stereo-48k-16.flac` plus only a legacy `COVERART` comment and `title`; must fall back to `covr` without leaking `coverart` into unmapped keys |
@@ -70,7 +72,10 @@ is a transport/decode failure, not a checksum failure.
 The `tagged-*.flac` fixtures share the audio of `stereo-48k-16.flac` (or
 `mono-441k-16.flac`); only Vorbis comments were added with mutagen, so their
 StreamInfo audio MD5 still verifies. They are maintained by hand, not by
-`generate.py`.
+`generate.py`. `tagged-multivalue-48k-16.flac` intentionally repeats
+`ARTIST`, `ALBUMARTIST`, `GENRE`, `COMPOSER`, `DATE`, `TRACKNUMBER`, and
+`DISCNUMBER`, repeats an identical `ARTIST`/`COMMENT` value, and includes an
+empty `COMMENT` value to exercise the multi-value and numeric no-join rules.
 
 The 24-bit fixtures (`stereo-48k-24.flac`, `mono-441k-24.flac`,
 `boundary-48k-24.flac`) were generated with `generate.py`'s `write_wav` /

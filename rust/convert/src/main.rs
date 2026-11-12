@@ -1,16 +1,24 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use aac_convert::batch::{execute_plan_with_tags, plan_batch, BatchFileOutcome};
-use aac_convert::{convert_file_with_format_and_tags, OutputFormat};
+use aac_convert::batch::{
+    execute_plan_with_options_and_progress, plan_batch, BatchEvent, BatchFileOutcome, BatchOptions,
+    BatchProgress,
+};
+use aac_convert::{
+    convert_file_with_format_tags_and_cover_art, CoverArtAction, CoverArtMode, CoverArtReport,
+    OutputFormat,
+};
 
 const USAGE: &str = "\
-Usage: aac-convert [--format adts|m4a] [--no-tags] <input.flac> <output>
+Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both] [--no-tags]
+                   <input.flac> <output>
        aac-convert [--format m4a|adts] [--recursive|--no-recursive] [--dry-run]
-                   [--skip-existing] [--no-tags] [-v|--verbose] [-q|--quiet]
+                   [--skip-existing] [--no-tags]
+                   [--cover-art embedded|external|both] [-v|--verbose] [-q|--quiet]
                    <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
@@ -34,8 +42,16 @@ converts only top-level files (last of the two flags wins). --dry-run prints
 the plan without writing anything. --skip-existing skips destinations that
 already exist instead of failing on them; it never overwrites anything.
 --no-tags omits user metadata from M4A output (accepted for ADTS as a no-op).
--v/--verbose adds per-file detail;
+-v/--verbose adds per-file detail, including why entries were ignored;
 -q/--quiet prints only the final summary (conflicts with --verbose).
+
+Cover art (M4A with tags):
+  --cover-art embedded   Embed selected artwork in the M4A (default)
+  --cover-art external   Write cover.jpg/cover.png beside the audio; do not embed
+  --cover-art both       Embed and write the same selected artwork
+External files are never overwritten. Conflicting artwork across tracks in one
+output directory is reported and skipped for that directory. --no-tags and
+ADTS output never embed or extract artwork.
 
 Without --format, a .m4a or .mp4 output selects M4A; every other extension
 selects ADTS. Existing output files are never overwritten.
@@ -89,12 +105,21 @@ fn parse_format(value: &OsStr) -> Result<OutputFormat, CliError> {
     }
 }
 
+fn parse_cover_art(value: &OsStr) -> Result<CoverArtMode, CliError> {
+    value
+        .to_str()
+        .ok_or_else(|| CliError::Usage("--cover-art requires embedded, external, or both".into()))?
+        .parse::<CoverArtMode>()
+        .map_err(CliError::Usage)
+}
+
 struct Cli {
     explicit_format: Option<OutputFormat>,
     recursive: Option<bool>,
     dry_run: bool,
     skip_existing: bool,
     no_tags: bool,
+    cover_art: CoverArtMode,
     verbose: bool,
     quiet: bool,
     input: PathBuf,
@@ -109,6 +134,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
     let mut dry_run = false;
     let mut skip_existing = false;
     let mut no_tags = false;
+    let mut cover_art = CoverArtMode::Embedded;
     let mut verbose = false;
     let mut quiet = false;
     let mut options_done = false;
@@ -170,6 +196,20 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     index += 1;
                     continue;
                 }
+                Some("--cover-art") => {
+                    index += 1;
+                    let value = arguments.get(index).ok_or_else(|| {
+                        CliError::Usage("--cover-art requires embedded, external, or both".into())
+                    })?;
+                    cover_art = parse_cover_art(value)?;
+                    index += 1;
+                    continue;
+                }
+                Some(value) if value.starts_with("--cover-art=") => {
+                    cover_art = parse_cover_art(OsStr::new(&value["--cover-art=".len()..]))?;
+                    index += 1;
+                    continue;
+                }
                 Some("-v" | "--verbose") => {
                     verbose = true;
                     index += 1;
@@ -207,6 +247,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
         dry_run,
         skip_existing,
         no_tags,
+        cover_art,
         verbose,
         quiet,
         input: PathBuf::from(positional.remove(0)),
@@ -303,15 +344,22 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
     let format = cli
         .explicit_format
         .unwrap_or_else(|| OutputFormat::from_output_path(&cli.output));
-    let (summary, diagnostics) =
-        convert_file_with_format_and_tags(&cli.input, &cli.output, format, !cli.no_tags).map_err(
-            |error| CliError::Conversion {
-                input: cli.input.clone(),
-                error,
-            },
-        )?;
+    let (summary, diagnostics, cover_reports) = convert_file_with_format_tags_and_cover_art(
+        &cli.input,
+        &cli.output,
+        format,
+        !cli.no_tags,
+        cli.cover_art,
+    )
+    .map_err(|error| CliError::Conversion {
+        input: cli.input.clone(),
+        error,
+    })?;
     for warning in &diagnostics.warnings {
         eprintln!("warning: {}: {warning}", cli.input.display());
+    }
+    for report in &cover_reports {
+        print_cover_report(report, false, true);
     }
     println!(
         "converted {} -> {} ({} AAC frames, {} bytes, {})",
@@ -332,17 +380,140 @@ fn channel_word(channels: u32) -> &'static str {
     }
 }
 
+/// One stderr progress line: `[  1/111] path  status`.
+fn progress_line(item: &BatchProgress, status: &str) -> String {
+    let width = item.total.to_string().len().max(1);
+    format!(
+        "[{:>width$}/{}] {}  {}",
+        item.index,
+        item.total,
+        item.relative_input.display(),
+        status,
+        width = width
+    )
+}
+
+/// Report external cover-art outcomes on stderr.
+///
+/// Conflicts and failures are diagnostics and always print. A newly written
+/// file prints once per output directory in normal mode; an untouched existing
+/// file prints only in verbose mode.
+fn print_cover_report(report: &CoverArtReport, quiet: bool, verbose: bool) {
+    let output_root = report.directory == Path::new(".");
+    let path = match &report.file_name {
+        Some(file_name) if output_root => PathBuf::from(file_name),
+        Some(file_name) => report.directory.join(file_name),
+        None if output_root => PathBuf::from("output root"),
+        None => report.directory.clone(),
+    };
+    let directory = if output_root {
+        "output root".to_string()
+    } else {
+        report.directory.display().to_string()
+    };
+    match &report.action {
+        CoverArtAction::Written => {
+            if !quiet {
+                eprintln!("cover {}: written", path.display());
+            }
+        }
+        CoverArtAction::Existing => {
+            if !quiet && verbose {
+                eprintln!("cover {}: already exists; left unchanged", path.display());
+            }
+        }
+        CoverArtAction::Conflicted => {
+            eprintln!(
+                "warning: external cover art not written for {directory}: \
+                 source tracks contain different cover images"
+            );
+        }
+        CoverArtAction::Failed { message } => {
+            eprintln!(
+                "warning: external cover art not written for {}: {message}",
+                path.display()
+            );
+        }
+    }
+}
+
 fn run_batch(cli: &Cli) -> Result<(), CliError> {
     let format = cli.explicit_format.unwrap_or(OutputFormat::M4a);
     let recursive = cli.recursive.unwrap_or(true);
     let plan = plan_batch(&cli.input, &cli.output, format, recursive)
         .map_err(|err| CliError::Setup(err.to_string()))?;
 
+    let options = BatchOptions {
+        dry_run: cli.dry_run,
+        skip_existing: cli.skip_existing,
+        write_tags: !cli.no_tags,
+        cover_art: cli.cover_art,
+    };
+
     let start = std::time::Instant::now();
-    let outcome =
-        execute_plan_with_tags(&plan, format, cli.dry_run, cli.skip_existing, !cli.no_tags)
-            .map_err(|err| CliError::Setup(err.to_string()))?;
+    let quiet = cli.quiet;
+    let dry_run = cli.dry_run;
+    let execution = execute_plan_with_options_and_progress(&plan, format, &options, |event| {
+        // Dry runs report the plan on stdout and must not pretend to
+        // encode; failures keep their detailed stderr diagnostic.
+        if dry_run {
+            if let BatchEvent::Failed { item, message, .. } = &event {
+                eprintln!("error: {}: {message}", item.relative_input.display());
+            }
+            return;
+        }
+        match event {
+            BatchEvent::Preparing { total, cover_art } => {
+                if !quiet {
+                    let detail = if cover_art {
+                        "loudness and artwork"
+                    } else {
+                        "loudness"
+                    };
+                    let noun = if total == 1 { "file" } else { "files" };
+                    eprintln!("preparing {total} {noun} ({detail})...");
+                }
+            }
+            BatchEvent::Started(item) => {
+                if !quiet {
+                    eprintln!("{}", progress_line(&item, "encoding..."));
+                }
+            }
+            BatchEvent::Converted { item, tags } => {
+                if !quiet {
+                    eprintln!("{}", progress_line(&item, "done"));
+                }
+                // Warnings surface as soon as the file finishes, not after
+                // the whole batch.
+                for warning in &tags.warnings {
+                    eprintln!("warning: {}: {warning}", item.relative_input.display());
+                }
+            }
+            BatchEvent::Skipped(item) => {
+                if !quiet {
+                    eprintln!("{}", progress_line(&item, "skipped (already exists)"));
+                }
+            }
+            BatchEvent::Failed {
+                item,
+                category,
+                message,
+            } => {
+                if !quiet {
+                    eprintln!("{}", progress_line(&item, &format!("failed ({category})")));
+                }
+                eprintln!("error: {}: {message}", item.relative_input.display());
+            }
+            BatchEvent::Planned(item) => {
+                if !quiet {
+                    eprintln!("{}", progress_line(&item, "would convert"));
+                }
+            }
+        }
+    })
+    .map_err(|err| CliError::Setup(err.to_string()))?;
     let elapsed = start.elapsed();
+    let outcome = &execution.outcome;
 
     let mode = if recursive { "recursive" } else { "top-level" };
     let skip_suffix = if cli.skip_existing {
@@ -390,17 +561,18 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         }
     }
 
+    for report in &execution.cover_art {
+        print_cover_report(report, cli.quiet, cli.verbose);
+    }
+
     for result in &outcome.results {
         match &result.outcome {
             BatchFileOutcome::Converted {
                 frames,
                 bytes,
                 properties,
-                tags,
+                ..
             } => {
-                for warning in &tags.warnings {
-                    eprintln!("warning: {}: {warning}", result.relative_input.display());
-                }
                 if !cli.quiet {
                     let relative_output = result
                         .relative_output
@@ -453,11 +625,10 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
                     );
                 }
             }
-            BatchFileOutcome::Failed { category, message } => {
+            BatchFileOutcome::Failed { category, .. } => {
                 if !cli.quiet {
                     println!("fail {}: {category}", result.relative_input.display());
                 }
-                eprintln!("error: {}: {message}", result.relative_input.display());
             }
         }
     }

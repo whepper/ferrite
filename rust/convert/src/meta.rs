@@ -10,22 +10,33 @@
 //! unsupported, or oversized candidates are skipped with warnings, never
 //! errors.
 //!
-//! Owner rules (G0 §2–§3, frozen):
+//! Owner rules (G0 §2–§3, revised metadata policy):
 //!
 //! - Vorbis keys matched ASCII case-insensitively; values trimmed; the stored
 //!   value is the trimmed value. Empty/whitespace-only values are treated as
 //!   absent.
-//! - Single-valued atoms use the first non-empty value; missing slots warn,
-//!   conversion succeeds. Multiple distinct values for a recognized text key
-//!   are reduced to the first and reported in one per-file warning.
-//! - `tracknumber`/`discnumber` accept `N` or `N/M` (whitespace around `/`
-//!   tolerated); totals fall back to `tracktotal`/`totaltracks` and
+//! - Missing optional fields are silent. No tag slot in this converter is
+//!   required, so absence never produces a warning. Warnings are reserved for
+//!   malformed, invalid, unsupported or genuinely lossy metadata.
+//! - Mapped text atoms are single-valued in M4A, but multiple distinct source
+//!   values are preserved in source order inside that one text atom, joined
+//!   with `; `. Empty values are ignored and exact duplicates are removed
+//!   while retaining the first occurrence. This is a pragmatic readable
+//!   mapping, not a lossless representation of the Vorbis comment structure.
+//! - `tracknumber`/`discnumber` are numeric tuples and are not joined.
+//!   Multiple distinct values keep the first and warn about the lossy
+//!   reduction. They accept `N` or `N/M` (whitespace around `/` tolerated);
+//!   totals fall back to `tracktotal`/`totaltracks` and
 //!   `disctotal`/`totaldiscs`; unparseable numbers skip the atom with a
 //!   warning, never a failure. Zero totals are written as `0` (unknown).
 //! - `date` wins over `year` for `©day`; the atom is written at most once and
-//!   stored verbatim (no reformatting).
+//!   stored verbatim (no reformatting). Multiple values of the selected key
+//!   follow the same `; ` text-atom rule; `date` and `year` are never joined
+//!   with each other.
 //! - All text atoms use M4A data type UTF-8. No integer/boolean/freeform
 //!   encoding in this slice.
+//! - Absent artwork is silent. Invalid, unsupported, empty, or oversized
+//!   artwork candidates still warn; selection never fails a conversion.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -165,7 +176,7 @@ impl TagSet {
 pub(crate) const COVER_MAX_BYTES: usize = 16 * 1024 * 1024;
 
 /// Image formats accepted for M4A cover art (S1.3): JPEG and PNG only.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum CoverFormat {
     Jpeg,
     Png,
@@ -179,6 +190,14 @@ impl CoverFormat {
             Self::Png => 14,
         }
     }
+
+    /// File extension used for external cover-art extraction.
+    pub(crate) fn extension(self) -> &'static str {
+        match self {
+            Self::Jpeg => "jpg",
+            Self::Png => "png",
+        }
+    }
 }
 
 /// Selected cover art: format plus the original image bytes, unchanged.
@@ -186,6 +205,13 @@ impl CoverFormat {
 pub(crate) struct CoverArt {
     pub(crate) format: CoverFormat,
     pub(crate) data: Vec<u8>,
+}
+
+impl CoverArt {
+    /// Conventional external file name for this image format.
+    pub(crate) fn file_name(&self) -> String {
+        format!("cover.{}", self.format.extension())
+    }
 }
 
 /// Detect JPEG/PNG by magic bytes only; never decode the image.
@@ -217,9 +243,9 @@ fn cover_tier(usage: Option<StandardVisualKey>) -> u8 {
 /// order.
 ///
 /// Pure and total like the tag slots: never fails, only records warnings.
-/// Each skipped candidate warns individually; when no candidate is usable
-/// (including imageless input) a terminal `missing cover` warning is
-/// recorded. Callers with `--no-tags` skip this entirely and warn nothing.
+/// Each skipped candidate warns individually; absent artwork is silent
+/// (cover art is optional). Callers with `--no-tags` skip selection entirely
+/// and warn nothing.
 fn select_cover(visuals: &[Visual]) -> (Option<CoverArt>, Vec<String>) {
     let mut warnings = Vec::new();
     for tier in [0u8, 1, 2] {
@@ -253,7 +279,6 @@ fn select_cover(visuals: &[Visual]) -> (Option<CoverArt>, Vec<String>) {
             );
         }
     }
-    warnings.push("missing cover".to_string());
     (None, warnings)
 }
 
@@ -277,27 +302,38 @@ fn covr_atom(cover: &CoverArt) -> Result<Vec<u8>, ConvertError> {
     boxed(b"covr", &data).map_err(|_| ConvertError::Metadata("cover art too large"))
 }
 
-/// Read Vorbis comments from `path` through Symphonia and build the core set.
+/// Open `path` and probe only its metadata container.
 ///
-/// Only the metadata log is read; no audio is decoded. Any probe failure maps
-/// to [`ConvertError::Metadata`]: the caller has already decoded the file
-/// successfully, so an unreadable comment block is a metadata-phase failure.
-/// Cover selection runs on the same probed revision when `select_cover_art`
-/// is set; `--no-tags` passes `false` and skips artwork entirely.
-pub(crate) fn read_tags(path: &Path, select_cover_art: bool) -> Result<TagSet, ConvertError> {
+/// Any probe failure maps to [`ConvertError::Metadata`]: callers have already
+/// decoded the file successfully (or are reading metadata as an optional
+/// pre-pass), so an unreadable comment block is a metadata-phase failure.
+fn probe_format(
+    path: &Path,
+) -> Result<Box<dyn symphonia::core::formats::FormatReader>, ConvertError> {
     let file =
         std::fs::File::open(path).map_err(|_| ConvertError::Metadata("could not read tags"))?;
     let source = MediaSourceStream::new(Box::new(file), Default::default());
     let mut hint = Hint::new();
     hint.with_extension("flac");
-    let mut format = symphonia::default::get_probe()
+    symphonia::default::get_probe()
         .probe(
             &hint,
             source,
             FormatOptions::default(),
             MetadataOptions::default(),
         )
-        .map_err(|_| ConvertError::Metadata("could not read tags"))?;
+        .map_err(|_| ConvertError::Metadata("could not read tags"))
+}
+
+/// Read Vorbis comments from `path` through Symphonia and build the core set.
+///
+/// Only the metadata log is read; no audio is decoded. Cover selection runs on
+/// the same probed revision when `select_cover_art` is set; external-only
+/// extraction passes `true` so cover diagnostics still surface, then drops the
+/// selected image before atom serialization. `--no-tags` passes `false` and
+/// skips artwork entirely.
+pub(crate) fn read_tags(path: &Path, select_cover_art: bool) -> Result<TagSet, ConvertError> {
+    let mut format = probe_format(path)?;
 
     let mut pairs: Vec<(String, TagValue)> = Vec::new();
     let mut cover: Option<CoverArt> = None;
@@ -333,6 +369,20 @@ pub(crate) fn read_tags(path: &Path, select_cover_art: bool) -> Result<TagSet, C
     Ok(set)
 }
 
+/// Read only the selected cover image from `path`.
+///
+/// Used by external cover-art extraction and its batch conflict pre-scan.
+/// Text tags are not materialized. A missing image returns `None` with no
+/// warning; invalid or unsupported candidates retain their selection warnings.
+pub(crate) fn read_cover(path: &Path) -> Result<(Option<CoverArt>, Vec<String>), ConvertError> {
+    let mut format = probe_format(path)?;
+    let mut metadata = format.metadata();
+    let Some(revision) = metadata.skip_to_latest() else {
+        return Ok((None, Vec::new()));
+    };
+    Ok(select_cover(&revision.media.visuals))
+}
+
 /// Build the core set from `(key, value)` pairs in encounter order.
 ///
 /// Keys are matched ASCII case-insensitively. This is pure and total: it
@@ -361,14 +411,6 @@ pub(crate) fn build_tag_set(pairs: &[(String, TagValue)]) -> TagSet {
     set.composer = text_slot(&lowered, "composer", &mut set.warnings);
     set.comment = text_slot(&lowered, "comment", &mut set.warnings);
 
-    let reduced = reduced_multi_value_keys(&lowered);
-    if !reduced.is_empty() {
-        set.warnings.push(format!(
-            "multi-valued tags reduced to first value: {}",
-            reduced.join(", ")
-        ));
-    }
-
     let mut unmapped = BTreeSet::new();
     for (key, _) in &lowered {
         if !RECOGNIZED_KEYS.contains(&key.as_str()) {
@@ -379,99 +421,78 @@ pub(crate) fn build_tag_set(pairs: &[(String, TagValue)]) -> TagSet {
     set
 }
 
-/// First non-empty trimmed text value for `key` (G0 D3), or a missing-value
-/// warning. Opaque-only keys report an unsupported-value warning instead.
+/// Distinct non-empty trimmed text values for `key`, in source order.
+///
+/// Duplicate values are removed while retaining the first occurrence. Empty
+/// and whitespace-only values are ignored. Opaque values are not text and are
+/// reported separately by [`has_opaque`].
+fn text_values(pairs: &[(String, &TagValue)], key: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    for (candidate, value) in pairs {
+        if candidate != key {
+            continue;
+        }
+        if let TagValue::Text(text) = value {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() && !values.iter().any(|value| value == trimmed) {
+                values.push(trimmed.to_string());
+            }
+        }
+    }
+    values
+}
+
+/// True when `key` has at least one non-text value.
+fn has_opaque(pairs: &[(String, &TagValue)], key: &str) -> bool {
+    pairs
+        .iter()
+        .any(|(candidate, value)| candidate == key && matches!(value, TagValue::Opaque))
+}
+
+/// One M4A text atom from all distinct non-empty values of `key`.
+///
+/// Multiple values are joined with `; ` in source order. This is a readable
+/// single-atom mapping, not a lossless model of the original Vorbis comment
+/// list. A missing key is silent; an unsupported opaque value warns.
 fn text_slot(
     pairs: &[(String, &TagValue)],
     key: &str,
     warnings: &mut Vec<String>,
 ) -> Option<String> {
-    for (candidate, value) in pairs {
-        if candidate == key {
-            if let TagValue::Text(text) = value {
-                let trimmed = text.trim();
-                if !trimmed.is_empty() {
-                    return Some(trimmed.to_string());
-                }
-            }
-        }
-    }
-    if pairs
-        .iter()
-        .any(|(candidate, value)| candidate == key && matches!(value, TagValue::Opaque))
-    {
+    let values = text_values(pairs, key);
+    if has_opaque(pairs, key) {
         warnings.push(format!("unsupported {key} value: skipped"));
+    }
+    if values.is_empty() {
+        None
     } else {
-        warnings.push(format!("missing {key}"));
+        Some(values.join("; "))
     }
-    None
 }
 
-/// Recognized text keys whose first non-empty value is written.
+/// `date`-wins-over-`year` shared slot (G0 §2 row 7), with the same
+/// multi-value text policy.
 ///
-/// Used only to disclose deliberate first-value reduction; key order is the
-/// stable warning order.
-const MULTI_VALUE_TEXT_KEYS: &[&str] = &[
-    "title",
-    "artist",
-    "album",
-    "albumartist",
-    "genre",
-    "composer",
-    "comment",
-];
-
-/// Keys with more than one distinct non-empty text value.
-///
-/// Duplicate spellings of the same value are not a reduction and do not warn.
-/// Values are trimmed exactly like [`text_slot`].
-fn reduced_multi_value_keys(pairs: &[(String, &TagValue)]) -> Vec<&'static str> {
-    let mut reduced = Vec::new();
-    for key in MULTI_VALUE_TEXT_KEYS {
-        let mut values = BTreeSet::new();
-        for (candidate, value) in pairs {
-            if candidate == key {
-                if let TagValue::Text(text) = value {
-                    let trimmed = text.trim();
-                    if !trimmed.is_empty() {
-                        values.insert(trimmed);
-                    }
-                }
-            }
-        }
-        if values.len() > 1 {
-            reduced.push(*key);
-        }
-    }
-    reduced
-}
-
-/// `date`-wins-over-`year` shared slot (G0 §2 row 7).
+/// The two source keys are never joined with each other: `date` is used when
+/// it has any non-empty value, otherwise `year`. Absence is silent.
 fn date_slot(pairs: &[(String, &TagValue)], warnings: &mut Vec<String>) -> Option<String> {
-    for key in ["date", "year"] {
-        for (candidate, value) in pairs {
-            if candidate == key {
-                if let TagValue::Text(text) = value {
-                    let trimmed = text.trim();
-                    if !trimmed.is_empty() {
-                        return Some(trimmed.to_string());
-                    }
-                }
-            }
-        }
-    }
-    if pairs.iter().any(|(candidate, value)| {
-        (candidate == "date" || candidate == "year") && matches!(value, TagValue::Opaque)
-    }) {
+    let dates = text_values(pairs, "date");
+    let years = text_values(pairs, "year");
+    if has_opaque(pairs, "date") || has_opaque(pairs, "year") {
         warnings.push("unsupported date/year value: skipped".to_string());
-    } else {
-        warnings.push("missing date/year".to_string());
     }
-    None
+    let values = if dates.is_empty() { years } else { dates };
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.join("; "))
+    }
 }
 
 /// `trkn`/`disk` tuple slot: `N` or `N/M`, then fallback totals.
 ///
+/// Numeric fields are not text-joined. Multiple distinct primary values keep
+/// the first and warn because the numeric tuple cannot represent the rest.
 /// Returns the tuple (or `None` when the atom must be skipped) plus warnings.
 /// An unparseable number skips the whole atom, never the file.
 #[allow(clippy::type_complexity)]
@@ -481,29 +502,19 @@ fn pair_slot(
     fallback_keys: &[&str],
 ) -> (Option<(u16, u16)>, Vec<String>) {
     let mut warnings = Vec::new();
-    let mut raw: Option<&str> = None;
-    for (candidate, value) in pairs {
-        if candidate == key {
-            if let TagValue::Text(text) = value {
-                let trimmed = text.trim();
-                if !trimmed.is_empty() {
-                    raw = Some(trimmed);
-                    break;
-                }
-            }
-        }
+    let values = text_values(pairs, key);
+    if has_opaque(pairs, key) {
+        warnings.push(format!("unsupported {key} value: skipped"));
     }
-    let Some(raw) = raw else {
-        if pairs
-            .iter()
-            .any(|(candidate, value)| candidate == key && matches!(value, TagValue::Opaque))
-        {
-            warnings.push(format!("unsupported {key} value: skipped"));
-        } else {
-            warnings.push(format!("missing {key}"));
-        }
+    let Some(raw) = values.first() else {
         return (None, warnings);
     };
+    if values.len() > 1 {
+        warnings.push(format!(
+            "multi-valued {key}: using first value '{raw}' (numeric fields are not joined)"
+        ));
+    }
+    let raw = raw.as_str();
 
     let (number_part, slash_total) = match raw.split_once('/') {
         Some((number, total)) => (number.trim(), Some(total.trim())),
@@ -535,6 +546,8 @@ fn pair_slot(
 ///
 /// A present-but-unparseable fallback warns once and falls through to the
 /// next key; a wholly absent fallback is silent (totals are commonly absent).
+/// Multiple distinct fallback values keep the first parseable one and warn,
+/// matching the numeric no-join policy.
 fn fallback_total(
     pairs: &[(String, &TagValue)],
     fallback_keys: &[&str],
@@ -542,21 +555,20 @@ fn fallback_total(
 ) -> u16 {
     let mut warned_unparseable = false;
     for fallback in fallback_keys {
-        for (candidate, value) in pairs {
-            if candidate == *fallback {
-                if let TagValue::Text(text) = value {
-                    let trimmed = text.trim();
-                    if trimmed.is_empty() {
-                        continue;
-                    }
-                    if let Ok(total) = trimmed.parse::<u16>() {
-                        return total;
-                    }
-                    if !warned_unparseable {
-                        warnings.push(format!("invalid {fallback} '{trimmed}': ignored"));
-                        warned_unparseable = true;
-                    }
+        let values = text_values(pairs, fallback);
+        for value in &values {
+            if let Ok(total) = value.parse::<u16>() {
+                if values.len() > 1 {
+                    warnings.push(format!(
+                        "multi-valued {fallback}: using first parseable value '{total}' \
+                         (numeric fields are not joined)"
+                    ));
                 }
+                return total;
+            }
+            if !warned_unparseable {
+                warnings.push(format!("invalid {fallback} '{value}': ignored"));
+                warned_unparseable = true;
             }
         }
     }
@@ -616,27 +628,89 @@ mod tests {
     }
 
     #[test]
-    fn first_non_empty_wins_for_single_valued_atoms() {
+    fn multi_value_text_atoms_join_in_source_order() {
         let set = build_tag_set(&pairs(&[
             ("TITLE", "  "),
             ("title", "First Title"),
             ("Title", "Second Title"),
-            ("ARTIST", "First Artist"),
-            ("artist", "Second Artist"),
+            ("ARTIST", "Artist B"),
+            ("artist", "Artist A"),
+            ("ARTIST", "Artist B"),
+            ("GENRE", "Genre One"),
+            ("genre", "Genre Two"),
+            ("COMPOSER", "Composer One"),
+            ("composer", "Composer Two"),
         ]));
-        assert_eq!(set.title.as_deref(), Some("First Title"));
-        assert_eq!(set.artist.as_deref(), Some("First Artist"));
+        assert_eq!(set.title.as_deref(), Some("First Title; Second Title"));
+        assert_eq!(set.artist.as_deref(), Some("Artist B; Artist A"));
+        assert_eq!(set.genre.as_deref(), Some("Genre One; Genre Two"));
+        assert_eq!(set.composer.as_deref(), Some("Composer One; Composer Two"));
+        assert!(
+            set.warnings.is_empty(),
+            "preserving multiple text values must not warn: {:?}",
+            set.warnings
+        );
+    }
+
+    #[test]
+    fn multi_value_text_drops_empty_and_repeated_values() {
+        let set = build_tag_set(&pairs(&[
+            ("artist", ""),
+            ("artist", "  Artist A  "),
+            ("artist", "   "),
+            ("artist", "Artist A"),
+            ("artist", "Artist B"),
+            ("artist", "Artist A"),
+        ]));
+        assert_eq!(set.artist.as_deref(), Some("Artist A; Artist B"));
+        assert!(set.warnings.is_empty(), "{:?}", set.warnings);
+    }
+
+    #[test]
+    fn numeric_fields_do_not_join_and_warn_about_reduction() {
+        let set = build_tag_set(&pairs(&[
+            ("tracknumber", "7"),
+            ("tracknumber", "8"),
+            ("tracktotal", "9"),
+            ("discnumber", "1"),
+            ("discnumber", "2"),
+            ("disctotal", "3"),
+        ]));
+        assert_eq!(set.track, Some((7, 9)));
+        assert_eq!(set.disc, Some((1, 3)));
         assert!(
             set.warnings
                 .iter()
-                .any(|w| w == "multi-valued tags reduced to first value: title, artist"),
+                .any(|w| w.contains("multi-valued tracknumber") && w.contains("'7'")),
+            "{:?}",
+            set.warnings
+        );
+        assert!(
+            set.warnings
+                .iter()
+                .any(|w| w.contains("multi-valued discnumber") && w.contains("'1'")),
             "{:?}",
             set.warnings
         );
     }
 
     #[test]
-    fn duplicate_text_values_do_not_trigger_reduction_warning() {
+    fn opaque_values_mixed_with_text_warn_but_keep_text() {
+        let mut entries = pairs(&[("artist", "Artist A"), ("artist", "Artist B")]);
+        entries.push(("artist".to_string(), TagValue::Opaque));
+        let set = build_tag_set(&entries);
+        assert_eq!(set.artist.as_deref(), Some("Artist A; Artist B"));
+        assert!(
+            set.warnings
+                .iter()
+                .any(|w| w.contains("unsupported artist")),
+            "{:?}",
+            set.warnings
+        );
+    }
+
+    #[test]
+    fn duplicate_text_values_do_not_trigger_a_warning() {
         let set = build_tag_set(&pairs(&[
             ("artist", "Same Artist"),
             ("ARTIST", " Same Artist "),
@@ -644,46 +718,28 @@ mod tests {
             ("ALBUMARTIST", "Same Album Artist"),
         ]));
         assert_eq!(set.artist.as_deref(), Some("Same Artist"));
+        assert_eq!(set.albumartist.as_deref(), Some("Same Album Artist"));
+        assert!(set.warnings.is_empty(), "{:?}", set.warnings);
+    }
+
+    #[test]
+    fn missing_optional_fields_are_silent() {
+        let set = build_tag_set(&[]);
+        assert_eq!(set.mapped_count(), 0);
+        assert!(set.ilst_children().unwrap().is_empty());
         assert!(
-            !set.warnings
-                .iter()
-                .any(|w| w.starts_with("multi-valued tags reduced")),
-            "{:?}",
+            set.warnings.is_empty(),
+            "missing optional tags must not warn: {:?}",
             set.warnings
         );
     }
 
     #[test]
-    fn missing_keys_warn_without_failing() {
-        let set = build_tag_set(&[]);
-        assert_eq!(set.mapped_count(), 0);
-        assert!(set.ilst_children().unwrap().is_empty());
-        for key in [
-            "title",
-            "artist",
-            "album",
-            "tracknumber",
-            "discnumber",
-            "albumartist",
-            "date/year",
-            "genre",
-            "composer",
-            "comment",
-        ] {
-            assert!(
-                set.warnings.iter().any(|w| w.contains(key)),
-                "missing warning for {key}: {:?}",
-                set.warnings
-            );
-        }
-    }
-
-    #[test]
-    fn whitespace_only_values_count_as_absent() {
+    fn whitespace_only_values_count_as_absent_without_warning() {
         let set = build_tag_set(&pairs(&[("title", "   "), ("genre", "\t")]));
         assert_eq!(set.title, None);
         assert_eq!(set.genre, None);
-        assert!(set.warnings.iter().any(|w| w.contains("title")));
+        assert!(set.warnings.is_empty(), "{:?}", set.warnings);
     }
 
     #[test]
@@ -725,7 +781,22 @@ mod tests {
 
         let neither = build_tag_set(&[]);
         assert_eq!(neither.date, None);
-        assert!(neither.warnings.iter().any(|w| w.contains("date/year")));
+        assert!(neither.warnings.is_empty(), "{:?}", neither.warnings);
+    }
+
+    #[test]
+    fn multiple_dates_join_but_date_and_year_never_mix() {
+        let dates = build_tag_set(&pairs(&[
+            ("date", "2024-03-07"),
+            ("date", "2023-01-01"),
+            ("year", "1999"),
+        ]));
+        assert_eq!(dates.date.as_deref(), Some("2024-03-07; 2023-01-01"));
+        assert!(dates.warnings.is_empty(), "{:?}", dates.warnings);
+
+        let years = build_tag_set(&pairs(&[("year", "1999"), ("year", "2000")]));
+        assert_eq!(years.date.as_deref(), Some("1999; 2000"));
+        assert!(years.warnings.is_empty(), "{:?}", years.warnings);
     }
 
     #[test]
@@ -756,7 +827,7 @@ mod tests {
             ("65535/65535", &[], Some((65535, 65535)), None),
             ("5/x", &[], None, Some("invalid tracknumber")),
             ("x", &[], None, Some("invalid tracknumber")),
-            ("", &[], None, Some("missing tracknumber")),
+            ("", &[], None, None),
             ("/12", &[], None, Some("invalid tracknumber")),
             ("70000", &[], None, Some("invalid tracknumber")),
             ("-1", &[], None, Some("invalid tracknumber")),
@@ -1034,7 +1105,7 @@ mod tests {
     }
 
     #[test]
-    fn cover_all_ineligible_warns_per_candidate_then_missing() {
+    fn cover_all_ineligible_warns_per_candidate_without_missing_warning() {
         let (cover, warnings) = select_cover(&[front(GIF_MAGIC), back(&[]), untyped(b"junk")]);
         assert_eq!(cover, None);
         assert_eq!(
@@ -1043,16 +1114,15 @@ mod tests {
                 "unsupported cover image format: skipped",
                 "empty cover image: skipped",
                 "unsupported cover image format: skipped",
-                "missing cover",
             ]
         );
     }
 
     #[test]
-    fn cover_missing_when_no_visuals() {
+    fn absent_cover_is_silent() {
         let (cover, warnings) = select_cover(&[]);
         assert_eq!(cover, None);
-        assert_eq!(warnings, ["missing cover"]);
+        assert!(warnings.is_empty(), "{warnings:?}");
     }
 
     #[test]

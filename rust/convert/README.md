@@ -57,6 +57,12 @@ cargo run -p aac-convert -- --format adts input.flac output.m4a
 
 # M4A without user metadata
 cargo run -p aac-convert -- --no-tags input.flac output.m4a
+
+# Write cover.jpg/cover.png beside the output instead of embedding it
+cargo run -p aac-convert -- --cover-art external input.flac output.m4a
+
+# Embed the artwork and also write the external file
+cargo run -p aac-convert -- --cover-art both input.flac output.m4a
 ```
 
 `--format` accepts `m4a` or `adts`. Without it, `.m4a` and `.mp4` select M4A;
@@ -66,6 +72,12 @@ selected format.
 
 `--no-tags` omits user metadata from M4A output (see Metadata); it is accepted
 for ADTS output as a no-op.
+
+`--cover-art` accepts `embedded` (the default), `external`, or `both`:
+`embedded` writes the selected image into the M4A `covr` atom, `external` does
+not embed it and writes `cover.jpg` or `cover.png` beside the audio, and `both`
+does both. External files are never overwritten. Cover-art modes have no effect
+on ADTS output or when `--no-tags` is active; see Cover art.
 
 `--help`, `--version`, and `--` are supported. Exit codes: `0` success,
 `1` conversion failure, `2` command-line usage error. Directory batch mode
@@ -97,6 +109,12 @@ cargo run -p aac-convert -- --skip-existing --dry-run album/ /tmp/out/
 
 # Batch M4A output without user metadata
 cargo run -p aac-convert -- --no-tags album/ /tmp/out/
+
+# Extract each album's cover art as cover.jpg/cover.png beside the audio
+cargo run -p aac-convert -- --cover-art external album/ /tmp/out/
+
+# Embed and extract the same selected artwork
+cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
 ```
 
 - **Mode dispatch.** A regular file input converts one file (behavior above);
@@ -111,6 +129,9 @@ cargo run -p aac-convert -- --no-tags album/ /tmp/out/
   (`.flac`, `.FLAC`, …). All other entries — other extensions, extensionless
   files, FIFOs, sockets, devices — are tallied as ignored, never failures.
   Discovery and reporting order is deterministic: byte-sorted relative paths.
+  `--verbose` appends the planner's reason when it can establish one:
+  `ignore <path> (unsupported extension)`, `(not a regular file)`,
+  `(excluded by --no-recursive)`, or `(symlinked dir, not followed)`.
 - **Output mapping.** The input-relative directory structure is preserved,
   the source stem is kept byte-for-byte (including case), and the extension
   is replaced with lowercase `.m4a` (M4A, the batch default) or `.aac`
@@ -138,20 +159,28 @@ cargo run -p aac-convert -- --no-tags album/ /tmp/out/
   either way. `--skip-existing` applies to directory batch mode only; with a
   single-file input it is a usage error. There are no overwrite or force
   options in this release.
-- **Progress and summary.** One line per file in processing order on stdout
+- **Progress and summary.** Batch progress is live on stderr, in plan order.
+  M4A runs with tags first print one preparation line for the pre-pass
+  (`preparing <n> files (loudness)...`, or `(loudness and artwork)` when
+  external cover art is requested). Per-file progress then follows:
+  `[  1/111] <relative input>  encoding...` when an item starts, then
+  `done`, `skipped (already exists)`, or `failed (<category>)` when it
+  finishes. Per-file warnings also appear on stderr at that point. The final
+  machine-readable result lines remain on stdout in processing order
   (`ok <in> -> <out> (<frames> frames, <bytes> bytes)`,
   `skip <in> -> <out> (exists)` with `--skip-existing`, or
-  `fail <in>: <category>`), failure details as `error: <in>: <message>` on
-  stderr, and always a final summary line:
+  `fail <in>: <category>`), and failures add `error: <in>: <message>` on
+  stderr. A final summary line is always printed:
   `summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<elapsed>s)`
   (`dry-run: …` for dry runs). With `--skip-existing` the summary gains a
   trailing skipped count (`…, <ignored> ignored, <skipped> skipped (…)`).
   `--verbose` adds per-file audio detail,
-  per-file `tags <in>: <n> mapped, <m> unmapped` lines and
-  `unmapped <in>: <key>` lines (see Metadata),
-  and `ignore <path>` lines; `--quiet` prints only the summary on stdout while
-  keeping failure diagnostics on stderr. Tag warnings are printed as
-  `warning: <in>: <message>` on stderr in every mode.
+  per-file `tags <in>: <n> mapped, <m> unmapped` lines,
+  `unmapped <in>: <key>` lines (see Metadata), and
+  `ignore <path> (<reason>)` lines. `--quiet` suppresses live progress and
+  per-file result lines, leaving the final summary on stdout; failures and
+  warnings remain on stderr. Dry runs print the stdout plan only and emit no
+  fake `encoding...` progress.
 - **Failure detail.** Single-file failures use the same
   `error: <input>: <message>` form as batch failures. Encoder failures include
   the failing frame index, the underlying failure category/reason, and an
@@ -242,28 +271,35 @@ the source FLAC file:
 | `composer` | `©wrt` |
 | `comment` | `©cmt` |
 
-Rules (G0 §2, authoritative):
+Rules (revised metadata policy):
 
-- Keys match ASCII case-insensitively; values are trimmed; the stored value
-  is the trimmed value. Empty or whitespace-only values are treated as absent.
-- Single-valued atoms use the first non-empty value. Missing values produce
-  a per-file `warning:` line on stderr; conversion still succeeds. When a
-  recognized text key has more than one distinct non-empty value, the first
-  is kept and one per-file warning names the reduced keys:
-  `multi-valued tags reduced to first value: artist, composer`. Identical
-  repeated values do not warn.
-- The M4A core atoms are deliberately written once, as single-valued items.
-  This avoids duplicate or conflicting atoms and keeps output deterministic
-  across players that ignore or flatten repeated values. Preserving every
-  value would require multiple `data` boxes under one item (mutagen and
-  FFmpeg can read them, but player support is not uniform); that is a
-  separate metadata model, not part of this contract.
-- `tracknumber`/`discnumber` accept `N` or `N/M` (whitespace around `/` is
-  tolerated); totals fall back to `tracktotal`/`totaltracks` and
-  `disctotal`/`totaldiscs`, else `0` (unknown). Unparseable numbers skip the
-  atom with a warning, never a failure.
-- `date` wins over `year` for `©day`; the atom is written at most once and
-  stored verbatim (no reformatting).
+- Keys match ASCII case-insensitively; values are trimmed; the stored value is
+  the trimmed value. Empty or whitespace-only values are treated as absent.
+- **Missing optional fields are silent.** None of the mapped text slots is
+  required, so an untagged file, a missing `COMMENT`, or absent artwork
+  produces no metadata warning. Warnings are reserved for malformed, invalid,
+  unsupported, or genuinely lossy metadata.
+- **Multiple values in one text atom.** Vorbis comments may repeat a key. For
+  fields mapped to one M4A text atom (`©nam`, `©ART`, `©alb`, `aART`, `©day`,
+  `©gen`, `©wrt`, `©cmt`), distinct non-empty values are preserved in source
+  order and joined with `; ` (semicolon and one space). Exact duplicate values
+  are removed while retaining their first occurrence; empty values are
+  ignored. Example: `ARTIST=Artist A` plus `ARTIST=Artist B` becomes
+  `Artist A; Artist B`. This is a pragmatic, readable single-atom mapping, not
+  a lossless representation of the original Vorbis comment list.
+- `date` still wins over `year` for `©day`; the two keys are never joined with
+  each other. Multiple values of the selected key follow the same `; ` rule,
+  and the atom is stored verbatim (no reformatting).
+- **Numeric fields are not joined.** `tracknumber`/`discnumber` map to numeric
+  tuples; multiple distinct values keep the first and emit a warning because
+  the numeric destination cannot represent the rest. They accept `N` or `N/M`
+  (whitespace around `/` is tolerated); totals fall back to
+  `tracktotal`/`totaltracks` and `disctotal`/`totaldiscs`, else `0` (unknown).
+  Unparseable numbers skip the atom with a warning, never a failure. A
+  multi-valued numeric total likewise keeps the first parseable value and
+  warns.
+- Unsupported opaque values warn. If a recognized text key has both usable
+  text and an opaque value, the text is kept and the opaque value warns.
 - All text atoms use M4A data type UTF-8. No integer or boolean text atoms
   are written (loudness freeform atoms are documented under Loudness below).
 - Deferred or unknown keys (BPM, compilation, sort fields, grouping, lyrics,
@@ -284,7 +320,7 @@ byte-identical with or without tags, and gapless signalling is unchanged.
 
 ## Cover art
 
-M4A output embeds at most one JPEG or PNG image as a `covr` atom (appended
+M4A output can embed at most one JPEG or PNG image as a `covr` atom (appended
 after the text atoms), selected deterministically from the source FLAC
 pictures:
 
@@ -293,16 +329,50 @@ pictures:
 3. Untyped pictures (legacy `COVERART` comments, unknown picture types) last.
 4. Encounter order within each tier.
 
-Only JPEG (MP4 data type 13) and PNG (type 14) are embedded, detected by
-magic bytes; the declared MIME type is never trusted and images are never
-decoded. The per-image limit is 16 MiB. Invalid, unsupported, oversized, or
-absent artwork is reported with a per-file `warning:` line and never fails
-an otherwise valid conversion; oversized candidates fall through to the
-next eligible picture. Cover outcomes use the same warning mechanism as
-text tags, ordered after text-tag warnings (and after the 24-bit precision
-notice, if present). `--no-tags` omits cover art and its warnings; ADTS
-output never carries cover art and is byte-identical with or without
-pictures.
+Only JPEG (MP4 data type 13) and PNG (type 14) are accepted, detected by magic
+bytes; the declared MIME type is never trusted and images are never decoded.
+The per-image limit is 16 MiB. Empty, invalid, unsupported, or oversized
+candidates are skipped with a per-file `warning:` line and never fail an
+otherwise valid conversion; oversized or invalid candidates fall through to
+the next eligible picture. Absent artwork is silent. Cover outcomes use the
+same warning mechanism as text tags, ordered after text-tag warnings (and
+after the 24-bit precision notice, if present).
+
+`--cover-art` selects the handling:
+
+| Mode | Embed in M4A | Write external file |
+|---|---:|---:|
+| `embedded` (default) | Yes | No |
+| `external` | No | Yes |
+| `both` | Yes | Yes |
+
+External files are written beside the audio output using the converter's
+normal output-directory mapping (the output root plus the mirrored relative
+directory), named `cover.jpg` for JPEG and `cover.png` for PNG. The original
+image bytes are written unchanged; there is no recompression or transformation.
+Publication uses the same temporary-file, flush/sync, atomic-hard-link path as
+audio output, so an existing `cover.jpg`/`cover.png` is never replaced. A cover
+file is written once per output directory, never once per track. Directories
+with no eligible artwork get no file. With `--skip-existing`, retained existing
+audio outputs still participate: an album whose tracks are all skipped can
+receive its external cover if no cover file exists yet.
+
+Before writing, the converter groups planned tracks by output directory and
+compares the actual selected image content (format, length, and a content hash
+over the complete bytes). If every eligible image in a directory is identical,
+one file is published. If different images are found, it prints a warning
+naming the output directory and skips external artwork publication for that
+directory; audio conversion continues normally. All planned tracks take part
+in this comparison, including tracks that are skipped under `--skip-existing`
+and tracks that later fail conversion, so a failed track with different
+artwork can veto external publication for its output directory. No arbitrary
+first-seen image is published, and no partially written cover remains. Dry
+runs read no artwork and create no files.
+
+`--no-tags` omits embedding and external extraction entirely, and suppresses
+cover warnings. ADTS output never carries cover art and never writes external
+cover files, regardless of `--cover-art`. M4A audio payloads are byte-identical
+with or without cover art, and gapless signalling is unchanged.
 
 ## Loudness
 
@@ -383,8 +453,11 @@ cargo test -p aac-convert
 The app tests use committed synthetic FLAC fixtures; no external encoder is
 needed. They verify ADTS output, M4A box structure and sample tables, payload
 equivalence between the two containers, integrity failures, output collisions,
-concurrent publication, and sequential directory batch conversion (traversal,
-mapping, preflight, dry-run, exit codes, and cleanup). Ignored independent-decoder smoke tests for both
+concurrent publication, metadata mapping and missing/multi-value policy,
+embedded and external cover-art modes (including conflicts and no-overwrite),
+live batch progress events, verbose ignored-entry reasons, and sequential
+directory batch conversion (traversal, mapping, preflight, dry-run, exit codes,
+and cleanup). Ignored independent-decoder smoke tests for both
 ADTS and M4A can be run when `ffmpeg` is available:
 
 ```sh
@@ -394,13 +467,14 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 ## Scope limits
 
 - Core Vorbis-comment text tags and single JPEG/PNG cover art are supported
-  for M4A (see Metadata). Core text fields are single-valued: extra distinct
-  values are reduced to the first and reported in a per-file warning. ISRC,
+  for M4A (see Metadata). Text fields are single M4A atoms: multiple distinct
+  source values are joined with `; ` in source order, while numeric
+  track/disc fields keep the first value and warn about the reduction. ISRC,
   barcode, publisher/label, catalogue number, copyright, and MusicBrainz IDs
   are not mapped. Loudness tagging (ReplayGain 2.0 and
   `iTunNORM`) is implemented and shipped for M4A (see Loudness). Still out
-  of scope: multi-value metadata, multi-image galleries, resampling,
-  downmixing, VBR 1–4, and parallel conversion.
+  of scope: preserving the original multi-entry Vorbis structure, multi-image
+  galleries, resampling, downmixing, VBR 1–4, and parallel conversion.
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
   CoreAudio decode paths; VLC and GUI players are unverified or approximate

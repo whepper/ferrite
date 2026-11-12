@@ -25,10 +25,13 @@
 //! - Existing destinations are never overwritten; by default they count as
 //!   failures for the exit-code contract and are tallied separately as
 //!   `existing`. With `skip_existing`, pre-existing destinations are skipped
-//!   instead: never decoded, never converted, never a failure, tallied as
-//!   `skipped`. Publication-time collisions (a destination appearing after
-//!   planning) are still enforced by the atomic hard link and surface as a
-//!   skip under `skip_existing`, as a failure otherwise.
+//!   instead: never converted, never a failure, tallied as `skipped`. The
+//!   conversion pass does not decode a skipped source (though the M4A
+//!   loudness pre-pass and the external-artwork pre-scan may still read it;
+//!   see [`execute_plan_with_options_and_progress`]). Publication-time
+//!   collisions (a destination appearing after planning) are still enforced
+//!   by the atomic hard link and surface as a skip under `skip_existing`, as
+//!   a failure otherwise.
 //! - Each file converts through the existing temporary-file and atomic
 //!   hard-link publication path, so no partial output can remain and a
 //!   concurrent winner is never replaced.
@@ -37,7 +40,16 @@
 //!   loudness pre-pass over source PCM (`ebur128`, one packet at a time, no
 //!   whole-file buffering) before any publication; traversal itself uses only
 //!   `std::fs` with an explicit stack (no recursion).
+//! - [`execute_plan_with_options_and_progress`] exposes the same sequential
+//!   pipeline through ordered [`BatchEvent`] callbacks (one optional pre-pass
+//!   notice, a terminal outcome for every work item, and a start event for real
+//!   conversion attempts). It also adds external cover-art planning: eligible
+//!   artwork is grouped by destination directory, conflicting images are
+//!   reported and skipped for that directory, and one identical image is
+//!   published without overwriting an existing `cover.jpg`/`cover.png`.
+//!   Existing entry points retain embedded-only behavior.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::fs;
@@ -46,12 +58,24 @@ use std::path::{Path, PathBuf};
 
 use crate::loudness;
 use crate::{
-    convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, OutputFormat,
-    TagDiagnostics,
+    convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, CoverArtMode,
+    OutputFormat, TagDiagnostics,
 };
 
 /// Reason recorded for an ignored directory symlink (verbose reporting).
 pub const SYMLINKED_DIR_REASON: &str = "symlinked dir, not followed";
+
+/// Reason recorded for an entry whose file name is not `.flac`
+/// (case-insensitive).
+pub const UNSUPPORTED_EXTENSION_REASON: &str = "unsupported extension";
+
+/// Reason recorded for an entry that is not a regular file or a symlink to
+/// one (FIFO, socket, device, ...).
+pub const NON_REGULAR_FILE_REASON: &str = "not a regular file";
+
+/// Reason recorded for an eligible FLAC below the top level when
+/// `--no-recursive` is active.
+pub const NON_RECURSIVE_REASON: &str = "excluded by --no-recursive";
 
 /// Canonical batch output extension for a format.
 ///
@@ -251,8 +275,12 @@ pub enum BatchFileOutcome {
     /// Dry run: the destination is free and the file would be converted.
     Planned,
     /// Skipped under `skip_existing`: the destination already existed when
-    /// checked, so the source was never decoded and nothing was written.
-    /// Never a conversion, never a failure.
+    /// checked, so the conversion pass does not decode the source and
+    /// nothing is written. Never a conversion, never a failure.
+    ///
+    /// The M4A loudness pre-pass and the external-artwork pre-scan may still
+    /// read a skipped source; see
+    /// [`execute_plan_with_options_and_progress`].
     Skipped,
     /// The file was not converted.
     Failed {
@@ -318,6 +346,105 @@ pub struct BatchOutcome {
     pub results: Vec<BatchFileResult>,
     /// Final tallies.
     pub summary: BatchSummary,
+}
+
+/// Options for one batch execution.
+///
+/// The field defaults preserve the historical behavior:
+/// no dry run, no skip-existing, tags enabled, and embedded cover art.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BatchOptions {
+    /// Plan only: create nothing, decode nothing, read no metadata.
+    pub dry_run: bool,
+    /// Treat existing destinations as skips instead of failures.
+    pub skip_existing: bool,
+    /// Write user metadata atoms for M4A output (`--no-tags` sets `false`).
+    pub write_tags: bool,
+    /// Cover-art handling for M4A output with tags enabled.
+    pub cover_art: CoverArtMode,
+}
+
+impl Default for BatchOptions {
+    fn default() -> Self {
+        Self {
+            dry_run: false,
+            skip_existing: false,
+            write_tags: true,
+            cover_art: CoverArtMode::Embedded,
+        }
+    }
+}
+
+/// One item's position in the deterministic batch plan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BatchProgress {
+    /// 1-based position among all work items (planned files plus discovery
+    /// failures), in processing order.
+    pub index: usize,
+    /// Total number of work items in this execution.
+    pub total: usize,
+    /// Input path relative to the input root.
+    pub relative_input: PathBuf,
+    /// Destination relative to the output root (`None` for discovery
+    /// failures).
+    pub relative_output: Option<PathBuf>,
+}
+
+/// Progress event emitted synchronously during sequential batch execution.
+///
+/// Every work item emits exactly one terminal event (`Converted`, `Skipped`,
+/// `Failed`, or `Planned`) in plan order. Real conversion attempts also emit
+/// `Started` before their terminal event; an item already known to be skipped
+/// under `skip_existing` emits only `Skipped`. M4A runs with tags emit one
+/// optional `Preparing` event before the first item when the loudness (and
+/// external-artwork) pre-pass runs. Dry runs never emit `Started` or
+/// `Preparing`: nothing is encoded or analyzed. Events never replace or
+/// duplicate conversion logic; they are observations of the same per-file
+/// pipeline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BatchEvent {
+    /// Optional real-run phase event: the album loudness (and, when external
+    /// artwork is requested, cover-art) pre-pass is about to start. No
+    /// per-file work has begun yet.
+    Preparing {
+        /// Total work items in this execution.
+        total: usize,
+        /// True when the pre-pass also scans artwork for external extraction.
+        cover_art: bool,
+    },
+    /// A real-run item is about to be checked and converted.
+    Started(BatchProgress),
+    /// The file converted and published successfully.
+    Converted {
+        /// Position and paths.
+        item: BatchProgress,
+        /// Metadata diagnostics for the converted file.
+        tags: TagDiagnostics,
+    },
+    /// The destination existed and `skip_existing` skipped the file.
+    Skipped(BatchProgress),
+    /// The file was not converted.
+    Failed {
+        /// Position and paths.
+        item: BatchProgress,
+        /// Stable failure category.
+        category: &'static str,
+        /// User-facing detail for stderr.
+        message: String,
+    },
+    /// Dry run: the destination is free and the file would be converted.
+    Planned(BatchProgress),
+}
+
+/// Outcome of one batch execution, including external cover-art reports.
+#[derive(Debug, Clone)]
+pub struct BatchExecution {
+    /// Per-file results and tallies.
+    pub outcome: BatchOutcome,
+    /// External cover-art outcomes in output-directory order. Empty when
+    /// nothing is extracted (embedded-only, ADTS, `--no-tags`, dry runs, or no
+    /// eligible artwork).
+    pub cover_art: Vec<crate::CoverArtReport>,
 }
 
 /// Discover, map, and validate a directory batch without writing anything.
@@ -400,18 +527,21 @@ pub fn plan_batch(
 ///   for taken ones.
 /// - Discovery failures are reported as failures in both modes.
 /// - With `skip_existing`, a destination that already exists is skipped: the
-///   source is never decoded, no temporary file is created, and the item
-///   counts as `skipped`, never as converted or failed. The pre-execution
-///   existence check is advisory only; enforcement stays with the atomic
-///   hard-link publication, so a destination appearing after planning still
-///   cannot be overwritten: a publication-time `OutputExists` becomes a skip
-///   under `skip_existing` and a failure otherwise. Every other error is a
-///   failure in both modes.
+///   conversion pass never decodes the source, no temporary file is created,
+///   and the item counts as `skipped`, never as converted or failed. (The
+///   M4A loudness pre-pass and the external-artwork pre-scan may still read
+///   a skipped source.) The pre-execution existence check is advisory only;
+///   enforcement stays with the atomic hard-link publication, so a
+///   destination appearing after planning still cannot be overwritten: a
+///   publication-time `OutputExists` becomes a skip under `skip_existing`
+///   and a failure otherwise. Every other error is a failure in both modes.
 ///
 /// Results are returned in deterministic input order with final tallies.
 ///
 /// This wrapper writes user metadata for M4A output. Use
-/// [`execute_plan_with_tags`] to omit user metadata atoms (`--no-tags`).
+/// [`execute_plan_with_tags`] to omit user metadata atoms (`--no-tags`), and
+/// [`execute_plan_with_options_and_progress`] for external cover-art control
+/// or ordered progress events.
 pub fn execute_plan(
     plan: &BatchPlan,
     format: OutputFormat,
@@ -433,7 +563,8 @@ pub fn execute_plan(
 /// album-grouped R128 pipeline, and each conversion carries only its own
 /// precomputed loudness atoms. The pre-pass reads sources only — no outputs
 /// are published until the conversion pass, so single-publication and
-/// no-replace behavior are unchanged.
+/// no-replace behavior are unchanged. Cover art remains in the default
+/// embedded mode; use [`execute_plan_with_options`] for external extraction.
 pub fn execute_plan_with_tags(
     plan: &BatchPlan,
     format: OutputFormat,
@@ -441,7 +572,60 @@ pub fn execute_plan_with_tags(
     skip_existing: bool,
     write_tags: bool,
 ) -> Result<BatchOutcome, BatchError> {
-    let output_root = if dry_run {
+    execute_plan_with_options(
+        plan,
+        format,
+        &BatchOptions {
+            dry_run,
+            skip_existing,
+            write_tags,
+            cover_art: CoverArtMode::Embedded,
+        },
+    )
+    .map(|execution| execution.outcome)
+}
+
+/// Execute a plan with explicit batch options and no progress observer.
+///
+/// Behaves like [`execute_plan_with_tags`], with additive control over
+/// external cover art and access to [`CoverArtReport`](crate::CoverArtReport)
+/// records. Existing entry points remain behaviorally unchanged.
+pub fn execute_plan_with_options(
+    plan: &BatchPlan,
+    format: OutputFormat,
+    options: &BatchOptions,
+) -> Result<BatchExecution, BatchError> {
+    execute_plan_with_options_and_progress(plan, format, options, |_| {})
+}
+
+/// Execute a plan with explicit options and a synchronous progress observer.
+///
+/// The observer runs on the calling thread, in deterministic plan order. M4A
+/// runs with tags first emit one `Preparing` event for the loudness (and
+/// optional external-artwork) pre-pass. Every work item then emits exactly one
+/// terminal [`BatchEvent`] (`Converted`, `Skipped`, `Failed`, or `Planned`);
+/// real conversion attempts also emit `Started` first, while items already
+/// known to be skipped under `skip_existing` emit only `Skipped`. Dry runs
+/// emit neither `Preparing` nor `Started`. Conversion logic is not duplicated:
+/// events observe the same single-file pipeline.
+///
+/// External cover-art publication happens after the sequential conversion
+/// pass. Artwork conflicts and publication problems produce reports and never
+/// fail or roll back otherwise valid audio conversions.
+///
+/// The observer must not panic: it executes synchronously on the calling
+/// thread, and a panic unwinds through the executor, aborting the remaining
+/// batch. Files already published before the panic are not rolled back.
+pub fn execute_plan_with_options_and_progress<F>(
+    plan: &BatchPlan,
+    format: OutputFormat,
+    options: &BatchOptions,
+    mut progress: F,
+) -> Result<BatchExecution, BatchError>
+where
+    F: FnMut(BatchEvent),
+{
+    let output_root = if options.dry_run {
         plan.output_root.clone()
     } else {
         fs::create_dir_all(&plan.output_root)
@@ -470,18 +654,23 @@ pub fn execute_plan_with_tags(
         work.push((sort_key(&failure.relative), Work::Discovery(failure)));
     }
     work.sort_by(|a, b| a.0.cmp(&b.0));
+    let total = work.len();
 
-    let mut results = Vec::with_capacity(work.len());
-    let mut converted = 0u64;
-    let mut failed = 0u64;
-    let mut existing = 0u64;
-    let mut skipped = 0u64;
+    // A single phase event covers the pre-pass before per-file progress. The
+    // pre-pass is M4A-only and real-run-only; dry runs analyze nothing.
+    if matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags {
+        progress(BatchEvent::Preparing {
+            total,
+            cover_art: options.cover_art.extracts(),
+        });
+    }
 
     // Loudness pre-pass (M4A with tags, real runs only): analyze every
     // planned source grouped into albums by source-parent directory before
     // any conversion publishes. Retained members participate through their
     // readable sources; analysis never modifies retained outputs.
-    let loudness = if matches!(format, OutputFormat::M4a) && !dry_run && write_tags {
+    let loudness = if matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags
+    {
         let members = plan
             .entries
             .iter()
@@ -492,189 +681,415 @@ pub fn execute_plan_with_tags(
         None
     };
 
-    for (_, item) in work {
+    // External artwork is planned per output directory before conversion so
+    // conflicting images are never half-published. Dry runs create and read
+    // nothing.
+    let external_covers = if matches!(format, OutputFormat::M4a)
+        && !options.dry_run
+        && options.write_tags
+        && options.cover_art.extracts()
+    {
+        Some(prepare_external_covers(plan))
+    } else {
+        None
+    };
+    let embed_cover = options.write_tags && options.cover_art.embeds();
+
+    let mut results = Vec::with_capacity(work.len());
+    for (index, (_, item)) in work.into_iter().enumerate() {
+        let index = index + 1;
         let result = match item {
-            Work::Discovery(failure) => {
-                failed += 1;
-                BatchFileResult {
-                    relative_input: failure.relative.clone(),
-                    relative_output: None,
-                    outcome: BatchFileOutcome::Failed {
-                        category: failure.category,
-                        message: failure.message.clone(),
-                    },
-                }
-            }
+            Work::Discovery(failure) => BatchFileResult {
+                relative_input: failure.relative.clone(),
+                relative_output: None,
+                outcome: BatchFileOutcome::Failed {
+                    category: failure.category,
+                    message: failure.message.clone(),
+                },
+            },
             Work::Entry(entry) => {
-                let destination = if dry_run {
-                    entry.output.clone()
-                } else {
-                    let destination = output_root.join(&entry.relative_output);
-                    debug_assert!(
-                        destination.starts_with(&output_root),
-                        "mapped destination escapes the output root"
-                    );
-                    destination
-                };
-                if dry_run {
-                    match fs::symlink_metadata(&destination) {
-                        Ok(_) => {
-                            let relative_output = Some(entry.relative_output.clone());
-                            if skip_existing {
-                                skipped += 1;
-                                BatchFileResult {
-                                    relative_input: entry.relative_input.clone(),
-                                    relative_output,
-                                    outcome: BatchFileOutcome::Skipped,
-                                }
-                            } else {
-                                failed += 1;
-                                existing += 1;
-                                BatchFileResult {
-                                    relative_input: entry.relative_input.clone(),
-                                    relative_output,
-                                    outcome: BatchFileOutcome::Failed {
-                                        category: "OutputExists",
-                                        message: format!(
-                                            "output file already exists: {} \
-                                             (overwriting is not supported)",
-                                            entry.relative_output.display()
-                                        ),
-                                    },
-                                }
-                            }
-                        }
-                        Err(err) if err.kind() == io::ErrorKind::NotFound => {
-                            converted += 1;
-                            BatchFileResult {
-                                relative_input: entry.relative_input.clone(),
-                                relative_output: Some(entry.relative_output.clone()),
-                                outcome: BatchFileOutcome::Planned,
-                            }
-                        }
-                        Err(_) => {
-                            failed += 1;
-                            BatchFileResult {
-                                relative_input: entry.relative_input.clone(),
-                                relative_output: Some(entry.relative_output.clone()),
-                                outcome: BatchFileOutcome::Failed {
-                                    category: "OutputInspect",
-                                    message: format!(
-                                        "could not inspect output path: {}",
-                                        entry.relative_output.display()
-                                    ),
-                                },
-                            }
-                        }
+                // A destination already known to exist under `skip_existing`
+                // is reported as a skip without a misleading "encoding..."
+                // start line. The check is advisory; the atomic publication
+                // remains the enforcement point for destinations that appear
+                // later.
+                let known_skip = !options.dry_run
+                    && options.skip_existing
+                    && fs::symlink_metadata(output_root.join(&entry.relative_output)).is_ok();
+                if known_skip {
+                    BatchFileResult {
+                        relative_input: entry.relative_input.clone(),
+                        relative_output: Some(entry.relative_output.clone()),
+                        outcome: BatchFileOutcome::Skipped,
                     }
                 } else {
-                    // With `skip_existing`, a destination known to exist is
-                    // skipped before any decode, encode, or temp-file work.
-                    // This check is advisory: the atomic hard-link
-                    // publication below remains the enforcement point, so a
-                    // destination appearing afterwards still cannot be
-                    // overwritten.
-                    if skip_existing && fs::symlink_metadata(&destination).is_ok() {
-                        skipped += 1;
-                        results.push(BatchFileResult {
+                    if !options.dry_run {
+                        progress(BatchEvent::Started(BatchProgress {
+                            index,
+                            total,
                             relative_input: entry.relative_input.clone(),
                             relative_output: Some(entry.relative_output.clone()),
-                            outcome: BatchFileOutcome::Skipped,
-                        });
-                        continue;
+                        }));
                     }
-                    if let Some(parent) = destination.parent() {
-                        if let Err(err) = fs::create_dir_all(parent) {
-                            // A concurrent batch may have created the
-                            // directory first; only real failures count.
-                            if err.kind() != io::ErrorKind::AlreadyExists {
-                                failed += 1;
-                                results.push(BatchFileResult {
-                                    relative_input: entry.relative_input.clone(),
-                                    relative_output: Some(entry.relative_output.clone()),
-                                    outcome: BatchFileOutcome::Failed {
-                                        category: "OutputDirCreate",
-                                        message: format!(
-                                            "could not create output subdirectory for {}",
-                                            entry.relative_input.display()
-                                        ),
-                                    },
-                                });
-                                continue;
-                            }
-                        }
-                    }
-                    match convert_file_with_format_tags_and_loudness(
-                        &entry.input,
-                        &destination,
+                    execute_entry(
+                        entry,
+                        &output_root,
                         format,
-                        write_tags,
+                        options,
+                        embed_cover,
                         loudness
                             .as_ref()
                             .and_then(|map| map.get(&entry.relative_input)),
-                    ) {
-                        Ok((summary, tags)) => {
-                            converted += 1;
-                            BatchFileResult {
-                                relative_input: entry.relative_input.clone(),
-                                relative_output: Some(entry.relative_output.clone()),
-                                outcome: BatchFileOutcome::Converted {
-                                    frames: summary.encoded_frames,
-                                    bytes: summary.output_bytes,
-                                    properties: summary.properties,
-                                    tags,
-                                },
-                            }
-                        }
-                        Err(err) => {
-                            let category = category_for(&err);
-                            // A publication-time collision means the
-                            // destination appeared after planning (a
-                            // concurrent batch or an external write). The
-                            // hard link already refused the overwrite; under
-                            // `skip_existing` that outcome is a skip, never
-                            // a failure. Any other publication error stays a
-                            // failure: races are never inferred from generic
-                            // I/O errors.
-                            if category == "OutputExists" && skip_existing {
-                                skipped += 1;
-                                BatchFileResult {
-                                    relative_input: entry.relative_input.clone(),
-                                    relative_output: Some(entry.relative_output.clone()),
-                                    outcome: BatchFileOutcome::Skipped,
-                                }
-                            } else {
-                                failed += 1;
-                                if category == "OutputExists" {
-                                    existing += 1;
-                                }
-                                BatchFileResult {
-                                    relative_input: entry.relative_input.clone(),
-                                    relative_output: Some(entry.relative_output.clone()),
-                                    outcome: BatchFileOutcome::Failed {
-                                        category,
-                                        message: err.to_string(),
-                                    },
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
         };
+        emit_terminal_event(&result, index, total, &mut progress);
         results.push(result);
     }
 
-    Ok(BatchOutcome {
-        results,
-        summary: BatchSummary {
-            converted,
-            failed,
-            existing,
-            ignored: plan.ignored.len() as u64,
-            skipped,
-        },
+    let summary = summarize(&results, plan.ignored.len() as u64);
+    let cover_art = match external_covers {
+        Some(groups) => publish_external_covers(&output_root, groups, &results),
+        None => Vec::new(),
+    };
+
+    Ok(BatchExecution {
+        outcome: BatchOutcome { results, summary },
+        cover_art,
     })
+}
+
+/// Execute one planned entry through the existing per-file pipeline.
+fn execute_entry(
+    entry: &BatchPlanEntry,
+    output_root: &Path,
+    format: OutputFormat,
+    options: &BatchOptions,
+    embed_cover: bool,
+    loudness: Option<&loudness::FileLoudness>,
+) -> BatchFileResult {
+    let destination = if options.dry_run {
+        entry.output.clone()
+    } else {
+        let destination = output_root.join(&entry.relative_output);
+        debug_assert!(
+            destination.starts_with(output_root),
+            "mapped destination escapes the output root"
+        );
+        destination
+    };
+    let relative_output = || Some(entry.relative_output.clone());
+
+    if options.dry_run {
+        return match fs::symlink_metadata(&destination) {
+            Ok(_) => {
+                if options.skip_existing {
+                    BatchFileResult {
+                        relative_input: entry.relative_input.clone(),
+                        relative_output: relative_output(),
+                        outcome: BatchFileOutcome::Skipped,
+                    }
+                } else {
+                    BatchFileResult {
+                        relative_input: entry.relative_input.clone(),
+                        relative_output: relative_output(),
+                        outcome: BatchFileOutcome::Failed {
+                            category: "OutputExists",
+                            message: format!(
+                                "output file already exists: {} \
+                                 (overwriting is not supported)",
+                                entry.relative_output.display()
+                            ),
+                        },
+                    }
+                }
+            }
+            Err(err) if err.kind() == io::ErrorKind::NotFound => BatchFileResult {
+                relative_input: entry.relative_input.clone(),
+                relative_output: relative_output(),
+                outcome: BatchFileOutcome::Planned,
+            },
+            Err(_) => BatchFileResult {
+                relative_input: entry.relative_input.clone(),
+                relative_output: relative_output(),
+                outcome: BatchFileOutcome::Failed {
+                    category: "OutputInspect",
+                    message: format!(
+                        "could not inspect output path: {}",
+                        entry.relative_output.display()
+                    ),
+                },
+            },
+        };
+    }
+
+    // With `skip_existing`, a destination known to exist is skipped before
+    // any conversion-pass decode, encode, or temp-file work. This check is
+    // advisory: the atomic hard-link publication remains the enforcement
+    // point, so a destination appearing afterwards still cannot be
+    // overwritten.
+    if options.skip_existing && fs::symlink_metadata(&destination).is_ok() {
+        return BatchFileResult {
+            relative_input: entry.relative_input.clone(),
+            relative_output: relative_output(),
+            outcome: BatchFileOutcome::Skipped,
+        };
+    }
+    if let Some(parent) = destination.parent() {
+        if let Err(err) = fs::create_dir_all(parent) {
+            // A concurrent batch may have created the directory first; only
+            // real failures count.
+            if err.kind() != io::ErrorKind::AlreadyExists {
+                return BatchFileResult {
+                    relative_input: entry.relative_input.clone(),
+                    relative_output: relative_output(),
+                    outcome: BatchFileOutcome::Failed {
+                        category: "OutputDirCreate",
+                        message: format!(
+                            "could not create output subdirectory for {}",
+                            entry.relative_input.display()
+                        ),
+                    },
+                };
+            }
+        }
+    }
+    match convert_file_with_format_tags_and_loudness(
+        &entry.input,
+        &destination,
+        format,
+        options.write_tags,
+        embed_cover,
+        loudness,
+    ) {
+        Ok((summary, tags)) => BatchFileResult {
+            relative_input: entry.relative_input.clone(),
+            relative_output: relative_output(),
+            outcome: BatchFileOutcome::Converted {
+                frames: summary.encoded_frames,
+                bytes: summary.output_bytes,
+                properties: summary.properties,
+                tags,
+            },
+        },
+        Err(err) => {
+            let category = category_for(&err);
+            // A publication-time collision means the destination appeared
+            // after planning (a concurrent batch or an external write). The
+            // hard link already refused the overwrite; under `skip_existing`
+            // that outcome is a skip, never a failure. Any other publication
+            // error stays a failure: races are never inferred from generic
+            // I/O errors.
+            if category == "OutputExists" && options.skip_existing {
+                BatchFileResult {
+                    relative_input: entry.relative_input.clone(),
+                    relative_output: relative_output(),
+                    outcome: BatchFileOutcome::Skipped,
+                }
+            } else {
+                BatchFileResult {
+                    relative_input: entry.relative_input.clone(),
+                    relative_output: relative_output(),
+                    outcome: BatchFileOutcome::Failed {
+                        category,
+                        message: err.to_string(),
+                    },
+                }
+            }
+        }
+    }
+}
+
+/// Emit exactly one terminal event for a finished work item.
+fn emit_terminal_event<F>(result: &BatchFileResult, index: usize, total: usize, progress: &mut F)
+where
+    F: FnMut(BatchEvent),
+{
+    let item = BatchProgress {
+        index,
+        total,
+        relative_input: result.relative_input.clone(),
+        relative_output: result.relative_output.clone(),
+    };
+    match &result.outcome {
+        BatchFileOutcome::Converted { tags, .. } => progress(BatchEvent::Converted {
+            item,
+            tags: tags.clone(),
+        }),
+        BatchFileOutcome::Planned => progress(BatchEvent::Planned(item)),
+        BatchFileOutcome::Skipped => progress(BatchEvent::Skipped(item)),
+        BatchFileOutcome::Failed { category, message } => progress(BatchEvent::Failed {
+            item,
+            category,
+            message: message.clone(),
+        }),
+    }
+}
+
+/// Derive the unchanged summary counts from the ordered results.
+fn summarize(results: &[BatchFileResult], ignored: u64) -> BatchSummary {
+    let mut summary = BatchSummary {
+        converted: 0,
+        failed: 0,
+        existing: 0,
+        ignored,
+        skipped: 0,
+    };
+    for result in results {
+        match &result.outcome {
+            BatchFileOutcome::Converted { .. } | BatchFileOutcome::Planned => {
+                summary.converted += 1;
+            }
+            BatchFileOutcome::Skipped => summary.skipped += 1,
+            BatchFileOutcome::Failed { category, .. } => {
+                summary.failed += 1;
+                if *category == "OutputExists" {
+                    summary.existing += 1;
+                }
+            }
+        }
+    }
+    summary
+}
+
+/// Content fingerprint for external cover-art conflict detection.
+///
+/// Hashing the format and complete image bytes compares actual content, not
+/// names or metadata descriptions. Length is included explicitly and the
+/// hash covers each byte, so distinct images are not conflated by filename.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct CoverFingerprint {
+    format: crate::meta::CoverFormat,
+    len: usize,
+    hash: u64,
+}
+
+fn cover_fingerprint(cover: &crate::meta::CoverArt) -> CoverFingerprint {
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    cover.format.hash(&mut hasher);
+    cover.data.hash(&mut hasher);
+    CoverFingerprint {
+        format: cover.format,
+        len: cover.data.len(),
+        hash: hasher.finish(),
+    }
+}
+
+/// One output directory's pre-scanned artwork.
+#[derive(Debug)]
+struct ExternalCoverGroup {
+    representative: PathBuf,
+    fingerprint: CoverFingerprint,
+    conflicted: bool,
+}
+
+/// Select artwork for every planned track and group it by output directory.
+///
+/// The first eligible image becomes the representative; any different content
+/// marks the directory conflicted. Absent or unreadable artwork contributes
+/// nothing. This pre-scan writes nothing and does not decode audio.
+fn prepare_external_covers(plan: &BatchPlan) -> BTreeMap<PathBuf, ExternalCoverGroup> {
+    let mut groups: BTreeMap<PathBuf, ExternalCoverGroup> = BTreeMap::new();
+    for entry in &plan.entries {
+        let Ok((Some(cover), _)) = crate::meta::read_cover(&entry.input) else {
+            continue;
+        };
+        let directory = entry
+            .relative_output
+            .parent()
+            .unwrap_or_else(|| Path::new(""))
+            .to_path_buf();
+        let fingerprint = cover_fingerprint(&cover);
+        match groups.entry(directory) {
+            std::collections::btree_map::Entry::Vacant(vacant) => {
+                vacant.insert(ExternalCoverGroup {
+                    representative: entry.input.clone(),
+                    fingerprint,
+                    conflicted: false,
+                });
+            }
+            std::collections::btree_map::Entry::Occupied(mut occupied) => {
+                let group = occupied.get_mut();
+                if group.fingerprint != fingerprint {
+                    group.conflicted = true;
+                }
+            }
+        }
+    }
+    groups
+}
+
+/// Publish one external image per non-conflicting output directory.
+///
+/// Only directories with at least one converted or retained-skipped audio
+/// item receive a file. Conflicts are reported and skipped; one directory's
+/// artwork problem never changes audio outcomes or the final summary.
+fn publish_external_covers(
+    output_root: &Path,
+    groups: BTreeMap<PathBuf, ExternalCoverGroup>,
+    results: &[BatchFileResult],
+) -> Vec<crate::CoverArtReport> {
+    let produced: BTreeSet<PathBuf> = results
+        .iter()
+        .filter(|result| {
+            matches!(
+                &result.outcome,
+                BatchFileOutcome::Converted { .. } | BatchFileOutcome::Skipped
+            )
+        })
+        .filter_map(|result| result.relative_output.as_ref())
+        .map(|relative| {
+            relative
+                .parent()
+                .unwrap_or_else(|| Path::new(""))
+                .to_path_buf()
+        })
+        .collect();
+
+    let mut reports = Vec::new();
+    for (relative_dir, group) in groups {
+        let display_directory = if relative_dir.as_os_str().is_empty() {
+            PathBuf::from(".")
+        } else {
+            relative_dir.clone()
+        };
+        if group.conflicted {
+            reports.push(crate::CoverArtReport {
+                directory: display_directory,
+                file_name: None,
+                action: crate::CoverArtAction::Conflicted,
+            });
+            continue;
+        }
+        if !produced.contains(&relative_dir) {
+            continue;
+        }
+        let cover = match crate::meta::read_cover(&group.representative) {
+            Ok((Some(cover), _)) if cover_fingerprint(&cover) == group.fingerprint => cover,
+            _ => {
+                reports.push(crate::CoverArtReport {
+                    directory: display_directory,
+                    file_name: None,
+                    action: crate::CoverArtAction::Failed {
+                        message: "could not re-read the selected cover image".to_string(),
+                    },
+                });
+                continue;
+            }
+        };
+        let file_name = cover.file_name();
+        let destination = output_root.join(&relative_dir).join(&file_name);
+        let action = crate::publish_cover_file(&destination, &cover.data);
+        reports.push(crate::CoverArtReport {
+            directory: display_directory,
+            file_name: Some(file_name),
+            action,
+        });
+    }
+    reports
 }
 
 /// Map an input-relative path to its output-relative destination.
@@ -843,9 +1258,16 @@ fn discover(
                 stack.push(relative);
             } else if file_type.is_symlink() {
                 if !is_flac_name(&entry.file_name()) {
+                    // The extension alone already excludes this entry. When
+                    // the target is a directory, report the more specific
+                    // "not followed" reason without changing the outcome.
+                    let reason = match fs::metadata(entry.path()) {
+                        Ok(target) if target.is_dir() => SYMLINKED_DIR_REASON,
+                        _ => UNSUPPORTED_EXTENSION_REASON,
+                    };
                     ignored.push(IgnoredEntry {
                         relative,
-                        reason: None,
+                        reason: Some(reason),
                     });
                     continue;
                 }
@@ -861,7 +1283,7 @@ fn discover(
                         if below_top {
                             ignored.push(IgnoredEntry {
                                 relative,
-                                reason: None,
+                                reason: Some(NON_RECURSIVE_REASON),
                             });
                         } else {
                             candidates.push(relative);
@@ -885,10 +1307,15 @@ fn discover(
                     }
                 }
             } else if file_type.is_file() {
-                if !is_flac_name(&entry.file_name()) || below_top {
+                if !is_flac_name(&entry.file_name()) {
                     ignored.push(IgnoredEntry {
                         relative,
-                        reason: None,
+                        reason: Some(UNSUPPORTED_EXTENSION_REASON),
+                    });
+                } else if below_top {
+                    ignored.push(IgnoredEntry {
+                        relative,
+                        reason: Some(NON_RECURSIVE_REASON),
                     });
                 } else {
                     candidates.push(relative);
@@ -897,7 +1324,7 @@ fn discover(
                 // FIFOs, sockets, devices: ignored, never opened.
                 ignored.push(IgnoredEntry {
                     relative,
-                    reason: None,
+                    reason: Some(NON_REGULAR_FILE_REASON),
                 });
             }
         }
