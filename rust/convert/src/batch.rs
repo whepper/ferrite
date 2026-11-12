@@ -1,13 +1,22 @@
-//! Sequential directory batch conversion (M8.2).
+//! Directory batch conversion (M8.2), with bounded-concurrency execution.
 //!
 //! This module layers directory semantics on top of the unchanged single-file
 //! pipeline ([`convert_file_with_format`](crate::convert_file_with_format)).
 //! It performs discovery, deterministic planning, pre-flight validation, and
-//! sequential execution with per-file failure isolation.
+//! bounded-concurrency execution with per-file failure isolation.
 //!
-//! Design authority: `docs/aac-convert-m8.1-batch-design.md`. The rules below
-//! summarize the normative behavior; the design document is the reference for
-//! rationale.
+//! Design authority: `docs/aac-convert-m8.1-batch-design.md` for the
+//! sequential planning and publication rules; the parallel execution rules
+//! are an additive extension documented here.
+//!
+//! Concurrency is stage-bounded, never nested. Preparation runs the loudness
+//! analysis and then the external-artwork pre-scan; each sub-stage uses at
+//! most [`BatchOptions::jobs`] workers and finishes before the next begins.
+//! Only then does conversion run, again with at most the same number of
+//! workers. The stages never overlap, so the global worker limit is never
+//! exceeded even though every stage reuses it. Per-file results are always
+//! collected in plan order; only progress events may arrive in completion
+//! order.
 //!
 //! - Traversal is recursive by default; directory symlinks are never followed;
 //!   symlinked files whose target is a regular file are accepted; hidden files
@@ -35,21 +44,34 @@
 //! - Each file converts through the existing temporary-file and atomic
 //!   hard-link publication path, so no partial output can remain and a
 //!   concurrent winner is never replaced.
-//! - Execution is strictly sequential with the same per-file bounded-memory
-//!   profile as single-file conversion. M4A runs with tags add one streaming
-//!   loudness pre-pass over source PCM (`ebur128`, one packet at a time, no
-//!   whole-file buffering) before any publication; traversal itself uses only
-//!   `std::fs` with an explicit stack (no recursion).
-//! - [`execute_plan_with_options_and_progress`] exposes the same sequential
-//!   pipeline through ordered [`BatchEvent`] callbacks (one optional pre-pass
-//!   notice, a terminal outcome for every work item, and a start event for real
-//!   conversion attempts). It also adds external cover-art planning: eligible
-//!   artwork is grouped by destination directory, conflicting images are
-//!   reported and skipped for that directory, and one identical image is
-//!   published without overwriting an existing `cover.jpg`/`cover.png`.
-//!   Existing entry points retain embedded-only behavior.
+//! - Independent files are prepared and encoded by a bounded worker pool of
+//!   [`BatchOptions::jobs`] threads (default: available logical CPUs; `1`
+//!   restores strictly sequential execution). Every worker owns its decoder,
+//!   encoder, metadata state, and temporary file, so no mutable encoder state
+//!   is shared. Memory remains bounded per worker by the same streaming
+//!   profile as single-file conversion.
+//! - M4A runs with tags add one streaming loudness pre-pass over source PCM
+//!   (`ebur128`, one packet at a time, no whole-file buffering) before any
+//!   publication. Albums are independent and may run concurrently; members of
+//!   one album stay sequential because they share one ordered album analyzer.
+//! - External-artwork pre-scanning (`meta::read_cover`) is concurrent per
+//!   planned file, but conflict detection and publication are resolved
+//!   sequentially in plan order after conversion, so no worker can race when
+//!   publishing `cover.jpg`/`cover.png`.
+//! - Traversal itself uses only `std::fs` with an explicit stack (no
+//!   recursion).
+//! - [`execute_plan_with_options_and_progress`] exposes the same pipeline
+//!   through [`BatchEvent`] callbacks (one optional pre-pass notice, a
+//!   terminal outcome for every work item, and a start event for real
+//!   conversion attempts). Events are emitted on the calling thread; with
+//!   `jobs > 1` their order follows completion, while returned results and
+//!   stdout reports remain in plan order. External cover-art planning groups
+//!   eligible artwork by destination directory, reports and skips conflicting
+//!   images for that directory, and publishes one identical image without
+//!   overwriting an existing `cover.jpg`/`cover.png`. Existing entry points
+//!   retain embedded-only behavior.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::fs;
@@ -57,6 +79,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::loudness;
+use crate::parallel;
 use crate::{
     convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, CoverArtMode,
     OutputFormat, TagDiagnostics,
@@ -348,10 +371,19 @@ pub struct BatchOutcome {
     pub summary: BatchSummary,
 }
 
+/// Default batch worker count: the number of available logical CPUs.
+///
+/// Falls back to one worker when the platform cannot report a parallelism
+/// value, so batch execution always has a usable limit.
+pub fn default_jobs() -> usize {
+    std::thread::available_parallelism().map_or(1, |count| count.get())
+}
+
 /// Options for one batch execution.
 ///
-/// The field defaults preserve the historical behavior:
-/// no dry run, no skip-existing, tags enabled, and embedded cover art.
+/// The field defaults preserve the historical behavior except for `jobs`,
+/// which defaults to [`default_jobs`] (available logical CPUs): no dry run,
+/// no skip-existing, tags enabled, and embedded cover art.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BatchOptions {
     /// Plan only: create nothing, decode nothing, read no metadata.
@@ -362,6 +394,9 @@ pub struct BatchOptions {
     pub write_tags: bool,
     /// Cover-art handling for M4A output with tags enabled.
     pub cover_art: CoverArtMode,
+    /// Global worker limit for preparation and encoding. `1` is strictly
+    /// sequential. Values below one are treated as one.
+    pub jobs: usize,
 }
 
 impl Default for BatchOptions {
@@ -371,6 +406,7 @@ impl Default for BatchOptions {
             skip_existing: false,
             write_tags: true,
             cover_art: CoverArtMode::Embedded,
+            jobs: default_jobs(),
         }
     }
 }
@@ -379,7 +415,8 @@ impl Default for BatchOptions {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BatchProgress {
     /// 1-based position among all work items (planned files plus discovery
-    /// failures), in processing order.
+    /// failures), in deterministic plan order. Concurrency may change event
+    /// arrival order, never this identity.
     pub index: usize,
     /// Total number of work items in this execution.
     pub total: usize,
@@ -390,17 +427,24 @@ pub struct BatchProgress {
     pub relative_output: Option<PathBuf>,
 }
 
-/// Progress event emitted synchronously during sequential batch execution.
+/// Progress event emitted synchronously during batch execution.
 ///
 /// Every work item emits exactly one terminal event (`Converted`, `Skipped`,
-/// `Failed`, or `Planned`) in plan order. Real conversion attempts also emit
-/// `Started` before their terminal event; an item already known to be skipped
-/// under `skip_existing` emits only `Skipped`. M4A runs with tags emit one
-/// optional `Preparing` event before the first item when the loudness (and
+/// `Failed`, or `Planned`). Real conversion attempts also emit `Started`
+/// before their terminal event; an item already known to be skipped under
+/// `skip_existing` emits only `Skipped`. M4A runs with tags emit one optional
+/// `Preparing` event before the first item when the loudness (and
 /// external-artwork) pre-pass runs. Dry runs never emit `Started` or
-/// `Preparing`: nothing is encoded or analyzed. Events never replace or
-/// duplicate conversion logic; they are observations of the same per-file
-/// pipeline.
+/// `Preparing`: nothing is encoded or analyzed.
+///
+/// Events are emitted on the calling thread, so a single observer sees no
+/// interleaved or reordered writes from workers. With `jobs == 1` events are
+/// in plan order. With `jobs > 1` they arrive in completion order (which may
+/// differ from plan order), while `BatchProgress::index` and `total` always
+/// identify the item by its deterministic plan position. Each item's
+/// `Started` event still precedes its own terminal event. Events never
+/// replace or duplicate conversion logic; they are observations of the same
+/// per-file pipeline.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BatchEvent {
     /// Optional real-run phase event: the album loudness (and, when external
@@ -516,15 +560,15 @@ pub fn plan_batch(
     })
 }
 
-/// Execute a plan sequentially with per-file failure isolation.
+/// Execute a plan with per-file failure isolation.
 ///
 /// - Real runs create the output root (fatal [`BatchError`] on failure),
-///   then convert each entry in plan order through
+///   then prepare and convert entries through
 ///   [`convert_file_with_format_and_tags`](crate::convert_file_with_format_and_tags)
-///   with user metadata writing enabled.
+///   with user metadata writing enabled and at most [`default_jobs`] workers.
 /// - Dry runs create nothing and decode nothing (and never read tags); they
 ///   report `Planned` for free destinations and `Failed` (`OutputExists`)
-///   for taken ones.
+///   for taken ones. Dry runs do not start worker threads.
 /// - Discovery failures are reported as failures in both modes.
 /// - With `skip_existing`, a destination that already exists is skipped: the
 ///   conversion pass never decodes the source, no temporary file is created,
@@ -536,12 +580,13 @@ pub fn plan_batch(
 ///   publication-time `OutputExists` becomes a skip under `skip_existing`
 ///   and a failure otherwise. Every other error is a failure in both modes.
 ///
-/// Results are returned in deterministic input order with final tallies.
+/// Results are returned in deterministic input order with final tallies,
+/// regardless of worker completion order.
 ///
 /// This wrapper writes user metadata for M4A output. Use
 /// [`execute_plan_with_tags`] to omit user metadata atoms (`--no-tags`), and
-/// [`execute_plan_with_options_and_progress`] for external cover-art control
-/// or ordered progress events.
+/// [`execute_plan_with_options_and_progress`] for external cover-art control,
+/// an explicit worker limit, or progress events.
 pub fn execute_plan(
     plan: &BatchPlan,
     format: OutputFormat,
@@ -580,6 +625,7 @@ pub fn execute_plan_with_tags(
             skip_existing,
             write_tags,
             cover_art: CoverArtMode::Embedded,
+            jobs: default_jobs(),
         },
     )
     .map(|execution| execution.outcome)
@@ -588,8 +634,9 @@ pub fn execute_plan_with_tags(
 /// Execute a plan with explicit batch options and no progress observer.
 ///
 /// Behaves like [`execute_plan_with_tags`], with additive control over
-/// external cover art and access to [`CoverArtReport`](crate::CoverArtReport)
-/// records. Existing entry points remain behaviorally unchanged.
+/// external cover art, the worker limit, and access to
+/// [`CoverArtReport`](crate::CoverArtReport) records. Output, metadata, and
+/// result ordering semantics are identical regardless of the worker limit.
 pub fn execute_plan_with_options(
     plan: &BatchPlan,
     format: OutputFormat,
@@ -600,18 +647,25 @@ pub fn execute_plan_with_options(
 
 /// Execute a plan with explicit options and a synchronous progress observer.
 ///
-/// The observer runs on the calling thread, in deterministic plan order. M4A
-/// runs with tags first emit one `Preparing` event for the loudness (and
-/// optional external-artwork) pre-pass. Every work item then emits exactly one
-/// terminal [`BatchEvent`] (`Converted`, `Skipped`, `Failed`, or `Planned`);
-/// real conversion attempts also emit `Started` first, while items already
-/// known to be skipped under `skip_existing` emit only `Skipped`. Dry runs
-/// emit neither `Preparing` nor `Started`. Conversion logic is not duplicated:
-/// events observe the same single-file pipeline.
+/// The observer runs only on the calling thread, so events never interleave
+/// with worker output. M4A runs with tags first emit one `Preparing` event for
+/// the loudness (and optional external-artwork) pre-pass. Every work item then
+/// emits exactly one terminal [`BatchEvent`] (`Converted`, `Skipped`,
+/// `Failed`, or `Planned`); real conversion attempts also emit `Started`
+/// first, while items already known to be skipped under `skip_existing` emit
+/// only `Skipped`. Dry runs emit neither `Preparing` nor `Started`.
+/// Conversion logic is not duplicated: events observe the same single-file
+/// pipeline.
 ///
-/// External cover-art publication happens after the sequential conversion
-/// pass. Artwork conflicts and publication problems produce reports and never
-/// fail or roll back otherwise valid audio conversions.
+/// With `options.jobs > 1`, preparation and conversion use bounded worker
+/// pools of that size, and events arrive in completion order. `index` and
+/// `total` still identify each item by plan position, and each item's
+/// `Started` event precedes its terminal event. With `jobs == 1` (and for dry
+/// runs, which never start workers) events remain in plan order.
+///
+/// External cover-art publication happens after the conversion stage and is
+/// always sequential. Artwork conflicts and publication problems produce
+/// reports and never fail or roll back otherwise valid audio conversions.
 ///
 /// The observer must not panic: it executes synchronously on the calling
 /// thread, and a panic unwinds through the executor, aborting the remaining
@@ -642,19 +696,19 @@ where
 
     // Merge planned entries and discovery failures into one deterministic
     // order keyed by relative input path.
-    enum Work<'a> {
-        Entry(&'a BatchPlanEntry),
-        Discovery(&'a DiscoveryFailure),
-    }
-    let mut work: Vec<(Vec<u8>, Work<'_>)> = Vec::new();
+    let mut work: Vec<(Vec<u8>, WorkItem<'_>)> = Vec::new();
     for entry in &plan.entries {
-        work.push((sort_key(&entry.relative_input), Work::Entry(entry)));
+        work.push((sort_key(&entry.relative_input), WorkItem::Entry(entry)));
     }
     for failure in &plan.discovery_failures {
-        work.push((sort_key(&failure.relative), Work::Discovery(failure)));
+        work.push((sort_key(&failure.relative), WorkItem::Discovery(failure)));
     }
     work.sort_by(|a, b| a.0.cmp(&b.0));
     let total = work.len();
+
+    // Dry runs are metadata-only and deterministic; they neither start
+    // workers nor analyze anything.
+    let jobs = if options.dry_run { 1 } else { options.jobs };
 
     // A single phase event covers the pre-pass before per-file progress. The
     // pre-pass is M4A-only and real-run-only; dry runs analyze nothing.
@@ -668,7 +722,8 @@ where
     // Loudness pre-pass (M4A with tags, real runs only): analyze every
     // planned source grouped into albums by source-parent directory before
     // any conversion publishes. Retained members participate through their
-    // readable sources; analysis never modifies retained outputs.
+    // readable sources; analysis never modifies retained outputs. Albums are
+    // independent workers; members of one album remain sequential.
     let loudness = if matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags
     {
         let members = plan
@@ -676,77 +731,55 @@ where
             .iter()
             .map(|entry| (entry.relative_input.clone(), entry.input.clone()))
             .collect::<Vec<_>>();
-        Some(loudness::analyze_album(&members))
+        Some(loudness::analyze_album_with_jobs(&members, jobs))
     } else {
         None
     };
 
     // External artwork is planned per output directory before conversion so
-    // conflicting images are never half-published. Dry runs create and read
-    // nothing.
+    // conflicting images are never half-published. Per-file reads run
+    // concurrently; grouping stays in plan order and publication happens
+    // sequentially after conversion. Dry runs create and read nothing.
     let external_covers = if matches!(format, OutputFormat::M4a)
         && !options.dry_run
         && options.write_tags
         && options.cover_art.extracts()
     {
-        Some(prepare_external_covers(plan))
+        Some(prepare_external_covers(plan, jobs))
     } else {
         None
     };
     let embed_cover = options.write_tags && options.cover_art.embeds();
 
-    let mut results = Vec::with_capacity(work.len());
-    for (index, (_, item)) in work.into_iter().enumerate() {
-        let index = index + 1;
-        let result = match item {
-            Work::Discovery(failure) => BatchFileResult {
-                relative_input: failure.relative.clone(),
-                relative_output: None,
-                outcome: BatchFileOutcome::Failed {
-                    category: failure.category,
-                    message: failure.message.clone(),
-                },
-            },
-            Work::Entry(entry) => {
-                // A destination already known to exist under `skip_existing`
-                // is reported as a skip without a misleading "encoding..."
-                // start line. The check is advisory; the atomic publication
-                // remains the enforcement point for destinations that appear
-                // later.
-                let known_skip = !options.dry_run
-                    && options.skip_existing
-                    && fs::symlink_metadata(output_root.join(&entry.relative_output)).is_ok();
-                if known_skip {
-                    BatchFileResult {
-                        relative_input: entry.relative_input.clone(),
-                        relative_output: Some(entry.relative_output.clone()),
-                        outcome: BatchFileOutcome::Skipped,
-                    }
-                } else {
-                    if !options.dry_run {
-                        progress(BatchEvent::Started(BatchProgress {
-                            index,
-                            total,
-                            relative_input: entry.relative_input.clone(),
-                            relative_output: Some(entry.relative_output.clone()),
-                        }));
-                    }
-                    execute_entry(
-                        entry,
-                        &output_root,
-                        format,
-                        options,
-                        embed_cover,
-                        loudness
-                            .as_ref()
-                            .and_then(|map| map.get(&entry.relative_input)),
-                    )
-                }
+    // Workers only borrow immutable plan/options/loudness state. Each task
+    // owns its decoder, encoder, and temporary file, and results are slotted
+    // back by plan index so completion order cannot reorder the report.
+    let loudness = loudness.as_ref();
+    let results = parallel::map_indexed_with_events(
+        work.len(),
+        jobs,
+        |index| !options.dry_run && !is_known_skip(&work[index].1, &output_root, options),
+        |index| {
+            execute_work_item(
+                &work[index].1,
+                &output_root,
+                format,
+                options,
+                embed_cover,
+                loudness,
+            )
+        },
+        |event| match event {
+            parallel::IndexEvent::Started(index) => {
+                progress(BatchEvent::Started(
+                    work[index].1.progress(index + 1, total),
+                ));
             }
-        };
-        emit_terminal_event(&result, index, total, &mut progress);
-        results.push(result);
-    }
+            parallel::IndexEvent::Finished(index, result) => {
+                emit_terminal_event(result, index + 1, total, &mut progress);
+            }
+        },
+    );
 
     let summary = summarize(&results, plan.ignored.len() as u64);
     let cover_art = match external_covers {
@@ -758,6 +791,87 @@ where
         outcome: BatchOutcome { results, summary },
         cover_art,
     })
+}
+
+/// One unit of execution in deterministic plan order.
+enum WorkItem<'a> {
+    Entry(&'a BatchPlanEntry),
+    Discovery(&'a DiscoveryFailure),
+}
+
+impl WorkItem<'_> {
+    /// Position and paths for progress reporting.
+    fn progress(&self, index: usize, total: usize) -> BatchProgress {
+        match self {
+            Self::Entry(entry) => BatchProgress {
+                index,
+                total,
+                relative_input: entry.relative_input.clone(),
+                relative_output: Some(entry.relative_output.clone()),
+            },
+            Self::Discovery(failure) => BatchProgress {
+                index,
+                total,
+                relative_input: failure.relative.clone(),
+                relative_output: None,
+            },
+        }
+    }
+}
+
+/// True when a planned destination already exists under `skip_existing`.
+///
+/// The check is advisory: atomic publication remains the enforcement point
+/// for destinations that appear after planning. Kept separate so the caller
+/// can suppress a misleading "encoding..." start line for known skips.
+fn is_known_skip(item: &WorkItem<'_>, output_root: &Path, options: &BatchOptions) -> bool {
+    match item {
+        WorkItem::Entry(entry) => {
+            !options.dry_run
+                && options.skip_existing
+                && fs::symlink_metadata(output_root.join(&entry.relative_output)).is_ok()
+        }
+        WorkItem::Discovery(_) => false,
+    }
+}
+
+/// Execute one work item through the unchanged per-file pipeline.
+fn execute_work_item(
+    item: &WorkItem<'_>,
+    output_root: &Path,
+    format: OutputFormat,
+    options: &BatchOptions,
+    embed_cover: bool,
+    loudness: Option<&HashMap<PathBuf, loudness::FileLoudness>>,
+) -> BatchFileResult {
+    match item {
+        WorkItem::Discovery(failure) => BatchFileResult {
+            relative_input: failure.relative.clone(),
+            relative_output: None,
+            outcome: BatchFileOutcome::Failed {
+                category: failure.category,
+                message: failure.message.clone(),
+            },
+        },
+        WorkItem::Entry(entry) => {
+            if is_known_skip(item, output_root, options) {
+                BatchFileResult {
+                    relative_input: entry.relative_input.clone(),
+                    relative_output: Some(entry.relative_output.clone()),
+                    outcome: BatchFileOutcome::Skipped,
+                }
+            } else {
+                execute_entry(
+                    entry,
+                    output_root,
+                    format,
+                    options,
+                    embed_cover,
+                    loudness.and_then(|map| map.get(&entry.relative_input)),
+                )
+            }
+        }
+    }
 }
 
 /// Execute one planned entry through the existing per-file pipeline.
@@ -988,25 +1102,34 @@ struct ExternalCoverGroup {
 
 /// Select artwork for every planned track and group it by output directory.
 ///
-/// The first eligible image becomes the representative; any different content
-/// marks the directory conflicted. Absent or unreadable artwork contributes
-/// nothing. This pre-scan writes nothing and does not decode audio.
-fn prepare_external_covers(plan: &BatchPlan) -> BTreeMap<PathBuf, ExternalCoverGroup> {
-    let mut groups: BTreeMap<PathBuf, ExternalCoverGroup> = BTreeMap::new();
-    for entry in &plan.entries {
+/// Per-file image reads run on at most `jobs` workers; only a content
+/// fingerprint (never the image bytes) is retained, so memory stays bounded.
+/// The first eligible image in plan order becomes the representative; any
+/// different content marks the directory conflicted. All planned tracks take
+/// part, including skipped and subsequently failed ones. Absent or unreadable
+/// artwork contributes nothing. This pre-scan writes nothing and does not
+/// decode audio; grouping itself is sequential, so conflicts are resolved
+/// deterministically.
+fn prepare_external_covers(plan: &BatchPlan, jobs: usize) -> BTreeMap<PathBuf, ExternalCoverGroup> {
+    let scanned = parallel::map_indexed(plan.entries.len(), jobs, |index| {
+        let entry = &plan.entries[index];
         let Ok((Some(cover), _)) = crate::meta::read_cover(&entry.input) else {
-            continue;
+            return None;
         };
         let directory = entry
             .relative_output
             .parent()
             .unwrap_or_else(|| Path::new(""))
             .to_path_buf();
-        let fingerprint = cover_fingerprint(&cover);
+        Some((directory, entry.input.clone(), cover_fingerprint(&cover)))
+    });
+
+    let mut groups: BTreeMap<PathBuf, ExternalCoverGroup> = BTreeMap::new();
+    for (directory, representative, fingerprint) in scanned.into_iter().flatten() {
         match groups.entry(directory) {
             std::collections::btree_map::Entry::Vacant(vacant) => {
                 vacant.insert(ExternalCoverGroup {
-                    representative: entry.input.clone(),
+                    representative,
                     fingerprint,
                     conflicted: false,
                 });
@@ -1339,6 +1462,14 @@ fn discover(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_jobs_matches_available_parallelism() {
+        let expected = std::thread::available_parallelism().map_or(1, |count| count.get());
+        assert!(expected >= 1);
+        assert_eq!(super::default_jobs(), expected);
+        assert_eq!(BatchOptions::default().jobs, expected);
+    }
 
     #[test]
     fn batch_extensions_are_canonical() {

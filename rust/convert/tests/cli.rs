@@ -20,6 +20,7 @@ fn help_succeeds() {
         "{stdout}"
     );
     assert!(stdout.contains("--no-tags"));
+    assert!(stdout.contains("--jobs N"));
     assert!(stdout.contains("16-bit"));
     assert!(stdout.contains("--format m4a"));
     assert!(stdout.contains("--cover-art embedded"));

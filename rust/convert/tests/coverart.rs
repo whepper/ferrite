@@ -8,7 +8,7 @@
 mod common;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use aac_convert::batch::{
@@ -967,6 +967,80 @@ fn batch_conflicting_jpegs_skip_publication_but_convert_audio() {
     assert!(!output.join("album/cover.png").exists());
     assert!(output.join("album/one.m4a").is_file());
     assert!(output.join("album/two.m4a").is_file());
+    assert!(temp_output_files(&output).is_empty());
+}
+
+#[test]
+fn batch_parallel_workers_keep_artwork_conflicts_deterministic() {
+    // Pre-scan reads run concurrently, but grouping/publication stay in plan
+    // order: identical images still publish once and conflicting images still
+    // veto external publication for their own directory only.
+    let expected = first_cover_bytes("tagged-cover-jpeg-48k-16.flac");
+    let workspace = TempDir::new("cover-batch-parallel");
+    let input = workspace.join("in");
+    seed_file(&input, "same/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "same/two.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(
+        &input,
+        "conflict/jpeg.flac",
+        "tagged-cover-jpeg-48k-16.flac",
+    );
+    seed_file(&input, "conflict/png.flac", "tagged-cover-png-48k-16.flac");
+    let output = workspace.join("out");
+    // The retained PNG track is skipped for audio, but its source image still
+    // takes part in the conflict decision.
+    fs::create_dir_all(output.join("conflict")).unwrap();
+    fs::write(output.join("conflict/png.m4a"), b"retained-conflict").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let execution = execute_plan_with_options(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            skip_existing: true,
+            cover_art: CoverArtMode::External,
+            jobs: 4,
+            ..BatchOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert_eq!(execution.outcome.summary.converted, 3);
+    assert_eq!(execution.outcome.summary.failed, 0);
+    assert_eq!(execution.outcome.summary.skipped, 1);
+    assert!(
+        execution.outcome.results.iter().any(|result| {
+            result.relative_input.as_path() == Path::new("conflict/png.flac")
+                && matches!(result.outcome, BatchFileOutcome::Skipped)
+        }),
+        "retained PNG track must be a skip: {:?}",
+        execution.outcome.results
+    );
+    assert_eq!(execution.cover_art.len(), 2, "{:?}", execution.cover_art);
+    assert_eq!(execution.cover_art[0].directory, PathBuf::from("conflict"));
+    assert_eq!(
+        execution.cover_art[0].action,
+        CoverArtAction::Conflicted,
+        "no arbitrary image may be published"
+    );
+    assert_eq!(execution.cover_art[1].directory, PathBuf::from("same"));
+    assert_eq!(execution.cover_art[1].action, CoverArtAction::Written);
+    assert_eq!(
+        execution.cover_art[1].file_name.as_deref(),
+        Some("cover.jpg")
+    );
+
+    assert!(!output.join("conflict/cover.jpg").exists());
+    assert!(!output.join("conflict/cover.png").exists());
+    assert_eq!(fs::read(output.join("same/cover.jpg")).unwrap(), expected);
+    for relative in ["same/one.m4a", "same/two.m4a", "conflict/jpeg.m4a"] {
+        let bytes = fs::read(output.join(relative)).unwrap();
+        parse_mp4(&bytes);
+    }
+    assert_eq!(
+        fs::read(output.join("conflict/png.m4a")).unwrap(),
+        b"retained-conflict"
+    );
     assert!(temp_output_files(&output).is_empty());
 }
 

@@ -22,8 +22,9 @@
 //! disclosing the discarded low-order precision (see the README).
 //!
 //! Directory batch conversion is available under [`batch`]: recursive
-//! discovery, deterministic planning, and sequential execution through the
-//! same per-file pipeline documented above.
+//! discovery, deterministic planning, and bounded-concurrency execution
+//! through the same per-file pipeline documented above. Each worker owns its
+//! own decoder, encoder, and output publication path.
 
 mod adts;
 pub mod batch;
@@ -33,6 +34,7 @@ pub(crate) mod loudness;
 mod m4a;
 pub(crate) mod meta;
 mod output;
+mod parallel;
 
 use std::error::Error as StdError;
 use std::fmt;

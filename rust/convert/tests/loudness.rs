@@ -9,7 +9,9 @@
 use std::fs;
 use std::path::Path;
 
-use aac_convert::batch::{execute_plan_with_tags, plan_batch};
+use aac_convert::batch::{
+    execute_plan_with_options, execute_plan_with_tags, plan_batch, BatchOptions,
+};
 use aac_convert::{convert_file_with_format_and_tags, OutputFormat};
 
 mod common;
@@ -415,6 +417,60 @@ fn batch_groups_albums_by_parent_directory() {
             .clone();
         assert_eq!(track, gain, "{file}");
         assert_eq!(album, gain, "{file}");
+    }
+}
+
+#[test]
+fn parallel_album_analysis_matches_sequential_output() {
+    // Two one-member albums with measurable loudness run through the
+    // concurrent preparation stage (jobs = 4) and must match sequential
+    // analysis byte for byte.
+    let directory = stage_album(&["loud-tone-48k-16.flac"]);
+    let sub = directory.join("in/sub");
+    fs::create_dir(&sub).unwrap();
+    fs::copy(
+        fixture("loud-quiet-48k-16.flac"),
+        sub.join("loud-quiet-48k-16.flac"),
+    )
+    .unwrap();
+
+    let input = directory.join("in");
+    let sequential_out = directory.join("sequential");
+    let parallel_out = directory.join("parallel");
+    for (output, jobs) in [(&sequential_out, 1), (&parallel_out, 4)] {
+        let plan = plan_batch(&input, output, OutputFormat::M4a, true).unwrap();
+        let execution = execute_plan_with_options(
+            &plan,
+            OutputFormat::M4a,
+            &BatchOptions {
+                jobs,
+                ..BatchOptions::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(execution.outcome.summary.converted, 2, "jobs={jobs}");
+        assert_eq!(execution.outcome.summary.failed, 0, "jobs={jobs}");
+    }
+
+    for (relative, expected_gain) in [
+        ("loud-tone-48k-16.m4a", "0.75 dB"),
+        ("sub/loud-quiet-48k-16.m4a", "12.35 dB"),
+    ] {
+        let sequential = fs::read(sequential_out.join(relative)).unwrap();
+        let parallel = fs::read(parallel_out.join(relative)).unwrap();
+        assert_eq!(sequential, parallel, "{relative}");
+
+        let values = freeform_values(&parallel);
+        let track = values
+            .iter()
+            .find(|(name, _)| name == "REPLAYGAIN_TRACK_GAIN")
+            .unwrap();
+        let album = values
+            .iter()
+            .find(|(name, _)| name == "REPLAYGAIN_ALBUM_GAIN")
+            .unwrap();
+        assert_eq!(track.1, expected_gain, "{relative}");
+        assert_eq!(album.1, expected_gain, "{relative}");
     }
 }
 

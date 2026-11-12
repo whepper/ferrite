@@ -79,14 +79,20 @@ not embed it and writes `cover.jpg` or `cover.png` beside the audio, and `both`
 does both. External files are never overwritten. Cover-art modes have no effect
 on ADTS output or when `--no-tags` is active; see Cover art.
 
+`--jobs N` limits directory batch preparation and encoding to `N` concurrent
+files. It defaults to the number of available logical CPUs; `--jobs 1` is
+strictly sequential. It is a batch-only option and is a usage error for a
+single-file input.
+
 `--help`, `--version`, and `--` are supported. Exit codes: `0` success,
 `1` conversion failure, `2` command-line usage error. Directory batch mode
 adds exit code `3` for fatal setup errors (see below).
 
 ## Batch conversion (directory input)
 
-A directory input converts every discovered FLAC file sequentially into an
-output root, mirroring the input structure:
+A directory input converts every discovered FLAC file into an output root,
+mirroring the input structure. Independent files are processed by a bounded
+worker pool (`--jobs`, default: available logical CPUs):
 
 ```sh
 # Whole tree, M4A by default
@@ -100,6 +106,9 @@ cargo run -p aac-convert -- --format adts --no-recursive album/ /tmp/adts-out/
 
 # Preview the plan without writing anything
 cargo run -p aac-convert -- --dry-run album/ /tmp/out/
+
+# Use eight workers (default: available logical CPUs; 1 is sequential)
+cargo run -p aac-convert -- --jobs 8 album/ /tmp/out/
 
 # Rerun a completed or partial batch, skipping finished files
 cargo run -p aac-convert -- --skip-existing album/ /tmp/out/
@@ -159,14 +168,27 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
   either way. `--skip-existing` applies to directory batch mode only; with a
   single-file input it is a usage error. There are no overwrite or force
   options in this release.
-- **Progress and summary.** Batch progress is live on stderr, in plan order.
-  M4A runs with tags first print one preparation line for the pre-pass
+- **Parallel workers.** `--jobs N` is one global limit reused by two
+  barrier-separated stages: preparation (album loudness and the external
+  artwork pre-scan) completes before encoding starts, and each stage uses at
+  most `N` workers, so at most `N` files are ever in flight. Every worker
+  owns its decoder, encoder, metadata state, and temporary file; no encoder
+  state is shared. Loudness analysis parallelises across albums (members of
+  one album remain sequential because they share ordered album state).
+  Artwork reads are parallel, but conflict resolution and external cover
+  publication stay sequential after encoding. Dry runs start no workers.
+- **Progress and summary.** Batch progress is live on stderr. M4A runs with
+  tags first print one preparation line for the pre-pass
   (`preparing <n> files (loudness)...`, or `(loudness and artwork)` when
   external cover art is requested). Per-file progress then follows:
   `[  1/111] <relative input>  encoding...` when an item starts, then
   `done`, `skipped (already exists)`, or `failed (<category>)` when it
-  finishes. Per-file warnings also appear on stderr at that point. The final
-  machine-readable result lines remain on stdout in processing order
+  finishes. Per-file warnings also appear on stderr at that point. With
+  `--jobs 1` these lines are in plan order; with more workers they arrive in
+  completion order (the first number remains the item's plan position, so
+  counters stay unambiguous). The batch header reports the effective worker
+  count. The final machine-readable result lines remain on stdout in plan
+  order, regardless of completion order
   (`ok <in> -> <out> (<frames> frames, <bytes> bytes)`,
   `skip <in> -> <out> (exists)` with `--skip-existing`, or
   `fail <in>: <category>`), and failures add `error: <in>: <message>` on
@@ -194,10 +216,11 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
   fatal setup — missing input, input that is neither file nor directory,
   unreadable input root, empty directory, no eligible FLAC files, duplicate
   destinations, or output-root creation failure.
-- **Sequential, bounded memory.** Files convert one at a time through the
-  same per-file pipeline as single-file conversion (8,000-frame encoder
-  pushes, streaming muxer); batch overhead is the sorted path list only.
-  There is no parallel conversion.
+- **Bounded memory.** Each worker streams one file at a time through the same
+  per-file pipeline as single-file conversion (8,000-frame encoder pushes,
+  streaming muxer). Peak batch memory scales with `--jobs` (one in-flight
+  file per worker), not with the size of the library; remaining batch
+  overhead is the sorted path list.
 - **Temporary files.** Each file converts through a hidden
   `.aac-convert-<pid>-<seq>.tmp` file in its destination directory, removed
   on ordinary error paths and atomically hard-linked to the destination on
@@ -455,9 +478,11 @@ needed. They verify ADTS output, M4A box structure and sample tables, payload
 equivalence between the two containers, integrity failures, output collisions,
 concurrent publication, metadata mapping and missing/multi-value policy,
 embedded and external cover-art modes (including conflicts and no-overwrite),
-live batch progress events, verbose ignored-entry reasons, and sequential
-directory batch conversion (traversal, mapping, preflight, dry-run, exit codes,
-and cleanup). Ignored independent-decoder smoke tests for both
+live batch progress events, verbose ignored-entry reasons, and parallel
+directory batch conversion (worker limits, concurrent preparation and
+encoding, progress accounting under concurrent completion, byte-identical
+sequential/parallel output, traversal, mapping, preflight, dry-run, exit
+codes, and cleanup). Ignored independent-decoder smoke tests for both
 ADTS and M4A can be run when `ffmpeg` is available:
 
 ```sh
@@ -474,7 +499,8 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
   are not mapped. Loudness tagging (ReplayGain 2.0 and
   `iTunNORM`) is implemented and shipped for M4A (see Loudness). Still out
   of scope: preserving the original multi-entry Vorbis structure, multi-image
-  galleries, resampling, downmixing, VBR 1–4, and parallel conversion.
+  galleries, resampling, downmixing, VBR 1–4, and intra-file or frame-level
+  parallelism (only independent files are processed concurrently).
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
   CoreAudio decode paths; VLC and GUI players are unverified or approximate

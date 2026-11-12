@@ -386,6 +386,20 @@ fn track_atoms(
 /// omission warnings are attached to every member of an incomplete album so
 /// the conversion pass emits them for each file concerned.
 pub(crate) fn analyze_album(members: &[(PathBuf, PathBuf)]) -> HashMap<PathBuf, FileLoudness> {
+    analyze_album_with_jobs(members, 1)
+}
+
+/// Analyze a batch with bounded cross-album concurrency.
+///
+/// Albums are independent aggregations, so they run on separate workers.
+/// Members of one album deliberately stay sequential: they share one
+/// `EbuR128` aggregation whose block boundaries depend on member order, so
+/// parallelising inside an album would change loudness semantics (and would
+/// require either redundant decoding or cross-worker analyzer state).
+pub(crate) fn analyze_album_with_jobs(
+    members: &[(PathBuf, PathBuf)],
+    jobs: usize,
+) -> HashMap<PathBuf, FileLoudness> {
     // Group member indices by album key (parent of the relative path;
     // root-level files form album `""`), preserving plan order.
     let mut albums: Vec<(&Path, Vec<usize>)> = Vec::new();
@@ -397,9 +411,15 @@ pub(crate) fn analyze_album(members: &[(PathBuf, PathBuf)]) -> HashMap<PathBuf, 
         }
     }
 
+    let measured = crate::parallel::map_indexed(albums.len(), jobs, |album| {
+        let (_, indices) = &albums[album];
+        analyze_one_album(members, indices)
+    });
     let mut out = HashMap::with_capacity(members.len());
-    for (_, indices) in &albums {
-        analyze_one_album(members, indices, &mut out);
+    // Merge in album order so the map contents are deterministic even though
+    // albums completed out of order.
+    for album in measured {
+        out.extend(album);
     }
     out
 }
@@ -415,11 +435,13 @@ pub(crate) fn analyze_single(path: &Path) -> FileLoudness {
 
 /// Run the two-stage measurement for one album: per-track analysis feeding a
 /// shared album analyzer, then gain/clipping/atom rendering.
+///
+/// Returns one entry per member in plan order. The caller merges albums; this
+/// function never touches shared state, so albums can run concurrently.
 fn analyze_one_album(
     members: &[(PathBuf, PathBuf)],
     indices: &[usize],
-    out: &mut HashMap<PathBuf, FileLoudness>,
-) {
+) -> Vec<(PathBuf, FileLoudness)> {
     // Stage 1: measure every member, feeding the shared album analyzer.
     // The analyzer is seeded from the first analyzable member; a later
     // member with a different rate/channel layout cannot join the
@@ -500,6 +522,7 @@ fn analyze_one_album(
         _ => (None, None),
     };
 
+    let mut measured = Vec::with_capacity(indices.len());
     for (position, &index) in indices.iter().enumerate() {
         let (relative, _) = &members[index];
         let mut loudness = FileLoudness::default();
@@ -550,8 +573,9 @@ fn analyze_one_album(
         if let Some(warning) = &album_warning {
             loudness.warnings.push(warning.clone());
         }
-        out.insert(relative.clone(), loudness);
+        measured.push((relative.clone(), loudness));
     }
+    measured
 }
 
 #[cfg(test)]

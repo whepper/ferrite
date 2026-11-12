@@ -121,6 +121,13 @@ freeform metadata model and compatibility tests.
   and no output file was published. Its `source()` chain is preserved.
 - Batch mode continues after per-file failures, reports each affected input
   file and failure, and exits nonzero if any file failed.
+- Batch preparation and encoding use a bounded worker pool
+  (`BatchOptions::jobs`, default `aac_convert::batch::default_jobs()`). Each
+  worker owns its decoder, encoder, metadata state, and temporary file; no
+  mutable encoder state is shared. Preparation and encoding are
+  barrier-separated stages that reuse the same limit, so concurrency never
+  exceeds `jobs`. Per-file results remain in plan order; progress callbacks
+  may arrive in completion order.
 - `--skip-existing` skips known destinations before decode/encode work and
   still enforces no-overwrite publication.
 
@@ -155,7 +162,8 @@ gapless metadata; consumers must trim using the known encoder delay.
 - `i16` PCM only; 24-bit input is truncated before encoding, with no dither.
 - Core tags only; multi-values are first-value, identifiers are not mapped.
 - One cover image only; JPEG/PNG only; 16 MiB limit.
-- Sequential batch conversion; no parallel file conversion.
+- Bounded parallel batch conversion; no intra-file or frame-level
+  parallelism.
 - No perceptual quality, transparency, or ABX claim.
 - No stable crates.io release contract yet; use a pinned source dependency.
 - Licensing is FDK-AAC; patent authorization remains the integrator’s

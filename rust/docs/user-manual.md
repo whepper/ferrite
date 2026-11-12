@@ -139,7 +139,7 @@ Existing output files are **never overwritten**. There is no force or overwrite 
 
 Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg` or `cover.png` beside the output is left untouched.
 
-Single-file mode does not accept batch-only options such as `--recursive`, `--dry-run`, `--skip-existing`, `--verbose` or `--quiet`.
+Single-file mode does not accept batch-only options such as `--recursive`, `--dry-run`, `--skip-existing`, `--jobs`, `--verbose` or `--quiet`.
 
 ## 4. Convert an album or directory tree
 
@@ -206,6 +206,7 @@ aac-convert --format adts "music/" "converted-adts/"
 | `--no-recursive` | Convert only files directly inside the input directory. |
 | `--dry-run` | Preview the planned conversions without writing files or decoding audio. |
 | `--skip-existing` | Skip destinations that already exist, enabling safe reruns. |
+| `--jobs N` | Process at most `N` files concurrently. Default: available logical CPUs. `--jobs 1` is strictly sequential. |
 | `--no-tags` | Omit user metadata, cover art and loudness tags from M4A. |
 | `--cover-art embedded` | Embed selected cover art (the default). |
 | `--cover-art external` | Write `cover.jpg`/`cover.png` beside each album's audio instead of embedding. |
@@ -231,6 +232,9 @@ aac-convert --dry-run "music/" "m4a/"
 
 # Convert to ADTS instead.
 aac-convert --format adts "music/" "aac/"
+
+# Use eight workers instead of the default CPU count.
+aac-convert --jobs 8 "music/" "m4a/"
 
 # Show sample rate, channels, bit depth, and tag diagnostics.
 aac-convert --verbose "music/" "m4a/"
@@ -261,7 +265,33 @@ ignore artwork-link (symlinked dir, not followed)
 
 These are informational; ignored entries never count as conversion failures.
 
-Conversion is sequential; this release does not process multiple files in parallel.
+### Parallel conversion
+
+Batch mode processes independent files with a bounded worker pool. By default
+the limit is the number of available logical CPUs; `--jobs N` selects a
+different limit, and `--jobs 1` restores strictly sequential processing. The
+effective count is shown in the `batch:` header line.
+
+Preparation and encoding are separate stages: album loudness analysis and the
+external artwork pre-scan finish before any audio is encoded, and each stage
+reuses the same `--jobs` limit. At most `N` files are therefore in flight at
+once. Each worker has its own decoder, encoder, metadata state and temporary
+output file, so files cannot share or corrupt each other's encoder state.
+
+Some work is intentionally coordinated rather than parallel:
+
+- Tracks in one album are analysed sequentially because they contribute to one
+  shared album-loudness result. Different albums run concurrently.
+- External artwork reads are concurrent, but conflict detection and
+  `cover.jpg`/`cover.png` publication happen in deterministic plan order, so
+  workers cannot race on a shared image.
+- Destination collision checks and the atomic no-overwrite publication path
+  are unchanged. Distinct files still publish independently and atomically.
+
+Peak memory grows with the worker count (one in-flight file per worker), not
+with the size of the library. A typical `--jobs 1` run uses the least memory;
+the default usually gives the best wall-clock throughput. Dry runs start no
+workers.
 
 ## 5. Safe previews and reruns
 
@@ -425,7 +455,10 @@ An abrupt process termination, machine shutdown or power loss can leave a hidden
 
 ### Batch progress
 
-Normal batch mode prints live progress to **standard error**, in processing order. M4A runs with tags first print a preparation line for the loudness pre-pass (and artwork pre-scan when external cover art is requested):
+Normal batch mode prints live progress to **standard error**. With `--jobs 1`
+the lines follow plan order; with more workers they arrive in completion
+order. M4A runs with tags first print a preparation line for the loudness
+pre-pass (and artwork pre-scan when external cover art is requested):
 
 ```text
 preparing 111 files (loudness)...
@@ -438,9 +471,16 @@ preparing 111 files (loudness)...
 [  4/111] Artist/Album/04 - Track.flac  failed (UnsupportedChannels)
 ```
 
-The counter is the item position and the total planned items. Per-file warnings appear on stderr immediately after the item's `done` line, not after the whole batch. Long nested paths are printed in full.
+The first number is the item's position in the deterministic plan and the
+second is the total planned items, so counters stay meaningful even when items
+finish out of order. Each file emits its own start line (unless it was already
+known to be skipped) and exactly one terminal line with its real outcome.
+Per-file warnings appear on stderr immediately after the item's `done` line,
+not after the whole batch. Long nested paths are printed in full. The batch
+header on stdout reports the effective worker count.
 
-Machine-readable per-file results and the final summary remain on **standard output**, in processing order:
+Machine-readable per-file results and the final summary remain on **standard
+output**, in plan order (regardless of completion order):
 
 ```text
 ok <input> -> <output> (<frames> frames, <bytes> bytes)
@@ -538,7 +578,7 @@ Ferrite 0.1.0 is deliberately focused:
 - 16-bit encoder input; 24-bit FLAC is truncated with no dithering.
 - No resampling or downmixing.
 - Single-atom core metadata (repeated text values joined with `; `), one JPEG/PNG cover image per output directory (embedded and/or external); no identifier mapping.
-- Sequential batch conversion; no parallel processing.
+- Bounded parallel batch conversion (`--jobs`); no intra-file or frame-level parallelism.
 - Hard-link-capable output filesystem required.
 - No universal gapless, perceptual transparency or bit-exact FDK equivalence claim.
 

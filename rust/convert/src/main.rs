@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use aac_convert::batch::{
-    execute_plan_with_options_and_progress, plan_batch, BatchEvent, BatchFileOutcome, BatchOptions,
-    BatchProgress,
+    default_jobs, execute_plan_with_options_and_progress, plan_batch, BatchEvent, BatchFileOutcome,
+    BatchOptions, BatchProgress,
 };
 use aac_convert::{
     convert_file_with_format_tags_and_cover_art, CoverArtAction, CoverArtMode, CoverArtReport,
@@ -17,7 +17,7 @@ const USAGE: &str = "\
 Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both] [--no-tags]
                    <input.flac> <output>
        aac-convert [--format m4a|adts] [--recursive|--no-recursive] [--dry-run]
-                   [--skip-existing] [--no-tags]
+                   [--skip-existing] [--no-tags] [--jobs N]
                    [--cover-art embedded|external|both] [-v|--verbose] [-q|--quiet]
                    <input-dir> <output-root>
 
@@ -27,7 +27,7 @@ using the native Ferrite Rust AAC-LC encoder (VBR-5, derived from FDK AAC).
 file); other bit depths are rejected.
 
 A regular file input converts one file; a directory input converts every
-discovered FLAC file sequentially, mirroring the input structure.
+discovered FLAC file, mirroring the input structure.
 
 Output format:
   --format m4a    Audio-only MP4/M4A container
@@ -42,8 +42,10 @@ converts only top-level files (last of the two flags wins). --dry-run prints
 the plan without writing anything. --skip-existing skips destinations that
 already exist instead of failing on them; it never overwrites anything.
 --no-tags omits user metadata from M4A output (accepted for ADTS as a no-op).
--v/--verbose adds per-file detail, including why entries were ignored;
--q/--quiet prints only the final summary (conflicts with --verbose).
+--jobs N limits preparation and encoding to N concurrent files (default:
+available logical CPUs; 1 is strictly sequential). -v/--verbose adds per-file
+detail, including why entries were ignored; -q/--quiet prints only the final
+summary (conflicts with --verbose).
 
 Cover art (M4A with tags):
   --cover-art embedded   Embed selected artwork in the M4A (default)
@@ -113,6 +115,23 @@ fn parse_cover_art(value: &OsStr) -> Result<CoverArtMode, CliError> {
         .map_err(CliError::Usage)
 }
 
+fn parse_jobs(value: &OsStr) -> Result<usize, CliError> {
+    let text = value
+        .to_str()
+        .ok_or_else(|| CliError::Usage("--jobs requires a positive integer".into()))?;
+    let jobs: usize = text.parse().map_err(|_| {
+        CliError::Usage(format!(
+            "invalid --jobs value: {text} (expected a positive integer)"
+        ))
+    })?;
+    if jobs == 0 {
+        return Err(CliError::Usage(
+            "invalid --jobs value: 0 (expected a positive integer)".into(),
+        ));
+    }
+    Ok(jobs)
+}
+
 struct Cli {
     explicit_format: Option<OutputFormat>,
     recursive: Option<bool>,
@@ -120,6 +139,7 @@ struct Cli {
     skip_existing: bool,
     no_tags: bool,
     cover_art: CoverArtMode,
+    jobs: Option<usize>,
     verbose: bool,
     quiet: bool,
     input: PathBuf,
@@ -135,6 +155,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
     let mut skip_existing = false;
     let mut no_tags = false;
     let mut cover_art = CoverArtMode::Embedded;
+    let mut jobs = None;
     let mut verbose = false;
     let mut quiet = false;
     let mut options_done = false;
@@ -210,6 +231,20 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     index += 1;
                     continue;
                 }
+                Some("--jobs") => {
+                    index += 1;
+                    let value = arguments.get(index).ok_or_else(|| {
+                        CliError::Usage("--jobs requires a positive integer".into())
+                    })?;
+                    jobs = Some(parse_jobs(value)?);
+                    index += 1;
+                    continue;
+                }
+                Some(value) if value.starts_with("--jobs=") => {
+                    jobs = Some(parse_jobs(OsStr::new(&value["--jobs=".len()..]))?);
+                    index += 1;
+                    continue;
+                }
                 Some("-v" | "--verbose") => {
                     verbose = true;
                     index += 1;
@@ -248,6 +283,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
         skip_existing,
         no_tags,
         cover_art,
+        jobs,
         verbose,
         quiet,
         input: PathBuf::from(positional.remove(0)),
@@ -335,6 +371,11 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
             "--skip-existing requires a directory input".to_string(),
         ));
     }
+    if cli.jobs.is_some() {
+        return Err(CliError::Usage(
+            "--jobs requires a directory input".to_string(),
+        ));
+    }
     if cli.verbose || cli.quiet {
         return Err(CliError::Usage(
             "--verbose/--quiet requires a directory input".to_string(),
@@ -377,6 +418,15 @@ fn channel_word(channels: u32) -> &'static str {
         1 => "mono",
         2 => "stereo",
         _ => "multi",
+    }
+}
+
+/// Effective worker count for the batch header line.
+fn jobs_label(jobs: usize) -> String {
+    if jobs == 1 {
+        "1 job".to_string()
+    } else {
+        format!("{jobs} jobs")
     }
 }
 
@@ -440,6 +490,7 @@ fn print_cover_report(report: &CoverArtReport, quiet: bool, verbose: bool) {
 fn run_batch(cli: &Cli) -> Result<(), CliError> {
     let format = cli.explicit_format.unwrap_or(OutputFormat::M4a);
     let recursive = cli.recursive.unwrap_or(true);
+    let jobs = cli.jobs.unwrap_or_else(default_jobs);
     let plan = plan_batch(&cli.input, &cli.output, format, recursive)
         .map_err(|err| CliError::Setup(err.to_string()))?;
 
@@ -448,6 +499,7 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         skip_existing: cli.skip_existing,
         write_tags: !cli.no_tags,
         cover_art: cli.cover_art,
+        jobs,
     };
 
     let start = std::time::Instant::now();
@@ -522,14 +574,15 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         ""
     };
     if !cli.quiet {
+        let workers = jobs_label(jobs);
         if cli.dry_run {
             println!(
-                "batch: {} files, format {format}, {mode}{skip_suffix}, dry-run",
+                "batch: {} files, format {format}, {mode}{skip_suffix}, dry-run, {workers}",
                 plan.entries.len()
             );
         } else {
             println!(
-                "batch: {} files, format {format}, {mode}{skip_suffix}",
+                "batch: {} files, format {format}, {mode}{skip_suffix}, {workers}",
                 plan.entries.len()
             );
         }

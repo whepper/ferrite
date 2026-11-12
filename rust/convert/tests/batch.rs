@@ -12,9 +12,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use aac_convert::batch::{
-    execute_plan, execute_plan_with_options_and_progress, plan_batch, BatchError, BatchEvent,
-    BatchFileOutcome, BatchOptions, BatchPlan, NON_RECURSIVE_REASON, NON_REGULAR_FILE_REASON,
-    SYMLINKED_DIR_REASON, UNSUPPORTED_EXTENSION_REASON,
+    default_jobs, execute_plan, execute_plan_with_options_and_progress, plan_batch, BatchError,
+    BatchEvent, BatchFileOutcome, BatchOptions, BatchPlan, NON_RECURSIVE_REASON,
+    NON_REGULAR_FILE_REASON, SYMLINKED_DIR_REASON, UNSUPPORTED_EXTENSION_REASON,
 };
 use aac_convert::OutputFormat;
 use common::{fixture, mp4_itunsmpb, mp4_mdhd, parse_adts, parse_mp4, TempDir};
@@ -177,6 +177,9 @@ fn progress_events_follow_plan_order_with_one_terminal_event_each() {
         OutputFormat::M4a,
         &BatchOptions {
             skip_existing: true,
+            // This test pins the sequential event contract; concurrency is
+            // covered by the jobs-specific tests below.
+            jobs: 1,
             ..BatchOptions::default()
         },
         |event| events.push(event),
@@ -855,16 +858,14 @@ fn batch_output_is_byte_identical_to_single_file_output() {
 
     let batch_out = workspace.join("batch");
     let plan = plan_batch(&input, &batch_out, OutputFormat::M4a, true).unwrap();
-    // Convert the same files sequentially through one shared output tree to
-    // also prove peak resource use never exceeds one file at a time: each
-    // iteration leaves no temp files behind.
+    // Convert the same files through one shared output tree. Each item
+    // publishes through the same temporary-file path, so the tree converts
+    // cleanly with no temp files left behind.
     let outcome = execute_plan(&plan, OutputFormat::M4a, false, false).unwrap();
     assert_eq!(outcome.summary.converted, 2);
 
     // Direct byte comparison against fresh single-file conversions proves
     // pipeline identity (same chunking, same publication).
-    // The loop above already proved the shared tree converts cleanly with no
-    // temp files left behind; the assertions below prove pipeline identity.
     let fresh = TempDir::new("batch-identity-fresh");
     aac_convert::convert_file_with_format(
         &input.join("x.flac"),
@@ -1083,7 +1084,12 @@ fn cli_batch_writes_live_progress_to_stderr_and_results_to_stdout() {
     seed_file(&input, "sub/b.flac", "mono-441k-16.flac");
     let output = workspace.join("out");
 
-    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    let result = run_cli(&[
+        "--jobs",
+        "1",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
     assert_eq!(
         result.status.code(),
         Some(0),
@@ -1095,7 +1101,8 @@ fn cli_batch_writes_live_progress_to_stderr_and_results_to_stdout() {
         stderr.contains("preparing 2 files (loudness)..."),
         "pre-pass feedback must precede per-file progress: {stderr}"
     );
-    // Live per-file progress is stderr-only, in plan order, with the total.
+    // Live per-file progress is stderr-only, in plan order with --jobs 1,
+    // with the total.
     let progress: Vec<&str> = stderr
         .lines()
         .filter(|line| line.starts_with('['))
@@ -1985,6 +1992,347 @@ fn stale_temporary_files_are_never_confused_with_outputs() {
         fs::read(output.join(".aac-convert-99999-0.tmp")).unwrap(),
         b"partial"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Parallel batch execution (--jobs)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn default_worker_count_is_available_parallelism_and_reported() {
+    let workspace = TempDir::new("jobs-default");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let expected = default_jobs();
+    let label = if expected == 1 {
+        "1 job".to_string()
+    } else {
+        format!("{expected} jobs")
+    };
+    let lines = stdout_lines(&result);
+    assert!(
+        lines[0].starts_with(&format!("batch: 1 files, format M4A, recursive, {label}")),
+        "{lines:?}"
+    );
+}
+
+#[test]
+fn explicit_jobs_one_and_multiworker_outputs_are_byte_identical() {
+    // Same plan, sequential and parallel runs: loudness preparation, external
+    // artwork scanning, and AAC encoding must all preserve output bytes.
+    let workspace = TempDir::new("jobs-identity");
+    let input = workspace.join("in");
+    seed_file(&input, "album-a/one.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album-a/two.flac", "tagged-cover-jpeg-48k-16.flac");
+    seed_file(&input, "album-b/one.flac", "stereo-48k-16.flac");
+    seed_file(&input, "album-b/two.flac", "mono-441k-16.flac");
+    seed_file(&input, "root.flac", "stereo-48k-16.flac");
+
+    let sequential = workspace.join("sequential");
+    let parallel = workspace.join("parallel");
+    for (directory, jobs, label) in [
+        (&sequential, "--jobs=1", "1 job"),
+        (&parallel, "--jobs=4", "4 jobs"),
+    ] {
+        let result = run_cli(&[
+            jobs,
+            "--cover-art",
+            "external",
+            input.to_str().unwrap(),
+            directory.to_str().unwrap(),
+        ]);
+        assert_eq!(
+            result.status.code(),
+            Some(0),
+            "{jobs}: {}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let lines = stdout_lines(&result);
+        assert!(lines[0].contains(label), "{lines:?}");
+    }
+
+    for relative in [
+        "album-a/one.m4a",
+        "album-a/two.m4a",
+        "album-b/one.m4a",
+        "album-b/two.m4a",
+        "root.m4a",
+    ] {
+        let sequential_bytes = fs::read(sequential.join(relative)).unwrap();
+        let parallel_bytes = fs::read(parallel.join(relative)).unwrap();
+        assert_eq!(sequential_bytes, parallel_bytes, "{relative}");
+        parse_mp4(&parallel_bytes);
+    }
+    assert_eq!(
+        fs::read(sequential.join("album-a/cover.jpg")).unwrap(),
+        fs::read(parallel.join("album-a/cover.jpg")).unwrap()
+    );
+    assert!(!parallel.join("album-b/cover.jpg").exists());
+    assert!(!parallel.join("album-b/cover.png").exists());
+    assert_no_temp_files_anywhere(&parallel);
+}
+
+#[test]
+fn concurrent_progress_accounts_for_every_item_exactly_once() {
+    let workspace = TempDir::new("jobs-progress");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    seed_file(&input, "b.flac", "three-channel-48k-16.flac");
+    seed_file(&input, "c.flac", "mono-441k-16.flac");
+    seed_file(&input, "d.flac", "truncated-stereo-48k-16.flac");
+    seed_file(&input, "e.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("e.m4a"), b"retained").unwrap();
+
+    let plan = plan_batch(&input, &output, OutputFormat::M4a, true).unwrap();
+    let total = plan.entries.len();
+    assert_eq!(total, 5);
+
+    let mut events = Vec::new();
+    let execution = execute_plan_with_options_and_progress(
+        &plan,
+        OutputFormat::M4a,
+        &BatchOptions {
+            skip_existing: true,
+            jobs: 4,
+            ..BatchOptions::default()
+        },
+        |event| events.push(event),
+    )
+    .unwrap();
+
+    assert!(
+        matches!(
+            events.first(),
+            Some(BatchEvent::Preparing {
+                total: reported, ..
+            }) if *reported == total
+        ),
+        "{events:?}"
+    );
+
+    let mut starts = Vec::new();
+    let mut terminals = std::collections::BTreeMap::new();
+    for event in &events {
+        let (index, kind) = match event {
+            BatchEvent::Preparing { .. } => continue,
+            BatchEvent::Started(item) => {
+                assert_eq!(item.total, total);
+                starts.push(item.index);
+                continue;
+            }
+            BatchEvent::Converted { item, .. } => (item.index, "converted"),
+            BatchEvent::Skipped(item) => (item.index, "skipped"),
+            BatchEvent::Failed { item, .. } => (item.index, "failed"),
+            BatchEvent::Planned(item) => (item.index, "planned"),
+        };
+        assert_eq!(item_total(event), total);
+        assert!(
+            terminals.insert(index, kind).is_none(),
+            "duplicate terminal event for item {index}: {events:?}"
+        );
+    }
+    assert_eq!(terminals.len(), total, "{events:?}");
+    assert_eq!(
+        terminals.keys().copied().collect::<Vec<_>>(),
+        (1..=total).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        starts.len(),
+        4,
+        "e.flac is a known skip and must not emit a start line"
+    );
+
+    for index in &starts {
+        let start = events
+            .iter()
+            .position(|event| matches!(event, BatchEvent::Started(item) if item.index == *index))
+            .unwrap();
+        let terminal = events
+            .iter()
+            .position(|event| match event {
+                BatchEvent::Converted { item, .. }
+                | BatchEvent::Skipped(item)
+                | BatchEvent::Planned(item)
+                | BatchEvent::Failed { item, .. } => item.index == *index,
+                BatchEvent::Preparing { .. } | BatchEvent::Started(_) => false,
+            })
+            .unwrap();
+        assert!(
+            start < terminal,
+            "item {index} started after its terminal event: {events:?}"
+        );
+    }
+
+    let summary = execution.outcome.summary;
+    assert_eq!(summary.converted, 2, "a.flac and c.flac");
+    assert_eq!(summary.failed, 2, "b.flac and d.flac");
+    assert_eq!(summary.skipped, 1, "e.m4a is retained");
+    assert_eq!(summary.existing, 0);
+    assert_eq!(fs::read(output.join("e.m4a")).unwrap(), b"retained");
+
+    // Completion order may differ, but the result report keeps plan order.
+    let result_order: Vec<PathBuf> = execution
+        .outcome
+        .results
+        .iter()
+        .map(|result| result.relative_input.clone())
+        .collect();
+    let plan_order: Vec<PathBuf> = plan
+        .entries
+        .iter()
+        .map(|entry| entry.relative_input.clone())
+        .collect();
+    assert_eq!(result_order, plan_order);
+    assert_no_temp_files_anywhere(&output);
+}
+
+fn item_total(event: &BatchEvent) -> usize {
+    match event {
+        BatchEvent::Preparing { total, .. } => *total,
+        BatchEvent::Started(item)
+        | BatchEvent::Skipped(item)
+        | BatchEvent::Planned(item)
+        | BatchEvent::Converted { item, .. }
+        | BatchEvent::Failed { item, .. } => item.total,
+    }
+}
+
+#[test]
+fn cli_parallel_batch_propagates_per_file_failures() {
+    let workspace = TempDir::new("jobs-failure");
+    let input = workspace.join("in");
+    seed_file(&input, "good.flac", "stereo-48k-16.flac");
+    seed_file(&input, "bad.flac", "three-channel-48k-16.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--jobs",
+        "4",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(1));
+    let lines = stdout_lines(&result);
+    assert!(lines[0].contains("4 jobs"), "{lines:?}");
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.starts_with("ok good.flac -> good.m4a ")),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|line| line == "fail bad.flac: UnsupportedChannels"),
+        "{lines:?}"
+    );
+    assert!(
+        lines
+            .last()
+            .unwrap()
+            .starts_with("summary: 1 converted, 1 failed, 0 existing, 0 ignored ("),
+        "{lines:?}"
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(stderr.contains("error: bad.flac:"), "{stderr}");
+    assert!(output.join("good.m4a").is_file());
+    assert!(!output.join("bad.m4a").exists());
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn cli_parallel_adts_batch_converts_all_outputs() {
+    let workspace = TempDir::new("jobs-adts");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    seed_file(&input, "b.flac", "mono-441k-16.flac");
+    seed_file(&input, "c.flac", "stereo-48k-24.flac");
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--format",
+        "adts",
+        "--jobs",
+        "4",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let lines = stdout_lines(&result);
+    assert!(lines[0].contains("4 jobs"), "{lines:?}");
+    for name in ["a.aac", "b.aac", "c.aac"] {
+        let bytes = fs::read(output.join(name)).unwrap();
+        assert_eq!(bytes[0], 0xFF, "{name}");
+        assert!(!parse_adts(&bytes).is_empty(), "{name}");
+    }
+    assert_no_temp_files_anywhere(&output);
+}
+
+#[test]
+fn cli_jobs_rejects_zero_and_invalid_values() {
+    let workspace = TempDir::new("jobs-invalid");
+    let input = workspace.join("in");
+    seed_file(&input, "a.flac", "stereo-48k-16.flac");
+    let output = workspace.join("out");
+
+    for args in [
+        vec!["--jobs", "0"],
+        vec!["--jobs=0"],
+        vec!["--jobs", "abc"],
+        vec!["--jobs", "-1"],
+        vec!["--jobs="],
+        vec!["--jobs", "1.5"],
+    ] {
+        let mut command = args.clone();
+        command.push(input.to_str().unwrap());
+        command.push(output.to_str().unwrap());
+        let result = run_cli(&command);
+        assert_eq!(result.status.code(), Some(2), "args {args:?}");
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(stderr.contains("--jobs"), "args {args:?}: {stderr}");
+        assert!(!output.exists(), "args {args:?}");
+    }
+
+    // A trailing --jobs has no value at all.
+    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap(), "--jobs"]);
+    assert_eq!(result.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&result.stderr).contains("--jobs requires a positive integer"),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+
+    // Batch-only option on a file input.
+    let file = fixture("stereo-48k-16.flac");
+    let result = run_cli(&[
+        "--jobs",
+        "2",
+        file.to_str().unwrap(),
+        output.join("x.m4a").to_str().unwrap(),
+    ]);
+    assert_eq!(result.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&result.stderr).contains("--jobs requires a directory input"),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(!output.exists());
 }
 
 #[cfg(unix)]
