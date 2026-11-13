@@ -24,9 +24,14 @@
 //! Directory batch conversion is available under [`batch`]: recursive
 //! discovery, deterministic planning, and bounded-concurrency execution
 //! through the same per-file pipeline documented above. Each worker owns its
-//! own decoder, encoder, and output publication path.
+//! own decoder, encoder, and output publication path. Batch preparation reuses
+//! conventional artwork files found in album directories before falling back
+//! to embedded FLAC pictures, and reports its progress through
+//! renderer-agnostic events in [`progress`]; terminal rendering stays in the
+//! CLI.
 
 mod adts;
+mod artwork;
 pub mod batch;
 mod flac;
 mod gapless;
@@ -35,6 +40,7 @@ mod m4a;
 pub(crate) mod meta;
 mod output;
 mod parallel;
+pub mod progress;
 
 use std::error::Error as StdError;
 use std::fmt;
@@ -169,11 +175,26 @@ pub struct CoverArtReport {
     /// Target directory (relative to the output root in batch mode, or the
     /// resolved output parent for a single-file conversion).
     pub directory: PathBuf,
-    /// Intended file name (`cover.jpg` or `cover.png`); `None` for a conflict,
-    /// where no image was selected for publication.
+    /// Intended file name (`cover.jpg`, `cover.png`, or `cover.webp` for
+    /// reused WebP album artwork); `None` for a conflict, where no image was
+    /// selected for publication.
     pub file_name: Option<String>,
     /// What happened.
     pub action: CoverArtAction,
+}
+
+/// Pre-resolved album artwork supplied to one file conversion.
+///
+/// Batch preparation resolves artwork once per album directory and passes the
+/// result to every member conversion. When this is present, the converter does
+/// not re-select artwork from the source FLAC; `warnings` carries the
+/// diagnostics for that member from the album-level pass.
+#[derive(Debug, Clone)]
+pub(crate) struct ResolvedCover {
+    /// Embeddable JPEG/PNG cover, if any. `None` means no artwork is embedded.
+    pub(crate) cover: Option<meta::CoverArt>,
+    /// Cover-selection warnings for this member from the album-level pass.
+    pub(crate) warnings: Vec<String>,
 }
 
 /// Properties of the supported FLAC input.
@@ -457,8 +478,10 @@ pub fn convert_file_with_format_vbr(
     format: OutputFormat,
     vbr_mode: VbrMode,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, format, None, true, true, None, vbr_mode)
-        .map(|(summary, _, _)| summary)
+    convert_inner(
+        input, output, format, None, true, true, None, None, vbr_mode,
+    )
+    .map(|(summary, _, _)| summary)
 }
 
 /// Convert one FLAC file to ADTS or M4A with explicit metadata control.
@@ -473,6 +496,11 @@ pub fn convert_file_with_format_vbr(
 ///
 /// Single-file M4A conversions with tags run the loudness pre-pass for the
 /// degenerate one-member album before converting (no second publication).
+///
+/// This function performs embedded-only artwork selection. It does not look
+/// for conventional album image files beside the input; use
+/// [`convert_file_with_format_tags_and_cover_art`] for external album
+/// artwork discovery and reuse.
 pub fn convert_file_with_format_and_tags(
     input: &Path,
     output: &Path,
@@ -486,6 +514,11 @@ pub fn convert_file_with_format_and_tags(
 ///
 /// Behaves like [`convert_file_with_format_and_tags`], except `vbr_mode`
 /// selects VBR-1 through VBR-6.
+///
+/// This function performs embedded-only artwork selection, like
+/// [`convert_file_with_format_and_tags`]; use
+/// [`convert_file_with_format_tags_and_cover_art`] for external album
+/// artwork discovery.
 pub fn convert_file_with_format_and_tags_vbr(
     input: &Path,
     output: &Path,
@@ -505,6 +538,7 @@ pub fn convert_file_with_format_and_tags_vbr(
         None,
         write_tags,
         true,
+        None,
         loudness.as_ref(),
         vbr_mode,
     )
@@ -554,14 +588,84 @@ pub fn convert_file_with_format_tags_and_cover_art_vbr(
 ) -> Result<(ConversionSummary, TagDiagnostics, Vec<CoverArtReport>), ConvertError> {
     let interesting = matches!(format, OutputFormat::M4a) && write_tags;
     let extract = interesting && cover_art.extracts();
-    // Pre-read only when extraction is requested. Text diagnostics still come
-    // from the conversion's own metadata pass, so cover warnings are not
-    // duplicated.
-    let selected = if extract {
-        meta::read_cover(input).ok().and_then(|(cover, _)| cover)
+    let embed = interesting && cover_art.embeds();
+
+    // Reuse a conventional image beside the source file before falling back to
+    // embedded pictures. This mirrors batch album discovery; a single input
+    // file's parent is its one-member album directory.
+    let existing = if interesting {
+        let directory = input
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        artwork::discover(directory)
     } else {
         None
     };
+    let mut resolved_cover = None;
+    let mut external: Option<(String, Vec<u8>)> = None;
+    if let Some(found) = &existing {
+        match found.format {
+            artwork::ArtworkFormat::Jpeg | artwork::ArtworkFormat::Png => {
+                let cover = meta::CoverArt {
+                    format: if found.format == artwork::ArtworkFormat::Jpeg {
+                        meta::CoverFormat::Jpeg
+                    } else {
+                        meta::CoverFormat::Png
+                    },
+                    data: found.data.clone(),
+                };
+                if extract {
+                    external = Some((cover.file_name(), cover.data.clone()));
+                }
+                resolved_cover = Some(cover);
+            }
+            artwork::ArtworkFormat::Webp => {
+                if extract {
+                    external = Some((
+                        artwork::ArtworkFormat::Webp
+                            .external_file_name()
+                            .to_string(),
+                        found.data.clone(),
+                    ));
+                }
+            }
+        }
+    }
+
+    // Pre-read embedded artwork only when extraction is requested and no
+    // existing album image won. The selection is passed to the conversion so
+    // the same bytes are not read a second time for tag diagnostics.
+    let embedded_selection = if extract && existing.is_none() {
+        meta::read_cover(input).ok()
+    } else {
+        None
+    };
+    let selected = embedded_selection
+        .as_ref()
+        .and_then(|(cover, _)| cover.clone());
+    let mut conversion_cover = match (resolved_cover, embedded_selection) {
+        (Some(cover), _) => Some(ResolvedCover {
+            cover: embed.then_some(cover),
+            warnings: Vec::new(),
+        }),
+        (None, Some((cover, warnings))) => Some(ResolvedCover {
+            cover: if embed { cover } else { None },
+            warnings,
+        }),
+        (None, None) => None,
+    };
+    // External-only mode with an existing album image (including WebP) must
+    // not read embedded pictures at all: the external file is authoritative
+    // and warnings from ignored embedded artwork would be spurious. Passing
+    // an explicit empty resolution skips the per-file embedded selection in
+    // `convert_inner` instead of falling back to it.
+    if conversion_cover.is_none() && existing.is_some() && !embed && extract {
+        conversion_cover = Some(ResolvedCover {
+            cover: None,
+            warnings: Vec::new(),
+        });
+    }
     let loudness = if interesting {
         Some(loudness::analyze_single(input))
     } else {
@@ -573,14 +677,17 @@ pub fn convert_file_with_format_tags_and_cover_art_vbr(
         format,
         None,
         write_tags,
-        interesting && cover_art.embeds(),
+        embed,
+        conversion_cover,
         loudness.as_ref(),
         vbr_mode,
     )?;
-    let reports = match selected {
-        Some(cover) => vec![publish_single_external_cover(output, &cover)],
-        None => Vec::new(),
-    };
+    let mut reports = Vec::new();
+    if let Some((file_name, bytes)) = external {
+        reports.push(publish_single_external_bytes(output, file_name, &bytes));
+    } else if let Some(cover) = selected {
+        reports.push(publish_single_external_cover(output, &cover));
+    }
     Ok((summary, diagnostics, reports))
 }
 
@@ -599,6 +706,7 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
     format: OutputFormat,
     write_tags: bool,
     embed_cover: bool,
+    resolved_cover: Option<ResolvedCover>,
     loudness: Option<&loudness::FileLoudness>,
     vbr_mode: VbrMode,
 ) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
@@ -615,6 +723,7 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
         None,
         write_tags,
         embed_cover,
+        resolved_cover,
         loudness,
         vbr_mode,
     )
@@ -659,6 +768,7 @@ pub fn convert_file_m4a_experiment(
         Some(experiment),
         true,
         true,
+        None,
         loudness.as_ref(),
         VbrMode::Vbr6,
     )
@@ -673,6 +783,7 @@ fn convert_inner(
     experiment: Option<GaplessExperiment>,
     write_tags: bool,
     embed_cover: bool,
+    resolved_cover: Option<ResolvedCover>,
     loudness: Option<&loudness::FileLoudness>,
     vbr_mode: VbrMode,
 ) -> Result<(ConversionSummary, u64, TagDiagnostics), ConvertError> {
@@ -747,7 +858,21 @@ fn convert_inner(
     let (tag_ilst, mut diagnostics) = match (is_m4a, write_tags) {
         (false, _) => (Vec::new(), TagDiagnostics::default()),
         (true, true) => {
-            let mut set = meta::read_tags(&paths.input, true)?;
+            // Album artwork may already have been resolved once by the batch
+            // preparation pass. In that case the file's own picture metadata
+            // is not re-selected (no second extraction), and the member-level
+            // warnings from that pass are attached here.
+            let mut set = match resolved_cover {
+                Some(resolved) => {
+                    let mut set = meta::read_tags(&paths.input, false)?;
+                    if embed_cover {
+                        set.cover = resolved.cover;
+                    }
+                    set.warnings.extend(resolved.warnings);
+                    set
+                }
+                None => meta::read_tags(&paths.input, true)?,
+            };
             let diagnostics = TagDiagnostics {
                 mapped: set.mapped_count(),
                 unmapped: set.unmapped.clone(),
@@ -828,6 +953,11 @@ fn convert_inner(
 /// Publication is non-fatal by design: the audio output is already complete,
 /// so an existing or unwritable cover file becomes a report, not an error.
 fn publish_single_external_cover(output: &Path, cover: &meta::CoverArt) -> CoverArtReport {
+    publish_single_external_bytes(output, cover.file_name(), &cover.data)
+}
+
+/// Publish one pre-selected image next to an already-published audio file.
+fn publish_single_external_bytes(output: &Path, file_name: String, bytes: &[u8]) -> CoverArtReport {
     let resolved = output
         .canonicalize()
         .unwrap_or_else(|_| output.to_path_buf());
@@ -836,8 +966,7 @@ fn publish_single_external_cover(output: &Path, cover: &meta::CoverArt) -> Cover
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf();
-    let file_name = cover.file_name();
-    let action = publish_cover_file(&directory.join(&file_name), &cover.data);
+    let action = publish_cover_file(&directory.join(&file_name), bytes);
     CoverArtReport {
         directory,
         file_name: Some(file_name),

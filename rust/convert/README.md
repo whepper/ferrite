@@ -190,25 +190,33 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
   single-file input it is a usage error. There are no overwrite or force
   options in this release.
 - **Parallel workers.** `--jobs N` is one global limit reused by two
-  barrier-separated stages: preparation (album loudness and the external
-  artwork pre-scan) completes before encoding starts, and each stage uses at
-  most `N` workers, so at most `N` files are ever in flight. Every worker
-  owns its decoder, encoder, metadata state, and temporary file; no encoder
-  state is shared. Loudness analysis parallelises across albums (members of
-  one album remain sequential because they share ordered album state).
-  Artwork reads are parallel, but conflict resolution and external cover
-  publication stay sequential after encoding. Dry runs start no workers.
-- **Progress and summary.** Batch progress is live on stderr. M4A runs with
-  tags first print one preparation line for the pre-pass
-  (`preparing <n> files (loudness)...`, or `(loudness and artwork)` when
-  external cover art is requested). Per-file progress then follows:
-  `[  1/111] <relative input>  encoding...` when an item starts, then
-  `done`, `skipped (already exists)`, or `failed (<category>)` when it
-  finishes. Per-file warnings also appear on stderr at that point. With
-  `--jobs 1` these lines are in plan order; with more workers they arrive in
-  completion order (the first number remains the item's plan position, so
-  counters stay unambiguous). The batch header reports the effective worker
-  count. The final machine-readable result lines remain on stdout in plan
+  barrier-separated stages: preparation (album artwork discovery and album
+  loudness) completes before encoding starts, and each stage uses at most `N`
+  workers, so at most `N` files are ever in flight. Every worker owns its
+  decoder, encoder, metadata state, and temporary file; no encoder state is
+  shared. Loudness analysis parallelises across albums (members of one album
+  remain sequential because they share ordered album state). Artwork discovery
+  and embedded fallback reads are parallel across albums, but conflict
+  resolution and external cover publication stay sequential after encoding.
+  Dry runs start no workers.
+- **Progress and summary.** Batch progress is live on stderr and reports both
+  preparation and encoding. M4A runs with tags print
+  `Preparing <n> files across <m> albums`, then counters for loudness analysis
+  (`Loudness analysis <done>/<total> <pct>%`) and per-album artwork discovery
+  (`Artwork discovery <done>/<total> <pct>%`), followed by reused/extracted
+  album tallies (`Artwork reused` counts albums with an existing image file;
+  `Artwork extracted` counts albums whose embedded pictures were selected
+  for external publication, not per-track embedding) and prepared, failed
+  and skipped file counts. Encoding then
+  reports its own live counter. On a terminal the status line updates in place
+  and includes the current file or album plus an ETA once enough work has
+  completed. Redirected output or a non-interactive terminal receives the same
+  information as plain newline-delimited milestone lines (ten-percent steps and
+  completion), never carriage-return updates, so logs stay readable and
+  machine-friendly. `--verbose` adds one `encoding`/`done`/`skipped`/`failed`
+  line per file. Errors and warnings always print, including under `--quiet`.
+  The batch header reports the effective worker count. The final
+  machine-readable result lines remain on stdout in plan
   order, regardless of completion order
   (`ok <in> -> <out> (<frames> frames, <bytes> bytes)`,
   `skip <in> -> <out> (exists)` with `--skip-existing`, or
@@ -223,7 +231,11 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
   `ignore <path> (<reason>)` lines. `--quiet` suppresses live progress and
   per-file result lines, leaving the final summary on stdout; failures and
   warnings remain on stderr. Dry runs print the stdout plan only and emit no
-  fake `encoding...` progress.
+  fake `encoding...` progress. The same preparation and encoding information is
+  available to library callers as structured `ProgressEvent` values through
+  `batch::execute_plan_with_options_and_events`; terminal rendering lives only
+  in the CLI, so a future GUI can consume the event stream without duplicating
+  conversion logic.
 - **Failure detail.** Single-file failures use the same
   `error: <input>: <message>` form as batch failures. Encoder failures include
   the failing frame index, the underlying failure category/reason, and an
@@ -240,8 +252,17 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
 - **Bounded memory.** Each worker streams one file at a time through the same
   per-file pipeline as single-file conversion (8,000-frame encoder pushes,
   streaming muxer). Peak batch memory scales with `--jobs` (one in-flight
-  file per worker), not with the size of the library; remaining batch
-  overhead is the sorted path list.
+  file per worker), not with the size of the library. Artwork follows the
+  same bound: no per-album image bytes are retained in RAM. Existing-file
+  albums retain only paths and formats; embedded fallback covers are spilled
+  to a temp staging directory inside the output root (one file per album, up
+  to the 16 MiB cover limit each, on disk) and reloaded on demand — one album
+  at a time for sequential publication, one image per in-flight worker for
+  embedding. The staging directory (`.aac-convert-artwork-*.tmp.d`) is
+  removed on completion; abrupt termination can leave an orphan, which is
+  never a valid output, never blocks reruns, and is safe to delete manually
+  once no conversion is running. Remaining batch overhead is the sorted path
+  list plus small per-album metadata and per-member warning strings.
 - **Temporary files.** Each file converts through a hidden
   `.aac-convert-<pid>-<seq>.tmp` file in its destination directory, removed
   on ordinary error paths and atomically hard-linked to the destination on
@@ -382,7 +403,8 @@ gapless signalling is unchanged.
 ## Cover art
 
 M4A output can embed at most one JPEG or PNG image as a `covr` atom (appended
-after the text atoms), selected deterministically from the source FLAC
+after the text atoms). Artwork is selected deterministically from a
+conventional album image file when one exists, otherwise from the source FLAC
 pictures:
 
 1. Front-cover pictures first.
@@ -399,6 +421,37 @@ the next eligible picture. Absent artwork is silent. Cover outcomes use the
 same warning mechanism as text tags, ordered after text-tag warnings (and
 after the 24-bit precision notice, if present).
 
+### Existing album artwork
+
+Before reading embedded pictures, the converter looks for a conventional image
+file in each source album directory (the parent directory of the FLAC files;
+for a single-file conversion, the input file's parent is its one-member album
+directory):
+
+1. `cover.jpg`, `folder.jpg`, `front.jpg`, `album.jpg`
+2. the same four stems with `.jpeg`
+3. the same four stems with `.png`
+4. the same four stems with `.webp`
+
+Matching is ASCII case-insensitive. The first readable, supported, in-limit
+file in that order wins, regardless of directory enumeration order. Missing,
+unreadable, empty, invalid, or oversized candidates are skipped gracefully and
+the search continues; if no suitable file exists, embedded artwork is used as
+before. Existing artwork is resolved once per album directory, never once per
+track, and is reused for both embedding (`embedded`/`both`) and external
+publication (`external`/`both`). JPEG and PNG files are embeddable and
+publishable; WebP is supported for external reuse only and is written as
+`cover.webp` (the M4A `covr` atom supports JPEG and PNG only). A WebP-only
+album therefore falls back to embedded artwork for `embedded`/`both` while
+`external` still reuses the WebP file.
+
+When a suitable album file exists, it is authoritative: embedded pictures are
+not extracted, and differing embedded images in the same directory no longer
+veto publication. Without a suitable album file, embedded selection and
+conflict detection retain the behavior described below. The selected image is
+read and retained once per album during preparation; external publication does
+not re-read the source. The original image bytes are never modified.
+
 `--cover-art` selects the handling:
 
 | Mode | Embed in M4A | Write external file |
@@ -409,26 +462,28 @@ after the 24-bit precision notice, if present).
 
 External files are written beside the audio output using the converter's
 normal output-directory mapping (the output root plus the mirrored relative
-directory), named `cover.jpg` for JPEG and `cover.png` for PNG. The original
-image bytes are written unchanged; there is no recompression or transformation.
-Publication uses the same temporary-file, flush/sync, atomic-hard-link path as
-audio output, so an existing `cover.jpg`/`cover.png` is never replaced. A cover
-file is written once per output directory, never once per track. Directories
-with no eligible artwork get no file. With `--skip-existing`, retained existing
-audio outputs still participate: an album whose tracks are all skipped can
-receive its external cover if no cover file exists yet.
+directory), named `cover.jpg` for JPEG, `cover.png` for PNG, and `cover.webp`
+for reused WebP album files. The original image bytes are written unchanged;
+there is no recompression or transformation. Publication uses the same
+temporary-file, flush/sync, atomic-hard-link path as audio output, so an
+existing `cover.jpg`/`cover.png`/`cover.webp` is never replaced. A cover file is
+written once per output directory, never once per track. Directories with no
+eligible artwork get no file. With `--skip-existing`, retained existing audio
+outputs still participate: an album whose tracks are all skipped can receive
+its external cover if no cover file exists yet.
 
-Before writing, the converter groups planned tracks by output directory and
-compares the actual selected image content (format, length, and a content hash
-over the complete bytes). If every eligible image in a directory is identical,
-one file is published. If different images are found, it prints a warning
-naming the output directory and skips external artwork publication for that
-directory; audio conversion continues normally. All planned tracks take part
-in this comparison, including tracks that are skipped under `--skip-existing`
-and tracks that later fail conversion, so a failed track with different
-artwork can veto external publication for its output directory. No arbitrary
-first-seen image is published, and no partially written cover remains. Dry
-runs read no artwork and create no files.
+Before writing, the converter resolves artwork once per source album directory.
+An existing album image wins; otherwise it groups planned tracks by output
+directory and compares the actual selected image content (format, length, and a
+content hash over the complete bytes). If every eligible embedded image in a
+directory is identical, one file is published. If different images are found,
+it prints a warning naming the output directory and skips external artwork
+publication for that directory; audio conversion continues normally. All
+planned tracks take part in this comparison, including tracks that are skipped
+under `--skip-existing` and tracks that later fail conversion, so a failed track
+with different artwork can veto external publication for its output directory.
+No arbitrary first-seen image is published, and no partially written cover
+remains. Dry runs read no artwork and create no files.
 
 `--no-tags` omits embedding and external extraction entirely, and suppresses
 cover warnings. ADTS output never carries cover art and never writes external
@@ -515,10 +570,12 @@ The app tests use committed synthetic FLAC fixtures; no external encoder is
 needed. They verify ADTS output, M4A box structure and sample tables, payload
 equivalence between the two containers, integrity failures, output collisions,
 concurrent publication, metadata mapping and missing/multi-value policy,
-embedded and external cover-art modes (including conflicts and no-overwrite),
-live batch progress events, verbose ignored-entry reasons, and parallel
-directory batch conversion (worker limits, concurrent preparation and
-encoding, progress accounting under concurrent completion, byte-identical
+embedded and external cover-art modes (including reusable album artwork,
+case-insensitive name priority, WebP external reuse, conflicts and
+no-overwrite), structured preparation/encoding progress events, live batch
+progress output (interactive and redirected), verbose ignored-entry reasons,
+and parallel directory batch conversion (worker limits, concurrent preparation
+and encoding, progress accounting under concurrent completion, byte-identical
 sequential/parallel output, traversal, mapping, preflight, dry-run, exit
 codes, and cleanup). Ignored independent-decoder smoke tests for both
 ADTS and M4A can be run when `ffmpeg` is available:

@@ -1101,24 +1101,33 @@ fn cli_batch_writes_live_progress_to_stderr_and_results_to_stdout() {
     );
     let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(
-        stderr.contains("preparing 2 files (loudness)..."),
-        "pre-pass feedback must precede per-file progress: {stderr}"
+        stderr.contains("Preparing 2 files across 2 albums"),
+        "preparation header must precede per-file progress: {stderr}"
     );
-    // Live per-file progress is stderr-only, in plan order with --jobs 1,
-    // with the total.
-    let progress: Vec<&str> = stderr
-        .lines()
-        .filter(|line| line.starts_with('['))
-        .collect();
-    assert_eq!(
-        progress,
-        [
-            "[1/2] a.flac  encoding...",
-            "[1/2] a.flac  done",
-            "[2/2] sub/b.flac  encoding...",
-            "[2/2] sub/b.flac  done",
-        ],
+    assert!(stderr.contains("Preparation"), "{stderr}");
+    assert!(
+        stderr.contains("Artwork discovery    2/2  100%"),
         "{stderr}"
+    );
+    assert!(
+        stderr.contains("Loudness analysis    2/2  100%"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("Prepared             2 files"), "{stderr}");
+    assert!(stderr.contains("Encoding"), "{stderr}");
+    assert!(
+        stderr.contains("Converted            2 converted, 0 skipped, 0 failed"),
+        "{stderr}"
+    );
+    // Redirected output must be plain newline-delimited text, not a live
+    // carriage-return display.
+    assert!(
+        !stderr.contains('\r'),
+        "redirected progress must not use \\r"
+    );
+    assert!(
+        !stderr.contains("encoding..."),
+        "normal mode should not emit a line per file: {stderr}"
     );
     // Stdout keeps the scriptable result and summary shapes.
     let lines = stdout_lines(&result);
@@ -1153,7 +1162,11 @@ fn cli_batch_progress_keeps_long_nested_paths_visible() {
     );
     let output = workspace.join("out");
 
-    let result = run_cli(&[input.to_str().unwrap(), output.to_str().unwrap()]);
+    let result = run_cli(&[
+        "--verbose",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
     assert_eq!(
         result.status.code(),
         Some(0),
@@ -1162,11 +1175,11 @@ fn cli_batch_progress_keeps_long_nested_paths_visible() {
     );
     let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(
-        stderr.contains(&format!("[1/1] album/disc/{long_name}  encoding...")),
+        stderr.contains(&format!("  encoding album/disc/{long_name}")),
         "{stderr}"
     );
     assert!(
-        stderr.contains(&format!("[1/1] album/disc/{long_name}  done")),
+        stderr.contains(&format!("  done     album/disc/{long_name}")),
         "{stderr}"
     );
 }
@@ -1219,6 +1232,54 @@ fn cli_batch_dry_run_prints_plan_without_progress_lines() {
         "{lines:?}"
     );
     assert!(!output.exists());
+}
+
+#[test]
+fn cli_batch_warning_heavy_output_stays_throttled() {
+    // Each 24-bit file emits a precision warning; diagnostics must not reset
+    // the non-interactive progress throttle and produce a line per file.
+    let workspace = TempDir::new("cli-batch-throttled");
+    let input = workspace.join("in");
+    for index in 0..20 {
+        seed_file(
+            &input,
+            &format!("track-{index:02}.flac"),
+            "stereo-48k-24.flac",
+        );
+    }
+    let output = workspace.join("out");
+
+    let result = run_cli(&[
+        "--jobs",
+        "1",
+        input.to_str().unwrap(),
+        output.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(!stderr.contains('\r'), "redirected output must not use \\r");
+    let file_lines: Vec<&str> = stderr
+        .lines()
+        .filter(|line| line.contains("Files") && line.contains('%'))
+        .collect();
+    assert!(
+        file_lines.len() <= 12,
+        "progress must stay throttled despite per-file warnings ({} lines): {stderr}",
+        file_lines.len()
+    );
+    let warnings = stderr
+        .lines()
+        .filter(|line| line.starts_with("warning: "))
+        .count();
+    assert!(
+        warnings >= 20,
+        "every file must still warn (at least the 24-bit notice): {stderr}"
+    );
 }
 
 #[test]

@@ -5,14 +5,16 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use aac_convert::batch::{
-    default_jobs, execute_plan_with_options_and_progress, plan_batch, BatchEvent, BatchFileOutcome,
-    BatchOptions, BatchProgress,
+    default_jobs, execute_plan_with_options_and_events, plan_batch, BatchFileOutcome, BatchOptions,
 };
+use aac_convert::progress::ProgressEvent;
 use aac_convert::{
     convert_file_with_format_tags_and_cover_art_vbr, CoverArtAction, CoverArtMode, CoverArtReport,
     OutputFormat,
 };
 use ferrite_aac::aac_enc::config::VbrMode;
+
+mod cli_progress;
 
 const APP_NAME: &str = "aac-convert";
 /// Single source of truth for the application and encoder version: Cargo
@@ -63,9 +65,12 @@ Cover art (M4A with tags):
   --cover-art embedded   Embed selected artwork in the M4A (default)
   --cover-art external   Write cover.jpg/cover.png beside the audio; do not embed
   --cover-art both       Embed and write the same selected artwork
-External files are never overwritten. Conflicting artwork across tracks in one
-output directory is reported and skipped for that directory. --no-tags and
-ADTS output never embed or extract artwork.
+Existing artwork in an album directory (cover, folder, front, or album with
+.jpg/.jpeg/.png/.webp, case-insensitive) is reused before embedded pictures;
+WebP is external-only and is written as cover.webp. External files are never
+overwritten. Conflicting embedded artwork across tracks in one output directory
+is reported and skipped for that directory. --no-tags and ADTS output never
+embed or extract artwork.
 
 Without --format, a .m4a or .mp4 output selects M4A; every other extension
 selects ADTS. Existing output files are never overwritten.
@@ -492,19 +497,6 @@ fn jobs_label(jobs: usize) -> String {
     }
 }
 
-/// One stderr progress line: `[  1/111] path  status`.
-fn progress_line(item: &BatchProgress, status: &str) -> String {
-    let width = item.total.to_string().len().max(1);
-    format!(
-        "[{:>width$}/{}] {}  {}",
-        item.index,
-        item.total,
-        item.relative_input.display(),
-        status,
-        width = width
-    )
-}
-
 /// Report external cover-art outcomes on stderr.
 ///
 /// Conflicts and failures are diagnostics and always print. A newly written
@@ -568,65 +560,39 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
     let start = std::time::Instant::now();
     let quiet = cli.quiet;
     let dry_run = cli.dry_run;
-    let execution = execute_plan_with_options_and_progress(&plan, format, &options, |event| {
+    let mut display = cli_progress::ProgressDisplay::new(quiet, cli.verbose);
+    let execution = execute_plan_with_options_and_events(&plan, format, &options, |event| {
         // Dry runs report the plan on stdout and must not pretend to
         // encode; failures keep their detailed stderr diagnostic.
         if dry_run {
-            if let BatchEvent::Failed { item, message, .. } = &event {
+            if let ProgressEvent::FileFailed { item, message, .. } = &event {
                 eprintln!("error: {}: {message}", item.relative_input.display());
             }
             return;
         }
-        match event {
-            BatchEvent::Preparing { total, cover_art } => {
-                if !quiet {
-                    let detail = if cover_art {
-                        "loudness and artwork"
-                    } else {
-                        "loudness"
-                    };
-                    let noun = if total == 1 { "file" } else { "files" };
-                    eprintln!("preparing {total} {noun} ({detail})...");
-                }
-            }
-            BatchEvent::Started(item) => {
-                if !quiet {
-                    eprintln!("{}", progress_line(&item, "encoding..."));
-                }
-            }
-            BatchEvent::Converted { item, tags } => {
-                if !quiet {
-                    eprintln!("{}", progress_line(&item, "done"));
-                }
+        display.handle(&event);
+        match &event {
+            ProgressEvent::FileConverted { item, tags } => {
                 // Warnings surface as soon as the file finishes, not after
                 // the whole batch.
                 for warning in &tags.warnings {
-                    eprintln!("warning: {}: {warning}", item.relative_input.display());
+                    display.diagnostic(&format!(
+                        "warning: {}: {warning}",
+                        item.relative_input.display()
+                    ));
                 }
             }
-            BatchEvent::Skipped(item) => {
-                if !quiet {
-                    eprintln!("{}", progress_line(&item, "skipped (already exists)"));
-                }
+            ProgressEvent::FileFailed { item, message, .. } => {
+                display.diagnostic(&format!(
+                    "error: {}: {message}",
+                    item.relative_input.display()
+                ));
             }
-            BatchEvent::Failed {
-                item,
-                category,
-                message,
-            } => {
-                if !quiet {
-                    eprintln!("{}", progress_line(&item, &format!("failed ({category})")));
-                }
-                eprintln!("error: {}: {message}", item.relative_input.display());
-            }
-            BatchEvent::Planned(item) => {
-                if !quiet {
-                    eprintln!("{}", progress_line(&item, "would convert"));
-                }
-            }
+            _ => {}
         }
     })
     .map_err(|err| CliError::Setup(err.to_string()))?;
+    display.finish();
     let elapsed = start.elapsed();
     let outcome = &execution.outcome;
 

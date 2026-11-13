@@ -28,6 +28,7 @@ use ebur128::{Channel, EbuR128, Mode};
 
 use crate::flac::FlacSource;
 use crate::gapless::boxed;
+use crate::progress::LoudnessOutcome;
 use crate::ConvertError;
 
 /// Fixed v1 reference level (L0 D2, frozen).
@@ -120,6 +121,8 @@ struct MemberResult {
     /// Track measurement (`None` when the file contributes nothing).
     measurement: Option<TrackMeasurement>,
     join: JoinStatus,
+    /// Reporting category for batch progress.
+    outcome: LoudnessOutcome,
 }
 
 /// Measure one album member: stream its PCM through a fresh track analyzer
@@ -136,6 +139,7 @@ fn measure_member(path: &Path, album: &mut AlbumState) -> MemberResult {
             return MemberResult {
                 measurement: None,
                 join: JoinStatus::Detached,
+                outcome: LoudnessOutcome::Failed,
             };
         }
     };
@@ -207,6 +211,7 @@ fn measure_member(path: &Path, album: &mut AlbumState) -> MemberResult {
         return MemberResult {
             measurement: None,
             join: JoinStatus::Detached,
+            outcome: LoudnessOutcome::Failed,
         };
     }
 
@@ -225,6 +230,7 @@ fn measure_member(path: &Path, album: &mut AlbumState) -> MemberResult {
                 return MemberResult {
                     measurement: None,
                     join: JoinStatus::Detached,
+                    outcome: LoudnessOutcome::Failed,
                 };
             }
         }
@@ -233,11 +239,17 @@ fn measure_member(path: &Path, album: &mut AlbumState) -> MemberResult {
         return MemberResult {
             measurement: None,
             join: JoinStatus::Detached,
+            outcome: LoudnessOutcome::Failed,
         };
     }
     MemberResult {
         measurement: Some(TrackMeasurement { integrated, peak }),
         join,
+        outcome: if integrated.is_some() {
+            LoudnessOutcome::Analyzed
+        } else {
+            LoudnessOutcome::Unmeasurable
+        },
     }
 }
 
@@ -400,6 +412,24 @@ pub(crate) fn analyze_album_with_jobs(
     members: &[(PathBuf, PathBuf)],
     jobs: usize,
 ) -> HashMap<PathBuf, FileLoudness> {
+    analyze_album_with_jobs_and_progress(members, jobs, |_, _| {})
+}
+
+/// Analyze a batch with bounded cross-album concurrency and per-file progress.
+///
+/// Behaves exactly like [`analyze_album_with_jobs`], and additionally invokes
+/// `on_file(relative_input, outcome)` on the calling thread after each member's
+/// PCM analysis finishes. Albums remain independent workers and members of one
+/// album stay sequential; completion events may arrive in album-completion
+/// order rather than plan order.
+pub(crate) fn analyze_album_with_jobs_and_progress<F>(
+    members: &[(PathBuf, PathBuf)],
+    jobs: usize,
+    mut on_file: F,
+) -> HashMap<PathBuf, FileLoudness>
+where
+    F: FnMut(&Path, LoudnessOutcome),
+{
     // Group member indices by album key (parent of the relative path;
     // root-level files form album `""`), preserving plan order.
     let mut albums: Vec<(&Path, Vec<usize>)> = Vec::new();
@@ -411,10 +441,15 @@ pub(crate) fn analyze_album_with_jobs(
         }
     }
 
-    let measured = crate::parallel::map_indexed(albums.len(), jobs, |album| {
-        let (_, indices) = &albums[album];
-        analyze_one_album(members, indices)
-    });
+    let measured = crate::parallel::map_indexed_with_progress(
+        albums.len(),
+        jobs,
+        |album, sender| {
+            let (_, indices) = &albums[album];
+            analyze_one_album(members, indices, sender)
+        },
+        |(relative, outcome)| on_file(&relative, outcome),
+    );
     let mut out = HashMap::with_capacity(members.len());
     // Merge in album order so the map contents are deterministic even though
     // albums completed out of order.
@@ -441,6 +476,7 @@ pub(crate) fn analyze_single(path: &Path) -> FileLoudness {
 fn analyze_one_album(
     members: &[(PathBuf, PathBuf)],
     indices: &[usize],
+    progress: &dyn Fn((PathBuf, LoudnessOutcome)),
 ) -> Vec<(PathBuf, FileLoudness)> {
     // Stage 1: measure every member, feeding the shared album analyzer.
     // The analyzer is seeded from the first analyzable member; a later
@@ -456,6 +492,9 @@ fn analyze_one_album(
     for &index in indices {
         let (relative, absolute) = &members[index];
         let result = measure_member(absolute, &mut album);
+        // Progress observers are best-effort: a dropped receiver (cancelled
+        // batch observer) must not stop analysis.
+        progress((relative.clone(), result.outcome));
         // A member that poisoned the aggregation (layout mismatch) is
         // incomplete for album purposes even when its own track measurement
         // stands. Post-poison members measured track-only are consequences,

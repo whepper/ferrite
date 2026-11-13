@@ -32,6 +32,7 @@ pub(crate) enum IndexEvent<'a, T> {
 
 /// Run `task(index)` for every index in `0..count` on at most `jobs` workers,
 /// returning results in index order.
+#[cfg(test)]
 pub(crate) fn map_indexed<T, F>(count: usize, jobs: usize, task: F) -> Vec<T>
 where
     T: Send,
@@ -121,6 +122,99 @@ where
         .collect()
 }
 
+/// Run `task(index, progress_sender)` for every index on at most `jobs`
+/// workers, forwarding per-task progress messages to the calling thread.
+///
+/// `task` may send any number of `P` messages through the supplied sender.
+/// Those messages are delivered to `on_progress` in arrival order. Results are
+/// returned in index order. With one worker, progress is delivered
+/// synchronously during each task (not buffered until the task returns), so
+/// per-member loudness events are observable while a large album is still
+/// being analyzed.
+pub(crate) fn map_indexed_with_progress<T, P, F, G>(
+    count: usize,
+    jobs: usize,
+    task: F,
+    mut on_progress: G,
+) -> Vec<T>
+where
+    T: Send,
+    P: Send,
+    F: Fn(usize, &dyn Fn(P)) -> T + Sync,
+    G: FnMut(P),
+{
+    if count == 0 {
+        return Vec::new();
+    }
+    let workers = worker_count(jobs, count);
+    if workers == 1 {
+        // Single-worker path delivers progress synchronously while the task
+        // runs. The previous channel-and-drain-after-task implementation
+        // buffered all per-member loudness events until the whole album
+        // finished, so `--jobs 1` and single-album batches showed no live
+        // progress. Direct delivery preserves deterministic order without
+        // buffering and without extra threads or synchronization.
+        let observer = std::cell::RefCell::new(on_progress);
+        let mut values = Vec::with_capacity(count);
+        for index in 0..count {
+            // `task` receives `&dyn Fn`, so the `FnMut` observer is reached
+            // through `RefCell` interior mutability. Single-threaded here,
+            // so no locking is involved.
+            let report = |message: P| {
+                observer.borrow_mut()(message);
+            };
+            let value = task(index, &report);
+            values.push(value);
+        }
+        return values;
+    }
+
+    enum Message<T, P> {
+        Progress(P),
+        Finished(usize, T),
+    }
+
+    let next = AtomicUsize::new(0);
+    let mut slots: Vec<Option<T>> = (0..count).map(|_| None).collect();
+    thread::scope(|scope| {
+        let (sender, receiver) = mpsc::channel::<Message<T, P>>();
+        for _ in 0..workers {
+            let sender = sender.clone();
+            let next = &next;
+            let task = &task;
+            scope.spawn(move || {
+                let progress_sender = sender.clone();
+                let report = move |message: P| {
+                    let _ = progress_sender.send(Message::Progress(message));
+                };
+                loop {
+                    let index = next.fetch_add(1, Ordering::Relaxed);
+                    if index >= count {
+                        break;
+                    }
+                    let value = task(index, &report);
+                    if sender.send(Message::Finished(index, value)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(sender);
+        while let Ok(message) = receiver.recv() {
+            match message {
+                Message::Progress(message) => on_progress(message),
+                Message::Finished(index, value) => {
+                    slots[index] = Some(value);
+                }
+            }
+        }
+    });
+    slots
+        .into_iter()
+        .map(|slot| slot.expect("every worker task sends exactly one result"))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::{mpsc, Mutex};
@@ -136,6 +230,75 @@ mod tests {
         assert_eq!(worker_count(1, 5), 1);
         assert_eq!(worker_count(8, 3), 3);
         assert_eq!(worker_count(8, 100), 8);
+    }
+
+    #[test]
+    fn indexed_progress_messages_are_forwarded() {
+        let mut messages = Vec::new();
+        let values = map_indexed_with_progress(
+            4,
+            3,
+            |index, report| {
+                report(index);
+                index
+            },
+            |message| messages.push(message),
+        );
+        assert_eq!(values, vec![0, 1, 2, 3]);
+        messages.sort_unstable();
+        assert_eq!(messages, vec![0, 1, 2, 3]);
+
+        let mut sequential = Vec::new();
+        let values = map_indexed_with_progress(
+            3,
+            1,
+            |index, report| {
+                report(index);
+                index * 2
+            },
+            |message| sequential.push(message),
+        );
+        assert_eq!(values, vec![0, 2, 4]);
+        assert_eq!(sequential, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn single_worker_progress_is_delivered_during_the_task() {
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
+
+        // The observer runs synchronously while the single worker's task is
+        // still executing, so a task can observe its own progress delivery.
+        // The previous buffered implementation only drained after the task
+        // returned and would see zero here.
+        let delivered = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::new(AtomicUsize::new(0));
+        let values = map_indexed_with_progress(
+            1,
+            1,
+            |_, report| {
+                report(10);
+                observed.store(delivered.load(Ordering::SeqCst), Ordering::SeqCst);
+                report(20);
+                42
+            },
+            |_| {
+                delivered.fetch_add(1, Ordering::SeqCst);
+            },
+        );
+        assert_eq!(values, vec![42]);
+        assert_eq!(
+            delivered.load(Ordering::SeqCst),
+            2,
+            "both progress messages must be delivered"
+        );
+        assert_eq!(
+            observed.load(Ordering::SeqCst),
+            1,
+            "first message must be visible before the task finishes"
+        );
     }
 
     #[test]

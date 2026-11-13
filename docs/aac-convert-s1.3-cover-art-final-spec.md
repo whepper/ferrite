@@ -1,6 +1,14 @@
 # S1.3 — Cover-Art Final Specification (Design Only)
 
 > Maintained specification: this is the authoritative cover-art behavior contract for the shipped implementation. S1.1 and S1.2 are archived historical design records.
+>
+> **Addendum (2026-11-13):** `aac-convert` now looks for a conventional image
+> in the source album directory before applying the embedded-picture selection
+> rules below (`cover`/`folder`/`front`/`album` with `.jpg`, `.jpeg`, `.png`,
+> or `.webp`, case-insensitive). Existing album artwork is reused for embedding
+> and external publication; embedded selection and conflict detection are the
+> fallback. JPEG/PNG remain the only embeddable formats. WebP reuse is
+> external-only (`cover.webp`); WebP embedding remains a non-goal.
 
 - Baseline: `main` plus M1/M1.1 and S2 work. No implementation is authorized
   by this document; no production code was changed to produce it.

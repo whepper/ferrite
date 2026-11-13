@@ -9,14 +9,14 @@
 //! sequential planning and publication rules; the parallel execution rules
 //! are an additive extension documented here.
 //!
-//! Concurrency is stage-bounded, never nested. Preparation runs the loudness
-//! analysis and then the external-artwork pre-scan; each sub-stage uses at
-//! most [`BatchOptions::jobs`] workers and finishes before the next begins.
-//! Only then does conversion run, again with at most the same number of
-//! workers. The stages never overlap, so the global worker limit is never
-//! exceeded even though every stage reuses it. Per-file results are always
-//! collected in plan order; only progress events may arrive in completion
-//! order.
+//! Concurrency is stage-bounded, never nested. Preparation resolves album
+//! artwork once per source directory and then runs the loudness analysis; each
+//! sub-stage uses at most [`BatchOptions::jobs`] workers and finishes before the
+//! next begins. Only then does conversion run, again with at most the same
+//! number of workers. The stages never overlap, so the global worker limit is
+//! never exceeded even though every stage reuses it. Per-file results are
+//! always collected in plan order; only progress events may arrive in
+//! completion order.
 //!
 //! - Traversal is recursive by default; directory symlinks are never followed;
 //!   symlinked files whose target is a regular file are accepted; hidden files
@@ -36,7 +36,7 @@
 //!   `existing`. With `skip_existing`, pre-existing destinations are skipped
 //!   instead: never converted, never a failure, tallied as `skipped`. The
 //!   conversion pass does not decode a skipped source (though the M4A
-//!   loudness pre-pass and the external-artwork pre-scan may still read it;
+//!   loudness pre-pass and album-artwork discovery may still read it;
 //!   see [`execute_plan_with_options_and_progress`]). Publication-time
 //!   collisions (a destination appearing after planning) are still enforced
 //!   by the atomic hard link and surface as a skip under `skip_existing`, as
@@ -49,27 +49,42 @@
 //!   restores strictly sequential execution). Every worker owns its decoder,
 //!   encoder, metadata state, and temporary file, so no mutable encoder state
 //!   is shared. Memory remains bounded per worker by the same streaming
-//!   profile as single-file conversion.
+//!   profile as single-file conversion. Artwork adds at most one image (up
+//!   to the 16 MiB cover limit) per in-flight worker for embedding, plus
+//!   small per-album metadata; no per-album image bytes are retained in RAM.
+//!   Embedded fallback covers are spilled to a temp staging directory (one
+//!   file per album, on disk, removed on completion) and reloaded on demand.
 //! - M4A runs with tags add one streaming loudness pre-pass over source PCM
 //!   (`ebur128`, one packet at a time, no whole-file buffering) before any
 //!   publication. Albums are independent and may run concurrently; members of
 //!   one album stay sequential because they share one ordered album analyzer.
-//! - External-artwork pre-scanning (`meta::read_cover`) is concurrent per
-//!   planned file, but conflict detection and publication are resolved
-//!   sequentially in plan order after conversion, so no worker can race when
-//!   publishing `cover.jpg`/`cover.png`.
+//! - External-artwork discovery looks in the source album directory first
+//!   (`cover`/`folder`/`front`/`album` with `.jpg`, `.jpeg`, `.png`, or
+//!   `.webp`, case-insensitive, in that priority order). An existing image is
+//!   reused for embedding and/or external publication; embedded pictures are
+//!   inspected only when no suitable album file exists. Resolution happens
+//!   once per album; the selected embedded cover is spilled to a temp staging
+//!   directory (cleaned up on completion) and reloaded on demand for
+//!   publication rather than retained in RAM. Embedded conflict detection
+//!   remains for albums without an existing image, and conflict/publication
+//!   problems never fail audio. Files are opened and re-validated as regular
+//!   files with bounded reads, so a concurrently replaced path cannot cause
+//!   an unbounded allocation (a residual FIFO-swap blocking risk on open is
+//!   accepted and documented at the discovery site).
 //! - Traversal itself uses only `std::fs` with an explicit stack (no
 //!   recursion).
-//! - [`execute_plan_with_options_and_progress`] exposes the same pipeline
-//!   through [`BatchEvent`] callbacks (one optional pre-pass notice, a
-//!   terminal outcome for every work item, and a start event for real
-//!   conversion attempts). Events are emitted on the calling thread; with
-//!   `jobs > 1` their order follows completion, while returned results and
-//!   stdout reports remain in plan order. External cover-art planning groups
-//!   eligible artwork by destination directory, reports and skips conflicting
-//!   images for that directory, and publishes one identical image without
-//!   overwriting an existing `cover.jpg`/`cover.png`. Existing entry points
-//!   retain embedded-only behavior.
+//! - [`execute_plan_with_options_and_progress`] exposes the legacy
+//!   [`BatchEvent`] callback, while
+//!   [`execute_plan_with_options_and_events`] exposes renderer-agnostic
+//!   [`ProgressEvent`] values (plan counts,
+//!   per-album artwork discovery, per-file loudness completion, preparation
+//!   tallies, and encoding outcomes). Events are emitted on the calling
+//!   thread; with `jobs > 1` their order follows completion, while returned
+//!   results and stdout reports remain in plan order. External cover-art
+//!   planning groups eligible artwork by destination directory, reports and
+//!   skips conflicting images for that directory, and publishes one identical
+//!   image without overwriting an existing `cover.jpg`/`cover.png`/
+//!   `cover.webp`.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{OsStr, OsString};
@@ -78,13 +93,17 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::artwork::{self, ArtworkFormat};
 use crate::loudness;
 use crate::parallel;
+use crate::progress::{ArtworkSource, LoudnessOutcome, ProgressEvent};
 use crate::{
     convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, CoverArtMode,
-    OutputFormat, TagDiagnostics,
+    OutputFormat, ResolvedCover, TagDiagnostics,
 };
 use ferrite_aac::aac_enc::config::VbrMode;
+
+pub use crate::progress::BatchProgress;
 
 /// Reason recorded for an ignored directory symlink (verbose reporting).
 pub const SYMLINKED_DIR_REASON: &str = "symlinked dir, not followed";
@@ -302,7 +321,7 @@ pub enum BatchFileOutcome {
     /// checked, so the conversion pass does not decode the source and
     /// nothing is written. Never a conversion, never a failure.
     ///
-    /// The M4A loudness pre-pass and the external-artwork pre-scan may still
+    /// The M4A loudness pre-pass and album-artwork discovery may still
     /// read a skipped source; see
     /// [`execute_plan_with_options_and_progress`].
     Skipped,
@@ -416,31 +435,21 @@ impl Default for BatchOptions {
     }
 }
 
-/// One item's position in the deterministic batch plan.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BatchProgress {
-    /// 1-based position among all work items (planned files plus discovery
-    /// failures), in deterministic plan order. Concurrency may change event
-    /// arrival order, never this identity.
-    pub index: usize,
-    /// Total number of work items in this execution.
-    pub total: usize,
-    /// Input path relative to the input root.
-    pub relative_input: PathBuf,
-    /// Destination relative to the output root (`None` for discovery
-    /// failures).
-    pub relative_output: Option<PathBuf>,
-}
-
-/// Progress event emitted synchronously during batch execution.
+/// Legacy progress event emitted synchronously during batch execution.
+///
+/// This is the historical surface retained for compatibility. New callers that
+/// want preparation detail (per-album artwork discovery, per-file loudness
+/// completion, reused/extracted tallies) should use
+/// [`ProgressEvent`] through
+/// [`execute_plan_with_options_and_events`].
 ///
 /// Every work item emits exactly one terminal event (`Converted`, `Skipped`,
 /// `Failed`, or `Planned`). Real conversion attempts also emit `Started`
 /// before their terminal event; an item already known to be skipped under
 /// `skip_existing` emits only `Skipped`. M4A runs with tags emit one optional
-/// `Preparing` event before the first item when the loudness (and
-/// external-artwork) pre-pass runs. Dry runs never emit `Started` or
-/// `Preparing`: nothing is encoded or analyzed.
+/// `Preparing` event before the first item when the loudness (and artwork)
+/// pre-pass runs. Dry runs never emit `Started` or `Preparing`: nothing is
+/// encoded or analyzed.
 ///
 /// Events are emitted on the calling thread, so a single observer sees no
 /// interleaved or reordered writes from workers. With `jobs == 1` events are
@@ -578,7 +587,7 @@ pub fn plan_batch(
 /// - With `skip_existing`, a destination that already exists is skipped: the
 ///   conversion pass never decodes the source, no temporary file is created,
 ///   and the item counts as `skipped`, never as converted or failed. (The
-///   M4A loudness pre-pass and the external-artwork pre-scan may still read
+///   M4A loudness pre-pass and album-artwork discovery may still read
 ///   a skipped source.) The pre-execution existence check is advisory only;
 ///   enforcement stays with the atomic hard-link publication, so a
 ///   destination appearing after planning still cannot be overwritten: a
@@ -655,7 +664,7 @@ pub fn execute_plan_with_options(
 ///
 /// The observer runs only on the calling thread, so events never interleave
 /// with worker output. M4A runs with tags first emit one `Preparing` event for
-/// the loudness (and optional external-artwork) pre-pass. Every work item then
+/// the loudness and artwork discovery pre-pass. Every work item then
 /// emits exactly one terminal [`BatchEvent`] (`Converted`, `Skipped`,
 /// `Failed`, or `Planned`); real conversion attempts also emit `Started`
 /// first, while items already known to be skipped under `skip_existing` emit
@@ -684,6 +693,67 @@ pub fn execute_plan_with_options_and_progress<F>(
 ) -> Result<BatchExecution, BatchError>
 where
     F: FnMut(BatchEvent),
+{
+    let preparing = matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags;
+    let work_total = plan.entries.len() + plan.discovery_failures.len();
+    execute_plan_with_options_and_events(plan, format, options, |event| {
+        if preparing && matches!(event, ProgressEvent::BatchStarted { .. }) {
+            progress(BatchEvent::Preparing {
+                total: work_total,
+                cover_art: options.cover_art.extracts(),
+            });
+        }
+        if let Some(event) = legacy_event(event) {
+            progress(event);
+        }
+    })
+}
+
+/// Execute a plan with explicit options and a structured progress observer.
+///
+/// This is the renderer-agnostic entry point behind
+/// [`execute_plan_with_options_and_progress`]. It emits [`ProgressEvent`]
+/// values for planning, preparation (album artwork discovery, loudness
+/// analysis, reuse/extraction tallies), and encoding. The event stream carries
+/// no terminal formatting, timing, or GUI assumptions; see [`crate::progress`].
+///
+/// Events are delivered on the calling thread. With `options.jobs > 1`,
+/// preparation and encoding events arrive in completion order while each
+/// event's absolute counters and plan-position identity stay deterministic.
+/// Dry runs emit `BatchStarted`, terminal `FilePlanned` events, and no
+/// preparation or start events.
+///
+/// Artwork is resolved once per album directory before encoding: an existing
+/// `cover.*`/`folder.*`/`front.*`/`album.*` image is reused when present, and
+/// embedded artwork is selected only as a fallback. Conflicting embedded
+/// images still veto external publication for their directory, matching the
+/// existing cover-art contract. Publication happens after conversion and never
+/// fails or rolls back otherwise valid audio conversions.
+///
+/// Memory policy: no per-album image bytes are retained in RAM. Existing-file
+/// albums retain only paths and formats; embedded fallback covers are spilled
+/// to a temp staging directory inside the output root (one file per album,
+/// up to the 16 MiB cover limit each, on disk) and reloaded on demand. Peak
+/// artwork RAM therefore scales with `--jobs` (at most one image per
+/// in-flight worker for embedding, plus one album at a time for sequential
+/// publication), not with the number of albums. The staging directory is
+/// removed when execution completes (including panic unwinds while the guard
+/// is alive); abrupt termination can leave an orphan
+/// `.aac-convert-artwork-*.tmp.d` directory, which is never a valid output,
+/// never blocks reruns, and is safe to delete manually once no conversion is
+/// running.
+///
+/// The observer must not panic: it executes synchronously on the calling
+/// thread, and a panic unwinds through the executor, aborting the remaining
+/// batch. Files already published before the panic are not rolled back.
+pub fn execute_plan_with_options_and_events<F>(
+    plan: &BatchPlan,
+    format: OutputFormat,
+    options: &BatchOptions,
+    mut progress: F,
+) -> Result<BatchExecution, BatchError>
+where
+    F: FnMut(ProgressEvent),
 {
     let output_root = if options.dry_run {
         plan.output_root.clone()
@@ -716,51 +786,128 @@ where
     // workers nor analyze anything.
     let jobs = if options.dry_run { 1 } else { options.jobs };
 
-    // A single phase event covers the pre-pass before per-file progress. The
-    // pre-pass is M4A-only and real-run-only; dry runs analyze nothing.
-    if matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags {
-        progress(BatchEvent::Preparing {
-            total,
-            cover_art: options.cover_art.extracts(),
-        });
-    }
+    let albums = album_groups(plan);
+    progress(ProgressEvent::BatchStarted {
+        files: plan.entries.len(),
+        albums: albums.len(),
+    });
 
-    // Loudness pre-pass (M4A with tags, real runs only): analyze every
-    // planned source grouped into albums by source-parent directory before
-    // any conversion publishes. Retained members participate through their
-    // readable sources; analysis never modifies retained outputs. Albums are
-    // independent workers; members of one album remain sequential.
-    let loudness = if matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags
-    {
+    // Preparation is M4A-only and real-run-only. Embedded artwork is relevant
+    // even without external extraction because an existing album image is
+    // reused for embedding as well.
+    let preparation = matches!(format, OutputFormat::M4a) && !options.dry_run && options.write_tags;
+    let embed_cover = options.write_tags && options.cover_art.embeds();
+    let known_skip: HashMap<PathBuf, bool> = plan
+        .entries
+        .iter()
+        .map(|entry| {
+            (
+                entry.relative_input.clone(),
+                is_entry_known_skip(entry, &output_root, options),
+            )
+        })
+        .collect();
+
+    let mut prepared = 0usize;
+    let mut preparation_failed = 0usize;
+    let mut preparation_skipped = 0usize;
+    let mut loudness_completed = 0usize;
+    let mut loudness_total = 0usize;
+
+    // Artwork spill staging lives for the whole execution so spill files
+    // survive from preparation through publication, then are removed. The
+    // staging directory holds at most one spilled cover per album with
+    // embedded fallback (on disk, not in RAM); existing-file albums need no
+    // spill. If creation fails, embedded fallback is skipped but conversion
+    // still proceeds.
+    let staging = if preparation && options.cover_art.extracts() {
+        ArtworkStaging::new(&output_root)
+    } else {
+        None
+    };
+
+    let artwork = if preparation {
+        progress(ProgressEvent::PreparationStarted {
+            files: plan.entries.len(),
+            albums: albums.len(),
+            loudness: true,
+            artwork: true,
+            external_artwork: options.cover_art.extracts(),
+        });
+        Some(prepare_album_artwork(
+            plan,
+            &albums,
+            options,
+            jobs,
+            staging.as_ref(),
+            &mut progress,
+        ))
+    } else {
+        None
+    };
+
+    // Loudness pre-pass: analyze every planned source grouped into albums by
+    // source-parent directory before any conversion publishes. Retained members
+    // participate through their readable sources; analysis never modifies
+    // retained outputs. Albums are independent workers; members of one album
+    // remain sequential. Per-file events may arrive in completion order.
+    let loudness = if preparation {
         let members = plan
             .entries
             .iter()
             .map(|entry| (entry.relative_input.clone(), entry.input.clone()))
             .collect::<Vec<_>>();
-        Some(loudness::analyze_album_with_jobs(&members, jobs))
+        loudness_total = members.len();
+        let map =
+            loudness::analyze_album_with_jobs_and_progress(&members, jobs, |relative, outcome| {
+                loudness_completed += 1;
+                let skipped = known_skip.get(relative).copied().unwrap_or(false);
+                if skipped {
+                    preparation_skipped += 1;
+                } else if outcome == LoudnessOutcome::Failed {
+                    preparation_failed += 1;
+                } else {
+                    prepared += 1;
+                }
+                progress(ProgressEvent::LoudnessFinished {
+                    completed: loudness_completed,
+                    total: loudness_total,
+                    relative_input: relative.to_path_buf(),
+                    outcome,
+                });
+            });
+        Some(map)
     } else {
         None
     };
 
-    // External artwork is planned per output directory before conversion so
-    // conflicting images are never half-published. Per-file reads run
-    // concurrently; grouping stays in plan order and publication happens
-    // sequentially after conversion. Dry runs create and read nothing.
-    let external_covers = if matches!(format, OutputFormat::M4a)
-        && !options.dry_run
-        && options.write_tags
-        && options.cover_art.extracts()
-    {
-        Some(prepare_external_covers(plan, jobs))
-    } else {
-        None
-    };
-    let embed_cover = options.write_tags && options.cover_art.embeds();
+    if preparation {
+        let totals = artwork
+            .as_ref()
+            .map(|(_, totals)| *totals)
+            .unwrap_or_default();
+        progress(ProgressEvent::PreparationFinished {
+            prepared,
+            failed: preparation_failed,
+            skipped: preparation_skipped,
+            loudness_completed,
+            loudness_total,
+            artwork_completed: totals.completed,
+            artwork_total: albums.len(),
+            artwork_reused: totals.reused,
+            artwork_extracted: totals.extracted,
+        });
+    }
 
-    // Workers only borrow immutable plan/options/loudness state. Each task
-    // owns its decoder, encoder, and temporary file, and results are slotted
-    // back by plan index so completion order cannot reorder the report.
+    if !options.dry_run {
+        progress(ProgressEvent::EncodingStarted { total });
+    }
+
+    // Workers only borrow immutable plan/options/loudness/artwork state. Each
+    // task owns its decoder, encoder, and temporary file, and results are
+    // slotted back by plan index so completion order cannot reorder the report.
     let loudness = loudness.as_ref();
+    let artwork_map = artwork.as_ref().map(|(map, _)| map);
     let results = parallel::map_indexed_with_events(
         work.len(),
         jobs,
@@ -773,30 +920,69 @@ where
                 options,
                 embed_cover,
                 loudness,
+                artwork_map,
             )
         },
         |event| match event {
             parallel::IndexEvent::Started(index) => {
-                progress(BatchEvent::Started(
+                progress(ProgressEvent::FileStarted(
                     work[index].1.progress(index + 1, total),
                 ));
             }
             parallel::IndexEvent::Finished(index, result) => {
-                emit_terminal_event(result, index + 1, total, &mut progress);
+                emit_terminal_progress(result, index + 1, total, &mut progress);
             }
         },
     );
 
     let summary = summarize(&results, plan.ignored.len() as u64);
-    let cover_art = match external_covers {
-        Some(groups) => publish_external_covers(&output_root, groups, &results),
-        None => Vec::new(),
+    let cover_art = if matches!(format, OutputFormat::M4a)
+        && !options.dry_run
+        && options.write_tags
+        && options.cover_art.extracts()
+    {
+        match artwork_map {
+            Some(map) => publish_external_covers(&output_root, map, &results),
+            None => Vec::new(),
+        }
+    } else {
+        Vec::new()
     };
 
     Ok(BatchExecution {
         outcome: BatchOutcome { results, summary },
         cover_art,
     })
+}
+
+/// Translate a rich progress event into the historical [`BatchEvent`] shape.
+///
+/// Preparation detail (per-album artwork and per-file loudness) has no legacy
+/// equivalent and is intentionally dropped here; callers that need it use
+/// [`execute_plan_with_options_and_events`].
+fn legacy_event(event: ProgressEvent) -> Option<BatchEvent> {
+    match event {
+        ProgressEvent::FileStarted(item) => Some(BatchEvent::Started(item)),
+        ProgressEvent::FileConverted { item, tags } => Some(BatchEvent::Converted { item, tags }),
+        ProgressEvent::FileSkipped(item) => Some(BatchEvent::Skipped(item)),
+        ProgressEvent::FileFailed {
+            item,
+            category,
+            message,
+        } => Some(BatchEvent::Failed {
+            item,
+            category,
+            message,
+        }),
+        ProgressEvent::FilePlanned(item) => Some(BatchEvent::Planned(item)),
+        ProgressEvent::BatchStarted { .. }
+        | ProgressEvent::PreparationStarted { .. }
+        | ProgressEvent::ArtworkStarted { .. }
+        | ProgressEvent::ArtworkFinished { .. }
+        | ProgressEvent::LoudnessFinished { .. }
+        | ProgressEvent::PreparationFinished { .. }
+        | ProgressEvent::EncodingStarted { .. } => None,
+    }
 }
 
 /// One unit of execution in deterministic plan order.
@@ -832,13 +1018,17 @@ impl WorkItem<'_> {
 /// can suppress a misleading "encoding..." start line for known skips.
 fn is_known_skip(item: &WorkItem<'_>, output_root: &Path, options: &BatchOptions) -> bool {
     match item {
-        WorkItem::Entry(entry) => {
-            !options.dry_run
-                && options.skip_existing
-                && fs::symlink_metadata(output_root.join(&entry.relative_output)).is_ok()
-        }
+        WorkItem::Entry(entry) => is_entry_known_skip(entry, output_root, options),
         WorkItem::Discovery(_) => false,
     }
+}
+
+/// Entry-specific form of [`is_known_skip`], shared with preparation
+/// accounting so the preparation and encoding phases agree on skip status.
+fn is_entry_known_skip(entry: &BatchPlanEntry, output_root: &Path, options: &BatchOptions) -> bool {
+    !options.dry_run
+        && options.skip_existing
+        && fs::symlink_metadata(output_root.join(&entry.relative_output)).is_ok()
 }
 
 /// Execute one work item through the unchanged per-file pipeline.
@@ -849,6 +1039,7 @@ fn execute_work_item(
     options: &BatchOptions,
     embed_cover: bool,
     loudness: Option<&HashMap<PathBuf, loudness::FileLoudness>>,
+    artwork: Option<&BTreeMap<PathBuf, AlbumArtwork>>,
 ) -> BatchFileResult {
     match item {
         WorkItem::Discovery(failure) => BatchFileResult {
@@ -867,14 +1058,82 @@ fn execute_work_item(
                     outcome: BatchFileOutcome::Skipped,
                 }
             } else {
+                let resolved = artwork
+                    .and_then(|map| {
+                        let album_dir = entry
+                            .relative_input
+                            .parent()
+                            .unwrap_or_else(|| Path::new(""));
+                        map.get(album_dir)
+                    })
+                    .and_then(|album| {
+                        resolved_cover_for(album, &entry.relative_input, options, embed_cover)
+                    });
                 execute_entry(
                     entry,
                     output_root,
                     format,
                     options,
                     embed_cover,
+                    resolved,
                     loudness.and_then(|map| map.get(&entry.relative_input)),
                 )
+            }
+        }
+    }
+}
+
+/// Build the per-member resolved cover for one conversion.
+///
+/// Rules preserve both diagnostics and the historical embedding contract:
+/// - Existing-file albums always suppress per-file embedded selection (the
+///   external file is authoritative); embedding loads that file on demand.
+/// - External-only fallback albums suppress re-reads and reuse the stored
+///   per-member warnings (even when empty), so unsupported-cover diagnostics
+///   survive without attaching one track's warnings to another file. Members
+///   whose probe failed have no stored entry and fall back to per-file
+///   selection, preserving error semantics.
+/// - `Both`/`Embedded` without an existing file keep per-file selection so
+///   each track embeds its own picture.
+fn resolved_cover_for(
+    album: &AlbumArtwork,
+    member: &Path,
+    options: &BatchOptions,
+    embed_cover: bool,
+) -> Option<ResolvedCover> {
+    match album.source {
+        ArtworkSource::ExistingFile => Some(ResolvedCover {
+            cover: if embed_cover {
+                album.load_existing_cover()
+            } else {
+                None
+            },
+            warnings: Vec::new(),
+        }),
+        ArtworkSource::Embedded => {
+            if options.cover_art != CoverArtMode::External {
+                return None;
+            }
+            album
+                .member_warnings
+                .get(member)
+                .map(|warnings| ResolvedCover {
+                    cover: None,
+                    warnings: warnings.clone(),
+                })
+        }
+        ArtworkSource::None => {
+            if options.cover_art != CoverArtMode::External {
+                return None;
+            }
+            match album.member_warnings.get(member) {
+                Some(warnings) if !warnings.is_empty() => Some(ResolvedCover {
+                    cover: None,
+                    warnings: warnings.clone(),
+                }),
+                // No stored diagnostics: fall back to per-file selection so
+                // warnings are still produced without an extra retained copy.
+                _ => None,
             }
         }
     }
@@ -887,6 +1146,7 @@ fn execute_entry(
     format: OutputFormat,
     options: &BatchOptions,
     embed_cover: bool,
+    resolved_cover: Option<ResolvedCover>,
     loudness: Option<&loudness::FileLoudness>,
 ) -> BatchFileResult {
     let destination = if options.dry_run {
@@ -981,6 +1241,7 @@ fn execute_entry(
         format,
         options.write_tags,
         embed_cover,
+        resolved_cover,
         loudness,
         options.vbr_mode,
     ) {
@@ -1022,10 +1283,10 @@ fn execute_entry(
     }
 }
 
-/// Emit exactly one terminal event for a finished work item.
-fn emit_terminal_event<F>(result: &BatchFileResult, index: usize, total: usize, progress: &mut F)
+/// Emit exactly one terminal progress event for a finished work item.
+fn emit_terminal_progress<F>(result: &BatchFileResult, index: usize, total: usize, progress: &mut F)
 where
-    F: FnMut(BatchEvent),
+    F: FnMut(ProgressEvent),
 {
     let item = BatchProgress {
         index,
@@ -1034,13 +1295,13 @@ where
         relative_output: result.relative_output.clone(),
     };
     match &result.outcome {
-        BatchFileOutcome::Converted { tags, .. } => progress(BatchEvent::Converted {
+        BatchFileOutcome::Converted { tags, .. } => progress(ProgressEvent::FileConverted {
             item,
             tags: tags.clone(),
         }),
-        BatchFileOutcome::Planned => progress(BatchEvent::Planned(item)),
-        BatchFileOutcome::Skipped => progress(BatchEvent::Skipped(item)),
-        BatchFileOutcome::Failed { category, message } => progress(BatchEvent::Failed {
+        BatchFileOutcome::Planned => progress(ProgressEvent::FilePlanned(item)),
+        BatchFileOutcome::Skipped => progress(ProgressEvent::FileSkipped(item)),
+        BatchFileOutcome::Failed { category, message } => progress(ProgressEvent::FileFailed {
             item,
             category,
             message: message.clone(),
@@ -1074,7 +1335,7 @@ fn summarize(results: &[BatchFileResult], ignored: u64) -> BatchSummary {
     summary
 }
 
-/// Content fingerprint for external cover-art conflict detection.
+/// Content fingerprint for embedded cover-art conflict detection.
 ///
 /// Hashing the format and complete image bytes compares actual content, not
 /// names or metadata descriptions. Length is included explicitly and the
@@ -1099,67 +1360,423 @@ fn cover_fingerprint(cover: &crate::meta::CoverArt) -> CoverFingerprint {
     }
 }
 
-/// One output directory's pre-scanned artwork.
-#[derive(Debug)]
-struct ExternalCoverGroup {
-    representative: PathBuf,
-    fingerprint: CoverFingerprint,
+/// Aggregate artwork discovery counters for progress reporting.
+///
+/// `extracted` counts albums whose embedded artwork was selected for
+/// external publication (the `--cover-art external`/`both` fallback path).
+/// It does not count per-track embedding in `embedded`/`both` modes without
+/// an existing album image, where each track keeps its own picture through
+/// the historical per-file selection.
+#[derive(Debug, Clone, Copy, Default)]
+struct ArtworkTotals {
+    completed: usize,
+    reused: usize,
+    extracted: usize,
+}
+
+/// Temporary staging for spilled embedded artwork bytes.
+///
+/// One directory per batch execution holds at most one spilled cover file
+/// per album that needs embedded fallback publication. Image bytes live on
+/// disk, not in RAM: the in-memory map retains only paths, formats, and
+/// small warning strings. The directory is removed on drop, so spill files
+/// are cleaned up on success, failure, and panic paths while the guard is
+/// alive.
+struct ArtworkStaging {
+    dir: PathBuf,
+}
+
+impl ArtworkStaging {
+    /// Create a uniquely named staging directory inside `parent`.
+    ///
+    /// Returns `None` when creation fails; callers then skip the embedded
+    /// spill (existing-file reuse still works) so artwork temp issues never
+    /// fail audio conversion.
+    fn new(parent: &Path) -> Option<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        for _ in 0..64 {
+            let sequence = COUNTER.fetch_add(1, Ordering::Relaxed);
+            let dir = parent.join(format!(
+                ".aac-convert-artwork-{}-{sequence}.tmp.d",
+                std::process::id()
+            ));
+            match fs::create_dir(&dir) {
+                Ok(()) => return Some(Self { dir }),
+                Err(err) if err.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(_) => return None,
+            }
+        }
+        None
+    }
+
+    /// Spill one album's selected cover bytes; returns the spill path.
+    ///
+    /// Failures are returned to the caller, which degrades to no external
+    /// artwork for that album rather than failing the batch.
+    fn spill(&self, album_index: usize, bytes: &[u8]) -> io::Result<PathBuf> {
+        let path = self.dir.join(format!("album-{album_index}.cover"));
+        fs::write(&path, bytes)?;
+        Ok(path)
+    }
+}
+
+impl Drop for ArtworkStaging {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.dir);
+    }
+}
+
+/// Artwork resolved once for one source album directory.
+///
+/// Memory policy: no image bytes are retained for any album. Existing-file
+/// albums retain only the source path and format; embedded-fallback albums
+/// retain only a spill path (temp file), the format, conflict status, and
+/// small per-member warning strings. Conversions and publication load the
+/// bytes they need on demand (one album at a time for publication, one file
+/// at a time per worker for embedding), so peak artwork RAM scales with
+/// `--jobs`, not with the number of albums.
+#[derive(Debug, Clone)]
+struct AlbumArtwork {
+    /// Where the selected artwork came from.
+    source: ArtworkSource,
+    /// Existing file that was reused, when applicable.
+    source_path: Option<PathBuf>,
+    /// Format of the existing file, when applicable.
+    existing_format: Option<ArtworkFormat>,
+    /// Format of the spilled embedded cover, when applicable.
+    embedded_format: Option<crate::meta::CoverFormat>,
+    /// Temp file holding the selected embedded cover bytes for publication.
+    spill_path: Option<PathBuf>,
+    /// Per-member warnings from the album-level embedded scan, keyed by
+    /// input-relative path. Only members whose `read_cover` succeeded have
+    /// entries; members whose probe failed have none, so conversion falls
+    /// back to its own per-file selection and preserves error semantics.
+    member_warnings: HashMap<PathBuf, Vec<String>>,
+    /// True when embedded images in this album disagree.
     conflicted: bool,
 }
 
-/// Select artwork for every planned track and group it by output directory.
-///
-/// Per-file image reads run on at most `jobs` workers; only a content
-/// fingerprint (never the image bytes) is retained, so memory stays bounded.
-/// The first eligible image in plan order becomes the representative; any
-/// different content marks the directory conflicted. All planned tracks take
-/// part, including skipped and subsequently failed ones. Absent or unreadable
-/// artwork contributes nothing. This pre-scan writes nothing and does not
-/// decode audio; grouping itself is sequential, so conflicts are resolved
-/// deterministically.
-fn prepare_external_covers(plan: &BatchPlan, jobs: usize) -> BTreeMap<PathBuf, ExternalCoverGroup> {
-    let scanned = parallel::map_indexed(plan.entries.len(), jobs, |index| {
-        let entry = &plan.entries[index];
-        let Ok((Some(cover), _)) = crate::meta::read_cover(&entry.input) else {
-            return None;
+impl AlbumArtwork {
+    /// Load the existing-file cover for embedding, when one applies.
+    ///
+    /// Reads the source file on demand instead of retaining its bytes, so
+    /// peak RAM stays bounded. Returns `None` when there is no embeddable
+    /// existing cover or the file can no longer be read (TOCTOU); callers
+    /// treat that as no cover, never as a conversion failure.
+    fn load_existing_cover(&self) -> Option<crate::meta::CoverArt> {
+        let path = self.source_path.as_ref()?;
+        let format = self.existing_format?;
+        let cover_format = match format {
+            ArtworkFormat::Jpeg => crate::meta::CoverFormat::Jpeg,
+            ArtworkFormat::Png => crate::meta::CoverFormat::Png,
+            ArtworkFormat::Webp => return None,
         };
+        // Bounded read: the file was validated during discovery, but it may
+        // have grown since; reject over-limit reads instead of allocating.
+        let data = read_bounded_cover(path)?;
+        if data.is_empty() || data.len() > crate::meta::COVER_MAX_BYTES {
+            return None;
+        }
+        // Re-validate magic bytes: the file may have been replaced since
+        // discovery. A format change means the discovery result is stale;
+        // treat it as no cover rather than embedding unexpected bytes.
+        let sniffed = match (data[0], data.get(1).copied().unwrap_or(0)) {
+            (0xFF, 0xD8) => ArtworkFormat::Jpeg,
+            _ if data.len() >= 8
+                && data[..8] == [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A] =>
+            {
+                ArtworkFormat::Png
+            }
+            _ => return None,
+        };
+        if sniffed != format {
+            return None;
+        }
+        Some(crate::meta::CoverArt {
+            format: cover_format,
+            data,
+        })
+    }
+
+    /// External file name and bytes to publish, loading on demand.
+    ///
+    /// Returns owned bytes (one album at a time; publication is sequential).
+    /// Returns `None` when there is nothing to publish or the backing file
+    /// can no longer be read; callers skip publication without failing audio.
+    fn external_file(&self) -> Option<(String, Vec<u8>)> {
+        match self.source {
+            ArtworkSource::ExistingFile => {
+                let path = self.source_path.as_ref()?;
+                let format = self.existing_format?;
+                let data = read_bounded_cover(path)?;
+                if data.is_empty() || data.len() > crate::meta::COVER_MAX_BYTES {
+                    return None;
+                }
+                Some((format.external_file_name().to_string(), data))
+            }
+            ArtworkSource::Embedded => {
+                let spill = self.spill_path.as_ref()?;
+                let format = self.embedded_format?;
+                let data = fs::read(spill).ok()?;
+                if data.is_empty() || data.len() > crate::meta::COVER_MAX_BYTES {
+                    return None;
+                }
+                let file_name = match format {
+                    crate::meta::CoverFormat::Jpeg => "cover.jpg".to_string(),
+                    crate::meta::CoverFormat::Png => "cover.png".to_string(),
+                };
+                Some((file_name, data))
+            }
+            ArtworkSource::None => None,
+        }
+    }
+}
+
+/// Bounded cover read shared with [`artwork`] discovery.
+///
+/// Reads at most [`COVER_MAX_BYTES`](crate::meta::COVER_MAX_BYTES) + 1 bytes
+/// so a concurrently grown file cannot cause an unbounded allocation.
+fn read_bounded_cover(path: &Path) -> Option<Vec<u8>> {
+    use std::io::Read as _;
+
+    let file = fs::File::open(path).ok()?;
+    if !file.metadata().ok()?.is_file() {
+        return None;
+    }
+    let mut bounded = file.take(crate::meta::COVER_MAX_BYTES as u64 + 1);
+    let mut data = Vec::new();
+    bounded.read_to_end(&mut data).ok()?;
+    Some(data)
+}
+
+/// Group planned entries by source album directory, in deterministic byte
+/// order.
+fn album_groups(plan: &BatchPlan) -> Vec<(PathBuf, Vec<usize>)> {
+    let mut groups: BTreeMap<PathBuf, Vec<usize>> = BTreeMap::new();
+    for (index, entry) in plan.entries.iter().enumerate() {
         let directory = entry
-            .relative_output
+            .relative_input
             .parent()
             .unwrap_or_else(|| Path::new(""))
             .to_path_buf();
-        Some((directory, entry.input.clone(), cover_fingerprint(&cover)))
-    });
+        groups.entry(directory).or_default().push(index);
+    }
+    groups.into_iter().collect()
+}
 
-    let mut groups: BTreeMap<PathBuf, ExternalCoverGroup> = BTreeMap::new();
-    for (directory, representative, fingerprint) in scanned.into_iter().flatten() {
-        match groups.entry(directory) {
-            std::collections::btree_map::Entry::Vacant(vacant) => {
-                vacant.insert(ExternalCoverGroup {
-                    representative,
-                    fingerprint,
-                    conflicted: false,
+/// Resolve artwork once for every album directory.
+///
+/// Album resolutions run on at most `jobs` workers. The returned map and
+/// counters are in album order regardless of completion order. Existing
+/// external artwork wins; embedded artwork is inspected only when no suitable
+/// external image exists and external extraction was requested.
+///
+/// Within one (potentially large) album, embedded member reads stay
+/// sequential. This is intentional: members already stay sequential for the
+/// loudness aggregation, and parallelism is preserved across albums, where
+/// the batch scales. No per-member work is duplicated across stages beyond
+/// the documented conflict-detection scan.
+///
+/// Memory policy: no image bytes are retained. Embedded fallback covers are
+/// spilled to `staging` (when available) and reloaded on demand for
+/// publication; existing-file covers are reloaded from their source files.
+/// If `staging` is `None` (temp creation failed), embedded fallback is
+/// skipped but existing-file reuse still works, so temp issues never fail
+/// audio conversion.
+fn prepare_album_artwork<F>(
+    plan: &BatchPlan,
+    albums: &[(PathBuf, Vec<usize>)],
+    options: &BatchOptions,
+    jobs: usize,
+    staging: Option<&ArtworkStaging>,
+    progress: &mut F,
+) -> (BTreeMap<PathBuf, AlbumArtwork>, ArtworkTotals)
+where
+    F: FnMut(ProgressEvent),
+{
+    let mut totals = ArtworkTotals::default();
+    let resolved = parallel::map_indexed_with_events(
+        albums.len(),
+        jobs,
+        |_| true,
+        |index| resolve_album_artwork(plan, &albums[index].1, options, staging, index),
+        |event| match event {
+            parallel::IndexEvent::Started(index) => {
+                progress(ProgressEvent::ArtworkStarted {
+                    album: index + 1,
+                    albums: albums.len(),
+                    directory: albums[index].0.clone(),
                 });
             }
-            std::collections::btree_map::Entry::Occupied(mut occupied) => {
-                let group = occupied.get_mut();
-                if group.fingerprint != fingerprint {
-                    group.conflicted = true;
+            parallel::IndexEvent::Finished(index, artwork) => {
+                totals.completed += 1;
+                match artwork.source {
+                    ArtworkSource::ExistingFile => totals.reused += 1,
+                    ArtworkSource::Embedded => totals.extracted += 1,
+                    ArtworkSource::None => {}
+                }
+                progress(ProgressEvent::ArtworkFinished {
+                    album: index + 1,
+                    albums: albums.len(),
+                    directory: albums[index].0.clone(),
+                    source: artwork.source,
+                    source_path: artwork.source_path.clone(),
+                    reused_albums: totals.reused,
+                    extracted_albums: totals.extracted,
+                    completed_albums: totals.completed,
+                });
+            }
+        },
+    );
+    let map = albums
+        .iter()
+        .map(|(directory, _)| directory.clone())
+        .zip(resolved)
+        .collect();
+    (map, totals)
+}
+
+/// Resolve artwork for one album directory.
+///
+/// The existing-file search reads the directory once and is the only source of
+/// truth for reuse. When no suitable external image exists and external
+/// extraction is requested, each member's embedded artwork is read once to
+/// detect conflicts, collect per-member diagnostics, and select the first
+/// cover for publication; that selected cover is spilled to `staging` and
+/// never retained in RAM, so extraction happens at most once per album.
+fn resolve_album_artwork(
+    plan: &BatchPlan,
+    indices: &[usize],
+    options: &BatchOptions,
+    staging: Option<&ArtworkStaging>,
+    album_index: usize,
+) -> AlbumArtwork {
+    resolve_album_artwork_with(
+        plan,
+        indices,
+        options,
+        staging,
+        album_index,
+        crate::meta::read_cover,
+    )
+}
+
+fn resolve_album_artwork_with<F>(
+    plan: &BatchPlan,
+    indices: &[usize],
+    options: &BatchOptions,
+    staging: Option<&ArtworkStaging>,
+    album_index: usize,
+    read_cover: F,
+) -> AlbumArtwork
+where
+    F: Fn(&Path) -> Result<(Option<crate::meta::CoverArt>, Vec<String>), ConvertError>,
+{
+    let relative_dir = plan.entries[indices[0]]
+        .relative_input
+        .parent()
+        .unwrap_or_else(|| Path::new(""))
+        .to_path_buf();
+    let directory = plan.input_root.join(&relative_dir);
+    let mut album = AlbumArtwork {
+        source: ArtworkSource::None,
+        source_path: None,
+        existing_format: None,
+        embedded_format: None,
+        spill_path: None,
+        member_warnings: HashMap::new(),
+        conflicted: false,
+    };
+
+    if let Some(existing) = artwork::discover(&directory) {
+        match existing.format {
+            ArtworkFormat::Jpeg | ArtworkFormat::Png => {
+                album.source = ArtworkSource::ExistingFile;
+                album.source_path = Some(existing.path);
+                album.existing_format = Some(existing.format);
+                return album;
+            }
+            ArtworkFormat::Webp => {
+                // WebP cannot be embedded. With external extraction requested,
+                // reuse it as `cover.webp`; otherwise fall back to the normal
+                // per-file embedded selection.
+                if options.cover_art.extracts() {
+                    album.source = ArtworkSource::ExistingFile;
+                    album.source_path = Some(existing.path);
+                    album.existing_format = Some(existing.format);
+                    return album;
                 }
             }
         }
     }
-    groups
+
+    if !options.cover_art.extracts() {
+        return album;
+    }
+
+    let mut fingerprint: Option<CoverFingerprint> = None;
+    let mut selected: Option<crate::meta::CoverArt> = None;
+    for &index in indices {
+        let entry = &plan.entries[index];
+        let Ok((cover, warnings)) = read_cover(&entry.input) else {
+            // Probe failures have no entry: conversion falls back to its own
+            // per-file selection and preserves error semantics instead of
+            // silently reusing another member's warnings.
+            continue;
+        };
+        // Store every successful member's warnings (even when no cover was
+        // selected) so conversion can reuse them without re-reading and
+        // without attaching one track's warnings to another file.
+        album
+            .member_warnings
+            .insert(entry.relative_input.clone(), warnings);
+        if let Some(cover) = cover {
+            if selected.is_none() {
+                selected = Some(cover.clone());
+            }
+            let current = cover_fingerprint(&cover);
+            match fingerprint {
+                None => fingerprint = Some(current),
+                Some(existing) if existing != current => album.conflicted = true,
+                _ => {}
+            }
+        }
+    }
+    if let Some(cover) = selected {
+        // Spill the publication bytes to disk instead of retaining them.
+        // If staging or the write fails, keep the per-member warnings for
+        // diagnostics but report no artwork for publication.
+        if let Some(staging) = staging {
+            match staging.spill(album_index, &cover.data) {
+                Ok(spill_path) => {
+                    album.source = ArtworkSource::Embedded;
+                    album.embedded_format = Some(cover.format);
+                    album.spill_path = Some(spill_path);
+                }
+                Err(_) => {
+                    album.source = ArtworkSource::None;
+                }
+            }
+        } else {
+            album.source = ArtworkSource::None;
+        }
+    }
+    album
 }
 
 /// Publish one external image per non-conflicting output directory.
 ///
 /// Only directories with at least one converted or retained-skipped audio
 /// item receive a file. Conflicts are reported and skipped; one directory's
-/// artwork problem never changes audio outcomes or the final summary.
+/// artwork problem never changes audio outcomes or the final summary. Cover
+/// bytes are loaded on demand from the source album file or the preparation
+/// spill file (one album at a time; publication itself is sequential), so no
+/// image bytes are retained in RAM across the batch.
 fn publish_external_covers(
     output_root: &Path,
-    groups: BTreeMap<PathBuf, ExternalCoverGroup>,
+    artwork: &BTreeMap<PathBuf, AlbumArtwork>,
     results: &[BatchFileResult],
 ) -> Vec<crate::CoverArtReport> {
     let produced: BTreeSet<PathBuf> = results
@@ -1180,13 +1797,13 @@ fn publish_external_covers(
         .collect();
 
     let mut reports = Vec::new();
-    for (relative_dir, group) in groups {
+    for (relative_dir, album) in artwork {
         let display_directory = if relative_dir.as_os_str().is_empty() {
             PathBuf::from(".")
         } else {
             relative_dir.clone()
         };
-        if group.conflicted {
+        if album.conflicted {
             reports.push(crate::CoverArtReport {
                 directory: display_directory,
                 file_name: None,
@@ -1194,25 +1811,14 @@ fn publish_external_covers(
             });
             continue;
         }
-        if !produced.contains(&relative_dir) {
+        if !produced.contains(relative_dir) {
             continue;
         }
-        let cover = match crate::meta::read_cover(&group.representative) {
-            Ok((Some(cover), _)) if cover_fingerprint(&cover) == group.fingerprint => cover,
-            _ => {
-                reports.push(crate::CoverArtReport {
-                    directory: display_directory,
-                    file_name: None,
-                    action: crate::CoverArtAction::Failed {
-                        message: "could not re-read the selected cover image".to_string(),
-                    },
-                });
-                continue;
-            }
+        let Some((file_name, bytes)) = album.external_file() else {
+            continue;
         };
-        let file_name = cover.file_name();
-        let destination = output_root.join(&relative_dir).join(&file_name);
-        let action = crate::publish_cover_file(&destination, &cover.data);
+        let destination = output_root.join(relative_dir).join(&file_name);
+        let action = crate::publish_cover_file(&destination, &bytes);
         reports.push(crate::CoverArtReport {
             directory: display_directory,
             file_name: Some(file_name),
@@ -1575,5 +2181,272 @@ mod tests {
         for (error, category) in cases {
             assert_eq!(category_for(&error), category);
         }
+    }
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(label: &str) -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "aac-convert-batch-unit-{}-{label}",
+                std::process::id()
+            ));
+            let _ = fs::remove_dir_all(&path);
+            fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn cover(marker: u8) -> crate::meta::CoverArt {
+        crate::meta::CoverArt {
+            format: crate::meta::CoverFormat::Jpeg,
+            data: vec![0xFF, 0xD8, 0xFF, 0xE0, marker],
+        }
+    }
+
+    fn artwork_plan(root: &Path, relative: &[&str]) -> BatchPlan {
+        let entries = relative
+            .iter()
+            .map(|relative| {
+                let relative = PathBuf::from(relative);
+                let output_relative = map_relative_output(&relative, OutputFormat::M4a);
+                BatchPlanEntry {
+                    input: root.join(&relative),
+                    relative_input: relative,
+                    output: root.join("out").join(&output_relative),
+                    relative_output: output_relative,
+                }
+            })
+            .collect();
+        BatchPlan {
+            input_root: root.to_path_buf(),
+            output_root: root.join("out"),
+            entries,
+            ignored: Vec::new(),
+            discovery_failures: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn existing_external_artwork_avoids_the_embedded_reader() {
+        let directory = TestDir::new("artwork-external");
+        fs::create_dir_all(directory.path.join("album")).unwrap();
+        fs::write(
+            directory.path.join("album/cover.jpg"),
+            [0xFF, 0xD8, 0xFF, 0xE0, 0x01],
+        )
+        .unwrap();
+        let plan = artwork_plan(&directory.path, &["album/one.flac", "album/two.flac"]);
+        let calls = std::cell::Cell::new(0usize);
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0, 1],
+            &BatchOptions::default(),
+            None,
+            0,
+            |_: &Path| {
+                calls.set(calls.get() + 1);
+                Ok((Some(cover(0x02)), Vec::new()))
+            },
+        );
+        assert_eq!(calls.get(), 0, "embedded extraction must be skipped");
+        assert_eq!(album.source, ArtworkSource::ExistingFile);
+        assert_eq!(
+            album.existing_format,
+            Some(ArtworkFormat::Jpeg),
+            "format must be retained without image bytes"
+        );
+        assert!(album.spill_path.is_none());
+        // No image bytes are retained: loading happens on demand.
+        let loaded = album.load_existing_cover().expect("must load from source");
+        assert_eq!(loaded.data, [0xFF, 0xD8, 0xFF, 0xE0, 0x01]);
+    }
+
+    #[test]
+    fn embedded_selection_reads_each_member_once_and_spills_for_publication() {
+        let directory = TestDir::new("artwork-embedded-once");
+        let plan = artwork_plan(
+            &directory.path,
+            &["album/a.flac", "album/b.flac", "album/c.flac"],
+        );
+        let staging = ArtworkStaging::new(&directory.path).expect("staging must be created");
+        let calls = std::cell::Cell::new(0usize);
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0, 1, 2],
+            &BatchOptions {
+                cover_art: CoverArtMode::External,
+                ..BatchOptions::default()
+            },
+            Some(&staging),
+            0,
+            |_: &Path| {
+                calls.set(calls.get() + 1);
+                Ok((Some(cover(0x03)), Vec::new()))
+            },
+        );
+        // One read per member is required for conflict detection; the selected
+        // cover is spilled to disk and never retained in RAM.
+        assert_eq!(calls.get(), 3);
+        assert_eq!(album.source, ArtworkSource::Embedded);
+        assert!(!album.conflicted);
+        let spill = album.spill_path.as_ref().expect("must spill");
+        assert_eq!(fs::read(spill).unwrap(), cover(0x03).data);
+        assert_eq!(album.embedded_format, Some(crate::meta::CoverFormat::Jpeg));
+        // Publication loads from the spill file on demand.
+        let (file_name, bytes) = album.external_file().expect("must publish");
+        assert_eq!(file_name, "cover.jpg");
+        assert_eq!(bytes, cover(0x03).data);
+    }
+
+    #[test]
+    fn different_embedded_images_conflict() {
+        let directory = TestDir::new("artwork-embedded-conflict");
+        let plan = artwork_plan(&directory.path, &["album/a.flac", "album/b.flac"]);
+        let staging = ArtworkStaging::new(&directory.path).expect("staging must be created");
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0, 1],
+            &BatchOptions {
+                cover_art: CoverArtMode::External,
+                ..BatchOptions::default()
+            },
+            Some(&staging),
+            1,
+            |path: &Path| {
+                let marker = if path.ends_with("a.flac") { 0x04 } else { 0x05 };
+                Ok((Some(cover(marker)), Vec::new()))
+            },
+        );
+        assert!(album.conflicted);
+    }
+
+    #[test]
+    fn external_artwork_is_not_used_for_embedded_only_webp() {
+        let directory = TestDir::new("artwork-webp-embedded");
+        fs::create_dir_all(directory.path.join("album")).unwrap();
+        let mut webp = b"RIFF".to_vec();
+        webp.extend_from_slice(&12u32.to_le_bytes());
+        webp.extend_from_slice(b"WEBPVP8 payload");
+        fs::write(directory.path.join("album/cover.webp"), &webp).unwrap();
+        let plan = artwork_plan(&directory.path, &["album/one.flac"]);
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0],
+            &BatchOptions::default(),
+            None,
+            0,
+            |_: &Path| Ok((None, Vec::new())),
+        );
+        assert_eq!(
+            album.source,
+            ArtworkSource::None,
+            "WebP cannot be embedded and embedded mode must fall back"
+        );
+        assert!(album.spill_path.is_none());
+        assert!(album.source_path.is_none());
+    }
+
+    #[test]
+    fn embedded_fallback_preserves_per_member_warnings() {
+        let directory = TestDir::new("artwork-member-warnings");
+        let plan = artwork_plan(&directory.path, &["album/a.flac", "album/b.flac"]);
+        let staging = ArtworkStaging::new(&directory.path).expect("staging must be created");
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0, 1],
+            &BatchOptions {
+                cover_art: CoverArtMode::External,
+                ..BatchOptions::default()
+            },
+            Some(&staging),
+            2,
+            |path: &Path| {
+                if path.ends_with("a.flac") {
+                    Ok((
+                        None,
+                        vec!["unsupported cover image format: skipped".to_string()],
+                    ))
+                } else {
+                    Ok((Some(cover(0x06)), vec!["first warning".to_string()]))
+                }
+            },
+        );
+        // Warnings are stored per member, not collapsed to the first cover.
+        assert_eq!(
+            album
+                .member_warnings
+                .get(&PathBuf::from("album/a.flac"))
+                .cloned()
+                .unwrap_or_default(),
+            vec!["unsupported cover image format: skipped".to_string()]
+        );
+        assert_eq!(
+            album
+                .member_warnings
+                .get(&PathBuf::from("album/b.flac"))
+                .cloned()
+                .unwrap_or_default(),
+            vec!["first warning".to_string()]
+        );
+        // Each member resolves to its own warnings.
+        let options = BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        };
+        let resolved_a = resolved_cover_for(&album, Path::new("album/a.flac"), &options, false)
+            .expect("member with warnings must resolve");
+        assert!(resolved_a.cover.is_none());
+        assert_eq!(
+            resolved_a.warnings,
+            vec!["unsupported cover image format: skipped".to_string()]
+        );
+        let resolved_b = resolved_cover_for(&album, Path::new("album/b.flac"), &options, false)
+            .expect("member with warnings must resolve");
+        assert_eq!(resolved_b.warnings, vec!["first warning".to_string()]);
+    }
+
+    #[test]
+    fn probe_failures_fall_back_to_per_file_selection() {
+        let directory = TestDir::new("artwork-probe-failure");
+        let plan = artwork_plan(&directory.path, &["album/a.flac", "album/b.flac"]);
+        let staging = ArtworkStaging::new(&directory.path).expect("staging must be created");
+        let album = resolve_album_artwork_with(
+            &plan,
+            &[0, 1],
+            &BatchOptions {
+                cover_art: CoverArtMode::External,
+                ..BatchOptions::default()
+            },
+            Some(&staging),
+            3,
+            |path: &Path| {
+                if path.ends_with("a.flac") {
+                    Err(ConvertError::Metadata("could not read tags"))
+                } else {
+                    Ok((Some(cover(0x07)), Vec::new()))
+                }
+            },
+        );
+        // The failed member has no stored entry, so conversion falls back to
+        // its own per-file selection instead of reusing another member's
+        // warnings.
+        assert!(!album
+            .member_warnings
+            .contains_key(&PathBuf::from("album/a.flac")));
+        let options = BatchOptions {
+            cover_art: CoverArtMode::External,
+            ..BatchOptions::default()
+        };
+        assert!(resolved_cover_for(&album, Path::new("album/a.flac"), &options, false).is_none());
+        assert!(resolved_cover_for(&album, Path::new("album/b.flac"), &options, false).is_some());
     }
 }
