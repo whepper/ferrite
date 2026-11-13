@@ -27,7 +27,10 @@ decisions were reached, not as current normative guidance.
   thesis (§5).
 - [M6 API contract](aac-enc-m6-api-contract.md) — production encoder API
   contract.
-- [VBR-5 profile](aac-enc-vbr5-profile.md) — fixed encoder operating point.
+- [VBR-5 profile](aac-enc-vbr5-profile.md) — VBR-5 reference audit
+  (upstream-compatible baseline).
+- [VBR profiles (rust/docs)](../rust/docs/vbr-profiles.md) — authoritative
+  VBR-1 through VBR-6 profile reference (VBR-6 is the Ferrite default).
 - [Codec provenance inventory](aac-enc-provenance-inventory.md) —
   source-provenance inventory for the Rust codec port: upstream
   comparisons, evidence, and unresolved gaps (evidence record, not

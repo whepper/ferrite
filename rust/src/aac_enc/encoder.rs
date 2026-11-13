@@ -2,7 +2,8 @@
 //! Codec Library for Android. Modifications and Rust implementation copyright
 //! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
 //! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
-//! Production single-threaded AAC-LC VBR-5 encoder API.
+//! Production single-threaded AAC-LC VBR encoder API (VBR-1 through VBR-6,
+//! default VBR-6).
 //!
 //! Owned, pull-style `Encoder` over the existing encoding pipeline. No
 //! numerical behavior is changed here: `push`/`flush` drive the same
@@ -10,8 +11,9 @@
 //! and every loud finding still fails loudly (as a typed `Err`, with the
 //! encoder poisoned — never a silent skip).
 //!
-//! Validated scope (M6.0 contract): mono/stereo x 44.1/48 kHz x VBR-5 ADTS.
-//! Anything else is rejected at construction.
+//! Validated scope (M6.0 contract): mono/stereo x 44.1/48 kHz x VBR ADTS.
+//! Anything else is rejected at construction. VBR-6 (Ferrite, 20 kHz) is the
+//! default; VBR-5 remains available explicitly as the upstream baseline.
 //!
 //! M7.6 adds two non-behavioral accessors: [`AdtsFrame::raw_payload`] (a
 //! borrowed view of the AAC access unit with the ADTS header removed) and
@@ -229,8 +231,7 @@ enum Lifecycle {
     Poisoned,
 }
 
-/// Owned single-threaded AAC-LC VBR-5 encoder.
-///
+/// Owned single-threaded AAC-LC VBR encoder (default VBR-6).
 /// Feed PCM with [`push`](Self::push) until the input is exhausted, then call
 /// [`flush`](Self::flush) exactly once to emit the padded tail; the stream is
 /// complete only after a successful `flush`.
@@ -272,7 +273,10 @@ pub struct Encoder {
 }
 
 impl Encoder {
-    /// Build an encoder for the validated matrix only.
+    /// Build an encoder for the validated matrix only (mono/stereo ×
+    /// 44.1/48 kHz × ADTS, any VBR-1 through VBR-6 profile; default VBR-6
+    /// when the config uses [`EncoderConfig::new`] or
+    /// [`EncoderConfig::stereo_48k_adts`]).
     ///
     /// Configuration snapshots are embedded at compile time, so construction
     /// has no runtime filesystem, installation, or source-tree dependency.
@@ -289,17 +293,27 @@ impl Encoder {
             });
         }
         // Re-validate through the constructor (infallible given the screen
-        // above, but the constructor owns the truth about validity).
+        // above, but the constructor owns the truth about validity);
+        // preserve the selected VBR profile.
         let cfg =
-            EncoderConfig::new(sr, ch, config.frame_length(), tp).map_err(EncodeError::Config)?;
+            EncoderConfig::new_with_mode(sr, ch, config.frame_length(), tp, config.vbr_mode())
+                .map_err(EncodeError::Config)?;
         Ok(Self {
             feeder: PcmFeeder::new(cfg),
-            inner: StreamEncoder::new(sr, ch as usize),
+            inner: StreamEncoder::with_config(cfg),
             state: Lifecycle::Open,
             frame_index: 0,
             #[cfg(test)]
             failure_injection: None,
         })
+    }
+
+    /// Selected VBR profile for this encoder.
+    pub fn vbr_mode(&self) -> super::config::VbrMode {
+        // The StreamEncoder stores the profile it was built from, so this
+        // reads the mode the caller's `EncoderConfig` selected (VBR-6 when
+        // the config came from a default constructor).
+        self.inner.vbr_mode()
     }
 
     /// Feed interleaved i16 PCM (`[LRLR..]` stereo, `[M..]` mono).
@@ -905,5 +919,219 @@ mod tests {
         assert!(enc.is_finished(), "flush failure poisons");
         assert!(matches!(enc.push(&[0i16; 4]), Err(EncodeError::Poisoned)));
         assert!(matches!(enc.flush(), Err(EncodeError::Poisoned)));
+    }
+
+    // VBR profiles: default is VBR-6, explicit selection works for all six.
+    #[test]
+    fn default_profile_is_vbr6() {
+        use crate::aac_enc::config::VbrMode;
+        let cfg = EncoderConfig::new(48000, 2, 1024, TransportType::Adts).unwrap();
+        assert_eq!(cfg.vbr_mode(), VbrMode::Vbr6);
+        assert_eq!(EncoderConfig::stereo_48k_adts().vbr_mode(), VbrMode::Vbr6);
+        let enc = Encoder::new(cfg).unwrap();
+        assert_eq!(enc.vbr_mode(), VbrMode::Vbr6);
+        // Encode smoke: mono + stereo silence must succeed on the default.
+        for (sr, ch) in [(44100, 1), (44100, 2), (48000, 1), (48000, 2)] {
+            let cfg = EncoderConfig::new(sr, ch, 1024, TransportType::Adts).unwrap();
+            let mut enc = Encoder::new(cfg).unwrap();
+            let n = 2048 * ch as usize;
+            for f in enc.push(&vec![0i16; n]).unwrap() {
+                assert_adts(&f);
+            }
+            for f in enc.flush().unwrap() {
+                assert_adts(&f);
+            }
+            assert!(enc.is_finished());
+        }
+    }
+
+    #[test]
+    fn all_profiles_encode_mono_and_stereo() {
+        use crate::aac_enc::config::{VbrMode, FRAME_LENGTH};
+        // Representative PCM: silence + sine-ish ramp (deterministic, no fixtures).
+        for mode in VbrMode::ALL {
+            for (sr, ch) in [(44100u32, 1u32), (44100, 2), (48000, 1), (48000, 2)] {
+                let cfg =
+                    EncoderConfig::new_with_mode(sr, ch, FRAME_LENGTH, TransportType::Adts, mode)
+                        .unwrap();
+                let mut enc = Encoder::new(cfg).unwrap();
+                assert_eq!(enc.vbr_mode(), mode, "{mode} at {sr}/{ch}");
+                // 3000 samples per channel: partial + full frames + flush tail.
+                let total = 3000 * ch as usize;
+                let mut pcm = Vec::with_capacity(total);
+                for i in 0..3000 {
+                    let s = ((i as f32 * 0.1).sin() * 8000.0) as i16;
+                    for _ in 0..ch {
+                        pcm.push(s);
+                    }
+                }
+                let mut count = 0u32;
+                for f in enc.push(&pcm).unwrap() {
+                    assert_adts(&f);
+                    // VBR fullness signal 0x7FF: low 5 bits of byte 5 and byte 6 == 0xFC.
+                    assert_eq!(f.bytes[5] & 0x1F, 0x1F, "{mode} VBR fullness hi");
+                    assert_eq!(f.bytes[6], 0xFC, "{mode} VBR fullness lo");
+                    assert_eq!(f.frame_index, count, "{mode} order");
+                    count += 1;
+                }
+                for f in enc.flush().unwrap() {
+                    assert_adts(&f);
+                    assert_eq!(f.frame_index, count, "{mode} flush order");
+                    count += 1;
+                }
+                assert!(count >= 3, "{mode} at {sr}/{ch} emitted {count} frames");
+                assert!(enc.is_finished());
+            }
+        }
+    }
+
+    #[test]
+    fn vbr5_baseline_unchanged_and_vbr6_differs_only_in_bandwidth() {
+        use crate::aac_enc::config::{VbrMode, FRAME_LENGTH};
+        let vbr5 = EncoderConfig::new_with_mode(
+            48000,
+            2,
+            FRAME_LENGTH,
+            TransportType::Adts,
+            VbrMode::Vbr5,
+        )
+        .unwrap();
+        let vbr6 = EncoderConfig::new_with_mode(
+            48000,
+            2,
+            FRAME_LENGTH,
+            TransportType::Adts,
+            VbrMode::Vbr6,
+        )
+        .unwrap();
+        assert_eq!(vbr5.nominal_bitrate(), 192_000);
+        assert_eq!(vbr6.nominal_bitrate(), 192_000);
+        assert_eq!(vbr5.vbr_qual_factor(), vbr6.vbr_qual_factor());
+        assert_eq!(vbr5.vbr_qual_q31(), vbr6.vbr_qual_q31());
+        assert_eq!(vbr5.effective_bandwidth_hz(), 19293);
+        assert_eq!(vbr6.effective_bandwidth_hz(), 20_000);
+        // Afterburner is unconditionally on and PNS effectively off for every
+        // VBR profile by construction: no config knob exists, and the driver
+        // always passes NO_NOISE_PNS with invQuant=2. This is asserted
+        // structurally here (config surface has no afterburner/PNS fields).
+        for mode in VbrMode::ALL {
+            let stereo =
+                EncoderConfig::new_with_mode(48000, 2, FRAME_LENGTH, TransportType::Adts, mode)
+                    .unwrap();
+            let mono =
+                EncoderConfig::new_with_mode(48000, 1, FRAME_LENGTH, TransportType::Adts, mode)
+                    .unwrap();
+            // Nominal derivation respects mono/stereo distinction.
+            assert_eq!(
+                stereo.nominal_bitrate(),
+                mode.profile().stereo_total_bitrate()
+            );
+            assert_eq!(mono.nominal_bitrate(), mode.profile().mono_bitrate());
+        }
+    }
+
+    #[test]
+    fn vbr6_bandwidth_propagates_to_psy_and_qc() {
+        use crate::aac_enc::config::{VbrMode, FRAME_LENGTH};
+        use crate::aac_enc::psy::PsyTables;
+        use crate::aac_enc::psy_config::load_cfg_for_profile;
+        use crate::aac_enc::rate::{calc_bits_per_frame, derive_qc_init};
+        // Stereo 48 kHz: VBR-5 vs VBR-6 share bitrates, differ in bandwidth.
+        for mode in [VbrMode::Vbr5, VbrMode::Vbr6] {
+            let cfg =
+                EncoderConfig::new_with_mode(48000, 2, FRAME_LENGTH, TransportType::Adts, mode)
+                    .unwrap();
+            // Config-level bandwidth is the profile value (clamp inactive).
+            assert_eq!(cfg.effective_bandwidth_hz(), mode.profile().bandwidth_hz());
+        }
+        let vbr5 = EncoderConfig::new_with_mode(
+            48000,
+            2,
+            FRAME_LENGTH,
+            TransportType::Adts,
+            VbrMode::Vbr5,
+        )
+        .unwrap();
+        let vbr6 = EncoderConfig::new_with_mode(
+            48000,
+            2,
+            FRAME_LENGTH,
+            TransportType::Adts,
+            VbrMode::Vbr6,
+        )
+        .unwrap();
+        // QC init: average/max/min identical (same bitrate), meanPe differs
+        // (bandwidth-derived). This distinguishes config validation from
+        // spectral-output claims: it proves the bandwidth reaches the
+        // rate-control path, not that output contains energy at 20 kHz.
+        let avg5 = calc_bits_per_frame(192_000, 1024, 48000);
+        let avg6 = calc_bits_per_frame(192_000, 1024, 48000);
+        assert_eq!(avg5, avg6);
+        let qc5 = derive_qc_init(
+            192_000,
+            avg5,
+            2,
+            2,
+            48000,
+            vbr5.effective_bandwidth_hz() as i32,
+            1024,
+        );
+        let qc6 = derive_qc_init(
+            192_000,
+            avg6,
+            2,
+            2,
+            48000,
+            vbr6.effective_bandwidth_hz() as i32,
+            1024,
+        );
+        assert_eq!(qc5.average_bits, qc6.average_bits);
+        assert_eq!(qc5.max_bits, qc6.max_bits);
+        assert_eq!(qc5.min_bits, qc6.min_bits);
+        assert_eq!(qc5.bit_res, qc6.bit_res);
+        assert_eq!(qc5.bit_res_mode, qc6.bit_res_mode);
+        assert_ne!(qc5.mean_pe, qc6.mean_pe, "meanPe must reflect bandwidth");
+        // Psy tables: SFB geometry reflects bandwidth; TNS/allowIS shared
+        // behaviour preserved. VBR-5/VBR-6 share per-channel bitrates by
+        // Ferrite definition, so both resolve to the same committed
+        // snapshots (profile-keyed, no fallback).
+        let ((snap5_long, _), (snap5_short, _)) =
+            load_cfg_for_profile(48000, VbrMode::Vbr5.profile(), false);
+        let ((snap6_long, _), (snap6_short, _)) =
+            load_cfg_for_profile(48000, VbrMode::Vbr6.profile(), false);
+        let t5 = PsyTables::for_rate(
+            48000,
+            96_000,
+            192_000,
+            vbr5.effective_bandwidth_hz(),
+            snap5_long.min_snr_ld.clone(),
+            snap5_short.min_snr_ld.clone(),
+        )
+        .unwrap();
+        let t6 = PsyTables::for_rate(
+            48000,
+            96_000,
+            192_000,
+            vbr6.effective_bandwidth_hz(),
+            snap6_long.min_snr_ld.clone(),
+            snap6_short.min_snr_ld.clone(),
+        )
+        .unwrap();
+        // Bandwidth moves the low-pass line and active count; spreading/TNS
+        // order/coefRes are shared.
+        assert_ne!(
+            t5.long_cfg.lowpass_line(),
+            t6.long_cfg.lowpass_line(),
+            "long lowpass must differ"
+        );
+        assert_ne!(
+            t5.long_cfg.sfb_active(),
+            t6.long_cfg.sfb_active(),
+            "long active must differ (45 vs 46 at 48 kHz)"
+        );
+        assert_eq!(t5.long_cfg.allow_ms(), t6.long_cfg.allow_ms());
+        assert_eq!(t5.long_cfg.allow_is(), t6.long_cfg.allow_is());
+        assert_eq!(t5.tns_long.max_order, t6.tns_long.max_order);
+        assert_eq!(t5.tns_long.coef_res, t6.tns_long.coef_res);
     }
 }

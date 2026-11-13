@@ -57,8 +57,16 @@ mod m5b_tests {
             assert_eq!(testdata::fixture_sample_rate(short), sr, "{short}: rate");
             let path = dir.join(format!("{short}.orig.wav"));
             write_wav(&path, &pcm, sr);
-            let peak = pcm.iter().flat_map(|v| v.iter()).map(|s| s.unsigned_abs() as u32).max().unwrap_or(0);
-            println!("M5.b input {short}: samples/ch={} ch={ch} sr={sr} peak={peak}", pcm[0].len());
+            let peak = pcm
+                .iter()
+                .flat_map(|v| v.iter())
+                .map(|s| s.unsigned_abs() as u32)
+                .max()
+                .unwrap_or(0);
+            println!(
+                "M5.b input {short}: samples/ch={} ch={ch} sr={sr} peak={peak}",
+                pcm[0].len()
+            );
         }
     }
 }

@@ -19,13 +19,13 @@ fn help_succeeds() {
     );
     assert!(output.stderr.is_empty(), "help is requested output");
     assert!(
-        stdout.contains(
-            "Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both]"
-        ),
+        stdout.contains("Usage: aac-convert [--format adts|m4a] [--vbr 1|2|3|4|5|6]"),
         "{stdout}"
     );
     assert!(stdout.contains("--no-tags"));
     assert!(stdout.contains("--jobs N"));
+    assert!(stdout.contains("--vbr"));
+    assert!(stdout.contains("VBR-6"));
     assert!(stdout.contains("16-bit"));
     assert!(stdout.contains("--format m4a"));
     assert!(stdout.contains("--cover-art embedded"));
@@ -248,4 +248,116 @@ fn invalid_cover_art_value_is_a_usage_error() {
     assert_eq!(result.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&result.stderr).contains("invalid cover-art mode"));
     assert!(!output.exists());
+}
+
+#[test]
+fn default_vbr_is_six_and_reported() {
+    let directory = TempDir::new("cli-vbr-default");
+    let output = directory.join("out.aac");
+    let result = Command::new(binary())
+        .arg(fixture("stereo-48k-16.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    assert!(stdout.contains("VBR-6"), "{stdout}");
+    assert!(stdout.contains("20000 Hz"), "{stdout}");
+    assert!(output.is_file());
+}
+
+#[test]
+fn explicit_vbr_selection_works_for_all_profiles() {
+    for vbr in ["1", "2", "3", "4", "5", "6"] {
+        for (fixture_name, mono) in [("stereo-48k-16.flac", false), ("mono-441k-16.flac", false)] {
+            let _ = mono;
+            let directory = TempDir::new(&format!("cli-vbr-{vbr}"));
+            let output = directory.join("out.aac");
+            let result = Command::new(binary())
+                .arg("--vbr")
+                .arg(vbr)
+                .arg(fixture(fixture_name))
+                .arg(&output)
+                .output()
+                .unwrap();
+            assert!(
+                result.status.success(),
+                "vbr {vbr} {fixture_name}: {}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+            let stdout = String::from_utf8_lossy(&result.stdout);
+            assert!(stdout.contains(&format!("VBR-{vbr}")), "{stdout}");
+            assert!(output.is_file());
+        }
+    }
+}
+
+#[test]
+fn explicit_vbr_equals_form_reports_profile() {
+    let directory = TempDir::new("cli-vbr-eq");
+    let output = directory.join("out.aac");
+    let result = Command::new(binary())
+        .arg("--vbr=5")
+        .arg(fixture("stereo-48k-16.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    assert!(String::from_utf8_lossy(&result.stdout).contains("VBR-5"));
+}
+
+#[test]
+fn invalid_vbr_is_a_usage_error() {
+    for bad in ["0", "7", "vbr", "high"] {
+        let directory = TempDir::new("cli-bad-vbr");
+        let output = directory.join("out.aac");
+        let result = Command::new(binary())
+            .arg("--vbr")
+            .arg(bad)
+            .arg(fixture("stereo-48k-16.flac"))
+            .arg(&output)
+            .output()
+            .unwrap();
+        assert_eq!(result.status.code(), Some(2), "vbr {bad}");
+        assert!(
+            String::from_utf8_lossy(&result.stderr).contains("invalid --vbr value"),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(!output.exists());
+    }
+    // Missing value is also a usage error.
+    let result = Command::new(binary()).arg("--vbr").output().unwrap();
+    assert_eq!(result.status.code(), Some(2));
+}
+
+#[test]
+fn vbr_mono_and_stereo_report_nominal_bitrates() {
+    // Mono VBR-1 nominal 32 kbit/s; stereo VBR-1 nominal 40 kbit/s.
+    let directory = TempDir::new("cli-vbr-mono");
+    let output = directory.join("out.aac");
+    let result = Command::new(binary())
+        .arg("--vbr")
+        .arg("1")
+        .arg(fixture("mono-441k-16.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    assert!(stdout.contains("VBR-1"), "{stdout}");
+    assert!(stdout.contains("32000 bit/s"), "{stdout}");
+
+    let directory = TempDir::new("cli-vbr-stereo");
+    let output = directory.join("out.aac");
+    let result = Command::new(binary())
+        .arg("--vbr")
+        .arg("1")
+        .arg(fixture("stereo-48k-16.flac"))
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    assert!(stdout.contains("40000 bit/s"), "{stdout}");
 }

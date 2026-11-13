@@ -26,8 +26,9 @@ See `convert/README.md` for the detailed behavior reference and
 
 Applications use the `ferrite-aac` library directly. See
 [`docs/encoder-integration.md`](docs/encoder-integration.md) for the supported
-sample rates and channel layouts, PCM requirements, streaming and finalization
-rules, error handling, memory behavior, and known limitations.
+sample rates and channel layouts, PCM requirements, VBR profiles (default
+VBR-6, see [`docs/vbr-profiles.md`](docs/vbr-profiles.md)), streaming and
+finalization rules, error handling, memory behavior, and known limitations.
 
 A runnable minimal integration is
 [`examples/aac_encode_adts.rs`](examples/aac_encode_adts.rs):

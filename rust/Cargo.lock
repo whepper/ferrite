@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aac-convert"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ebur128",
  "ferrite-aac",
@@ -77,7 +77,7 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
 name = "ferrite-aac"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "arrayvec",
  "bitflags 2.13.2",

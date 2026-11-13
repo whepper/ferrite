@@ -111,9 +111,16 @@ amm-info@iis.fraunhofer.de
 //! bit-exactly. Spreading factors are tabulated verbatim from oracle dumps
 //! (`SPREAD_*` in `sfb_tables.rs`): the C `fixp_atan`/`fPow` approximations
 //! they embed do not reproduce in float within useful tolerance (measured
-//! worst factor deviation 13%), while for the VBR-5 target the factors
-//! depend only on (rate, long/short) — the sole bitrate branch (<= 20000)
-//! never fires. Bark values stay available for M4 `minSnr` work.
+//! worst factor deviation 13%). The factors depend on (rate, long/short)
+//! plus one bitrate branch: for LONG windows with a per-channel bitrate
+//! `<= 20000` the spread-energy high factor uses 1.5 instead of 2.0. That
+//! low-bitrate factor is identical to the threshold high-factor (1.5), so
+//! the low-bitrate table is byte-identical to the `hi` table at every
+//! sample rate (verified against FDK-AAC v3.0.0 dumps across all 12 rates)
+//! and the existing `hi` data is shared rather than duplicated. In
+//! Ferrite's profiles only VBR-1 stereo (20 kbit/s per channel) takes this
+//! branch; SHORT windows never do. Bark values stay available for M4
+//! `minSnr` work.
 //!
 //! NOT computed here: `sfbMinSnrLdData` (its consumer is M4 rate control;
 //! the float port with exact exponent bookkeeping lands with M4, validated
@@ -308,6 +315,18 @@ impl SfbConfig {
         }
         .expect("spreading table follows SFB table");
         assert_eq!(spread.hi.len(), cnt, "spreading table length");
+        // Low-bitrate LONG branch (`psy_configuration.cpp`: `MASKHIGHSPREN`
+        // is 1.5 instead of 2.0 when the per-channel bitrate is <= 20000,
+        // verified against FDK-AAC v3.0.0 `FDKaacEnc_InitPsyConfiguration`
+        // dumps). The low-bitrate factor is identical to the threshold
+        // high-factor (1.5), so the low-bitrate spread-energy table is
+        // byte-identical to the `hi` table at every sample rate (verified
+        // across all 12 rates, not assumed); the existing immutable `hi`
+        // data is shared rather than duplicated. In Ferrite's profiles only
+        // VBR-1 stereo (20 kbit/s per channel) takes this branch; SHORT
+        // windows never do.
+        let lowbr = kind == BlockKind::Long && channel_bitrate <= 20000;
+        let hi_spr_table: &[i32] = if lowbr { spread.hi } else { spread.hi_spr };
         let to_f64 = |v: &[i32]| {
             v.iter()
                 .map(|&q| q as f64 / 2_147_483_648.0)
@@ -315,11 +334,11 @@ impl SfbConfig {
         };
         let mask_hi_q31 = spread.hi.to_vec();
         let mask_lo_q31 = spread.lo.to_vec();
-        let mask_hi_spr_q31 = spread.hi_spr.to_vec();
+        let mask_hi_spr_q31 = hi_spr_table.to_vec();
         let mask_lo_spr_q31 = spread.lo_spr.to_vec();
         let mask_hi = to_f64(spread.hi);
         let mask_lo = to_f64(spread.lo);
-        let mask_hi_spr = to_f64(spread.hi_spr);
+        let mask_hi_spr = to_f64(hi_spr_table);
         let mask_lo_spr = to_f64(spread.lo_spr);
 
         // C integer division semantics (psy_configuration.cpp:565).
@@ -745,5 +764,56 @@ mod tests {
         assert!((ld_data(1.0) - 0.0).abs() < 1e-15);
         assert!((ld_data(2.0) - 1.0 / 64.0).abs() < 1e-15);
         assert_eq!(THRESHOLD_LD_FLOOR, -33.0 / 64.0);
+    }
+
+    #[test]
+    fn lowbr_spreading_matches_c_reference_for_vbr1_stereo() {
+        // FDK-AAC v3.0.0 `initSpreading` LONG low-bitrate branch
+        // (`psy_configuration.cpp`: per-channel bitrate <= 20000 selects
+        // MASKHIGHSPREN 1.5 instead of 2.0). Pinned real
+        // `FDKaacEnc_InitPsyConfiguration` outputs for VBR-1 stereo
+        // (20 kbit/s per channel, 13 kHz bandwidth).
+        for (sr, len, first4, mid20, last) in [
+            (
+                44100u32,
+                49usize,
+                [0, 107858168, 111494940, 117898245],
+                330394231,
+                1003257886,
+            ),
+            (
+                48000u32,
+                49usize,
+                [0, 83033612, 86673274, 93111993],
+                346303311,
+                1486511590,
+            ),
+        ] {
+            let cfg = SfbConfig::new(sr, BlockKind::Long, 20000, 13000, true, true).unwrap();
+            let (his_q, _) = cfg.mask_factors_spr_q31();
+            assert_eq!(his_q.len(), len, "sr={sr}");
+            assert_eq!(&his_q[..4], &first4, "sr={sr} head");
+            assert_eq!(his_q[20], mid20, "sr={sr} mid");
+            assert_eq!(his_q[39], last, "sr={sr} tail");
+            // The low-bitrate factor equals the threshold high-factor, so
+            // the shared `hi` data produces these reference values.
+            let (hi_q, _) = cfg.mask_factors_q31();
+            assert_eq!(his_q, hi_q, "sr={sr} lowbr HIS == HI");
+        }
+        // Normal branch unaffected: just above the threshold the standard
+        // tables apply (VBR-2 stereo, 32 kbit/s per channel).
+        let normal = SfbConfig::new(48000, BlockKind::Long, 32000, 13000, true, true).unwrap();
+        let (his_q, _) = normal.mask_factors_spr_q31();
+        assert_eq!(
+            &his_q[..4],
+            &[0, 28077737, 29730590, 32711278],
+            "standard 48k HIS head"
+        );
+        // SHORT windows never take the branch, even at 20 kbit/s.
+        let short = SfbConfig::new(48000, BlockKind::Short, 20000, 13000, true, true).unwrap();
+        let (shi_q, _) = short.mask_factors_spr_q31();
+        let reference = SfbConfig::new(48000, BlockKind::Short, 32000, 13000, true, true).unwrap();
+        let (ref_q, _) = reference.mask_factors_spr_q31();
+        assert_eq!(shi_q, ref_q, "short ignores the bitrate branch");
     }
 }

@@ -31,12 +31,32 @@ pub(crate) mod m5a_tests {
     }
 
     const CASES: [Case; 4] = [
-        Case { short: "click-mono", stem: "m2-click-mono-48k", sr: 48000, ch: 1 },
-        Case { short: "onset-stereo", stem: "m2-onset-stereo-48k", sr: 48000, ch: 2 },
-        Case { short: "sine-stereo-44100", stem: "m3-sine-stereo-441k", sr: 44100, ch: 2 },
+        Case {
+            short: "click-mono",
+            stem: "m2-click-mono-48k",
+            sr: 48000,
+            ch: 1,
+        },
+        Case {
+            short: "onset-stereo",
+            stem: "m2-onset-stereo-48k",
+            sr: 48000,
+            ch: 2,
+        },
+        Case {
+            short: "sine-stereo-44100",
+            stem: "m3-sine-stereo-441k",
+            sr: 44100,
+            ch: 2,
+        },
         // M5.e: restored via committed cfg_44100_112000.txt + fixture key
         // "onset-mono-44100" (mono version of the onset-stereo-44100 formula).
-        Case { short: "onset-mono-44100", stem: "m3-onset-mono-441k", sr: 44100, ch: 1 },
+        Case {
+            short: "onset-mono-44100",
+            stem: "m3-onset-mono-441k",
+            sr: 44100,
+            ch: 1,
+        },
     ];
 
     fn out_dir() -> PathBuf {
@@ -91,9 +111,18 @@ pub(crate) mod m5a_tests {
         assert_eq!(&bytes[0..4], b"RIFF", "{stem}: RIFF");
         assert_eq!(&bytes[8..12], b"WAVE", "{stem}: WAVE");
         assert_eq!(&bytes[12..16], b"fmt ", "{stem}: fmt ");
-        let info = WavInfo { ch: u16le(bytes, 22), sr: u32le(bytes, 24), bits: u16le(bytes, 34), data_len: u32le(bytes, 40) };
+        let info = WavInfo {
+            ch: u16le(bytes, 22),
+            sr: u32le(bytes, 24),
+            bits: u16le(bytes, 34),
+            data_len: u32le(bytes, 40),
+        };
         assert_eq!(&bytes[36..40], b"data", "{stem}: data chunk");
-        assert_eq!(info.data_len as usize, bytes.len() - 44, "{stem}: data len matches file");
+        assert_eq!(
+            info.data_len as usize,
+            bytes.len() - 44,
+            "{stem}: data len matches file"
+        );
         (info, 44)
     }
 
@@ -106,9 +135,16 @@ pub(crate) mod m5a_tests {
         let stderr = String::from_utf8_lossy(&out.stderr);
         // aac-dec returns 0 even on mid-stream Fill/Decode failure, so a
         // clean exit status alone is NOT success: stderr must also be empty.
-        assert!(out.status.success(), "{stem} run {run}: decoder exit {out:?} stderr={stderr}");
-        assert!(stderr.is_empty(), "{stem} run {run}: decoder stderr non-empty: {stderr}");
-        let wav_bytes = std::fs::read(wav).unwrap_or_else(|e| panic!("{stem} run {run}: wav unreadable: {e}"));
+        assert!(
+            out.status.success(),
+            "{stem} run {run}: decoder exit {out:?} stderr={stderr}"
+        );
+        assert!(
+            stderr.is_empty(),
+            "{stem} run {run}: decoder stderr non-empty: {stderr}"
+        );
+        let wav_bytes =
+            std::fs::read(wav).unwrap_or_else(|e| panic!("{stem} run {run}: wav unreadable: {e}"));
         assert!(!wav_bytes.is_empty(), "{stem} run {run}: empty wav file");
         wav_bytes
     }
@@ -129,8 +165,17 @@ pub(crate) mod m5a_tests {
             let aac_bytes = std::fs::read(&rep.path).expect("read back aac");
             let lens = split_lens(&aac_bytes, c.stem);
             assert_eq!(lens.len(), rep.frames, "{}: parsed frame count", c.stem);
-            assert_eq!(lens.iter().sum::<usize>(), rep.bytes, "{}: lens sum", c.stem);
-            assert_eq!(lens, rep.frame_lens, "{}: header lens match emit record", c.stem);
+            assert_eq!(
+                lens.iter().sum::<usize>(),
+                rep.bytes,
+                "{}: lens sum",
+                c.stem
+            );
+            assert_eq!(
+                lens, rep.frame_lens,
+                "{}: header lens match emit record",
+                c.stem
+            );
 
             // Decode twice for determinism.
             let wav1_path = dir.join(format!("{}.dec1.wav", c.stem));
@@ -145,9 +190,18 @@ pub(crate) mod m5a_tests {
             assert_eq!(info.sr, c.sr, "{}: sample rate", c.stem);
             assert_eq!(info.bits, 16, "{}: bits per sample", c.stem);
             assert!(info.data_len > 0, "{}: empty data chunk", c.stem);
-            assert_eq!(info.data_len as usize % (2 * c.ch), 0, "{}: frame-aligned data", c.stem);
+            assert_eq!(
+                info.data_len as usize % (2 * c.ch),
+                0,
+                "{}: frame-aligned data",
+                c.stem
+            );
             let data = &wav1[44..];
-            assert!(data.iter().any(|&b| b != 0), "{}: all-zero decoded output", c.stem);
+            assert!(
+                data.iter().any(|&b| b != 0),
+                "{}: all-zero decoded output",
+                c.stem
+            );
 
             // Plausibility vs encoder framing: decoded samples/ch should be
             // total granted samples minus decoder front-trim (outputDelay).
@@ -155,10 +209,17 @@ pub(crate) mod m5a_tests {
             // measurement: 1744); record the implied value, bound it loosely.
             let samples_per_ch = info.data_len as usize / (2 * c.ch);
             let granted = rep.frames * 1024;
-            assert!(samples_per_ch < granted, "{}: decoded exceeds granted", c.stem);
+            assert!(
+                samples_per_ch < granted,
+                "{}: decoded exceeds granted",
+                c.stem
+            );
             let implied_delay = granted - samples_per_ch;
-            assert!(implied_delay > 0 && implied_delay < 4096,
-                "{}: implied front-trim {implied_delay} outside plausible window", c.stem);
+            assert!(
+                implied_delay > 0 && implied_delay < 4096,
+                "{}: implied front-trim {implied_delay} outside plausible window",
+                c.stem
+            );
 
             println!("M5.a {stem}: aac_frames={} aac_bytes={} wav_bytes={} ch={} sr={} bits={} spc={granted}->{samples_per_ch} implied_trim={implied_delay} determinism=identical",
                 rep.frames, rep.bytes, wav1.len(), info.ch, info.sr, info.bits, stem = c.stem);

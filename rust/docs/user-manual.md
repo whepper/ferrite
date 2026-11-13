@@ -1,21 +1,21 @@
 # Ferrite User Manual
 
-**Version:** 0.2.0<br>
-**Release:** 12 November 2026<br>
+**Version:** 0.3.0<br>
+**Release:** 13 November 2026<br>
 **Audience:** Users converting FLAC music files with `aac-convert`
 
 Ferrite is a native Rust AAC-LC encoder. Its companion command-line application, **`aac-convert`**, converts FLAC files into AAC audio in an M4A container or an ADTS stream.
 
 This manual explains how to build and use the standalone converter. It focuses on everyday music conversion; it is not a developer guide to the encoder internals.
 
-> **At a glance:** use M4A for normal music-library use. Use ADTS when you specifically need a raw AAC transport stream. The encoder uses a fixed AAC-LC VBR-5 profile; this release does not provide a quality or bitrate selector.
+> **At a glance:** use M4A for normal music-library use. Use ADTS when you specifically need a raw AAC transport stream. The encoder defaults to the Ferrite AAC-LC VBR-6 profile; select VBR-1 through VBR-5 explicitly with `--vbr`. See [VBR profiles](vbr-profiles.md).
 
 ## 1. What you need
 
-Ferrite 0.2.0 is distributed as source. Build it locally with:
+Ferrite 0.3.0 is distributed as source. Build it locally with:
 
 - Rust and Cargo **1.99.1**.
-- The Ferrite 0.2.0 source tree, including its workspace files and committed `Cargo.lock`.
+- The Ferrite 0.3.0 source tree, including its workspace files and committed `Cargo.lock`.
 - Network access to resolve crates.io dependencies on the first build (unless they are already cached).
 
 FFmpeg is **not** required to build or run `aac-convert`. It is useful for independently checking converted files, but is not a runtime dependency.
@@ -27,7 +27,7 @@ Download or clone the repository, then select the release tag:
 ```sh
 git clone https://github.com/whepper/ferrite.git
 cd ferrite
-git checkout v0.2.0
+git checkout v0.3.0
 ```
 
 Install the required Rust toolchain with rustup if necessary:
@@ -116,7 +116,7 @@ The explicit `--format` option wins over the filename extension. Accepted values
 A successful single-file conversion prints a line similar to:
 
 ```text
-converted track.flac -> track.m4a (N AAC frames, N bytes, M4A)
+converted track.flac -> track.m4a (N AAC frames, N bytes, M4A, VBR-6, nominal 192000 bit/s, 20000 Hz bandwidth)
 ```
 
 Warnings, such as the 24-bit precision notice or metadata warnings, are printed to standard error.
@@ -127,6 +127,7 @@ Warnings, such as the 24-bit precision notice or metadata warnings, are printed 
 |---|---|
 | `--format m4a` | Write audio-only M4A. |
 | `--format adts` | Write an ADTS AAC stream. |
+| `--vbr 1..6` | Select VBR-1 through VBR-6 (default: 6). VBR-1..VBR-5 are upstream FDK; VBR-6 is the Ferrite default. |
 | `--no-tags` | Omit user metadata from M4A. Encoder identification is retained. Accepted for ADTS as a no-op. |
 | `--cover-art embedded` | Embed selected cover art in the M4A (default). |
 | `--cover-art external` | Do not embed; write `cover.jpg` or `cover.png` beside the output. |
@@ -135,7 +136,20 @@ Warnings, such as the 24-bit precision notice or metadata warnings, are printed 
 | `-V`, `--version` | Display the application version (written to stderr). |
 | `--` | End option parsing; subsequent arguments are paths. |
 
-Existing output files are **never overwritten**. There is no force or overwrite option in 0.2.0. Choose a new output path when the destination already exists.
+Profile examples:
+
+```sh
+# Default (VBR-6):
+aac-convert "track.flac" "track.m4a"
+
+# Explicit upstream baseline:
+aac-convert --vbr 5 "track.flac" "track.m4a"
+
+# Lowest profile:
+aac-convert --vbr 1 "track.flac" "track.aac"
+```
+
+Existing output files are **never overwritten**. There is no force or overwrite option in 0.3.0. Choose a new output path when the destination already exists.
 
 Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg` or `cover.png` beside the output is left untouched.
 
@@ -202,6 +216,7 @@ aac-convert --format adts "music/" "converted-adts/"
 |---|---|
 | `--format m4a` | M4A output (the default). |
 | `--format adts` | ADTS output, using `.aac` filenames. |
+| `--vbr 1..6` | VBR profile (default: 6). |
 | `--recursive` | Search subdirectories (the default). |
 | `--no-recursive` | Convert only files directly inside the input directory. |
 | `--dry-run` | Preview the planned conversions without writing files or decoding audio. |
@@ -540,7 +555,7 @@ The converter accepts only 44.1 or 48 kHz, mono or stereo FLAC. It does not resa
 
 ### “24-bit FLAC input is truncated…”
 
-This is an informational warning, not a conversion failure. Ferrite 0.2.0 encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
+This is an informational warning, not a conversion failure. Ferrite 0.3.0 encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
 
 ### “Output already exists” / publication failure
 
@@ -572,9 +587,10 @@ If the process was forcibly terminated or the machine shut down during conversio
 
 ## 11. Scope and limitations
 
-Ferrite 0.2.0 is deliberately focused:
+Ferrite 0.3.0 is deliberately focused:
 
-- AAC-LC VBR-5 only; no quality ladder or user bitrate setting.
+- AAC-LC VBR-1 through VBR-6 (default VBR-6); no other object types or modes.
+  See [VBR profiles](vbr-profiles.md).
 - FLAC input only; M4A or ADTS output only.
 - 44.1/48 kHz, mono/stereo.
 - 16-bit encoder input; 24-bit FLAC is truncated with no dithering.
@@ -590,7 +606,8 @@ Ferrite 0.2.0 is deliberately focused:
 - [Rust workspace README](../README.md)
 - [aac-convert detailed behavior and metadata reference](../convert/README.md)
 - [Ferrite encoder API integration guide](encoder-integration.md)
+- [VBR profile reference](vbr-profiles.md)
 - [aac-convert integration contract](aac-convert-integration-contract.md)
-- [Ferrite 0.2.0 release notes](releases/0.2.0.md)
+- [Ferrite 0.3.0 release notes](releases/0.3.0.md)
 
 For encoder-library consumers, use the encoder integration guide. This user manual covers the standalone `aac-convert` application.

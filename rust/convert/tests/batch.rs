@@ -1059,15 +1059,14 @@ fn cli_batch_reports_ok_lines_and_summary_with_exit_zero() {
     let lines = stdout_lines(&result);
     assert_eq!(lines.len(), 4, "{lines:?}");
     assert!(
-        lines[0].starts_with("batch: 2 files, format M4A, recursive"),
+        lines[0].starts_with("batch: 2 files, format M4A, VBR-6, recursive"),
         "{lines:?}"
     );
     assert_eq!(
-        // +37 bytes over the pre-metadata baseline: the always-written
-        // `©too` atom (8-byte atom header + 8-byte `data` header + 8-byte
-        // type/locale + 13-byte "Ferrite 0.2.0" value).
+        // VBR-6 default (20 kHz): +2 bytes over the VBR-5 1959-byte baseline
+        // (+37 bytes over the pre-metadata baseline for `©too`).
         lines[1],
-        "ok a.flac -> a.m4a (14 frames, 1959 bytes)",
+        "ok a.flac -> a.m4a (14 frames, 1961 bytes)",
         "{lines:?}"
     );
     assert!(
@@ -1476,7 +1475,7 @@ fn cli_batch_verbose_reports_ignores_and_details() {
     assert_eq!(result.status.code(), Some(0));
     let lines = stdout_lines(&result);
     assert!(
-        lines[0].starts_with("batch: 1 files, format M4A, recursive"),
+        lines[0].starts_with("batch: 1 files, format M4A, VBR-6, recursive"),
         "{lines:?}"
     );
     assert!(
@@ -1488,7 +1487,7 @@ fn cli_batch_verbose_reports_ignores_and_details() {
     assert!(
         lines
             .iter()
-            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1959 bytes, 48000 Hz, stereo")),
+            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1961 bytes, 48000 Hz, stereo")),
         "{lines:?}"
     );
 }
@@ -2024,7 +2023,9 @@ fn default_worker_count_is_available_parallelism_and_reported() {
     };
     let lines = stdout_lines(&result);
     assert!(
-        lines[0].starts_with(&format!("batch: 1 files, format M4A, recursive, {label}")),
+        lines[0].starts_with(&format!(
+            "batch: 1 files, format M4A, VBR-6, recursive, {label}"
+        )),
         "{lines:?}"
     );
 }

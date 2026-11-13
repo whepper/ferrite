@@ -42,7 +42,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use ferrite_aac::aac_enc::config::{ConfigError, EncoderConfig, TransportType, FRAME_LENGTH};
+use ferrite_aac::aac_enc::config::{
+    ConfigError, EncoderConfig, TransportType, VbrMode, FRAME_LENGTH,
+};
 use ferrite_aac::aac_enc::encoder::{AdtsError, AdtsFrame, EncodeError, Encoder};
 use shiguredo_mp4::mux::MuxError;
 
@@ -442,7 +444,21 @@ pub fn convert_file_with_format(
     output: &Path,
     format: OutputFormat,
 ) -> Result<ConversionSummary, ConvertError> {
-    convert_inner(input, output, format, None, true, true, None).map(|(summary, _, _)| summary)
+    convert_file_with_format_vbr(input, output, format, VbrMode::Vbr6)
+}
+
+/// Convert one FLAC file to ADTS or M4A with an explicit VBR profile.
+///
+/// Behaves like [`convert_file_with_format`], except `vbr_mode` selects
+/// VBR-1 through VBR-6 (default [`VbrMode::Vbr6`] in the wrapper above).
+pub fn convert_file_with_format_vbr(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    vbr_mode: VbrMode,
+) -> Result<ConversionSummary, ConvertError> {
+    convert_inner(input, output, format, None, true, true, None, vbr_mode)
+        .map(|(summary, _, _)| summary)
 }
 
 /// Convert one FLAC file to ADTS or M4A with explicit metadata control.
@@ -463,6 +479,20 @@ pub fn convert_file_with_format_and_tags(
     format: OutputFormat,
     write_tags: bool,
 ) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
+    convert_file_with_format_and_tags_vbr(input, output, format, write_tags, VbrMode::Vbr6)
+}
+
+/// Convert one FLAC file with explicit metadata control and VBR profile.
+///
+/// Behaves like [`convert_file_with_format_and_tags`], except `vbr_mode`
+/// selects VBR-1 through VBR-6.
+pub fn convert_file_with_format_and_tags_vbr(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    write_tags: bool,
+    vbr_mode: VbrMode,
+) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
     let loudness = if matches!(format, OutputFormat::M4a) && write_tags {
         Some(loudness::analyze_single(input))
     } else {
@@ -476,6 +506,7 @@ pub fn convert_file_with_format_and_tags(
         write_tags,
         true,
         loudness.as_ref(),
+        vbr_mode,
     )
     .map(|(summary, _, diagnostics)| (summary, diagnostics))
 }
@@ -497,6 +528,29 @@ pub fn convert_file_with_format_tags_and_cover_art(
     format: OutputFormat,
     write_tags: bool,
     cover_art: CoverArtMode,
+) -> Result<(ConversionSummary, TagDiagnostics, Vec<CoverArtReport>), ConvertError> {
+    convert_file_with_format_tags_and_cover_art_vbr(
+        input,
+        output,
+        format,
+        write_tags,
+        cover_art,
+        VbrMode::Vbr6,
+    )
+}
+
+/// Convert one FLAC file with explicit cover-art control and VBR profile.
+///
+/// Behaves like [`convert_file_with_format_tags_and_cover_art`], except
+/// `vbr_mode` selects VBR-1 through VBR-6.
+#[allow(clippy::too_many_arguments)]
+pub fn convert_file_with_format_tags_and_cover_art_vbr(
+    input: &Path,
+    output: &Path,
+    format: OutputFormat,
+    write_tags: bool,
+    cover_art: CoverArtMode,
+    vbr_mode: VbrMode,
 ) -> Result<(ConversionSummary, TagDiagnostics, Vec<CoverArtReport>), ConvertError> {
     let interesting = matches!(format, OutputFormat::M4a) && write_tags;
     let extract = interesting && cover_art.extracts();
@@ -521,6 +575,7 @@ pub fn convert_file_with_format_tags_and_cover_art(
         write_tags,
         interesting && cover_art.embeds(),
         loudness.as_ref(),
+        vbr_mode,
     )?;
     let reports = match selected {
         Some(cover) => vec![publish_single_external_cover(output, &cover)],
@@ -537,6 +592,7 @@ pub fn convert_file_with_format_tags_and_cover_art(
 /// being analyzed for a degenerate one-member album. `None` writes no
 /// loudness atoms; M4A conversions with tags and `None` behave exactly like
 /// the pre-loudness converter.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn convert_file_with_format_tags_and_loudness(
     input: &Path,
     output: &Path,
@@ -544,6 +600,7 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
     write_tags: bool,
     embed_cover: bool,
     loudness: Option<&loudness::FileLoudness>,
+    vbr_mode: VbrMode,
 ) -> Result<(ConversionSummary, TagDiagnostics), ConvertError> {
     if matches!(format, OutputFormat::M4a) && write_tags {
         debug_assert!(
@@ -559,6 +616,7 @@ pub(crate) fn convert_file_with_format_tags_and_loudness(
         write_tags,
         embed_cover,
         loudness,
+        vbr_mode,
     )
     .map(|(summary, _, diagnostics)| (summary, diagnostics))
 }
@@ -602,10 +660,12 @@ pub fn convert_file_m4a_experiment(
         true,
         true,
         loudness.as_ref(),
+        VbrMode::Vbr6,
     )
     .map(|(summary, _, _)| summary)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn convert_inner(
     input: &Path,
     output: &Path,
@@ -614,17 +674,19 @@ fn convert_inner(
     write_tags: bool,
     embed_cover: bool,
     loudness: Option<&loudness::FileLoudness>,
+    vbr_mode: VbrMode,
 ) -> Result<(ConversionSummary, u64, TagDiagnostics), ConvertError> {
     let paths = output::resolve_paths(input, output)?;
     let mut source = flac::FlacSource::open(&paths.input)?;
     let properties = source.properties();
     properties.validate()?;
 
-    let config = EncoderConfig::new(
+    let config = EncoderConfig::new_with_mode(
         properties.sample_rate,
         properties.channels,
         FRAME_LENGTH,
         TransportType::Adts,
+        vbr_mode,
     )
     .map_err(ConvertError::EncoderConfig)?;
     let mut encoder = Encoder::new(config).map_err(ConvertError::Encoder)?;

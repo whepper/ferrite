@@ -9,9 +9,10 @@ use aac_convert::batch::{
     BatchOptions, BatchProgress,
 };
 use aac_convert::{
-    convert_file_with_format_tags_and_cover_art, CoverArtAction, CoverArtMode, CoverArtReport,
+    convert_file_with_format_tags_and_cover_art_vbr, CoverArtAction, CoverArtMode, CoverArtReport,
     OutputFormat,
 };
+use ferrite_aac::aac_enc::config::VbrMode;
 
 const APP_NAME: &str = "aac-convert";
 /// Single source of truth for the application and encoder version: Cargo
@@ -20,15 +21,15 @@ const APP_NAME: &str = "aac-convert";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const USAGE: &str = "\
-Usage: aac-convert [--format adts|m4a] [--cover-art embedded|external|both] [--no-tags]
+Usage: aac-convert [--format adts|m4a] [--vbr 1|2|3|4|5|6] [--cover-art embedded|external|both] [--no-tags]
                    <input.flac> <output>
-       aac-convert [--format m4a|adts] [--recursive|--no-recursive] [--dry-run]
+       aac-convert [--format m4a|adts] [--vbr 1|2|3|4|5|6] [--recursive|--no-recursive] [--dry-run]
                    [--skip-existing] [--no-tags] [--jobs N]
                    [--cover-art embedded|external|both] [-v|--verbose] [-q|--quiet]
                    <input-dir> <output-root>
 
 Convert 16-bit FLAC files (44.1 kHz or 48 kHz, mono or stereo) to AAC-LC
-using the native Ferrite Rust AAC-LC encoder (VBR-5, derived from FDK AAC).
+using the native Ferrite Rust AAC-LC encoder (VBR-6 default, derived from FDK AAC).
 24-bit FLAC input is truncated to 16-bit PCM before encoding (one warning per
 file); other bit depths are rejected.
 
@@ -38,6 +39,11 @@ discovered FLAC file, mirroring the input structure.
 Output format:
   --format m4a    Audio-only MP4/M4A container
   --format adts   ADTS AAC stream (engineering/test output)
+
+VBR profile:
+  --vbr 1..6     Select VBR-1 through VBR-6 (default: 6). VBR-1..VBR-5 are the
+                 upstream FDK AAC profiles; VBR-6 is the Ferrite default
+                 (VBR-5 settings with 20 kHz bandwidth instead of 19 293 Hz).
 
 Single-file mode: without --format, a .m4a or .mp4 output selects M4A; every
 other extension selects ADTS. Existing output files are never overwritten.
@@ -125,6 +131,17 @@ fn parse_cover_art(value: &OsStr) -> Result<CoverArtMode, CliError> {
         .map_err(CliError::Usage)
 }
 
+fn parse_vbr(value: &OsStr) -> Result<VbrMode, CliError> {
+    let text = value
+        .to_str()
+        .ok_or_else(|| CliError::Usage("--vbr requires 1, 2, 3, 4, 5, or 6".into()))?;
+    text.parse::<VbrMode>().map_err(|_| {
+        CliError::Usage(format!(
+            "invalid --vbr value: {text} (expected 1, 2, 3, 4, 5, or 6)"
+        ))
+    })
+}
+
 fn parse_jobs(value: &OsStr) -> Result<usize, CliError> {
     let text = value
         .to_str()
@@ -144,6 +161,7 @@ fn parse_jobs(value: &OsStr) -> Result<usize, CliError> {
 
 struct Cli {
     explicit_format: Option<OutputFormat>,
+    vbr_mode: VbrMode,
     recursive: Option<bool>,
     dry_run: bool,
     skip_existing: bool,
@@ -165,6 +183,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
     let mut skip_existing = false;
     let mut no_tags = false;
     let mut cover_art = CoverArtMode::Embedded;
+    let mut vbr_mode = VbrMode::Vbr6;
     let mut jobs = None;
     let mut verbose = false;
     let mut quiet = false;
@@ -243,6 +262,20 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
                     index += 1;
                     continue;
                 }
+                Some("--vbr") => {
+                    index += 1;
+                    let value = arguments.get(index).ok_or_else(|| {
+                        CliError::Usage("--vbr requires 1, 2, 3, 4, 5, or 6".into())
+                    })?;
+                    vbr_mode = parse_vbr(value)?;
+                    index += 1;
+                    continue;
+                }
+                Some(value) if value.starts_with("--vbr=") => {
+                    vbr_mode = parse_vbr(OsStr::new(&value["--vbr=".len()..]))?;
+                    index += 1;
+                    continue;
+                }
                 Some("--jobs") => {
                     index += 1;
                     let value = arguments.get(index).ok_or_else(|| {
@@ -290,6 +323,7 @@ fn parse_cli() -> Result<Option<Cli>, CliError> {
 
     Ok(Some(Cli {
         explicit_format,
+        vbr_mode,
         recursive,
         dry_run,
         skip_existing,
@@ -403,12 +437,13 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
     let format = cli
         .explicit_format
         .unwrap_or_else(|| OutputFormat::from_output_path(&cli.output));
-    let (summary, diagnostics, cover_reports) = convert_file_with_format_tags_and_cover_art(
+    let (summary, diagnostics, cover_reports) = convert_file_with_format_tags_and_cover_art_vbr(
         &cli.input,
         &cli.output,
         format,
         !cli.no_tags,
         cli.cover_art,
+        cli.vbr_mode,
     )
     .map_err(|error| CliError::Conversion {
         input: cli.input.clone(),
@@ -420,13 +455,22 @@ fn run_single_file(cli: &Cli) -> Result<(), CliError> {
     for report in &cover_reports {
         print_cover_report(report, false, true);
     }
+    let profile = cli.vbr_mode.profile();
+    let nominal = if summary.properties.channels == 1 {
+        profile.mono_bitrate()
+    } else {
+        profile.stereo_total_bitrate()
+    };
     println!(
-        "converted {} -> {} ({} AAC frames, {} bytes, {})",
+        "converted {} -> {} ({} AAC frames, {} bytes, {}, {}, nominal {} bit/s, {} Hz bandwidth)",
         cli.input.display(),
         cli.output.display(),
         summary.encoded_frames,
         summary.output_bytes,
-        format
+        format,
+        cli.vbr_mode,
+        nominal,
+        profile.bandwidth_hz()
     );
     Ok(())
 }
@@ -518,6 +562,7 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         write_tags: !cli.no_tags,
         cover_art: cli.cover_art,
         jobs,
+        vbr_mode: cli.vbr_mode,
     };
 
     let start = std::time::Instant::now();
@@ -595,13 +640,15 @@ fn run_batch(cli: &Cli) -> Result<(), CliError> {
         let workers = jobs_label(jobs);
         if cli.dry_run {
             println!(
-                "batch: {} files, format {format}, {mode}{skip_suffix}, dry-run, {workers}",
-                plan.entries.len()
+                "batch: {} files, format {format}, {}, {mode}{skip_suffix}, dry-run, {workers}",
+                plan.entries.len(),
+                cli.vbr_mode,
             );
         } else {
             println!(
-                "batch: {} files, format {format}, {mode}{skip_suffix}, {workers}",
-                plan.entries.len()
+                "batch: {} files, format {format}, {}, {mode}{skip_suffix}, {workers}",
+                plan.entries.len(),
+                cli.vbr_mode,
             );
         }
         if cli.verbose {

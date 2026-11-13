@@ -10,14 +10,14 @@ complete.)
 ## What it is
 
 - `rust/` — Cargo workspace with the native Rust implementation:
-  - `ferrite-aac` (`ferrite_aac`) — AAC-LC encoder library (**VBR-5
-    profile**) plus shared DSP/transport modules.
+  - `ferrite-aac` (`ferrite_aac`) — AAC-LC encoder library (VBR-1 through
+    VBR-6 profiles, default VBR-6) plus shared DSP/transport modules.
   - `aac-convert` — FLAC-to-AAC application: single-file and batch
     conversion to audio-only M4A or ADTS, with live batch progress, core
     Vorbis-comment tags (including multi-value `; ` joining), embedded or
     externally extracted cover art, Apple `iTunSMPB` gapless signalling, and
     native ReplayGain 2.0 + `iTunNORM` loudness metadata (fixed −18.0 LUFS
-    reference).
+    reference). Profile selection via `--vbr 1..6` (default 6).
   - The encoder has no FFI surface; there is no decoder crate in this
     repository.
 - The upstream Fraunhofer FDK AAC C/C++ implementation is **not
@@ -51,13 +51,15 @@ provenance (see "Licensing" below).
 
 ## Supported encoder scope
 
-- AAC-LC, fixed VBR-5 profile (afterburner-on behavior), 1024-sample
-  frames, encoder delay of 1600 samples.
+- AAC-LC, VBR-1 through VBR-6 profiles (VBR-6 default; VBR-5 remains as the
+  upstream-compatible baseline; afterburner-on behavior), 1024-sample
+  frames, encoder delay of 1600 samples. See `rust/docs/vbr-profiles.md` for
+  the authoritative profile reference table.
 - 44.1 kHz and 48 kHz, mono and stereo, 16-bit PCM input. (`aac-convert`
   accepts 24-bit FLAC by truncating to 16-bit with a per-file warning;
   other rates, channel counts, and bit depths are rejected.)
 - ADTS transport internally; `aac-convert` muxes audio-only M4A.
-- No target configurability, no metadata-only retag, no true-peak analysis
+- No metadata-only retag, no true-peak analysis
   in v1 (per `docs/aac-convert-l0-loudness-decisions.md`).
 
 ## Build and test
@@ -139,9 +141,9 @@ Rust validation.
 
 ## Limitations and deferred work (not implemented)
 
-- Encoder scope is fixed as stated above; additional VBR modes, SIMD
-  optimization, and true-peak analysis are deferred to their own
-  milestones — not started here.
+- Encoder scope is fixed as stated above (VBR-1 through VBR-6; no other
+  object types or modes); SIMD optimization and true-peak analysis are
+  deferred to their own milestones — not started here.
 - Loudness tagging follows the finalized L2 design; the L3 closeout audit
   (`docs/archive/aac-convert-l3-closeout-audit.md`, PASS WITH FINDINGS) lists two
   test-coverage follow-ups (absolute calibration test, partial-rerun
@@ -157,6 +159,9 @@ Start from `docs/README.md` for the maintained-vs-historical index.
 - `docs/aac-enc-migration-spec.md` — encoder migration specification and
   float-native thesis (§5).
 - `docs/aac-enc-m6-api-contract.md` — production encoder API contract.
+- `docs/aac-enc-vbr5-profile.md` — VBR-5 reference audit (upstream baseline).
+- `rust/docs/vbr-profiles.md` — authoritative VBR-1 through VBR-6 profile
+  reference (settings table, explanations, selection examples).
 - `docs/aac-enc-provenance-inventory.md` — technical evidence record of
   source comparisons, provisional classifications, and unresolved gaps.
   Evidence only: it establishes no legal clearance and no authorship;

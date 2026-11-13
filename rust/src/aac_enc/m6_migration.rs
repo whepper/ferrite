@@ -15,7 +15,7 @@
 
 #[cfg(test)]
 mod m6_tests {
-    use super::super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
+    use super::super::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
     use super::super::encoder::Encoder;
     use super::super::stream_driver::{m52_write_adts_stream, M52_FIXTURES, M55_FIXTURES};
     use super::super::testdata;
@@ -48,8 +48,16 @@ mod m6_tests {
             for (i, _) in pcm[0].iter().enumerate() {
                 interleaved.extend(pcm.iter().map(|chan| chan[i]));
             }
-            let cfg = EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
-                .unwrap_or_else(|e| panic!("{stem}: config rejected: {e:?}"));
+            // VBR-5 regression: driver path uses VBR-5 explicitly, so the
+            // public leg must too (default is VBR-6).
+            let cfg = EncoderConfig::new_with_mode(
+                sr,
+                ch as u32,
+                FRAME_LENGTH,
+                TransportType::Adts,
+                VbrMode::Vbr5,
+            )
+            .unwrap_or_else(|e| panic!("{stem}: config rejected: {e:?}"));
             let mut enc = Encoder::new(cfg).unwrap_or_else(|e| panic!("{stem}: API refused: {e}"));
             let mut api_bytes = Vec::with_capacity(driver_bytes.len());
             let mut idx = 0u32;

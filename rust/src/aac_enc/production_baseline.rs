@@ -21,7 +21,7 @@
 //! float encoder's least-significant decisions are not a portable
 //! cross-architecture bit-pattern guarantee.
 
-use super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
+use super::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
 use super::pcm::PcmFeeder;
 use super::stream_driver::StreamEncoder;
 use super::testdata;
@@ -218,7 +218,7 @@ fn production_f32_corpus_baseline_is_unchanged() {
         let want_frames = (pcm[0].len() + 1600).div_ceil(FRAME_LENGTH);
         assert_eq!(frames.len(), want_frames, "{stem}: feeder frame law");
 
-        let mut enc = StreamEncoder::new(sr, ch);
+        let mut enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
         let mut adts = Vec::with_capacity(want_bytes);
         for (i, fr) in frames.iter().enumerate() {
             let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
@@ -240,5 +240,49 @@ fn production_f32_corpus_baseline_is_unchanged() {
                  byte length and frame count pinned"
             );
         }
+    }
+}
+
+/// Default-profile (VBR-6) output pin for the production music fixture,
+/// mirroring the `aac_bench_wav` example expectations. The VBR-5 corpus
+/// baseline above pins the upstream-compatible profile through an explicit
+/// `with_mode` selection; this pins what the *default* constructor produces,
+/// so an accidental default-profile change is an explicit test update.
+/// Recorded with the M7 audit sweep (2026-11-13, same reference platform as
+/// the V3 baseline).
+#[test]
+fn production_default_profile_vbr6_music_baseline_is_unchanged() {
+    let pcm = testdata::fixture_samples("music-stereo");
+    assert_eq!(pcm.len(), 2, "music-stereo: channel count");
+    let (sr, want_bytes, want_hash) = (48_000u32, 256_763, 0xd6fc_9d2c_59cf_5c36);
+    let mut enc = StreamEncoder::new(sr, pcm.len());
+    assert_eq!(enc.vbr_mode(), VbrMode::Vbr6, "default profile is VBR-6");
+    let mut feeder = PcmFeeder::new(
+        EncoderConfig::new(sr, pcm.len() as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg"),
+    );
+    let frames = feeder
+        .push_interleaved(&interleave(&pcm))
+        .expect("feeder push");
+    let mut frames = frames;
+    frames.extend(feeder.finish().expect("feeder finish"));
+    let want_frames = (pcm[0].len() + 1600).div_ceil(FRAME_LENGTH);
+    assert_eq!(frames.len(), want_frames, "music-stereo: feeder frame law");
+    let mut adts = Vec::with_capacity(want_bytes);
+    for (i, fr) in frames.iter().enumerate() {
+        let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+        let (bytes, snap) = enc.step_frame(i as u32, &fresh);
+        assert!(snap.notes.is_empty(), "f{i}: notes {:?}", snap.notes);
+        assert_eq!(snap.crash, -1, "f{i}: crash marker");
+        let bytes = bytes.unwrap_or_else(|| panic!("f{i}: no bytes"));
+        adts.extend_from_slice(&bytes);
+    }
+    assert_eq!(adts.len(), want_bytes, "VBR-6 default byte length");
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        assert_eq!(fnv1a64(&adts), want_hash, "VBR-6 default ADTS hash");
+    } else {
+        eprintln!(
+            "music-stereo: exact VBR-6 hash not enforced on this target; \
+             byte length and frame count pinned"
+        );
     }
 }

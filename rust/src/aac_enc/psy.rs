@@ -1327,21 +1327,25 @@ fn group_short_channel(
     }
     let max_sfb = highest + 1;
     let no_sfb = no_of_groups * sfb_cnt;
-    // Grouped offsets.
+    // Grouped offsets (mirrors `grp_data.cpp`: signed `i += sfbCnt - sfb`
+    // where `sfb` is the loop-exit value `sfbActive+1`; when
+    // `sfbActive == sfbCnt` this steps back one slot and the final
+    // `granuleLength` write overwrites the duplicate 1024).
     let mut grouped_off = vec![0i32; no_sfb + 1];
     {
-        let mut i = 0;
+        let mut i: isize = 0;
         let mut offset = 0i32;
         for grp in 0..no_of_groups {
             let gl = group_len[grp] as usize;
             for sfb in 0..active + 1 {
-                grouped_off[i] = offset + offsets[sfb] as i32 * gl as i32;
+                grouped_off[i as usize] = offset + offsets[sfb] as i32 * gl as i32;
                 i += 1;
             }
-            i += sfb_cnt - (active + 1);
+            // C: `i += sfbCnt - sfb` with `sfb == sfbActive+1` on exit.
+            i += sfb_cnt as isize - (active as isize + 1);
             offset += gl as i32 * 128;
         }
-        grouped_off[i] = 1024;
+        grouped_off[i as usize] = 1024;
     }
     // Generic saturating regroup over int arrays.
     let regroup = |src: &[Vec<i32>]| {

@@ -95,13 +95,13 @@ Am Wolfsmantel 33
 www.iis.fraunhofer.de/amm
 amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
-//! Native Rust AAC-LC encoder (VBR-5, afterburner-on).
+//! Native Rust AAC-LC encoder (VBR-1 through VBR-6, afterburner-on, default VBR-6).
 //!
 //! This module is the isolated home of the native encoder. It is gated behind
 //! the `aac_enc` feature and uses the shared ungated `common` primitives
 //! by call only.
 //!
-//! The supported public surface is [`config`] (validated VBR-5
+//! The supported public surface is [`config`] (validated VBR
 //! configuration and its AAC-LC AudioSpecificConfig), [`channel_map`] (channel
 //! modes), and [`encoder`] (the owned pull-style encoder, its ADTS output, and
 //! the borrowed raw access-unit payload).

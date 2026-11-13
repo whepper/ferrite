@@ -16,9 +16,7 @@
 
 #[cfg(test)]
 mod m5g_tests {
-    use super::super::stream_driver::{
-        M52_FIXTURES, M55_FIXTURES, m52_write_adts_stream,
-    };
+    use super::super::stream_driver::{m52_write_adts_stream, M52_FIXTURES, M55_FIXTURES};
 
     fn out_dir() -> std::path::PathBuf {
         std::env::temp_dir().join("m5g-census")
@@ -42,11 +40,7 @@ mod m5g_tests {
         let mut frame_argmin = String::new();
         let mut cap_min: i64 = i64::MAX;
         let mut cap_argmin = String::new();
-        for (short, stem, sr, ch) in M52_FIXTURES
-            .iter()
-            .chain(M55_FIXTURES.iter())
-            .copied()
-        {
+        for (short, stem, sr, ch) in M52_FIXTURES.iter().chain(M55_FIXTURES.iter()).copied() {
             let rep = m52_write_adts_stream(short, stem, sr, ch, &dir)
                 .unwrap_or_else(|e| panic!("{stem}: encode failed: {e}"));
             assert!(rep.frames > 0, "{stem}: no frames emitted");
@@ -157,9 +151,7 @@ mod m5g_tests {
                 s_grant = s_grant.min(r.el_granted as i64 - r.used_dyn as i64);
                 s_maxdyn = s_maxdyn.min(r.max_dyn as i64 - r.used_dyn as i64);
                 s_frame = s_frame.min(r.total_avail as i64 - r.sum_bits as i64);
-                s_cap = s_cap.min(
-                    (ch as i64) * 6144 - r.static_used as i64 - r.used_dyn as i64,
-                );
+                s_cap = s_cap.min((ch as i64) * 6144 - r.static_used as i64 - r.used_dyn as i64);
             }
             println!(
                 "M5.i {stem}: max_iter={} min_grant={} min_maxdyn={} min_frame={} min_cap={}",
@@ -176,8 +168,7 @@ mod m5g_tests {
             ));
         }
         streams.push_str("]}");
-        std::fs::write(dir.join("census.json"), &streams)
-            .expect("M5.g: write census.json");
+        std::fs::write(dir.join("census.json"), &streams).expect("M5.g: write census.json");
         println!("M5.g total frames observed: {total_frames}");
         assert_eq!(total_frames, streams.matches("\"f\":").count());
         // M5.i global margin minima (no thresholds asserted by design; the

@@ -8,10 +8,13 @@ PCM before encoding):
 - **M4A** — audio-only MP4 container, the intended user-facing output.
 - **ADTS** — engineering/test output, retained for encoder validation.
 
-The native Rust encoder runs in its existing VBR-5 ADTS mode. For M4A, each
+The native Rust encoder runs in VBR ADTS mode (default VBR-6; select
+VBR-1 through VBR-6 with `--vbr`). For M4A, each
 frame's validated raw access-unit payload (`AdtsFrame::raw_payload`) and the
 configuration's AudioSpecificConfig (`EncoderConfig::audio_specific_config`)
 are handed to the muxer. The encoded audio is identical for both containers.
+See [`../docs/vbr-profiles.md`](../docs/vbr-profiles.md) for the authoritative
+profile reference.
 
 The application-facing contract (input precision, metadata, errors, atomic
 publication, gapless signaling) is documented in
@@ -45,7 +48,7 @@ verified.
 ## Usage
 
 ```sh
-# M4A by extension
+# M4A by extension (default VBR-6)
 cargo run -p aac-convert -- input.flac output.m4a
 
 # ADTS by extension
@@ -54,6 +57,10 @@ cargo run -p aac-convert -- input.flac output.aac
 # Explicit override (wins over the extension)
 cargo run -p aac-convert -- --format m4a input.flac output.aac
 cargo run -p aac-convert -- --format adts input.flac output.m4a
+
+# Explicit VBR profile (default 6)
+cargo run -p aac-convert -- --vbr 5 input.flac output.m4a
+cargo run -p aac-convert -- --vbr 1 input.flac output.aac
 
 # M4A without user metadata
 cargo run -p aac-convert -- --no-tags input.flac output.m4a
@@ -68,7 +75,16 @@ cargo run -p aac-convert -- --cover-art both input.flac output.m4a
 `--format` accepts `m4a` or `adts`. Without it, `.m4a` and `.mp4` select M4A;
 every other extension, including `.aac`, `.adts`, unknown extensions, and no
 extension, keeps the historical ADTS default. The success message names the
-selected format.
+selected format and VBR profile:
+
+```text
+converted input.flac -> output.m4a (14 AAC frames, 1961 bytes, M4A, VBR-6, nominal 192000 bit/s, 20000 Hz bandwidth)
+```
+
+`--vbr` accepts `1` through `6` (also `VBR-1`..`VBR-6`, `vbr1`..). Default is
+`6`. VBR-1..VBR-5 are the upstream FDK AAC profiles; VBR-6 is the Ferrite
+default (VBR-5 with 20 kHz bandwidth). Invalid values fail with exit 2.
+See [`../docs/vbr-profiles.md`](../docs/vbr-profiles.md) for the full table.
 
 `--no-tags` omits user metadata from M4A output (see Metadata); it is accepted
 for ADTS output as a no-op.
@@ -521,7 +537,7 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
   are not mapped. Loudness tagging (ReplayGain 2.0 and
   `iTunNORM`) is implemented and shipped for M4A (see Loudness). Still out
   of scope: preserving the original multi-entry Vorbis structure, multi-image
-  galleries, resampling, downmixing, VBR 1–4, and intra-file or frame-level
+  galleries, resampling, downmixing, and intra-file or frame-level
   parallelism (only independent files are processed concurrently).
 - No edit list on the default path and no universal gapless-playback claim.
   Default M4A carries `iTunSMPB` signalling, exact on the verified FFmpeg and
@@ -534,7 +550,7 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 There is no standalone `cargo package` for `aac-convert`: its path
 dependency on the workspace-local, unpublished `ferrite-aac` crate cannot
 resolve against the public registry (the package is unpublished, so no
-version satisfies the required `^0.2.0`), and publishing `ferrite-aac` is
+version satisfies the required `^0.3.0`), and publishing `ferrite-aac` is
 out of scope. The supported distribution
 model is a **workspace source bundle built with the pinned toolchain**:
 

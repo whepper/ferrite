@@ -16,7 +16,8 @@
 //!   [`ChannelTransform`], [`PsyChannel`], [`PsyTables::for_rate`] (with
 //!   `min_snr` init vectors from the committed `cfg_*` snapshots, i.e. the
 //!   `InitPsyConfiguration` output, not per-frame content).
-//! - [`AtsElement::new(0)`] (VBR-5 `peOffset=0`), [`distribute_state_init`]
+//! - [`AtsElement::for_vbr_mode`] (`peOffset`: 50 for VBR-1 stereo,
+//!   0 otherwise, per `AdjThrInit`), [`distribute_state_init`]
 //!   from `mean_pe` (mirrors `QCInit`), [`QcState::new`] (bitres pinned
 //!   full at VBR-5), `padding_rest = sample_rate` (evolved per frame by
 //!   [`adjust_bitrate`], content-independent).
@@ -67,7 +68,7 @@ use super::bitcount::{dyn_bit_count_reuse, BitCountInput, NO_NOISE_PNS};
 use super::bitenc::BitWriter;
 use super::block_switch::{BlockSwitch, WindowSequence};
 use super::channel_map::ChannelMode;
-use super::config::{EncoderConfig, TransportType, FRAME_LENGTH};
+use super::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
 use super::energy;
 use super::frame::{
     build_adts_frame, build_raw_block, channel_element_write, check_static_agreement,
@@ -81,7 +82,7 @@ use super::psy::{
     process_pair_reuse, ChannelInput, ChannelOutput, GroupedOutput, MsOutput, PsyChannel,
     PsyScratch, PsyTables,
 };
-use super::psy_config::load_cfg;
+use super::psy_config::load_cfg_for_profile;
 use super::q31::calc_ld_data;
 use super::rate::{
     adjust_bitrate, calc_bits_per_frame, calc_max_value_in_sfb, derive_qc_init,
@@ -589,6 +590,7 @@ pub(crate) struct StreamEncoder {
     sample_rate: u32,
     channels: usize,
     mode: ChannelMode,
+    vbr_mode: VbrMode,
     tables: PsyTables,
     min_snr_long: Vec<i32>,
     min_snr_short: Vec<i32>,
@@ -614,29 +616,51 @@ pub(crate) struct StreamEncoder {
 }
 
 impl StreamEncoder {
+    /// Test/gated streaming encoder with the default profile (VBR-6).
     pub(crate) fn new(sample_rate: u32, channels: usize) -> Self {
-        assert!(
-            channels == 1 || channels == 2,
-            "single-element mono/stereo only"
-        );
-        let cfg = EncoderConfig::new(
+        Self::with_mode(sample_rate, channels, VbrMode::Vbr6)
+    }
+
+    /// Test/gated streaming encoder with an explicit VBR profile.
+    pub(crate) fn with_mode(sample_rate: u32, channels: usize, vbr_mode: VbrMode) -> Self {
+        let cfg = EncoderConfig::new_with_mode(
             sample_rate,
             channels as u32,
             FRAME_LENGTH,
             TransportType::Adts,
+            vbr_mode,
         )
         .expect("supported rate/channels");
-        let (ch_br, total_br): (u32, u32) = if channels == 1 {
-            (112000, 112000)
-        } else {
-            (96000, 192000)
-        };
-        let ((lcfg, _), (scfg, _)) = load_cfg(sample_rate, ch_br);
+        Self::with_config(cfg)
+    }
+
+    /// Build from a validated [`EncoderConfig`], threading the selected
+    /// profile through every init-time derivation:
+    /// per-channel/total nominal bitrates, effective bandwidth (Nyquist
+    /// clamped), VBR quality factor, `PsyTables::for_rate` (SFB/active bands,
+    /// `allowIS`/`allowMS`, TNS), `derive_qc_init` (average/max/min bits,
+    /// bit-reservoir mode, `meanPe`), `AtsElement` quality factor and
+    /// `peOffset` (50 for VBR-1 stereo, 0 otherwise, per `AdjThrInit`).
+    /// PNS stays off (FDK effective VBR behaviour), afterburner stays on
+    /// (`invQuant = 2`), TNS stays enabled.
+    pub(crate) fn with_config(cfg: EncoderConfig) -> Self {
+        let sample_rate = cfg.sample_rate();
+        let channels = cfg.channels() as usize;
+        assert!(
+            channels == 1 || channels == 2,
+            "single-element mono/stereo only"
+        );
+        let profile = cfg.profile();
+        let is_mono = channels == 1;
+        let ch_br = profile.channel_bitrate(is_mono);
+        let total_br = cfg.nominal_bitrate();
+        let bandwidth = cfg.effective_bandwidth_hz();
+        let ((lcfg, _), (scfg, _)) = load_cfg_for_profile(sample_rate, profile, is_mono);
         let tables = PsyTables::for_rate(
             sample_rate,
             ch_br,
             total_br,
-            19293,
+            bandwidth,
             lcfg.min_snr_ld.clone(),
             scfg.min_snr_ld.clone(),
         )
@@ -655,16 +679,16 @@ impl StreamEncoder {
             channels as i32,
             channels as i32,
             sample_rate as i32,
-            19293,
+            bandwidth as i32,
             FRAME_LENGTH as i32,
         );
         let (b2m, b2e) = init_bits2pe_factor(false, false, init.ch_bitrate_el, channels as i32);
         let dist = distribute_state_init(init.mean_pe);
         let qc = QcState::new(init.max_bits);
-        let _ = cfg;
         Self {
             sample_rate,
             channels,
+            vbr_mode: cfg.vbr_mode(),
             mode: if channels == 1 {
                 ChannelMode::Mono
             } else {
@@ -676,7 +700,7 @@ impl StreamEncoder {
             switches,
             transforms,
             psy_ch,
-            ats: AtsElement::new(0),
+            ats: AtsElement::for_vbr_mode(cfg.vbr_mode(), super::pe::vbr_pe_offset(ch_br)),
             dist,
             qc,
             s4_ws: ScfWorkspace::default(),
@@ -702,6 +726,11 @@ impl StreamEncoder {
             self.dist.pe_min,
             self.dist.pe_max,
         )
+    }
+
+    /// Selected VBR profile (diagnostic accessor for the production `Encoder`).
+    pub(crate) fn vbr_mode(&self) -> VbrMode {
+        self.vbr_mode
     }
 
     fn seq_of(&self, ch: usize) -> WindowSequence {
@@ -1926,7 +1955,7 @@ mod phase1_tests {
         );
         let dump = format!("{o_dir}/m2-sine-stereo-48k.s1.txt");
         let pcm = testdata::fixture_samples("sine-stereo");
-        let mut enc = StreamEncoder::new(48000, 2);
+        let mut enc = StreamEncoder::with_mode(48000, 2, VbrMode::Vbr5);
         let mut fe_opt = None;
         for f in 0..=5u32 {
             let fresh: Vec<[i16; 1024]> = pcm
@@ -2093,7 +2122,7 @@ mod phase1_tests {
             }
             let mut frames = feeder.push_interleaved(&interleaved).expect("push");
             frames.extend(feeder.finish().expect("finish"));
-            let mut enc = StreamEncoder::new(48000, 2);
+            let mut enc = StreamEncoder::with_mode(48000, 2, VbrMode::Vbr5);
             let sfb_cnt = enc.tables.short_cfg.sfb_count();
             let active = enc.tables.short_cfg.sfb_active();
             for f in 0..=last_frame {
@@ -2274,7 +2303,7 @@ mod phase1_tests {
         }
         let mut frames = feeder.push_interleaved(&interleaved).expect("push");
         frames.extend(feeder.finish().expect("finish"));
-        let mut enc = StreamEncoder::new(sr, ch);
+        let mut enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
         let mut snaps = Vec::new();
         for f in 0..=frame as usize {
             let fresh: Vec<Vec<i16>> = frames[f].channels().iter().map(|b| b.to_vec()).collect();
@@ -2365,7 +2394,7 @@ mod phase1_tests {
             }
             let mut frames = feeder.push_interleaved(&interleaved).expect("push");
             frames.extend(feeder.finish().expect("finish"));
-            let mut enc = StreamEncoder::new(sr, nch);
+            let mut enc = StreamEncoder::with_mode(sr, nch, VbrMode::Vbr5);
             let mut bytes = Vec::new();
             let mut snaps = Vec::new();
             let mut states = Vec::new();
@@ -3739,7 +3768,7 @@ mod phase1_tests {
                 "{name}: frame {frame} within {} feeder frames",
                 frames.len()
             );
-            let mut enc = StreamEncoder::new(sr, ch);
+            let mut enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
             let (mut got_len, mut got_snap) = (0usize, None);
             for f in 0..=frame as usize {
                 let fresh: Vec<Vec<i16>> =
@@ -4495,7 +4524,7 @@ mod phase1_tests {
             (48000, 2, "stereo-48k"),
             (44100, 2, "stereo-44100"),
         ] {
-            let enc = StreamEncoder::new(sr, ch);
+            let enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
             let init = testdata::load_s6init(tag);
             let (avg, max, b2m, b2e, pemin, pemax) = enc.init_summary();
             assert_eq!(avg, init.avg, "{tag} avg");
@@ -4593,7 +4622,7 @@ mod phase1_tests {
             // (no `catch_unwind` anywhere); the per-frame log below
             // identifies the frame from captured output.
             println!("== {stem}: stepping {n_frames} frames");
-            let mut enc = StreamEncoder::new(sr, ch);
+            let mut enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
             let mut adts_out: Vec<Option<Vec<u8>>> = Vec::with_capacity(n_frames);
             let mut snaps: Vec<FrameSnapshot> = Vec::with_capacity(n_frames);
             let mut stopped_at: Option<usize> = None;
@@ -4903,7 +4932,7 @@ mod phase1_tests {
         // byte-identical ADTS.
         let pcm = testdata::fixture_samples("silence-stereo");
         let run = || {
-            let mut enc = StreamEncoder::new(48000, 2);
+            let mut enc = StreamEncoder::with_mode(48000, 2, VbrMode::Vbr5);
             let mut out = Vec::new();
             for f in 0..49 {
                 let fresh: Vec<Vec<i16>> = pcm
@@ -5101,7 +5130,7 @@ pub(crate) fn m52_write_adts_stream(
             .finish()
             .map_err(|e| format!("{stem} finish: {e:?}"))?,
     );
-    let mut enc = StreamEncoder::new(sample_rate, channels);
+    let mut enc = StreamEncoder::with_mode(sample_rate, channels, VbrMode::Vbr5);
     let mut out_bytes: Vec<u8> = Vec::new();
     let mut frame_lens = Vec::with_capacity(frames.len());
     let mut seqs = Vec::with_capacity(frames.len());
@@ -5148,6 +5177,234 @@ pub(crate) fn m52_write_adts_stream(
         seqs,
         census,
     })
+}
+
+#[cfg(test)]
+mod vbr_parity_tests {
+    //! VBR-1..5 psychoacoustic configuration parity against FDK-AAC v3.0.0.
+    //!
+    //! Every expected value below is a pinned output of the UNMODIFIED
+    //! FDK-AAC v3.0.0 implementation (tag `v3.0.0`, commit
+    //! `a68a51aa45d86a43c7b228e3d45624af09dcdd8d`), driven through its real
+    //! init path (`FDKaacEnc_InitPsyConfiguration` for LONG/SHORT,
+    //! `FDKaacEnc_InitTnsConfiguration`, and `FDKaacEnc_QCInit` which calls
+    //! the real `InitElementBits` + `AdjThrInit`).
+    //!
+    //! What the table proves per profile/mode: exact `minSnr` snapshot
+    //! resolution (keyed by per-channel bitrate, so VBR-1 mono and VBR-2
+    //! stereo legitimately share pch=32000 files), `peOffset` (50 only for
+    //! VBR-1 stereo), shared `ahParam` (1/15/3 everywhere), profile `vbrQ`,
+    //! bandwidth-derived geometry (`lowpass`, active bands), TNS bands and
+    //! lines, and QC `meanPe`/frame-bit derivations.
+    use super::*;
+
+    /// (mode, sr, ch, peOff, vbrQ, meanPe, avg, maxB, minB, bitRes, peMin,
+    /// peMax, Lact, Llp, Sact, Slp, ML0, ML1, MS0, MS1, TLsbHI, TLsbLO,
+    /// TLslHI, TLslLO, TLstop, TSsbHI, TSsbLO, TSslHI, TSslLO, TSstop).
+    const ROWS: [(
+        u32,
+        u32,
+        u32,
+        i32,
+        i32,
+        i32,
+        i32,
+        i32,
+        i32,
+        i32,
+        i32,
+        i32,
+        usize,
+        usize,
+        usize,
+        usize,
+        i32,
+        i32,
+        i32,
+        i32,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+    ); 20] = [
+        // VBR-1 44100 mono .. VBR-5 48000 stereo (FDK-AAC v3.0.0 dumps).
+        (
+            1, 44100, 1, 0, 322122560, 6037, 744, 6144, 0, 6144, 2415, 3622, 38, 603, 11, 75,
+            -161314104, -160088841, -224975761, -151745499, 23, 8, 176, 32, 608, 5, 0, 20, 0, 80,
+        ),
+        (
+            1, 44100, 2, 50, 322122560, 6037, 928, 12288, 0, 12288, 2415, 3622, 38, 603, 11, 75,
+            -92743611, -91848889, -136915229, -85744096, 23, 8, 176, 32, 608, 5, 0, 20, 0, 80,
+        ),
+        (
+            1, 48000, 1, 0, 322122560, 5546, 688, 6144, 0, 6144, 2218, 3328, 37, 554, 11, 69,
+            -160280791, -158820046, -218579302, -139306946, 22, 8, 160, 32, 576, 5, 0, 20, 0, 80,
+        ),
+        (
+            1, 48000, 2, 50, 322122560, 5546, 856, 12288, 0, 12288, 2218, 3328, 37, 554, 11, 69,
+            -91991927, -90926869, -132622475, -76485153, 22, 8, 160, 32, 576, 5, 0, 20, 0, 80,
+        ),
+        (
+            2, 44100, 1, 0, 347892352, 6037, 928, 6144, 0, 6144, 2415, 3622, 38, 603, 11, 75,
+            -203734433, -202242273, -281213728, -192134427, 23, 8, 176, 32, 608, 5, 0, 20, 0, 80,
+        ),
+        (
+            2, 44100, 2, 0, 347892352, 6037, 1488, 12288, 0, 12288, 2415, 3622, 38, 603, 11, 75,
+            -161314104, -160088841, -224975761, -151745499, 23, 8, 176, 32, 608, 5, 0, 20, 0, 80,
+        ),
+        (
+            2, 48000, 1, 0, 347892352, 5546, 856, 6144, 0, 6144, 2218, 3328, 37, 554, 11, 69,
+            -202477707, -200700880, -273953248, -177205861, 22, 8, 160, 32, 576, 5, 0, 20, 0, 80,
+        ),
+        (
+            2, 48000, 2, 0, 347892352, 5546, 1368, 12288, 0, 12288, 2218, 3328, 37, 554, 11, 69,
+            -160280791, -158820046, -218579302, -139306946, 22, 8, 160, 32, 576, 5, 0, 20, 0, 80,
+        ),
+        (
+            3, 44100, 1, 0, 377957120, 7314, 1304, 6144, 0, 6144, 2925, 4388, 42, 731, 12, 91,
+            -279434459, -277443778, -281213728, -266521260, 24, 8, 196, 32, 736, 5, 0, 20, 0, 96,
+        ),
+        (
+            3, 44100, 2, 0, 377957120, 7314, 2232, 12288, 0, 12288, 2925, 4388, 42, 731, 12, 91,
+            -239198550, -237478661, -281213728, -228031610, 24, 8, 196, 32, 736, 5, 0, 20, 0, 96,
+        ),
+        (
+            3, 48000, 1, 0, 377957120, 6720, 1200, 6144, 0, 6144, 2688, 4032, 40, 672, 12, 84,
+            -279386274, -276983311, -281213728, -250258973, 23, 8, 176, 32, 672, 5, 0, 20, 0, 96,
+        ),
+        (
+            3, 48000, 2, 0, 377957120, 6720, 2048, 12288, 0, 12288, 2688, 4032, 40, 672, 12, 84,
+            -239159802, -237096717, -281213728, -213996918, 23, 8, 176, 32, 672, 5, 0, 20, 0, 96,
+        ),
+        (
+            4, 44100, 1, 0, 257698032, 7662, 1672, 6144, 0, 6144, 3065, 4597, 43, 766, 12, 95,
+            -281213728, -281213728, -281213728, -281213728, 24, 8, 196, 32, 736, 5, 0, 20, 0, 96,
+        ),
+        (
+            4, 44100, 2, 0, 257698032, 7662, 2976, 12288, 0, 12288, 3065, 4597, 43, 766, 12, 95,
+            -281213728, -281213728, -281213728, -281213728, 24, 8, 196, 32, 736, 5, 0, 20, 0, 96,
+        ),
+        (
+            4, 48000, 1, 0, 257698032, 7040, 1536, 6144, 0, 6144, 2816, 4224, 41, 704, 12, 88,
+            -281213728, -281213728, -281213728, -281213728, 23, 8, 176, 32, 672, 5, 0, 20, 0, 96,
+        ),
+        (
+            4, 48000, 2, 0, 257698032, 7040, 2736, 12288, 0, 12288, 2816, 4224, 41, 704, 12, 88,
+            -281213728, -281213728, -281213728, -281213728, 23, 8, 176, 32, 672, 5, 0, 20, 0, 96,
+        ),
+        (
+            5, 44100, 1, 0, 150323856, 8959, 2600, 6144, 0, 6144, 3583, 5375, 47, 895, 13, 111,
+            -281213728, -281213728, -281213728, -281213728, 24, 8, 196, 32, 736, 6, 0, 28, 0, 112,
+        ),
+        (
+            5, 44100, 2, 0, 150323856, 8959, 4464, 12288, 0, 12288, 3583, 5375, 47, 895, 13, 111,
+            -281213728, -281213728, -281213728, -281213728, 24, 8, 196, 32, 736, 6, 0, 28, 0, 112,
+        ),
+        (
+            5, 48000, 1, 0, 150323856, 8231, 2392, 6144, 0, 6144, 3292, 4939, 45, 823, 13, 102,
+            -281213728, -281213728, -281213728, -281213728, 23, 8, 176, 32, 672, 6, 0, 28, 0, 112,
+        ),
+        (
+            5, 48000, 2, 0, 150323856, 8231, 4096, 12288, 0, 12288, 3292, 4939, 45, 823, 13, 102,
+            -281213728, -281213728, -281213728, -281213728, 23, 8, 176, 32, 672, 6, 0, 28, 0, 112,
+        ),
+    ];
+
+    #[test]
+    fn vbr_profiles_match_c_reference_init() {
+        use crate::aac_enc::config::VbrMode;
+        for r in ROWS {
+            let (
+                mode_n,
+                sr,
+                ch,
+                pe_off,
+                vbr_q,
+                mean_pe,
+                avg,
+                max_b,
+                min_b,
+                bit_res,
+                pe_min,
+                pe_max,
+                lact,
+                llp,
+                sact,
+                slp,
+                ml0,
+                ml1,
+                ms0,
+                ms1,
+                tlsb_hi,
+                tlsb_lo,
+                tlsl_hi,
+                tlsl_lo,
+                tlstop,
+                tssb_hi,
+                tssb_lo,
+                tssl_hi,
+                tssl_lo,
+                tsstop,
+            ) = r;
+            let mode = VbrMode::from_number(mode_n).expect("mode 1..5");
+            let enc = StreamEncoder::with_mode(sr, ch as usize, mode);
+            let tag = format!("VBR-{mode_n} {sr}Hz ch={ch}");
+            // ATS (AdjThrInit): peOffset, quality factor, shared params.
+            assert_eq!(enc.ats.pe_offset, pe_off, "{tag} peOffset");
+            assert_eq!(enc.ats.vbr_qual_factor, vbr_q, "{tag} vbrQ");
+            assert_eq!(enc.ats.ah_modify_min_snr, 1, "{tag} ahMod");
+            assert_eq!(enc.ats.ah_start_sfb_l, 15, "{tag} ahL");
+            assert_eq!(enc.ats.ah_start_sfb_s, 3, "{tag} ahS");
+            assert_eq!(enc.ats.chaos_measure_old, 0x26666680, "{tag} chaosOld");
+            // QC init (derive_qc_init + DistributeBits init).
+            assert_eq!(enc.init.mean_pe, mean_pe, "{tag} meanPe");
+            assert_eq!(enc.init.average_bits, avg, "{tag} avgBits");
+            assert_eq!(enc.init.max_bits, max_b, "{tag} maxBits");
+            assert_eq!(enc.init.min_bits, min_b, "{tag} minBits");
+            assert_eq!(enc.init.bit_res, bit_res, "{tag} bitRes");
+            assert_eq!(enc.dist.pe_min, pe_min, "{tag} peMin");
+            assert_eq!(enc.dist.pe_max, pe_max, "{tag} peMax");
+            // SFB geometry (InitPsyConfiguration).
+            assert_eq!(enc.tables.long_cfg.sfb_active(), lact, "{tag} Lact");
+            assert_eq!(enc.tables.long_cfg.lowpass_line(), llp, "{tag} Llp");
+            assert_eq!(enc.tables.short_cfg.sfb_active(), sact, "{tag} Sact");
+            assert_eq!(enc.tables.short_cfg.lowpass_line(), slp, "{tag} Slp");
+            // minSnr resolution: exact snapshot, pinned head values.
+            assert_eq!(enc.min_snr_long[0], ml0, "{tag} ML0");
+            assert_eq!(enc.min_snr_long[1], ml1, "{tag} ML1");
+            assert_eq!(enc.min_snr_short[0], ms0, "{tag} MS0");
+            assert_eq!(enc.min_snr_short[1], ms1, "{tag} MS1");
+            // TNS (InitTnsConfiguration, dynamic in Rust).
+            assert_eq!(
+                enc.tables.tns_long.start_band,
+                [tlsb_hi, tlsb_lo],
+                "{tag} TNSL startBand"
+            );
+            assert_eq!(
+                enc.tables.tns_long.start_line,
+                [tlsl_hi, tlsl_lo],
+                "{tag} TNSL startLine"
+            );
+            assert_eq!(enc.tables.tns_long.stop_line, tlstop, "{tag} TNSL stop");
+            assert_eq!(
+                enc.tables.tns_short.start_band,
+                [tssb_hi, tssb_lo],
+                "{tag} TNSS startBand"
+            );
+            assert_eq!(
+                enc.tables.tns_short.start_line,
+                [tssl_hi, tssl_lo],
+                "{tag} TNSS startLine"
+            );
+            assert_eq!(enc.tables.tns_short.stop_line, tsstop, "{tag} TNSS stop");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -5242,7 +5499,7 @@ mod m52_tests {
     fn m53b_transient_groups_survive() {
         for (short, f) in [("impulse-mono", 5u32), ("edge-mono", 4u32)] {
             let pcm = testdata::fixture_samples(short);
-            let mut enc = StreamEncoder::new(48000, 1);
+            let mut enc = StreamEncoder::with_mode(48000, 1, VbrMode::Vbr5);
             let mut snap_opt = None;
             for g in 0..=f {
                 let fresh: Vec<Vec<i16>> = pcm
@@ -5440,7 +5697,7 @@ mod m52_tests {
 
         // (forced budget, must also exercise crash recovery)
         for (budget, require_crash) in [(5_600i32, false), (4_600, true)] {
-            let mut enc = StreamEncoder::new(48000, channels);
+            let mut enc = StreamEncoder::with_mode(48000, channels, VbrMode::Vbr5);
             // Test-only budget override: force the outer retry deterministically.
             // This changes no production constant and no frame outside this test.
             enc.init.max_bits = budget;
@@ -5524,7 +5781,7 @@ mod m52_tests {
         let mut feeder = PcmFeeder::new(cfg);
         let mut frames = feeder.push_interleaved(&mono).expect("push");
         frames.extend(feeder.finish().expect("finish"));
-        let mut enc = StreamEncoder::new(48000, 1);
+        let mut enc = StreamEncoder::with_mode(48000, 1, VbrMode::Vbr5);
         let mut recovered: Vec<(u32, Vec<u8>)> = Vec::new();
         for (f, fr) in frames.iter().enumerate() {
             let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
@@ -5546,9 +5803,18 @@ mod m52_tests {
         );
         // Public-API leg: the same PCM through `Encoder` succeeds with
         // dense frame indices, so nothing was skipped or poisoned.
-        let mut api =
-            Encoder::new(EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap())
-                .unwrap();
+        // VBR-5 regression (driver leg above is VBR-5; default is VBR-6).
+        let mut api = Encoder::new(
+            EncoderConfig::new_with_mode(
+                48000,
+                1,
+                FRAME_LENGTH,
+                TransportType::Adts,
+                VbrMode::Vbr5,
+            )
+            .unwrap(),
+        )
+        .unwrap();
         let mut out = api.push(&mono).expect("push succeeds");
         out.extend(api.flush().expect("flush succeeds"));
         assert!(!out.is_empty(), "no output frames");
@@ -5620,7 +5886,7 @@ mod m52_tests {
         let mut feeder = PcmFeeder::new(cfg);
         let mut frames = feeder.push_interleaved(&mono).expect("push");
         frames.extend(feeder.finish().expect("finish"));
-        let mut enc = StreamEncoder::new(48000, 1);
+        let mut enc = StreamEncoder::with_mode(48000, 1, VbrMode::Vbr5);
         let mut crashed = Vec::new();
         for (f, fr) in frames.iter().enumerate() {
             let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
@@ -5638,10 +5904,18 @@ mod m52_tests {
             !crashed.is_empty(),
             "synthetic input must enter crash recovery at least once"
         );
-        // Public-API leg: the complete stream to decode.
-        let mut api =
-            Encoder::new(EncoderConfig::new(48000, 1, FRAME_LENGTH, TransportType::Adts).unwrap())
-                .unwrap();
+        // Public-API leg: the complete stream to decode (VBR-5 to match driver).
+        let mut api = Encoder::new(
+            EncoderConfig::new_with_mode(
+                48000,
+                1,
+                FRAME_LENGTH,
+                TransportType::Adts,
+                VbrMode::Vbr5,
+            )
+            .unwrap(),
+        )
+        .unwrap();
         let mut out = api.push(&mono).expect("push succeeds");
         out.extend(api.flush().expect("flush succeeds"));
         assert!(!out.is_empty(), "no output frames");
@@ -5683,7 +5957,10 @@ mod m52_tests {
         assert!(info.data_len > 0, "{STEM}: empty data chunk");
         assert_eq!(info.data_len as usize % 2, 0, "{STEM}: frame-aligned data");
         let data = &d1[44..];
-        assert!(data.iter().any(|&b| b != 0), "{STEM}: all-zero decoded output");
+        assert!(
+            data.iter().any(|&b| b != 0),
+            "{STEM}: all-zero decoded output"
+        );
         let samples_per_ch = info.data_len as usize / 2;
         let granted = out.len() * 1024;
         assert!(samples_per_ch < granted, "{STEM}: decoded exceeds granted");
@@ -5838,7 +6115,7 @@ fn m58_run_once(
             .map_err(|e| format!("{stem} finish: {e:?}"))?,
     );
     let t1 = (mode == M58Mode::EncoderOnly && measure).then(std::time::Instant::now);
-    let mut enc = StreamEncoder::new(sample_rate, channels);
+    let mut enc = StreamEncoder::with_mode(sample_rate, channels, VbrMode::Vbr5);
     let mut out_bytes: Vec<u8> = Vec::new();
     for (f, fr) in frames.iter().enumerate() {
         let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
@@ -6088,7 +6365,7 @@ mod is_integration_tests {
         let mut feeder = PcmFeeder::new(cfg);
         let mut frames = feeder.push_interleaved(&interleaved).expect("push");
         frames.extend(feeder.finish().expect("finish"));
-        let mut enc = StreamEncoder::new(sample_rate, channels);
+        let mut enc = StreamEncoder::with_mode(sample_rate, channels, VbrMode::Vbr5);
         let mut out = Vec::with_capacity(frames.len());
         for (i, fr) in frames.iter().enumerate() {
             let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
@@ -6112,7 +6389,7 @@ mod is_integration_tests {
         let mut feeder = PcmFeeder::new(cfg);
         let mut frames = feeder.push_interleaved(&interleaved).expect("push");
         frames.extend(feeder.finish().expect("finish"));
-        let mut enc = StreamEncoder::new(48000, channels);
+        let mut enc = StreamEncoder::with_mode(48000, channels, VbrMode::Vbr5);
         let mut out = Vec::with_capacity(frames.len());
         let mut adts = Vec::new();
         for (i, fr) in frames.iter().enumerate() {
@@ -6318,9 +6595,18 @@ mod is_integration_tests {
             "noise-like-out-phase" => vec![(95, 18)],
             "tones-in-phase" => {
                 let mut v: Vec<(u32, u32)> = (7..=88).step_by(3).map(|f| (f, 13)).collect();
-                v.extend(
-                    [(95, 16), (95, 18), (95, 20), (95, 21), (95, 26), (95, 27), (95, 28), (95, 29), (95, 31), (95, 32)],
-                );
+                v.extend([
+                    (95, 16),
+                    (95, 18),
+                    (95, 20),
+                    (95, 21),
+                    (95, 26),
+                    (95, 27),
+                    (95, 28),
+                    (95, 29),
+                    (95, 31),
+                    (95, 32),
+                ]);
                 v
             }
             "tones-out-phase" => {
@@ -6825,5 +7111,549 @@ mod m511_tests {
             std::hint::black_box(s.bytes);
         }
         println!("M511 {want}: iters={iters} acc={acc:016x}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Production-encoder performance harness (opt-in; benchmark/profiling only)
+// ---------------------------------------------------------------------------
+
+/// Opt-in benchmark of the production `Encoder` API. `#[ignore]` keeps normal
+/// suites unchanged; `AAC_PERF_BENCH=1` is a second explicit guard.
+///
+/// Timed regions:
+/// - `production`: `Encoder::new` (reported separately) plus the real
+///   `Encoder::push`/`flush` calls over 8,000-sample-frame chunks, the
+///   `aac-convert` chunk size.
+/// - `feed`: `PcmFeeder::push_interleaved`/`finish` only (the production
+///   feeder, without psychoacoustic/quantiser work).
+/// - `core`: prebuilt feeder frames through the same per-frame clone plus
+///   `StreamEncoder::step_frame` loop used by `Encoder::emit_frames`.
+///
+/// Fixture synthesis, interleaving, init timing, ADTS validation, and hashing
+/// are outside the timed regions. Output is checked against the committed
+/// `production_baseline` bytes/hash after timing.
+#[cfg(test)]
+mod perf_tests {
+    use super::*;
+    use crate::aac_enc::encoder::Encoder;
+    use crate::aac_enc::production_baseline::BASELINE;
+
+    const BENCH_CHUNK_FRAMES: usize = 8_000;
+    const BENCH_ENCODER_DELAY: usize = 1_600;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum BenchMode {
+        Production,
+        Feed,
+        Core,
+    }
+
+    impl BenchMode {
+        fn tag(self) -> &'static str {
+            match self {
+                BenchMode::Production => "production",
+                BenchMode::Feed => "feed",
+                BenchMode::Core => "core",
+            }
+        }
+    }
+
+    struct BenchFixture {
+        stem: String,
+        sample_rate: u32,
+        channels: usize,
+        /// Interleaved i16 PCM (`[LRLR..]` / `[M..]`), built once outside timing.
+        pcm: Vec<i16>,
+        samples: usize,
+        frames: usize,
+        expected_bytes: Option<usize>,
+        expected_hash: Option<u64>,
+    }
+
+    struct BenchRun {
+        init_ns: u128,
+        encode_ns: u128,
+        frames: usize,
+        bytes: usize,
+        hash: u64,
+    }
+
+    struct BenchRow {
+        mode: BenchMode,
+        fixture: usize,
+        rep: usize,
+        run: BenchRun,
+    }
+
+    fn env_usize(name: &str, default: usize) -> usize {
+        std::env::var(name)
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(default)
+    }
+
+    fn parse_modes() -> Vec<BenchMode> {
+        let raw =
+            std::env::var("AAC_PERF_MODES").unwrap_or_else(|_| "production,feed,core".to_string());
+        let modes: Vec<BenchMode> = raw
+            .split(',')
+            .filter_map(|token| match token.trim() {
+                "production" => Some(BenchMode::Production),
+                "feed" => Some(BenchMode::Feed),
+                "core" => Some(BenchMode::Core),
+                "" => None,
+                other => panic!("unknown AAC_PERF_MODES entry {other}"),
+            })
+            .collect();
+        assert!(!modes.is_empty(), "AAC_PERF_MODES selects no mode");
+        modes
+    }
+
+    fn baseline_row(
+        short: &str,
+    ) -> Option<&'static (&'static str, &'static str, u32, usize, usize, u64)> {
+        BASELINE.iter().find(|row| row.0 == short)
+    }
+
+    fn build_fixture(short: &str, stem: &str, sample_rate: u32, channels: usize) -> BenchFixture {
+        let pcm_ch = testdata::fixture_samples(short);
+        assert_eq!(pcm_ch.len(), channels, "{stem}: fixture channel count");
+        let samples = pcm_ch[0].len();
+        let mut pcm = Vec::with_capacity(samples * channels);
+        for i in 0..samples {
+            for ch in &pcm_ch {
+                pcm.push(ch[i]);
+            }
+        }
+        let frames = (samples + BENCH_ENCODER_DELAY).div_ceil(FRAME_LENGTH);
+        let (expected_bytes, expected_hash) = match baseline_row(short) {
+            Some(row) => (Some(row.4), Some(row.5)),
+            None => (None, None),
+        };
+        BenchFixture {
+            stem: stem.to_string(),
+            sample_rate,
+            channels,
+            pcm,
+            samples,
+            frames,
+            expected_bytes,
+            expected_hash,
+        }
+    }
+
+    fn build_long_fixture(
+        base_short: &str,
+        base_stem: &str,
+        sample_rate: u32,
+        channels: usize,
+        factor: usize,
+    ) -> BenchFixture {
+        let base = build_fixture(base_short, base_stem, sample_rate, channels);
+        let mut pcm = Vec::with_capacity(base.pcm.len() * factor);
+        for _ in 0..factor {
+            pcm.extend_from_slice(&base.pcm);
+        }
+        let samples = base.samples * factor;
+        BenchFixture {
+            stem: format!("{base_stem}-x{factor}"),
+            sample_rate,
+            channels,
+            pcm,
+            samples,
+            frames: (samples + BENCH_ENCODER_DELAY).div_ceil(FRAME_LENGTH),
+            expected_bytes: None,
+            expected_hash: None,
+        }
+    }
+
+    fn select_fixtures() -> Vec<BenchFixture> {
+        let filter = std::env::var("AAC_PERF_FIXTURES").ok();
+        let wanted: Option<Vec<&str>> = filter.as_deref().map(|raw| {
+            raw.split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .collect()
+        });
+        let mut out = Vec::new();
+        for (short, stem, sr, ch) in M58_FIXTURES {
+            if let Some(wanted) = &wanted {
+                if !wanted.contains(&short) {
+                    continue;
+                }
+            }
+            out.push(build_fixture(short, stem, sr, ch));
+        }
+        if std::env::var("AAC_PERF_LONG").ok().as_deref() == Some("1") {
+            out.push(build_long_fixture(
+                "music-stereo",
+                "m7-music-stereo-48k",
+                48000,
+                2,
+                4,
+            ));
+        }
+        assert!(!out.is_empty(), "AAC_PERF_FIXTURES selects no fixture");
+        out
+    }
+
+    fn fnv1a64(bytes: &[u8]) -> u64 {
+        let mut hash = 0xcbf2_9ce4_8422_2325u64;
+        for &byte in bytes {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        hash
+    }
+
+    /// Parse the ADTS stream and assert complete, self-consistent framing.
+    /// Runs only after the timed region.
+    fn check_adts(bytes: &[u8], want_frames: usize, label: &str) {
+        let mut off = 0usize;
+        let mut frames = 0usize;
+        while off + 7 <= bytes.len() {
+            assert_eq!(bytes[off], 0xFF, "{label}: ADTS sync high @ {off}");
+            assert_eq!(
+                bytes[off + 1] & 0xF0,
+                0xF0,
+                "{label}: ADTS sync low @ {off}"
+            );
+            let fl = ((bytes[off + 3] as usize & 0x03) << 11)
+                | ((bytes[off + 4] as usize) << 3)
+                | ((bytes[off + 5] as usize) >> 5);
+            assert!(fl >= 7, "{label}: ADTS length {fl} @ {off}");
+            assert!(off + fl <= bytes.len(), "{label}: truncated frame @ {off}");
+            off += fl;
+            frames += 1;
+        }
+        assert_eq!(off, bytes.len(), "{label}: trailing bytes");
+        assert_eq!(frames, want_frames, "{label}: frame count");
+    }
+
+    fn run_feed(fixture: &BenchFixture) -> BenchRun {
+        let cfg = EncoderConfig::new(
+            fixture.sample_rate,
+            fixture.channels as u32,
+            FRAME_LENGTH,
+            TransportType::Adts,
+        )
+        .expect("benchmark config");
+        let t0 = std::time::Instant::now();
+        let mut feeder = PcmFeeder::new(cfg);
+        let init_ns = t0.elapsed().as_nanos();
+        let chunk = BENCH_CHUNK_FRAMES * fixture.channels;
+        let t1 = std::time::Instant::now();
+        let mut frames = 0usize;
+        for chunk in fixture.pcm.chunks(chunk) {
+            let produced = feeder
+                .push_interleaved(chunk)
+                .expect("benchmark feeder push");
+            frames += produced.len();
+            std::hint::black_box(produced);
+        }
+        let tail = feeder.finish().expect("benchmark feeder finish");
+        frames += tail.len();
+        std::hint::black_box(tail);
+        let encode_ns = t1.elapsed().as_nanos();
+        BenchRun {
+            init_ns,
+            encode_ns,
+            frames,
+            bytes: 0,
+            hash: 0,
+        }
+    }
+
+    fn run_production(fixture: &BenchFixture) -> BenchRun {
+        let cfg = EncoderConfig::new(
+            fixture.sample_rate,
+            fixture.channels as u32,
+            FRAME_LENGTH,
+            TransportType::Adts,
+        )
+        .expect("benchmark config");
+        let t0 = std::time::Instant::now();
+        let mut enc = Encoder::new(cfg).expect("benchmark Encoder::new");
+        let init_ns = t0.elapsed().as_nanos();
+        let mut out = Vec::with_capacity(
+            fixture
+                .expected_bytes
+                .unwrap_or(fixture.samples * fixture.channels / 2 + 8192),
+        );
+        let chunk = BENCH_CHUNK_FRAMES * fixture.channels;
+        let t1 = std::time::Instant::now();
+        let mut frames = 0usize;
+        for chunk in fixture.pcm.chunks(chunk) {
+            for frame in enc.push(chunk).expect("benchmark Encoder::push") {
+                frames += 1;
+                out.extend_from_slice(&frame.bytes);
+            }
+        }
+        for frame in enc.flush().expect("benchmark Encoder::flush") {
+            frames += 1;
+            out.extend_from_slice(&frame.bytes);
+        }
+        let encode_ns = t1.elapsed().as_nanos();
+        check_adts(&out, fixture.frames, &fixture.stem);
+        BenchRun {
+            init_ns,
+            encode_ns,
+            frames,
+            bytes: out.len(),
+            hash: fnv1a64(&out),
+        }
+    }
+
+    fn run_core(fixture: &BenchFixture) -> BenchRun {
+        let cfg = EncoderConfig::new(
+            fixture.sample_rate,
+            fixture.channels as u32,
+            FRAME_LENGTH,
+            TransportType::Adts,
+        )
+        .expect("benchmark config");
+        // Setup outside timing: the same feeder output the production path
+        // would produce, then the per-frame clone + step_frame loop.
+        let mut feeder = PcmFeeder::new(cfg);
+        let mut feeder_frames = feeder
+            .push_interleaved(&fixture.pcm)
+            .expect("benchmark feeder push");
+        feeder_frames.extend(feeder.finish().expect("benchmark feeder finish"));
+        assert_eq!(feeder_frames.len(), fixture.frames, "core feeder frame law");
+
+        let t0 = std::time::Instant::now();
+        let mut enc =
+            StreamEncoder::with_mode(fixture.sample_rate, fixture.channels, VbrMode::Vbr5);
+        let init_ns = t0.elapsed().as_nanos();
+        let mut out = Vec::with_capacity(
+            fixture
+                .expected_bytes
+                .unwrap_or(fixture.samples * fixture.channels / 2 + 8192),
+        );
+        let t1 = std::time::Instant::now();
+        let mut frames = 0usize;
+        let mut bad_notes = 0usize;
+        let mut bad_crash = 0usize;
+        let mut missing = 0usize;
+        for (i, fr) in feeder_frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (bytes, snap) = enc.step_frame(i as u32, &fresh);
+            if !snap.notes.is_empty() {
+                bad_notes += 1;
+            }
+            if snap.crash != -1 {
+                bad_crash += 1;
+            }
+            match bytes {
+                Some(bytes) => {
+                    frames += 1;
+                    out.extend_from_slice(&bytes);
+                }
+                None => missing += 1,
+            }
+        }
+        let encode_ns = t1.elapsed().as_nanos();
+        assert_eq!(bad_notes, 0, "{}: core notes", fixture.stem);
+        assert_eq!(bad_crash, 0, "{}: core crash markers", fixture.stem);
+        assert_eq!(missing, 0, "{}: core missing frames", fixture.stem);
+        check_adts(&out, fixture.frames, &fixture.stem);
+        BenchRun {
+            init_ns,
+            encode_ns,
+            frames,
+            bytes: out.len(),
+            hash: fnv1a64(&out),
+        }
+    }
+
+    fn run_mode(mode: BenchMode, fixture: &BenchFixture) -> BenchRun {
+        match mode {
+            BenchMode::Production => run_production(fixture),
+            BenchMode::Feed => run_feed(fixture),
+            BenchMode::Core => run_core(fixture),
+        }
+    }
+
+    fn validate_run(mode: BenchMode, fixture: &BenchFixture, run: &BenchRun, enforce_hash: bool) {
+        assert_eq!(run.frames, fixture.frames, "{}: frame count", fixture.stem);
+        if mode == BenchMode::Feed {
+            return;
+        }
+        if let Some(want) = fixture.expected_bytes {
+            assert_eq!(run.bytes, want, "{}: byte total", fixture.stem);
+        }
+        if enforce_hash {
+            if let Some(want) = fixture.expected_hash {
+                assert_eq!(run.hash, want, "{}: ADTS hash", fixture.stem);
+            }
+        }
+    }
+
+    fn median(mut values: Vec<u128>) -> f64 {
+        assert!(!values.is_empty());
+        values.sort_unstable();
+        let n = values.len();
+        if n % 2 == 1 {
+            values[n / 2] as f64
+        } else {
+            (values[n / 2 - 1] as f64 + values[n / 2] as f64) / 2.0
+        }
+    }
+
+    fn median_u128(values: &[u128]) -> f64 {
+        median(values.to_vec())
+    }
+
+    #[test]
+    #[ignore = "opt-in production performance benchmark; set AAC_PERF_BENCH=1"]
+    fn aac_perf_bench() {
+        if std::env::var("AAC_PERF_BENCH").ok().as_deref() != Some("1") {
+            println!("AACPERF_SKIP set AAC_PERF_BENCH=1 to run");
+            return;
+        }
+        let reps = env_usize("AAC_PERF_REPS", 9).max(1);
+        let warmups = env_usize("AAC_PERF_WARMUPS", 1);
+        let modes = parse_modes();
+        let quiet = std::env::var("AAC_PERF_QUIET").ok().as_deref() == Some("1");
+        let enforce_hash = cfg!(all(target_os = "macos", target_arch = "aarch64"));
+        let mut fixtures = select_fixtures();
+
+        println!(
+            "AACPERF_CONFIG\tprofile={}\tfeatures=aac_enc,default\tarch={}\tos={}\tthreads=single\treps={reps}\twarmups={warmups}\tmodes={}",
+            if cfg!(debug_assertions) { "debug" } else { "release" },
+            std::env::consts::ARCH,
+            std::env::consts::OS,
+            modes.iter().map(|m| m.tag()).collect::<Vec<_>>().join(",")
+        );
+
+        // Warm-up pass: warms code/data caches and establishes the expected
+        // bytes/hash for the derived long workload.
+        for i in 0..fixtures.len() {
+            let mut derived: Option<(usize, u64)> = None;
+            for &mode in &modes {
+                let run = run_mode(mode, &fixtures[i]);
+                validate_run(mode, &fixtures[i], &run, enforce_hash);
+                if mode != BenchMode::Feed && derived.is_none() {
+                    derived = Some((run.bytes, run.hash));
+                }
+            }
+            if fixtures[i].expected_bytes.is_none() {
+                let (bytes, hash) = derived.expect("derived workload needs a byte-producing mode");
+                fixtures[i].expected_bytes = Some(bytes);
+                fixtures[i].expected_hash = Some(hash);
+            }
+        }
+
+        let mut rows: Vec<BenchRow> = Vec::with_capacity(reps * fixtures.len() * modes.len());
+        for rep in 0..reps {
+            for (fixture_index, fixture) in fixtures.iter().enumerate() {
+                for &mode in &modes {
+                    let run = run_mode(mode, fixture);
+                    validate_run(mode, fixture, &run, enforce_hash);
+                    if !quiet {
+                        println!(
+                            "AACPERF_ROW\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}",
+                            mode.tag(),
+                            fixture.stem,
+                            rep,
+                            fixture.sample_rate,
+                            fixture.channels,
+                            fixture.samples,
+                            run.frames,
+                            run.bytes,
+                            run.init_ns,
+                            run.encode_ns,
+                            run.init_ns + run.encode_ns,
+                            run.hash
+                        );
+                    }
+                    rows.push(BenchRow {
+                        mode,
+                        fixture: fixture_index,
+                        rep,
+                        run,
+                    });
+                }
+            }
+        }
+
+        // Per-fixture summaries.
+        for &mode in &modes {
+            for (fixture_index, fixture) in fixtures.iter().enumerate() {
+                let selected: Vec<&BenchRow> = rows
+                    .iter()
+                    .filter(|r| r.mode == mode && r.fixture == fixture_index)
+                    .collect();
+                if selected.is_empty() {
+                    continue;
+                }
+                let init = selected.iter().map(|r| r.run.init_ns).collect::<Vec<_>>();
+                let encode = selected.iter().map(|r| r.run.encode_ns).collect::<Vec<_>>();
+                let total = selected
+                    .iter()
+                    .map(|r| r.run.init_ns + r.run.encode_ns)
+                    .collect::<Vec<_>>();
+                let median_total = median_u128(&total);
+                let audio_s = fixture.samples as f64 / fixture.sample_rate as f64;
+                let rtf = median_total / 1e9 / audio_s;
+                let xrealtime = if rtf > 0.0 { 1.0 / rtf } else { f64::INFINITY };
+                let samples_per_s = fixture.samples as f64 / (median_total / 1e9);
+                let hash = selected.first().map(|r| r.run.hash).unwrap_or(0);
+                println!(
+                    "AACPERF_MEDIAN\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{}\t{}\t{:.0}\t{:.0}\t{:.0}\t{:.6}\t{:.1}\t{:.1}\t{:016x}",
+                    mode.tag(),
+                    fixture.stem,
+                    fixture.sample_rate,
+                    fixture.channels,
+                    fixture.samples,
+                    audio_s,
+                    fixture.frames,
+                    fixture.expected_bytes.unwrap_or(0),
+                    median_u128(&init),
+                    median_u128(&encode),
+                    median_total,
+                    rtf,
+                    xrealtime,
+                    samples_per_s,
+                    hash
+                );
+            }
+        }
+
+        // Aggregate over the selected fixture set, using per-rep sums so the
+        // aggregate is a median of complete-corpus passes, not a sum of
+        // per-fixture medians.
+        for &mode in &modes {
+            let audio_s: f64 = fixtures
+                .iter()
+                .map(|f| f.samples as f64 / f.sample_rate as f64)
+                .sum();
+            let total_samples: f64 = fixtures.iter().map(|f| f.samples as f64).sum();
+            let mut per_rep: Vec<u128> = Vec::with_capacity(reps);
+            for rep in 0..reps {
+                let sum: u128 = rows
+                    .iter()
+                    .filter(|r| r.mode == mode && r.rep == rep)
+                    .map(|r| r.run.init_ns + r.run.encode_ns)
+                    .sum();
+                per_rep.push(sum);
+            }
+            let median_total = median_u128(&per_rep);
+            let rtf = median_total / 1e9 / audio_s;
+            let xrealtime = if rtf > 0.0 { 1.0 / rtf } else { f64::INFINITY };
+            let samples_per_s = total_samples / (median_total / 1e9);
+            println!(
+                "AACPERF_AGG\t{}\t{}\t{:.6}\t{:.0}\t{:.6}\t{:.1}\t{:.1}",
+                mode.tag(),
+                reps,
+                audio_s,
+                median_total,
+                rtf,
+                xrealtime,
+                samples_per_s
+            );
+        }
+        println!("AACPERF_DONE fixtures={} reps={reps}", fixtures.len());
     }
 }

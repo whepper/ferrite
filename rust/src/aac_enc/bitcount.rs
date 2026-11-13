@@ -1861,8 +1861,7 @@ mod tests {
         let mut i = 0;
         while i + (sections[i].sfb_cnt as usize) < max_sfb {
             let nxt = i + sections[i].sfb_cnt as usize;
-            merge_gain[i] =
-                calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11);
+            merge_gain[i] = calc_merge_gain(sections, bit_lookup, side_info_tab, i, nxt, use_vcb11);
             i = nxt;
         }
         loop {
@@ -1968,7 +1967,10 @@ mod tests {
         // strict `>`, first maximum wins; a non-positive best stays 0/0.
         assert_eq!(find_max_candidate(&[]), (0, 0));
         assert_eq!(find_max_candidate(&[(0, 0), (-1, 3)]), (0, 0));
-        assert_eq!(find_max_candidate(&[(5, 0), (5, 3), (7, 9), (7, 12)]), (7, 2));
+        assert_eq!(
+            find_max_candidate(&[(5, 0), (5, 3), (7, 9), (7, 12)]),
+            (7, 2)
+        );
         assert_eq!(find_max_candidate(&[(4, 0), (7, 6), (7, 8)]), (7, 1));
     }
 

@@ -517,3 +517,32 @@ is recorded as a method outcome, not as authorship evidence.
    `sf_estim.cpp`, or `enc_oracle.cpp`’s mirrored orchestration
    block, has consequences beyond provenance documentation: out of
    scope for this inventory; see `AGENTS.md` open questions.
+
+## H. Release 0.3.0 scope note (2026-11-13)
+
+This addendum records scope only. Sections A–G above remain pinned to
+repository revision `89bb289a32773ca06b49c2ba057bbc516101dd7a`
+(2026-10-27); no row or conclusion in them has been re-audited or rewritten,
+and this note adds no legal analysis.
+
+Artifacts introduced by the multi-profile work after that revision are
+outside the rows above:
+
+- The 14 `rust/src/aac_enc/testdata/cfg_{44100,48000}_{20000,32000,40000,48000,56000,64000,72000}.txt`
+  psychoacoustic initialisation snapshots embedded by
+  `rust/src/aac_enc/psy_config.rs`.
+- The profile reference and its provenance/verification section,
+  `rust/docs/vbr-profiles.md`.
+- The test-only snapshot generator,
+  `tools/enc-oracle/dump_vbr_init_configs.cpp`.
+
+Their provenance is recorded, with the upstream revision and method actually
+used, in
+[`../rust/docs/vbr-profiles.md`](../rust/docs/vbr-profiles.md) §“Implementation
+notes and verification”: the unmodified FDK-AAC v3.0.0 tree
+(`mstorsjo/fdk-aac`, tag `v3.0.0`, commit
+`a68a51aa45d86a43c7b228e3d45624af09dcdd8d`) driven through its real init path,
+with the four pre-existing VBR-5 snapshots re-emitted byte-identically as a
+self-check. Those artifacts are therefore covered by that record, not by this
+inventory; no source revision, hash, or provenance claim beyond that record is
+made here. The unresolved questions in §G4 continue to apply.

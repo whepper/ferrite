@@ -231,10 +231,29 @@ pub struct AtsElement {
     pub msa_red_offs: i32,
 }
 
-/// `AdjThrInit` values for the stripped VBR-5 operating point, C-probed
-/// Q31 literals (see the S2 literal table in [`super::threshold_vbr`]).
+/// `peOffset` per `FDKaacEnc_AdjThrInit` (`adj_thr.cpp:2553-2556` in FDK-AAC
+/// v3.0.0): 0, except when the per-channel bitrate is below 32 kbit/s, where
+/// `peOffset = max(50, 100 - fMultI(0x666667, chBitrate))`.
+///
+/// Verified against the real `FDKaacEnc_QCInit` (which calls the real
+/// `AdjThrInit`) for every VBR-1..5 operating point at 44100/48000 Hz,
+/// mono/stereo: the only Ferrite operating point taking the branch is VBR-1
+/// stereo (20 kbit/s per channel -> 50); all others yield 0.
+pub(crate) fn vbr_pe_offset(channel_bitrate: u32) -> i32 {
+    if channel_bitrate < 32000 {
+        50.max(100 - super::q31::fmult_i(0x666667, channel_bitrate as i32))
+    } else {
+        0
+    }
+}
+
+/// `AdjThrInit` shared values, C-probed Q31 literals (see the S2 literal
+/// table in [`super::threshold_vbr`]). `chaosMeasureOld`, `ahParam` and
+/// `minSnrAdaptParam` are identical for every VBR-1..5 operating point
+/// (verified via real `FDKaacEnc_QCInit` at 44100/48000 Hz, mono/stereo);
+/// only `vbrQualFactor` (per profile) and `peOffset` (VBR-1 stereo only,
+/// see [`vbr_pe_offset`]) vary.
 pub(crate) const ATS_VBR5_CHAOS_OLD: i32 = 0x26666680;
-pub(crate) const ATS_VBR5_QUAL_FACTOR: i32 = 0x08f5c290;
 pub(crate) const ATS_VBR5_MSA_MAX_RED: i32 = 0x00800000;
 pub(crate) const ATS_VBR5_MSA_START_RATIO: i32 = 0x06a4d3c0;
 pub(crate) const ATS_VBR5_MSA_RED_RATIO_FAC: i32 = 0xd0000000u32 as i32;
@@ -242,17 +261,32 @@ pub(crate) const ATS_VBR5_MSA_RED_OFFS: i32 = 0x02c00000;
 
 impl AtsElement {
     /// Fresh element state. `pe_offset` is explicit (no silent default):
-    /// the VBR-5 value is 0 because `AdjThrInit` (`adj_thr.cpp:2553-2556`)
+    /// the VBR-5/VBR-6 value is 0 because `AdjThrInit` (`adj_thr.cpp:2553-2556`)
     /// only assigns a nonzero offset below 32 kbit/s per channel while
-    /// VBR-5 runs at 96/112 kbit/s per channel. The S2 slice is set to
-    /// the `AdjThrInit` VBR-5 values.
+    /// VBR-5/VBR-6 run at 96/112 kbit/s per channel. The S2 slice is set to
+    /// the `AdjThrInit` VBR-5 values (shared by VBR-6, which inherits all
+    /// VBR-5 psychoacoustic settings except bandwidth).
+    ///
+    /// This constructor preserves the historical VBR-5/VBR-6 defaults;
+    /// use [`AtsElement::for_vbr_mode`] for an explicit profile.
     pub fn new(pe_offset: i32) -> Self {
+        Self::for_vbr_mode(crate::aac_enc::config::VbrMode::Vbr6, pe_offset)
+    }
+
+    /// Fresh element state for an explicit VBR profile. The quality factor
+    /// comes from the profile table; `chaosMeasureOld`, `ahParam` and
+    /// `minSnrAdaptParam` use the shared `AdjThrInit` values, verified
+    /// identical for every VBR-1..5 operating point at 44100/48000 Hz
+    /// (mono/stereo) via the real `FDKaacEnc_QCInit`. `pe_offset` remains
+    /// an explicit argument: pass [`vbr_pe_offset`] of the per-channel
+    /// bitrate (50 for VBR-1 stereo, 0 otherwise).
+    pub fn for_vbr_mode(mode: crate::aac_enc::config::VbrMode, pe_offset: i32) -> Self {
         Self {
             pe_offset,
             chaos_measure_en_fac: [0, 0],
             last_enfac_patch: [0, 0],
             chaos_measure_old: ATS_VBR5_CHAOS_OLD,
-            vbr_qual_factor: ATS_VBR5_QUAL_FACTOR,
+            vbr_qual_factor: mode.profile().qual_q31(),
             ah_modify_min_snr: 1,
             ah_start_sfb_l: 15,
             ah_start_sfb_s: 3,
@@ -1082,5 +1116,24 @@ mod tests {
         );
         assert_eq!(ff, frame.ch[0].ff);
         assert_ne!(ff, tampered_ff);
+    }
+
+    #[test]
+    fn vbr_pe_offset_matches_c_reference() {
+        // FDK-AAC v3.0.0 `FDKaacEnc_AdjThrInit` branch (`adj_thr.cpp:2553-2556`),
+        // verified via the real `FDKaacEnc_QCInit` for every VBR-1..5
+        // operating point at 44100/48000 Hz, mono/stereo: the only
+        // Ferrite operating point below 32 kbit/s per channel is VBR-1
+        // stereo (20 kbit/s -> 50); everything else is 0.
+        assert_eq!(vbr_pe_offset(20000), 50);
+        for pch in [32000, 40000, 48000, 56000, 64000, 72000, 96000, 112000] {
+            assert_eq!(vbr_pe_offset(pch), 0, "pch={pch}");
+        }
+        // Boundary: the C branch is `chBitrate < 32000`.
+        assert_eq!(vbr_pe_offset(31999), 50);
+        assert_eq!(vbr_pe_offset(32000), 0);
+        // The shared Q31 step is the exact C op (`fMultI` round-to-nearest);
+        // 0x666667 * 20000 = 62.5 -> 63, so max(50, 100-63) = 50.
+        assert_eq!(crate::aac_enc::q31::fmult_i(0x666667, 20000), 63);
     }
 }

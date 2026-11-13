@@ -84,6 +84,7 @@ use crate::{
     convert_file_with_format_tags_and_loudness, AudioProperties, ConvertError, CoverArtMode,
     OutputFormat, TagDiagnostics,
 };
+use ferrite_aac::aac_enc::config::VbrMode;
 
 /// Reason recorded for an ignored directory symlink (verbose reporting).
 pub const SYMLINKED_DIR_REASON: &str = "symlinked dir, not followed";
@@ -383,7 +384,8 @@ pub fn default_jobs() -> usize {
 ///
 /// The field defaults preserve the historical behavior except for `jobs`,
 /// which defaults to [`default_jobs`] (available logical CPUs): no dry run,
-/// no skip-existing, tags enabled, and embedded cover art.
+/// no skip-existing, tags enabled, embedded cover art, and VBR-6 (the Ferrite
+/// default profile).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BatchOptions {
     /// Plan only: create nothing, decode nothing, read no metadata.
@@ -397,6 +399,8 @@ pub struct BatchOptions {
     /// Global worker limit for preparation and encoding. `1` is strictly
     /// sequential. Values below one are treated as one.
     pub jobs: usize,
+    /// VBR profile for encoding (VBR-1 through VBR-6; default VBR-6).
+    pub vbr_mode: VbrMode,
 }
 
 impl Default for BatchOptions {
@@ -407,6 +411,7 @@ impl Default for BatchOptions {
             write_tags: true,
             cover_art: CoverArtMode::Embedded,
             jobs: default_jobs(),
+            vbr_mode: VbrMode::Vbr6,
         }
     }
 }
@@ -626,6 +631,7 @@ pub fn execute_plan_with_tags(
             write_tags,
             cover_art: CoverArtMode::Embedded,
             jobs: default_jobs(),
+            vbr_mode: VbrMode::Vbr6,
         },
     )
     .map(|execution| execution.outcome)
@@ -976,6 +982,7 @@ fn execute_entry(
         options.write_tags,
         embed_cover,
         loudness,
+        options.vbr_mode,
     ) {
         Ok((summary, tags)) => BatchFileResult {
             relative_input: entry.relative_input.clone(),

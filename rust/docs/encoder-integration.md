@@ -7,7 +7,7 @@ not describe the psychoacoustic or quantization internals.
 
 ## Dependency
 
-The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.2.0`). The
+The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.3.0`). The
 supported path today is a source dependency; this repository does not yet
 publish a stable crates.io release contract.
 
@@ -35,7 +35,7 @@ build time or at run time.
 | Channels | mono (1) and stereo (2), interleaved |
 | Input samples | `i16`, native endian in memory |
 | Frame length | 1024 samples per channel |
-| Rate control | VBR mode 5, afterburner on; nominal 112 kbit/s mono, 192 kbit/s stereo |
+| Rate control | VBR-1 through VBR-6, afterburner on; default VBR-6 (nominal 112 kbit/s mono, 192 kbit/s stereo total). See [VBR profiles](vbr-profiles.md) |
 | Encoder delay | 1600 samples per channel |
 | Threading | one owned encoder per stream; no internal synchronization |
 
@@ -80,8 +80,11 @@ fn encode<W: Write>(pcm: &[i16], channels: u32, out: &mut W) -> Result<(), Box<d
 ```
 
 `EncoderConfig::stereo_48k_adts()` is a shortcut for the common 48 kHz stereo
-cell. The full constructor is used above to keep the rate and channel count
-explicit.
+cell (VBR-6 default). The full constructor is used above to keep the rate and
+channel count explicit; it also defaults to VBR-6. Use
+`EncoderConfig::new_with_mode(..., VbrMode::Vbr5)` or
+`.with_vbr_mode(VbrMode::Vbr1)` for explicit profiles. See
+[VBR profiles](vbr-profiles.md) for the full table and examples.
 
 A runnable version that writes ADTS to stdout is
 [`examples/aac_encode_adts.rs`](../examples/aac_encode_adts.rs):
@@ -195,10 +198,11 @@ encoders for independent streams.
 
 ## Known limitations
 
-- Only 44.1/48 kHz, mono/stereo, AAC-LC, VBR-5, ADTS.
+- Only 44.1/48 kHz, mono/stereo, AAC-LC, VBR-1 through VBR-6 (default VBR-6), ADTS.
 - 16-bit interleaved PCM only; no float, 24-bit, resampling, downmix, or
   channel-layout conversion.
-- No user-selectable bitrate or quality mode.
+- Profile selection is via `VbrMode` (`--vbr` in `aac-convert`); no other
+  object types or CBR modes.
 - No RAW/LATM/LOAS/ADIF output from the production `Encoder` (the config plane
   accepts RAW, but `Encoder::new` rejects it).
 - No metadata, ID3, or gapless container in the library; applications must
@@ -206,7 +210,7 @@ encoders for independent streams.
 - Whole-buffer pushes are linear in buffer work but hold the input, feeder
   copy, and all returned frames at once; use bounded chunks to keep peak
   memory low.
-- The crate is source-consumed and version `0.2.0`; the public API and MSRV are
+- The crate is source-consumed and version `0.3.0`; the public API and MSRV are
   not yet a stable published contract.
 - Licensing is the FDK-AAC license (see `rust/NOTICE` and
   `rust/LICENSE-FDK-AAC`); it is not a general-purpose permissive license, and

@@ -707,10 +707,7 @@ mod tests {
             calc_sfb_quant_energy_and_dist(&spec, &[i16::MIN, 0, 0, 0], 0),
             (0, 0)
         );
-        assert_eq!(
-            calc_sfb_quant_energy_and_dist(&[0], &[i16::MIN], 0),
-            (0, 0)
-        );
+        assert_eq!(calc_sfb_quant_energy_and_dist(&[0], &[i16::MIN], 0), (0, 0));
     }
 
     #[test]

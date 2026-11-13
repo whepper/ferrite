@@ -28,7 +28,7 @@ library. A consumer that wants the tested file workflow should use or copy the
 | Channels | mono (1) or stereo (2) |
 | Frame length | 1024 samples per channel |
 | Transport | ADTS only in the production `Encoder` |
-| Mode | AAC-LC, VBR-5, afterburner on, PNS off |
+| Mode | AAC-LC, VBR-1 through VBR-6 (default VBR-6), afterburner on, PNS off |
 
 Out-of-matrix configurations are rejected at construction. The encoder does
 not resample, downmix, normalize, dither, or apply gain.
