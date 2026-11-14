@@ -40,6 +40,9 @@ struct NeonConsts {
 
 #[cfg(target_arch = "aarch64")]
 impl NeonConsts {
+    /// # Safety
+    /// Requires AArch64 NEON. The `QUANT_TABLE_Q` index is
+    /// `gain.wrapping_neg() & 3`, always in `0..4`, for any `gain`.
     #[inline(always)]
     unsafe fn new(gain: i32, quantizer_shift: i32, k: i32) -> Self {
         let q = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize] as i32;
@@ -53,6 +56,9 @@ impl NeonConsts {
     }
 }
 
+/// # Safety
+/// Requires AArch64 NEON. Every lane of `idx` must be `< 512` so each
+/// `p.add(lane)` stays inside `tab`; callers mask the index with `& 511`.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn gather_i16_512(tab: &[i16; 512], idx: uint32x4_t) -> int32x4_t {
@@ -65,6 +71,9 @@ unsafe fn gather_i16_512(tab: &[i16; 512], idx: uint32x4_t) -> int32x4_t {
     vmovl_s16(v)
 }
 
+/// # Safety
+/// Requires AArch64 NEON. Every lane of `idx` must be `< 4` so each
+/// `p.add(lane)` stays inside `tab`; callers mask the index with `& 3`.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn gather_i16_4(tab: &[i16; 4], idx: uint32x4_t) -> int32x4_t {
@@ -77,6 +86,9 @@ unsafe fn gather_i16_4(tab: &[i16; 4], idx: uint32x4_t) -> int32x4_t {
     vmovl_s16(v)
 }
 
+/// # Safety
+/// Requires AArch64 NEON. Every lane of `idx` must be `< 512` so each
+/// `p.add(lane)` stays inside `tab`; callers mask the index with `& 511`.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn gather_i32_512(tab: &[i32; 512], idx: uint32x4_t) -> int32x4_t {
@@ -89,6 +101,10 @@ unsafe fn gather_i32_512(tab: &[i32; 512], idx: uint32x4_t) -> int32x4_t {
     v
 }
 
+/// # Safety
+/// Requires AArch64 NEON. `m` must be `< 4` (a `SPEC_EXP_MANT` row) and every
+/// lane of `idx` must be `< 14` (the row length). Callers pass `m = gain & 3`
+/// and clamp the exponent index to `0..=13` before calling.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn gather_mant_row(m: usize, idx: uint32x4_t) -> int32x4_t {
@@ -102,6 +118,10 @@ unsafe fn gather_mant_row(m: usize, idx: uint32x4_t) -> int32x4_t {
     v
 }
 
+/// # Safety
+/// Requires AArch64 NEON. `m` must be `< 4` (a `SPEC_EXP_SHIFT` row) and every
+/// lane of `idx` must be `< 14` (the row length). Callers pass `m = gain & 3`
+/// and clamp the exponent index to `0..=13` before calling.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn gather_shift_row(m: usize, idx: uint32x4_t) -> int32x4_t {
@@ -120,6 +140,11 @@ unsafe fn gather_shift_row(m: usize, idx: uint32x4_t) -> int32x4_t {
 }
 
 /// Four lines of `quantize_line_body`, sign-extended to 32 bits.
+///
+/// # Safety
+/// Requires AArch64 NEON. Vector-only apart from the table gathers, whose
+/// indices are bounded by construction (`idx & 511`, `e_idx & 3`); `c` must be
+/// a valid [`NeonConsts`]. No slice access happens here.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn quantize4(x: int32x4_t, c: &NeonConsts) -> int32x4_t {
@@ -155,6 +180,12 @@ unsafe fn quantize4(x: int32x4_t, c: &NeonConsts) -> int32x4_t {
 /// fallback with the documented early-out), so clamping only affects
 /// discarded lanes; lanes with `|q| <= MAX_QUANT` (`spec_exp` 1..=13) and
 /// `q == 0` (`spec_exp == 0`) are unaffected.
+///
+/// # Safety
+/// Requires AArch64 NEON. Every table index is bounded before its gather: the
+/// 512-entry index is masked with `& 511` and the exponent-row index is clamped
+/// to `0..=13`, so all lane loads stay in bounds even for exceptional lanes.
+/// `c.m` must be `< 4`. No slice access happens here.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn inv_quantize4(q: int32x4_t, c: &NeonConsts) -> int32x4_t {
@@ -183,6 +214,9 @@ unsafe fn inv_quantize4(q: int32x4_t, c: &NeonConsts) -> int32x4_t {
 }
 
 /// Distortion of four lines plus a mask of lanes whose difference is `2^31`.
+///
+/// # Safety
+/// Requires AArch64 NEON. Vector-only arithmetic; no memory access.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn dist4(inv: int32x4_t, x: int32x4_t) -> (uint32x4_t, uint32x4_t) {
@@ -202,12 +236,22 @@ unsafe fn dist4(inv: int32x4_t, x: int32x4_t) -> (uint32x4_t, uint32x4_t) {
     (vshlq_u32(p, amount), bad)
 }
 
+/// Lane mask of `|q| > MAX_QUANT` (widened magnitude, so `i16::MIN` is caught).
+///
+/// # Safety
+/// Requires AArch64 NEON. Vector-only arithmetic; no memory access.
 #[cfg(target_arch = "aarch64")]
 #[inline(always)]
 unsafe fn over_max_quant(q: int32x4_t) -> uint32x4_t {
     vcgtq_s32(vabsq_s32(q), vdupq_n_s32(MAX_QUANT))
 }
 
+/// Quantize `spec` into `quant`, four lines at a time, scalar tail.
+///
+/// # Safety
+/// Requires AArch64 NEON. `spec` and `quant` must have equal length (asserted
+/// in debug); the slices themselves guarantee pointer validity and alignment.
+/// Reads/writes exactly the paired elements; the tail uses the scalar body.
 #[cfg(target_arch = "aarch64")]
 pub(crate) unsafe fn quantize_lines_neon(
     spec: &[i32],
@@ -235,6 +279,13 @@ pub(crate) unsafe fn quantize_lines_neon(
     }
 }
 
+/// Re-quantize + inverse-quantize + distortion sum for one band; `None` on the
+/// `|q| > MAX_QUANT` early-out (scalar prefix already written).
+///
+/// # Safety
+/// Requires AArch64 NEON. `spec` and `quant` must have equal length (asserted
+/// in debug); the slices guarantee pointer validity and alignment. On
+/// early-out only the scalar prefix through the violating line is written.
 #[cfg(target_arch = "aarch64")]
 pub(crate) unsafe fn calc_sfb_dist_sum_neon(
     spec: &[i32],
@@ -292,6 +343,13 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
     Some(xfsf)
 }
 
+/// Energy + distortion sums for a band with caller-supplied quantized lines;
+/// `None` on the `|q| > MAX_QUANT` early-out.
+///
+/// # Safety
+/// Requires AArch64 NEON. `spec` and `quant` must have equal length (asserted
+/// in debug); the slices guarantee pointer validity and alignment. `quant` is
+/// read-only; nothing is written.
 #[cfg(target_arch = "aarch64")]
 pub(crate) unsafe fn calc_sfb_quant_energy_and_dist_sums_neon(
     spec: &[i32],
@@ -434,9 +492,11 @@ mod tests {
             let gain = gains[(rng.next_u32() as usize) % gains.len()];
             let dz = trial % 2 == 0;
             let spec: Vec<i32> = (0..n).map(|_| rng.spec()).collect();
+            // Production gain -> (quantizer, shift) mapping (quantize_spectrum):
+            // both are derived from -gain, so use `qs` directly (not `-qs`).
             let qs = gain.wrapping_neg();
-            let quantizer = QUANT_TABLE_Q[(qs.wrapping_neg() & 3) as usize];
-            let shift = (qs.wrapping_neg() >> 2) + 1;
+            let quantizer = QUANT_TABLE_Q[(qs & 3) as usize];
+            let shift = (qs >> 2) + 1;
             let k = if dz { QUANT_K1 } else { QUANT_K0 };
             let mut out_neon = vec![0i16; n];
             let mut out_ref = vec![0i16; n];
@@ -667,10 +727,10 @@ mod tests {
                     if !probe_dist_ok(&spec, gain, dz) {
                         continue;
                     }
-                    // Quantize-lines kernel.
+                    // Quantize-lines kernel (production gain -> shift mapping).
                     let qs = gain.wrapping_neg();
-                    let quantizer = QUANT_TABLE_Q[(qs.wrapping_neg() & 3) as usize];
-                    let shift = (qs.wrapping_neg() >> 2) + 1;
+                    let quantizer = QUANT_TABLE_Q[(qs & 3) as usize];
+                    let shift = (qs >> 2) + 1;
                     let k = if dz { QUANT_K1 } else { QUANT_K0 };
                     let mut q_n = vec![0i16; n];
                     let mut q_r = vec![0i16; n];
@@ -741,6 +801,87 @@ mod tests {
         assert_eq!(c.accepted, c.generated);
         // The quant generator must actually produce guard cases.
         assert!(c.early_out > 0, "no guard cases generated");
+    }
+
+    /// Compact residue sweep closing the quantizer-constant / mantissa-row
+    /// coverage gap: the randomized kernels above and the committed probe
+    /// corpus use gains that are (almost) all multiples of four, so they only
+    /// exercise `QUANT_TABLE_Q[0]` and mantissa row `m = 0`. Sweeping each
+    /// production gain base through `+0..+3` hits every residue mod 4, hence
+    /// all four quantizer constants and all four `SPEC_EXP` rows, on the
+    /// quantize, dist and energy paths (not only inverse quantization). Gains
+    /// stay `>= -72`, so the scalar `totalShift >= 0` envelope holds for every
+    /// spectrum and no trial is rejected. Lengths `10..=13` also exercise the
+    /// scalar tail at each residue; the dist buffers are sentinel-filled so any
+    /// early-out prefix/tail write is compared exactly.
+    #[test]
+    fn neon_residue_sweep_all_quantizers_and_rows() {
+        let mut rng = Rng(0x5EED_2026_1114_0001);
+        let bases = [-72i32, -32, -8, 0, 32, 64];
+        let edges = [0i32, 1, -1, 65536, -65536, i32::MIN, i32::MAX, 0x1000_0000];
+        let mut q_idx = [0usize; 4];
+        let mut m_row = [0usize; 4];
+        let mut early = 0usize;
+        for base in bases {
+            for off in 0..4i32 {
+                let gain = base + off;
+                let n = 10 + off as usize;
+                let spec: Vec<i32> = (0..n)
+                    .map(|i| {
+                        if i % 2 == 0 {
+                            edges[i % edges.len()]
+                        } else {
+                            rng.next_i32() >> rng.range(0, 10)
+                        }
+                    })
+                    .collect();
+                for &dz in &[false, true] {
+                    // Quantize path, production gain -> (quantizer, shift).
+                    let qs = gain.wrapping_neg();
+                    let quantizer = QUANT_TABLE_Q[(qs & 3) as usize];
+                    let shift = (qs >> 2) + 1;
+                    let k = if dz { QUANT_K1 } else { QUANT_K0 };
+                    let mut q_n = vec![0i16; n];
+                    let mut q_r = vec![0i16; n];
+                    quantize_lines_scalar(&spec, &mut q_r, quantizer, shift, k);
+                    unsafe {
+                        super::quantize_lines_neon(&spec, &mut q_n, gain, shift, k);
+                    }
+                    assert_eq!(q_n, q_r, "residue quantize gain={gain} dz={dz}");
+                    q_idx[(qs & 3) as usize] += 1;
+
+                    // Dist path (production dispatch), sentinel-filled.
+                    let mut q_n = vec![SENTINEL; n];
+                    let mut q_r = vec![SENTINEL; n];
+                    let d_n = super::super::quant::calc_sfb_dist(&spec, gain, dz, &mut q_n);
+                    let d_r = calc_sfb_dist_scalar(&spec, gain, dz, &mut q_r);
+                    assert_eq!((d_n, &q_n), (d_r, &q_r), "residue dist gain={gain} dz={dz}");
+                    if q_r.iter().any(|&q| (q as i32).abs() > MAX_QUANT) {
+                        early += 1;
+                    }
+                    m_row[(gain & 3) as usize] += 1;
+
+                    // Energy path with a valid band (exercises inv_quantize4
+                    // for this gain's mantissa row, not just the early-out).
+                    let quant: Vec<i16> = (0..n).map(|i| ((i as i32 * 37) % 8191) as i16).collect();
+                    let (e_n, d_n) =
+                        super::super::quant::calc_sfb_quant_energy_and_dist(&spec, &quant, gain);
+                    let (e_r, d_r) = calc_sfb_quant_energy_and_dist_scalar(&spec, &quant, gain);
+                    assert_eq!((e_n, d_n), (e_r, d_r), "residue energy gain={gain} dz={dz}");
+                }
+            }
+        }
+        println!(
+            "NEON_TEST neon_residue_sweep_all_quantizers_and_rows: q_idx={q_idx:?} m_row={m_row:?} early={early}"
+        );
+        assert!(
+            q_idx.iter().all(|&c| c > 0),
+            "a quantizer constant was not exercised: {q_idx:?}"
+        );
+        assert!(
+            m_row.iter().all(|&c| c > 0),
+            "a mantissa row was not exercised: {m_row:?}"
+        );
     }
 
     /// Isolated kernel timing (opt-in): scalar vs NEON on a representative

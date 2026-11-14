@@ -2874,3 +2874,97 @@ No VBR-6 speedup is claimed.
 
 No staging, commit, push, amend, reset, rebase, cherry-pick, or history
 rewrite occurred while preparing this section.
+
+## 31. 2026-11-14 SIMD Phase 1.1: independent-review finding closure
+
+### 31.1 Scope
+
+Quality and test hardening only, closing the non-blocking findings of the
+independent review of Phase 1 (`c530054`). **No quantization arithmetic, SIMD
+algorithm, encoder output, public API, psychoacoustics, rate control, VBR
+profile, or transform code changed.** No dependency/manifest change, no fixture
+regeneration, no golden-output modification. The scalar/NEON kernels are
+byte-for-byte the same; only tests, harness instrumentation, safety
+documentation, and this record were touched.
+
+### 31.2 Finding closures
+
+- **M1 (coverage):** added `neon_residue_sweep_all_quantizers_and_rows` in
+  `quant_neon.rs`. The randomized kernels and the committed probe corpus use
+  gains that are (almost) all multiples of four, so they exercised only
+  `QUANT_TABLE_Q[0]` and mantissa row `m = 0`. The sweep runs each production
+  gain base `[-72,-32,-8,0,32,64]` through `+0..+3`, hitting every residue
+  mod 4 and therefore **all four quantizer constants and all four `SPEC_EXP`
+  mantissa/shift rows**, on the quantize, dist, and energy paths. It asserts
+  per-index and per-row coverage (`q_idx`/`m_row` each `[12,12,12,12]`), uses a
+  fixed seed, varies length `10..=13` to exercise the scalar tail at each
+  residue, and sentinel-fills the dist buffers so any early-out prefix/tail
+  write is compared exactly. Gains stay `>= -72`, inside the scalar envelope,
+  so no trial is rejected.
+- **L2 (production shift):** `neon_quantize_lines_matches_scalar` (and the
+  quantize sub-check of `neon_boundary_lengths`) now derive `quantizer` and
+  `shift` from `-gain` exactly as `quantize_spectrum` does, instead of the
+  previous double-negated `(gain>>2)+1`. The differential now exercises the
+  production gain→shift mapping. The opt-in microbenchmark keeps its original
+  mapping so before/after timing stays like-for-like.
+- **L1 (mode tagging):** every `AACPERF_ROW`, `AACPERF_MEDIAN`, and
+  `AACPERF_AGG` record now ends with a trailing `vbr` column (`5` or `6`), in
+  addition to the `AACPERF_CONFIG` header. Existing leading columns are
+  unchanged (the field is appended), so positional readers of the historical
+  columns still work, and VBR-5/VBR-6 records can no longer be aggregated
+  without their mode being present on each record.
+- **L3 (VBR restriction):** `AAC_PERF_VBR` is restricted to the supported
+  benchmark modes **5 and 6**. Modes 1-4 and invalid strings are rejected with
+  a clear `AACPERF_ERROR` line and the run is skipped — **no panic** for
+  ordinary invalid configuration. The unset default remains VBR-5. Parsing is
+  factored into `parse_perf_vbr` and covered by
+  `perf_vbr_selection_accepts_only_5_and_6`. This supersedes the §30.4 note
+  that an invalid value "fails loudly" (it now fails cleanly).
+- **L4 (safety docs):** concise `# Safety` sections added to the unsafe gather
+  helpers and NEON kernels in `quant_neon.rs`, stating the index bounds
+  (`& 511`, `& 3`, exponent clamp `0..=13`, `m < 4`), pointer validity, and the
+  equal-length slice requirement. No redundant or speculative claims.
+
+### 31.3 Guarantee boundaries (I1-I3)
+
+These distinctions bound what the Phase 1/1.1 evidence actually establishes:
+
+- **I1 — committed goldens vs derived determinism.** The *historical golden*
+  gates are the committed pins: the 19 VBR-5 fixture byte+hash pins in
+  `production_baseline.rs` (`BASELINE`) and the VBR-6 music pin
+  (256,763 bytes / `d6fc9d2c59cf5c36`). The long `m7-music-stereo-48k-x4`
+  workload has **no committed pin**: its expected bytes/hash are *derived at
+  runtime* from the warm-up pass of the current binary and then checked for
+  cross-repetition determinism. That is a self-consistency/determinism gate,
+  **not a historical golden** — it cannot detect a deterministic regression
+  against history. Likewise, VBR-6 fixtures other than the music pin are gated
+  by ADTS framing plus cross-repetition determinism only. The §30.5 "derived
+  40 s music" wording refers to this derived gate.
+- **I2 — debug envelope vs release arithmetic.** The scalar quantizer carries
+  a **debug-only** `totalShift >= 0` envelope assertion
+  (`MAX_QUANT_VIOLATION`); out-of-envelope inputs panic in debug and are
+  counted as visible rejections by the differential tests. In **release**,
+  shifts mask mod 32 and the NEON kernels reproduce the scalar release
+  arithmetic for arbitrary inputs. "Bit-identical for arbitrary inputs" is
+  therefore a release-mode guarantee; debug builds additionally assert the
+  production envelope. (The inverse path's `specExp < 14` check is an
+  always-on assert, but it is unreachable in valid flow because the
+  `|q| <= MAX_QUANT` guard precedes it.)
+- **I3 — reference-platform vs portable gates.** Exact byte/hash equivalence
+  is enforced **only on the reference platform** (macOS/aarch64), because the
+  ARM64 `fMult` floor LSB is not a cross-architecture bit-pattern guarantee.
+  On other targets the portable gates are ADTS framing, frame count, and (for
+  VBR-5) byte length; exact hashes are not enforced there. "Unchanged hashes"
+  is a reference-platform statement, not a portable one.
+
+### 31.4 Validation
+
+Focused NEON differentials pass in debug and release (including the new
+residue sweep); `production_baseline` (VBR-5 corpus + VBR-6 music pin) and the
+scalefactor suites pass in release; short VBR-5/VBR-6 benchmark runs emit the
+mode-tagged records and pass their applicable gates; invalid `AAC_PERF_VBR`
+values produce `AACPERF_ERROR` and skip cleanly. Encoder arithmetic and all
+committed golden outputs are unchanged.
+
+No staging, commit, push, amend, reset, rebase, cherry-pick, or history
+rewrite occurred while preparing this section.

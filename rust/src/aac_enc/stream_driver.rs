@@ -7122,7 +7122,9 @@ mod m511_tests {
 ///
 /// VBR selection: `AAC_PERF_VBR` (`"5"` default, `"6"` for the Ferrite
 /// default profile; accepts the same spellings as `VbrMode::from_str`, e.g.
-/// `"VBR-5"`). Both `production` and `core` modes encode with the selected
+/// `"VBR-5"`). Only modes 5 and 6 are supported; modes 1-4 and invalid values
+/// are rejected with a clear `AACPERF_ERROR` (no panic) and the run is skipped.
+/// Both `production` and `core` modes encode with the selected
 /// profile. VBR-5 preserves the historical baseline semantics: every fixture
 /// is hash-gated against the committed `production_baseline` pins. VBR-6 has
 /// no full-corpus golden set; the music fixture is gated against the VBR-6
@@ -7209,12 +7211,51 @@ mod perf_tests {
             .unwrap_or(default)
     }
 
+    /// Parse the benchmark VBR selection. Only VBR-5 (the historical baseline
+    /// profile) and VBR-6 (the current default profile) are supported benchmark
+    /// modes. Unset defaults to VBR-5. Modes 1-4 and invalid strings are
+    /// rejected with a clear message rather than a panic, so ordinary invalid
+    /// configuration is handled cleanly.
+    fn parse_perf_vbr(raw: Option<&str>) -> Result<VbrMode, String> {
+        use std::str::FromStr;
+        let raw = raw.unwrap_or("5");
+        let mode = VbrMode::from_str(raw)
+            .map_err(|_| format!("invalid AAC_PERF_VBR {raw:?} (expected 5 or 6)"))?;
+        match mode {
+            VbrMode::Vbr5 | VbrMode::Vbr6 => Ok(mode),
+            other => Err(format!(
+                "unsupported AAC_PERF_VBR {} (benchmark supports only 5 or 6)",
+                other.number()
+            )),
+        }
+    }
+
     /// VBR profile under test. Defaults to VBR-5, the historical baseline
     /// profile; set `AAC_PERF_VBR=6` to measure the current default profile.
-    fn perf_vbr_mode() -> VbrMode {
-        use std::str::FromStr;
-        let raw = std::env::var("AAC_PERF_VBR").unwrap_or_else(|_| "5".to_string());
-        VbrMode::from_str(&raw).unwrap_or_else(|_| panic!("unknown AAC_PERF_VBR {raw:?}"))
+    /// Returns a clear error (no panic) for unsupported or invalid values.
+    fn perf_vbr_mode() -> Result<VbrMode, String> {
+        parse_perf_vbr(std::env::var("AAC_PERF_VBR").ok().as_deref())
+    }
+
+    #[test]
+    fn perf_vbr_selection_accepts_only_5_and_6() {
+        // Unset defaults to the historical VBR-5 baseline.
+        assert_eq!(parse_perf_vbr(None), Ok(VbrMode::Vbr5));
+        // Supported modes, including the alternate spellings VbrMode accepts.
+        assert_eq!(parse_perf_vbr(Some("5")), Ok(VbrMode::Vbr5));
+        assert_eq!(parse_perf_vbr(Some("6")), Ok(VbrMode::Vbr6));
+        assert_eq!(parse_perf_vbr(Some("VBR-5")), Ok(VbrMode::Vbr5));
+        assert_eq!(parse_perf_vbr(Some("vbr6")), Ok(VbrMode::Vbr6));
+        assert_eq!(parse_perf_vbr(Some(" 6 ")), Ok(VbrMode::Vbr6));
+        // Modes 1-4 parse as VbrMode but are not supported benchmark modes.
+        for m in ["1", "2", "3", "4"] {
+            let err = parse_perf_vbr(Some(m)).unwrap_err();
+            assert!(err.contains("unsupported"), "mode {m}: {err}");
+        }
+        // Invalid strings are rejected cleanly (no panic).
+        for bad in ["", "0", "7", "abc", "VBR-7", "5.5", "-5"] {
+            assert!(parse_perf_vbr(Some(bad)).is_err(), "bad {bad:?} accepted");
+        }
     }
 
     fn parse_modes() -> Vec<BenchMode> {
@@ -7577,7 +7618,13 @@ mod perf_tests {
         let reps = env_usize("AAC_PERF_REPS", 9).max(1);
         let warmups = env_usize("AAC_PERF_WARMUPS", 1);
         let modes = parse_modes();
-        let vbr = perf_vbr_mode();
+        let vbr = match perf_vbr_mode() {
+            Ok(v) => v,
+            Err(e) => {
+                println!("AACPERF_ERROR {e}");
+                return;
+            }
+        };
         let quiet = std::env::var("AAC_PERF_QUIET").ok().as_deref() == Some("1");
         let enforce_hash = cfg!(all(target_os = "macos", target_arch = "aarch64"));
         let mut fixtures = select_fixtures();
@@ -7617,7 +7664,7 @@ mod perf_tests {
                     validate_run(mode, fixture, &run, enforce_hash, vbr);
                     if !quiet {
                         println!(
-                            "AACPERF_ROW\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}",
+                            "AACPERF_ROW\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}\t{}",
                             mode.tag(),
                             fixture.stem,
                             rep,
@@ -7629,7 +7676,8 @@ mod perf_tests {
                             run.init_ns,
                             run.encode_ns,
                             run.init_ns + run.encode_ns,
-                            run.hash
+                            run.hash,
+                            vbr.number()
                         );
                     }
                     rows.push(BenchRow {
@@ -7677,7 +7725,7 @@ mod perf_tests {
                 let samples_per_s = fixture.samples as f64 / (median_total / 1e9);
                 let hash = selected.first().map(|r| r.run.hash).unwrap_or(0);
                 println!(
-                    "AACPERF_MEDIAN\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{}\t{}\t{:.0}\t{:.0}\t{:.0}\t{:.6}\t{:.1}\t{:.1}\t{:016x}",
+                    "AACPERF_MEDIAN\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{}\t{}\t{:.0}\t{:.0}\t{:.0}\t{:.6}\t{:.1}\t{:.1}\t{:016x}\t{}",
                     mode.tag(),
                     fixture.stem,
                     fixture.sample_rate,
@@ -7692,7 +7740,8 @@ mod perf_tests {
                     rtf,
                     xrealtime,
                     samples_per_s,
-                    hash
+                    hash,
+                    vbr.number()
                 );
             }
         }
@@ -7720,14 +7769,15 @@ mod perf_tests {
             let xrealtime = if rtf > 0.0 { 1.0 / rtf } else { f64::INFINITY };
             let samples_per_s = total_samples / (median_total / 1e9);
             println!(
-                "AACPERF_AGG\t{}\t{}\t{:.6}\t{:.0}\t{:.6}\t{:.1}\t{:.1}",
+                "AACPERF_AGG\t{}\t{}\t{:.6}\t{:.0}\t{:.6}\t{:.1}\t{:.1}\t{}",
                 mode.tag(),
                 reps,
                 audio_s,
                 median_total,
                 rtf,
                 xrealtime,
-                samples_per_s
+                samples_per_s,
+                vbr.number()
             );
         }
         println!("AACPERF_DONE fixtures={} reps={reps}", fixtures.len());
