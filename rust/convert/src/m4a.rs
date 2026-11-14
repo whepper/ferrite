@@ -277,7 +277,9 @@ fn parse_top_boxes(output: &mut TempOutput, file_len: u64) -> Result<Vec<TopBox>
             output.read_exact(&mut large)?;
             let size = u64::from_be_bytes(large);
             if size < 16 {
-                return Err(ConvertError::GaplessSignalling("invalid large MP4 box size"));
+                return Err(ConvertError::GaplessSignalling(
+                    "invalid large MP4 box size",
+                ));
             }
             (size, 16u64)
         } else if size32 == 0 {
@@ -289,9 +291,9 @@ fn parse_top_boxes(output: &mut TempOutput, file_len: u64) -> Result<Vec<TopBox>
             }
             (size, 8u64)
         };
-        let end = offset.checked_add(size).ok_or(ConvertError::GaplessSignalling(
-            "MP4 box size overflowed",
-        ))?;
+        let end = offset
+            .checked_add(size)
+            .ok_or(ConvertError::GaplessSignalling("MP4 box size overflowed"))?;
         if end > file_len {
             return Err(ConvertError::GaplessSignalling("MP4 box overruns file"));
         }
@@ -338,9 +340,7 @@ fn shift_chunk_offset_table(
             for offset in &stco.chunk_offsets {
                 let updated = u64::from(*offset)
                     .checked_add(delta)
-                    .ok_or(ConvertError::GaplessSignalling(
-                        "chunk offset overflowed",
-                    ))?;
+                    .ok_or(ConvertError::GaplessSignalling("chunk offset overflowed"))?;
                 if updated > u64::from(u32::MAX) {
                     needs_promotion = true;
                 }
@@ -375,11 +375,12 @@ fn verify_chunk_offsets_within_mdat(
     payload_start: u64,
     payload_len: u64,
 ) -> Result<(), ConvertError> {
-    let payload_end = payload_start
-        .checked_add(payload_len)
-        .ok_or(ConvertError::GaplessSignalling(
-            "relocated layout overflowed",
-        ))?;
+    let payload_end =
+        payload_start
+            .checked_add(payload_len)
+            .ok_or(ConvertError::GaplessSignalling(
+                "relocated layout overflowed",
+            ))?;
     for trak in &moov.trak_boxes {
         let stbl = &trak.mdia_box.minf_box.stbl_box;
         let offsets: Vec<u64> = match &stbl.stco_or_co64_box {
@@ -454,8 +455,7 @@ fn relocate_moov_before_mdat(output: &mut TempOutput) -> Result<(), ConvertError
             ));
         }
     }
-    if boxes.get(mdat_index + 1).map(|b| &b.kind) != Some(b"moov")
-        || boxes.len() != mdat_index + 2
+    if boxes.get(mdat_index + 1).map(|b| &b.kind) != Some(b"moov") || boxes.len() != mdat_index + 2
     {
         return Err(ConvertError::GaplessSignalling(
             "unexpected box order for fast-start relocation",
@@ -472,9 +472,7 @@ fn relocate_moov_before_mdat(output: &mut TempOutput) -> Result<(), ConvertError
     let old_payload_start = mdat
         .start
         .checked_add(old_header_len)
-        .ok_or(ConvertError::GaplessSignalling(
-            "mdat header overflowed",
-        ))?;
+        .ok_or(ConvertError::GaplessSignalling("mdat header overflowed"))?;
     if old_payload_start > moov.start {
         return Err(ConvertError::GaplessSignalling("mdat payload is empty"));
     }
@@ -552,11 +550,12 @@ fn relocate_moov_before_mdat(output: &mut TempOutput) -> Result<(), ConvertError
         .ok_or(ConvertError::GaplessSignalling(
             "relocated layout overflowed",
         ))?;
-    let new_file_len = new_payload_start
-        .checked_add(payload_len)
-        .ok_or(ConvertError::GaplessSignalling(
-            "relocated layout overflowed",
-        ))?;
+    let new_file_len =
+        new_payload_start
+            .checked_add(payload_len)
+            .ok_or(ConvertError::GaplessSignalling(
+                "relocated layout overflowed",
+            ))?;
 
     // Move payload forward with a bounded backward copy (destination is after
     // source, so backwards is overlap-safe). The new payload end lies within
@@ -580,9 +579,7 @@ fn relocate_moov_before_mdat(output: &mut TempOutput) -> Result<(), ConvertError
 
     output.seek(std::io::SeekFrom::Start(ftyp_len))?;
     output.write_all(&new_moov_bytes)?;
-    output.seek(std::io::SeekFrom::Start(
-        ftyp_len + new_moov_len,
-    ))?;
+    output.seek(std::io::SeekFrom::Start(ftyp_len + new_moov_len))?;
     output.write_all(&header_bytes)?;
     output.set_len(new_file_len)?;
 
@@ -594,18 +591,20 @@ fn relocate_moov_before_mdat(output: &mut TempOutput) -> Result<(), ConvertError
         ));
     }
     let verify_boxes = parse_top_boxes(output, verify_len)?;
-    let verify_mdat = verify_boxes
-        .iter()
-        .find(|b| &b.kind == b"mdat")
-        .ok_or(ConvertError::GaplessSignalling(
-            "relocated container has no mdat box",
-        ))?;
-    let verify_moov = verify_boxes
-        .iter()
-        .find(|b| &b.kind == b"moov")
-        .ok_or(ConvertError::GaplessSignalling(
-            "relocated container has no moov box",
-        ))?;
+    let verify_mdat =
+        verify_boxes
+            .iter()
+            .find(|b| &b.kind == b"mdat")
+            .ok_or(ConvertError::GaplessSignalling(
+                "relocated container has no mdat box",
+            ))?;
+    let verify_moov =
+        verify_boxes
+            .iter()
+            .find(|b| &b.kind == b"moov")
+            .ok_or(ConvertError::GaplessSignalling(
+                "relocated container has no moov box",
+            ))?;
     if !(verify_moov.start < verify_mdat.start) {
         return Err(ConvertError::GaplessSignalling(
             "relocation did not produce fast-start layout",

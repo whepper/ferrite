@@ -13,17 +13,21 @@ use std::fs;
 
 use aac_convert::{
     convert_file, convert_file_m4a_experiment, convert_file_with_format,
-    convert_file_with_format_and_tags, convert_file_with_format_tags_and_cover_art,
-    CoverArtMode, GaplessExperiment, OutputFormat,
+    convert_file_with_format_and_tags, convert_file_with_format_tags_and_cover_art, CoverArtMode,
+    GaplessExperiment, OutputFormat,
 };
 use common::{
-    fixture, mp4_audio_specific_config, mp4_chunk_offsets, mp4_ilst_cover, mp4_itunsmpb,
-    mp4_mdhd, mp4_sample_sizes, mp4_stts, parse_adts, parse_mp4, temp_output_files, TempDir,
+    fixture, mp4_audio_specific_config, mp4_chunk_offsets, mp4_ilst_cover, mp4_itunsmpb, mp4_mdhd,
+    mp4_sample_sizes, mp4_stts, parse_adts, parse_mp4, temp_output_files, TempDir,
 };
 
 /// Top-level box kinds in file order.
 fn top_box_kinds(bytes: &[u8]) -> Vec<String> {
-    parse_mp4(bytes).children.iter().map(|b| b.kind.clone()).collect()
+    parse_mp4(bytes)
+        .children
+        .iter()
+        .map(|b| b.kind.clone())
+        .collect()
 }
 
 /// Assert fast-start order and return the parsed root for further checks.

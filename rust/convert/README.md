@@ -279,7 +279,10 @@ cargo run -p aac-convert -- --cover-art both album/ /tmp/out/
 
 ## M4A structure and timing
 
-The muxer writes one audio track:
+The muxer writes one audio track in fast-start layout (`moov` before
+`mdat`), optimized for progressive download and streaming: players can read
+the container metadata without downloading the entire file first. (ADTS
+output is a raw AAC stream with no container and no fast-start concept.)
 
 - `ftyp`/`moov`/`mdat` with a single `trak` (`soun`), `mp4a` sample entry and
   `esds` descriptor carrying the two-byte AAC-LC AudioSpecificConfig

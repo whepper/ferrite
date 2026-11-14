@@ -28,8 +28,8 @@ duplicated in this package; the encoder's complete text ships in the
 
 | Package | Version | License field | Evidence |
 |---|---|---|---|
-| `ferrite-aac` (codec dependency, path `rust/`) | 0.3.1 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
-| `aac-convert` (this application) | 0.3.1 | `MIT OR Apache-2.0` | `rust/convert/Cargo.toml`; complete texts in `rust/convert/LICENSE-MIT` and `rust/convert/LICENSE-APACHE` |
+| `ferrite-aac` (codec dependency, path `rust/`) | 0.3.2 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
+| `aac-convert` (this application) | 0.3.3 | `MIT OR Apache-2.0` | `rust/convert/Cargo.toml`; complete texts in `rust/convert/LICENSE-MIT` and `rust/convert/LICENSE-APACHE` |
 
 The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
 `license = "FDK-AAC"` (the standard SPDX identifier) and also sets
