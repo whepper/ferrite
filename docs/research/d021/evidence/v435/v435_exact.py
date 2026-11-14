@@ -2,9 +2,9 @@
 """V4.35 exact-arithmetic offline MDCT (one spectrum): fold f64 + naive DCT-IV f64."""
 import re, struct, math
 
-W32 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
-W33 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
-TD = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
+W32 = "/private/var/folders/*/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
+W33 = "/private/var/folders/*/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
+TD = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
 
 def f32bits(x):
     return struct.unpack("<f", struct.pack("<f", x))[0]
@@ -24,7 +24,7 @@ e, ints = int(nums[0]), list(map(int, nums[1:]))
 ref = [v * 2.0**(e - 31) for v in ints]
 
 # exact-sine coefs from fitted uniform angles (V4.34: t0 + k*dt on unit circle)
-W34 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434-live.log"
+W34 = "/private/var/folders/*/T/opencode/v4.34-winstate-20261020/v434-live.log"
 for l in open(W34):
     m = re.match(r"V434SLOPE entry=0 .* BITS=\[(.*)\]", l.strip())
     if m:

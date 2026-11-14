@@ -2,9 +2,9 @@
 """V4.32 three-way boundary analysis: M3 f64 vs Q31 vs recipe reference."""
 import re, struct
 
-TD = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
-LOG = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
-V431 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.31-detin-20261020/v431-live.log"
+TD = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
+LOG = "/private/var/folders/*/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
+V431 = "/private/var/folders/*/T/opencode/v4.31-detin-20261020/v431-live.log"
 
 m3, q31, old = {}, {}, {}
 for l in open(LOG):

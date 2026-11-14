@@ -1,12 +1,12 @@
 name: oracle-repeatability-diagnostic
 
-# Temporary diagnostic: is the band-31 MS mask discrepancy from run
+# Oracle repeatability diagnostic: is the band-31 MS mask discrepancy from run
 # 40187547026 stable across repeated enc_oracle executions on x86_64 Linux?
 #
 # This workflow answers same-target repeatability ONLY. It changes no test
-# contract, proves nothing about cross-target causality, and must be removed
-# in a separate cleanup step once the owner has reviewed the evidence.
-# Manual dispatch only; never runs on push or pull request.
+# contract and proves nothing about cross-target causality. It is a retained,
+# manually triggered diagnostic workflow: manual dispatch only, never runs on
+# push or pull request.
 
 on:
   workflow_dispatch:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   diagnose:
-    name: Oracle repeatability diagnostic (manual, temporary)
+    name: Oracle repeatability diagnostic (manual, retained)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

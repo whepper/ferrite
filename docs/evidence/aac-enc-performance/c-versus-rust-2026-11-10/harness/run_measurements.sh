@@ -2,7 +2,7 @@
 # Full C-vs-Rust measurement series for the 2026-11-10 benchmark.
 # 3 standalone C + 3 standalone Rust, 8 alternating pairs, 2 post C + 2 post Rust.
 set -u
-T=/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10
+T=/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10
 MANIFEST="$T/corpus-manifest.tsv"
 REPS=15
 WARMUP=1

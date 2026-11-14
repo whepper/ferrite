@@ -2,10 +2,10 @@
 """V4.34 fold-effect estimate: same ring, live vs C coefs, f64 fold; vs observed M3 delta."""
 import re, struct, math
 
-W32 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
-W33 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
-TD = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
-CPP = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/cpp/libFDK/src/FDK_tools_rom.cpp"
+W32 = "/private/var/folders/*/T/opencode/v4.32-mdctq31-20261020/v432-live.log"
+W33 = "/private/var/folders/*/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
+TD = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
+CPP = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/cpp/libFDK/src/FDK_tools_rom.cpp"
 
 def f32bits(x):
     return struct.unpack("<f", struct.pack("<f", x))[0]
@@ -23,7 +23,7 @@ for l in open(W33):
 assert ring and len(ring) == 2048 and len(m3[0]) == 1024
 
 # live coefs: reuse V4.34 wrs (re-parse quickly from its log)
-W34 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434-live.log"
+W34 = "/private/var/folders/*/T/opencode/v4.34-winstate-20261020/v434-live.log"
 live_bits = None
 for l in open(W34):
     m = re.match(r"V434SLOPE entry=0 .* BITS=\[(.*)\]", l.strip())

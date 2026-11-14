@@ -8,6 +8,7 @@ license = "FDK-AAC"
 license-file = "LICENSE-FDK-AAC"
 description = "Native Rust AAC-LC encoder derived from Fraunhofer FDK AAC (Ferrite)"
 readme = "README.md"
+repository = "https://github.com/whepper/ferrite"
 keywords = ["aac", "audio", "codec", "encoder", "fdk"]
 
 [lib]

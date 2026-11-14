@@ -5,7 +5,7 @@ import os
 import struct
 import subprocess
 
-T = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10"
+T = "/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10"
 rows = list(csv.DictReader(open(os.path.join(T, "analysis/per-workload.tsv")), delimiter="\t"))
 out = []
 for r in rows:

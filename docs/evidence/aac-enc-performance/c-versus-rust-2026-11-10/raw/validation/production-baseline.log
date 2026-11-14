@@ -3,7 +3,7 @@ warning: Cargo.toml: only one of `license` or `license-file` is necessary
 `license-file` should be used if the package uses a non-standard license.
 See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
 warning: `ferrite-aac` (manifest) generated 1 warning
-   Compiling ferrite-aac v0.1.0 (/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10/src/ferrite/rust)
+   Compiling ferrite-aac v0.1.0 (/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10/src/ferrite/rust)
 warning: multiple fields are never read
    --> src/aac_enc/sfb.rs:188:5
     |
@@ -203,7 +203,7 @@ warning: method `last_shape` is never used
 
 warning: `ferrite-aac` (lib test) generated 15 warnings
     Finished `release` profile [optimized] target(s) in 4.93s
-     Running unittests src/lib.rs (/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10/rust-target/release/deps/ferrite_aac-549f414e79686bc8)
+     Running unittests src/lib.rs (/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10/rust-target/release/deps/ferrite_aac-549f414e79686bc8)
 
 running 1 test
 test aac_enc::production_baseline::production_f32_corpus_baseline_is_unchanged ... ok

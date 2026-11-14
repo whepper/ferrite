@@ -4,7 +4,7 @@ Audit and planning only. No fixes or features implemented.
 
 ## 1. Current revision and worktree status
 
-- Repository root: `/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac`, branch `main`.
+- Repository root: `/Users/USER/Documents/VSCode/fdk-aac/fdk-aac`, branch `main`.
 - HEAD: `53481f3af2e5b3fc78ce02ca3fc0af8aaf3b4e91` (`docs(research): preserve D-021 evidence and closure record`).
 - Prior checkpoint referenced by earlier work: `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43` (M1–M4 implementation baseline; D-021 archive records it as investigation revision).
 - `git status --short` at audit time: 25 lines, matching the previously reported pre-existing state:

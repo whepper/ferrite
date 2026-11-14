@@ -23,7 +23,7 @@
  * including x86 where the asserts are compiled in.
  *
  * Build (repo root):
- *   BLD=/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/fdk-aac-build
+ *   BLD=/private/var/folders/*/T/opencode/fdk-aac-build
  *   c++ -std=c++11 -O2 -I cpp/libAACenc/src -I cpp/libFDK/include \
  *     -I cpp/libSYS/include -I cpp/libMpegTPEnc/include -I . \
  *     tools/enc-oracle/quant_probe.cpp -L "$BLD" -lfdk-aac \

@@ -1,6 +1,6 @@
 import re, os, json
 
-D = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.29-bitattr-20261020"
+D = "/private/var/folders/*/T/opencode/v4.29-bitattr-20261020"
 BIT = "/tmp/v429-bitattr"
 LIVE = os.path.join(D, "v429-live.log")
 

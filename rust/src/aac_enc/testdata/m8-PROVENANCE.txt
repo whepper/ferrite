@@ -1,8 +1,11 @@
 V3 real-music reference fixture (additive to the M5.5 licensed set)
 =====================================================================
 
-Status: PROVISIONAL. The corpus is not final, and this provenance package is not
-approved, until it has passed independent review (see CORPUS STATUS below).
+Status: REVIEWED. The cited qualification record (`Qualification:
+V3-MUSIC-FIXTURE-QUALIFICATION.md`, independent review: PASS; report SHA-256
+22010c83…) supersedes the earlier provisional status; see `Qualification`
+below and CORPUS STATUS. The KNOWN LIMITATIONS below are carried forward
+unchanged.
 
 FIXTURE
 -------
@@ -83,14 +86,14 @@ Verified      : the WAV PCM equals v24 >> 8 computed from the decoded source for
 
 C REFERENCE BITSTREAM
 ---------------------
-Encoder       : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/bin/aac-enc
+Encoder       : /private/var/folders/*/T/opencode/phase0-20261015/bin/aac-enc
                 MD5 850a8e6ed56641f453dc12b3c83946f5
                 SHA-256 a9933caf271f465ab02ddf2ddb78164c28a7c1d60e34791eb97f83bd6c25a003
-Engine        : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/fdk-aac-build/libfdk-aac.2.0.4.dylib
+Engine        : /private/var/folders/*/T/opencode/fdk-aac-build/libfdk-aac.2.0.4.dylib
                 (loaded via the binary's absolute LC_RPATH)
                 SHA-256 fc5c6f0c2197eeea93cdb76f862ba163ab6a8b3bd215697da784047dd7ed61f4
 Command       : aac-enc m8-music-eroica-stereo-48k.wav m8-music-eroica-stereo-48k.aac
-Location      : /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/m55/aac/m8-music-eroica-stereo-48k.aac
+Location      : /private/var/folders/*/T/opencode/m55/aac/m8-music-eroica-stereo-48k.aac
                 (outside the repository, same convention as the m7 references)
 Size          : 235 444 bytes
 SHA-256       : 2eb91eeaa6c864441f7064716c72aefbe3db2203b1a7d1fb6625e6b91e04fa11

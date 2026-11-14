@@ -1,14 +1,14 @@
-/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
-/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
+/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
+/private/var/folders/*/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8: __text 1837692 bytes
 TEXT_DIFFERS bytes=65086 first=76
-== /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
+== /Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
   7aac_enc8bitcount9gm_stage2                                            size=0x388
   7aac_enc3scf28estimate_channel_with_inv_ws                             size=0x3748
-== /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
+== /private/var/folders/*/T/opencode/aggregate-baseline/rust/target/release/deps/ferrite_aac-549f414e79686bc8 text symbols=3118
   7aac_enc8bitcount9gm_stage2                                            size=0x388
   7aac_enc3scf28estimate_channel_with_inv_ws                             size=0x3748
-/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: 2903 text symbols
-/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-current-bin: 2903 text symbols
+/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/target/release/deps/ferrite_aac-549f414e79686bc8: 2903 text symbols
+/private/var/folders/*/T/opencode/aggregate-current-bin: 2903 text symbols
 size_differences=10
   __RNvCs5fGHjzWXRav_7___rustc35___rust_no_alloc_shim_is_unstable_v2 36 vs 32
   7aac_enc7phase1bs_29phase1b_isolated_differential 21796 vs 21804

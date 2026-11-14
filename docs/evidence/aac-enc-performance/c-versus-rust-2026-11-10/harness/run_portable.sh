@@ -2,7 +2,7 @@
 # Portable-build C-vs-Rust paired check (generic CPU targets).
 # 8 alternating pairs, 10 measured repetitions + 1 warm-up, full 20-workload corpus.
 set -e
-T=${T:-/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10}
+T=${T:-/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10}
 ORDER="$T/run-order-portable.tsv"
 : > "$ORDER"
 

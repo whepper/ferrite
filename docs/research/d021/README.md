@@ -2,7 +2,8 @@
 
 Permanent, read-only archive of the D-021 SHORT-frame bit-count divergence
 investigation (Rust VBR-5 AAC-LC vs real C FDK-AAC, revision `e4258d2a…`).
-Created 2026-10-20. Uncommitted by design — left for review, never staged.
+Created 2026-10-20; originally staged for review, since committed as a
+permanent read-only archive.
 
 ## Layout
 

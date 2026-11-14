@@ -2,9 +2,9 @@
 """V4.33 ring/kernel-input parity: live bit-words vs PCM mapping vs committed ring."""
 import re, struct
 
-TD = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
-LOG = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
-WAVS = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/wavs"
+TD = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
+LOG = "/private/var/folders/*/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
+WAVS = "/private/var/folders/*/T/opencode/phase0-20261015/wavs"
 
 rings = []
 for l in open(LOG):

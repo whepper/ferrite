@@ -7,7 +7,7 @@ working_branch	main
 origin_main	1bd724fa8786ef4003a1513b410400674bd88f52
 
 ## C reference source
-source_root	/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree
+source_root	/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree
 ferrite_backup_commit	e4258d2a5b55581f5f2b27aa6c1a369bb2503e43
 pinned_reference_commit	f14ad40a574a4132df947d15e9fb14bee91cc8a5
 reference_capture	evidence/m522/base (byte-identical cpp/ and CLI files)

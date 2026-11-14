@@ -28,7 +28,7 @@
 ## C reference source
 
 - Local source root:
-  `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree`.
+  `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree`.
 - Ferrite backup commit at that source:
   `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43`.
 - Pinned FDK reference used by all prior oracle evidence:

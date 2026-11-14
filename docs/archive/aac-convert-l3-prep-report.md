@@ -20,7 +20,7 @@
   `ffmpeg`/`ffprobe` 9.0.2; `python3` 3.15 (stdlib only, plus the
   pre-existing system `mutagen 1.48.1` used read-only as the reference MP4
   writer — nothing installed); original `flac2aac` source read-only at
-  `/Users/jeroen/Downloads/Python/flac2aac/` (user's own tree, never modified).
+  `/Users/USER/Downloads/Python/flac2aac/` (user's own tree, never modified).
 - Method per gate: `PASS` (required evidence and acceptance criteria actually
   satisfied), `FAIL` (executed evidence contradicts a requirement), or
   `NOT RUN` (a required step was not executed). A gate is never marked
@@ -71,7 +71,7 @@ all fetching occurred in `/tmp`.
 
 Archive identity and provenance (verified by execution, original untouched):
 
-- File: `/Users/jeroen/Downloads/ebu-loudness-test-setv05.zip`
+- File: `/Users/USER/Downloads/ebu-loudness-test-setv05.zip`
   (91,631,421 bytes), SHA-256
   `9cc500b4df83f7c21855c74dce795ef5209a752bf884253ae57d0ce512efb062`.
 - Content: 71 entries / ~314 MB uncompressed — 70 audio files + `readme.txt`

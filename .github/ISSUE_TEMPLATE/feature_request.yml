@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an improvement to the encoder or converter.
+title: "[feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What task is currently difficult or impossible, and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What you would like Ferrite to do, with examples where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility considerations
+      description: CLI, API, output-format or behavior changes the proposal would require, if any.

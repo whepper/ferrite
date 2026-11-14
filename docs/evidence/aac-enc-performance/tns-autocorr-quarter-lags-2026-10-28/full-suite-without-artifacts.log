@@ -558,7 +558,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ---- aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5 stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5' (56163538) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity stdout ----
 == m2-silence-stereo-48k: stepping 49 frames
@@ -613,42 +613,42 @@ m2-silence-stereo-48k f=47 seq=0 emitted
 m2-silence-stereo-48k f=48 seq=0 emitted
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity' (56163541) panicked at src/aac_enc/stream_driver.rs:1818:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/aac/m2-silence-stereo-48k.aac (from $PHASE1_C_DIR); encode the phase-1 fixtures with the reference aac-enc into $PHASE1_C_DIR as <stem>.aac (see tools/enc-oracle/README.md)
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/aac/m2-silence-stereo-48k.aac (from $PHASE1_C_DIR); encode the phase-1 fixtures with the reference aac-enc into $PHASE1_C_DIR as <stem>.aac (see tools/enc-oracle/README.md)
 
 ---- aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality' (56163548) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue' (56163549) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m2-sine-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence' (56163551) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence' (56163555) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-stepdown-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m2-stepdown-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue' (56163556) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m2-onset-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b' (56163561) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m3-multitone-stereo-48k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 ---- aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b stdout ----
 
 thread 'aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b' (56163562) panicked at src/aac_enc/stream_driver.rs:1809:13:
-reference validation artifact missing: /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle/m3-sine-stereo-441k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
+reference validation artifact missing: /private/var/folders/*/T/opencode/phase0-20261015/oracle/m3-sine-stereo-441k.s1.txt (from $PHASE1_ORACLE_DIR); generate oracle dumps per tools/enc-oracle/README.md and set PHASE1_ORACLE_DIR to the dump directory
 
 
 failures:

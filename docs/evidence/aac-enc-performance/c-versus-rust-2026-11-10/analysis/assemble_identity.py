@@ -5,10 +5,10 @@ import hashlib
 import os
 import subprocess
 
-T = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10"
-SRC = "/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree"
+T = "/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10"
+SRC = "/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z/worktree"
 OUT = os.path.join(T, "analysis")
-REPO = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac"
+REPO = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac"
 
 
 def sha256_file(path):

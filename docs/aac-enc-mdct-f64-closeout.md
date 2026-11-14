@@ -95,7 +95,7 @@ regression test.
 Optional housekeeping after review:
 
 - Remove the raw temporary experiment artifacts under
-  `/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f64-mdct-experiment/`
+  `/private/var/folders/*/T/opencode/f64-mdct-experiment/`
   once the retained evidence has been reviewed. They include large oracle
   dumps and generated ADTS/WAV files and are not needed for CI.
 - Do not delete `docs/evidence/aac-enc-mdct-f64/` or the experiment report.

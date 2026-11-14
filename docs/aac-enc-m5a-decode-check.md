@@ -16,7 +16,7 @@ Validation only. No perceptual-quality claim, no production API change.
 
 ## 2. Test matrix and fixtures
 
-Harness: `rust/src/aac_enc/m5a_decode.rs` (new, `#[cfg(test)]`-only; registered by one test-gated line in `rust/src/aac_enc.rs`), tests `m5a_decode_check` and `m5a_mono44100_blocked_by_missing_cfg`. Generation reuses the existing paths: `stream_driver::m52_write_adts_stream` (`stream_driver.rs:4029`) → `PcmFeeder` + `StreamEncoder::step_frame`, with the loud skip/note policy (`m52_emit_or_fail`). Output dir: `$TMPDIR/m5a-decode/` (outside the repo; on this machine `/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/m5a-decode/`).
+Harness: `rust/src/aac_enc/m5a_decode.rs` (new, `#[cfg(test)]`-only; registered by one test-gated line in `rust/src/aac_enc.rs`), tests `m5a_decode_check` and `m5a_mono44100_blocked_by_missing_cfg`. Generation reuses the existing paths: `stream_driver::m52_write_adts_stream` (`stream_driver.rs:4029`) → `PcmFeeder` + `StreamEncoder::step_frame`, with the loud skip/note policy (`m52_emit_or_fail`). Output dir: `$TMPDIR/m5a-decode/` (outside the repo; on this machine `/var/folders/*/T/m5a-decode/`).
 
 | Case | Fixture source | SR/Ch | ADTS identity |
 |---|---|---|---|

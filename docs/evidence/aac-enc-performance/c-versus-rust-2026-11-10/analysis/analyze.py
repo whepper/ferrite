@@ -12,7 +12,7 @@ import os
 import statistics
 from collections import defaultdict
 
-T = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10"
+T = "/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10"
 OUT = os.path.join(T, "analysis")
 os.makedirs(OUT, exist_ok=True)
 REPS = 15
@@ -293,7 +293,7 @@ with open(os.path.join(OUT, "determinism.json"), "w") as f:
     json.dump({"bad": bad, "entries": determinism}, f, indent=2)
 
 # Output validation table from the final post runs.
-ref_dir = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f64-mdct-experiment/c-adts"
+ref_dir = "/private/var/folders/*/T/opencode/f64-mdct-experiment/c-adts"
 out_rows = []
 for row in fixture_rows:
     stem = row["stem"]

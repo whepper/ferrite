@@ -2,8 +2,8 @@
 """V4.34 slope-table + state analysis: live vs C Q31 vs analytic; fold effect."""
 import re, struct, math
 
-LOG = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434-live.log"
-CPP = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/cpp/libFDK/src/FDK_tools_rom.cpp"
+LOG = "/private/var/folders/*/T/opencode/v4.34-winstate-20261020/v434-live.log"
+CPP = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/cpp/libFDK/src/FDK_tools_rom.cpp"
 
 entries = []
 for l in open(LOG):

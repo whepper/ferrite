@@ -20,10 +20,10 @@ modify, transcode, or re-hash any file — audition only.
 
 | Fixture ID | Fixture file (audition this) | SHA-256 | Properties |
 |---|---|---|---|
-| `pf-castanets-mono-48k` | `/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f05b-acquisition/ch-castanets-mono-48k.wav` (= source, no derivation) | `208f9edb…ee7272` | 48 kHz / 16-bit / mono, 35.99 s |
-| `pf-snare-mono-48k` | `/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f05b-acquisition/ch-snare-mono-48k-16bit.wav` (derived; source 24-bit preserved separately) | `729803eb…50353ab8` | 48 kHz / 16-bit / mono, 0.795 s |
-| `pf-speech-vctk-p225_021` | `/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f05b-acquisition/ch-speech-vctk-p225_021.wav` (decoded from FLAC) | `1202119f…f7544770` | 48 kHz / 16-bit / mono, 9.03 s |
-| `pf-speech-vctk-p225_003` | `/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f05b-acquisition/ch-speech-vctk-p225_003.wav` (decoded from FLAC) | `504b2734…0c70a9c7e` | 48 kHz / 16-bit / mono, 7.59 s |
+| `pf-castanets-mono-48k` | `/private/var/folders/*/T/opencode/f05b-acquisition/ch-castanets-mono-48k.wav` (= source, no derivation) | `208f9edb…ee7272` | 48 kHz / 16-bit / mono, 35.99 s |
+| `pf-snare-mono-48k` | `/private/var/folders/*/T/opencode/f05b-acquisition/ch-snare-mono-48k-16bit.wav` (derived; source 24-bit preserved separately) | `729803eb…50353ab8` | 48 kHz / 16-bit / mono, 0.795 s |
+| `pf-speech-vctk-p225_021` | `/private/var/folders/*/T/opencode/f05b-acquisition/ch-speech-vctk-p225_021.wav` (decoded from FLAC) | `1202119f…f7544770` | 48 kHz / 16-bit / mono, 9.03 s |
+| `pf-speech-vctk-p225_003` | `/private/var/folders/*/T/opencode/f05b-acquisition/ch-speech-vctk-p225_003.wav` (decoded from FLAC) | `504b2734…0c70a9c7e` | 48 kHz / 16-bit / mono, 7.59 s |
 
 Full hashes in `proposed-fixtures.json`. All files verified present,
 readable, and hash-matching on 2026-10-26.

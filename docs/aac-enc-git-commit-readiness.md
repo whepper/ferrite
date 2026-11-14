@@ -1,7 +1,7 @@
 # AAC Encoder M4–M6 Git Commit Readiness Audit
 
 **Audit date:** 2026-10-21
-**Repository:** `/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac`
+**Repository:** `/Users/USER/Documents/VSCode/fdk-aac/fdk-aac`
 **Scope:** inventory and commit planning for the accumulated M4/M5/M6 work. Audit only — no staging, commits, builds, tests, generators, or destructive Git operations were performed.
 
 ---

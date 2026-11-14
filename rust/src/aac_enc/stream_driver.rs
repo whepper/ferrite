@@ -1951,7 +1951,7 @@ mod phase1_tests {
     fn phase1_frontend_agreement_sine_f5() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let dump = format!("{o_dir}/m2-sine-stereo-48k.s1.txt");
         let pcm = testdata::fixture_samples("sine-stereo");
@@ -2913,7 +2913,7 @@ mod phase1_tests {
     fn phase1e_sine_f5_band16_residue() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         // Fixture identity + frame indexing.
         let pcm = testdata::fixture_samples("sine-stereo");
@@ -3053,7 +3053,7 @@ mod phase1_tests {
     fn phase1e_onset_f24_bands_causality() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         // Fixture identity + frame indexing + coverage.
         let pcm = testdata::fixture_samples("onset-stereo");
@@ -3338,7 +3338,7 @@ mod phase1_tests {
     fn phase1f_multitone_f1_no_live_divergence() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let pcm = testdata::fixture_samples("multitone-stereo");
         assert_eq!((pcm.len(), pcm[0].len()), (2, 48000));
@@ -3469,7 +3469,7 @@ mod phase1_tests {
     fn phase1f_stepdown_f1_no_live_divergence() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let pcm = testdata::fixture_samples("stepdown-stereo");
         assert_eq!((pcm.len(), pcm[0].len()), (2, 48000));
@@ -3825,7 +3825,7 @@ mod phase1_tests {
     fn phase1g_long_flips_residue() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         // (fixture, stem, frame, expected live-vs-dump flips)
         let cases: [(&str, &str, u32, Vec<usize>); 3] = [
@@ -4335,7 +4335,7 @@ mod phase1_tests {
         let mcap = snap.ms_cap.as_ref().expect("ms capture");
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let (o_dig, o_mask) = dump_msd(&format!("{o_dir}/m3-sine-stereo-441k.s1.txt"), 5);
         assert_eq!((mcap.digest, o_dig), (1, 1));
@@ -4390,7 +4390,7 @@ mod phase1_tests {
     fn phase1i_multitone_f5_tier_b() {
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let dump = format!("{o_dir}/m3-multitone-stereo-48k.s1.txt");
         let snaps = step_to_frame("multitone-stereo", 48000, 2, 5);
@@ -4536,11 +4536,11 @@ mod phase1_tests {
         }
         let c_dir = env_dir(
             "PHASE1_C_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/aac",
+            "/private/var/folders/*/T/opencode/phase0-20261015/aac",
         );
         let o_dir = env_dir(
             "PHASE1_ORACLE_DIR",
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase0-20261015/oracle",
+            "/private/var/folders/*/T/opencode/phase0-20261015/oracle",
         );
         let out_dir = env_dir(
             "PHASE1_OUT",
@@ -5539,9 +5539,8 @@ mod m52_tests {
     }
 
     fn m55_c_dir() -> String {
-        std::env::var("M55_C_DIR").unwrap_or_else(|_| {
-            "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/m55/aac".to_string()
-        })
+        std::env::var("M55_C_DIR")
+            .unwrap_or_else(|_| "/private/var/folders/*/T/opencode/m55/aac".to_string())
     }
 
     #[test]

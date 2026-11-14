@@ -36,7 +36,7 @@ the experiment report, and the production f32 regression test remain.
 
 The generated ADTS streams, decoded WAVs, and full oracle dumps remain in
 the temporary experiment directory
-`/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f64-mdct-experiment/`
+`/private/var/folders/*/T/opencode/f64-mdct-experiment/`
 and are not committed. The retained tables above are derived directly from
 those artifacts.
 

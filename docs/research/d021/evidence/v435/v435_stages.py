@@ -3,12 +3,12 @@
 import re, struct, math, cmath
 from collections import Counter
 
-W33 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
+W33 = "/private/var/folders/*/T/opencode/v4.33-ringmdct-20261020/v433-live.log"
 for l in open(W33):
     m = re.match(r"V433RING entry=0 .* RING=\[(.*)\]", l.strip())
     if m:
         ring = [struct.unpack("<f", struct.pack("<I", int(x)))[0] for x in m.group(1).split(",")]
-W34 = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434-live.log"
+W34 = "/private/var/folders/*/T/opencode/v4.34-winstate-20261020/v434-live.log"
 for l in open(W34):
     m = re.match(r"V434SLOPE entry=0 .* BITS=\[(.*)\]", l.strip())
     if m:

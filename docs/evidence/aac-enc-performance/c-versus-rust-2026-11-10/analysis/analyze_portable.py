@@ -7,7 +7,7 @@ import os
 import statistics
 from collections import defaultdict
 
-T = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10"
+T = "/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10"
 OUT = os.path.join(T, "analysis")
 REPS = 10
 

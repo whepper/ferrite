@@ -8,7 +8,7 @@ evidence is needed next. **No encoder behaviour was changed and no discrepancy w
 
 | Item | Value |
 |---|---|
-| Repository | `/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac` |
+| Repository | `/Users/USER/Documents/VSCode/fdk-aac/fdk-aac` |
 | `HEAD` | `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43` — does **not** contain the harness or the campaign |
 | Rust implementation | `rust/src/aac_enc/**` (10 tracked files modified + untracked harness, uncommitted) |
 | C implementation | `cpp/libAACenc/src/**` (production, unmodified in this project) |
@@ -17,7 +17,7 @@ evidence is needed next. **No encoder behaviour was changed and no discrepancy w
 | Rust build | default `release` (opt‑level 3, LTO off, codegen‑units 16), rustc/cargo 1.99.0 |
 | Encoder configuration (both) | AAC‑LC (AOT 2), VBR mode 5, afterburner on, ADTS, 1024‑sample frames, 16‑bit PCM |
 | Fixtures | 18 (15 synthetic + 2 LibriSpeech speech + 1 CC0 music); corpus manifest `201b292db60d6bebb59a18891ce8d9e4ffda6f6f57b2f303f747107d87eb2998` |
-| Preservation | `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (untouched) |
+| Preservation | `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (untouched) |
 
 ---
 
@@ -874,7 +874,7 @@ measures the significance of whatever is found. If M5.26 shows all differences a
 * Corpus/suite results: `…/T/opencode/m522/{corpus_run1,corpus_final,m58_lines_run1,m58_lines_run2,
   ref_m58_lines_preM522}.txt`, `…/T/opencode/m516..m520_*_m58*.txt`; suites and FFmpeg decode
   reported in `…/T/opencode/m520_review_glm53.md`, `…/T/opencode/m522/review_packet.md`.
-* Preservation backup: `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z`
+* Preservation backup: `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z`
   (`evidence/` holds copies of the above; `verification/` holds the M5.23 hash manifests).
 
 **This audit's scripts (read‑only; results in §2.3):**

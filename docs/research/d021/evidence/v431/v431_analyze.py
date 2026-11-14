@@ -2,8 +2,8 @@
 """V4.31 detect-input parity: live slices vs MDCT-reconstruction recipe."""
 import re
 
-TD = "/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
-LOG = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.31-detin-20261020/v431-live.log"
+TD = "/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata"
+LOG = "/private/var/folders/*/T/opencode/v4.31-detin-20261020/v431-live.log"
 
 live = {}
 for l in open(LOG):

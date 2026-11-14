@@ -8,12 +8,12 @@ artifact or recomputed from raw evidence by this audit.
 
 | Item | Value |
 |---|---|
-| Repository | `/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac` |
+| Repository | `/Users/USER/Documents/VSCode/fdk-aac/fdk-aac` |
 | `HEAD` | `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43` ("complete native Rust encoder through frame assembly") |
 | Nature of the work | **uncommitted** (10 modified tracked files, 9 untracked paths); `HEAD` does **not** contain the harness or the campaign |
 | Build profile | default `release` (opt‑level 3, LTO off, codegen‑units 16); rustc/cargo 1.99.0; macOS 27.0.1, Apple M5 (arm64) |
 | Machine | Apple M5, single‑threaded encode, 1 ms `sample` profiling |
-| Preservation backup | `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (M5.23, verified) |
+| Preservation backup | `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (M5.23, verified) |
 
 **Fresh evidence digest (computed by this audit, all sources read‑only).** The 36 normalized
 `M58` result lines (18 fixtures × {EncoderOnly, EndToEnd}) hash to
@@ -68,7 +68,7 @@ was modified):
 
 | Source | Content |
 |---|---|
-| `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/evidence/` | full copy of the milestone evidence trees (`m516-ab`…`m522`, corpora, root reports, production binaries) |
+| `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z/evidence/` | full copy of the milestone evidence trees (`m516-ab`…`m522`, corpora, root reports, production binaries) |
 | `…/T/opencode/m516_ab.txt`, `m517_ab.txt`, `m518_ab.txt`, `m519_ab.txt`+`m519_ab_ext.txt`, `m520_ab.txt`+`m520_ab_ext.txt` | raw interleaved A/B timing lines (epoch‑timed whole‑invocation runs) |
 | `…/m521/{review_packet.md,parsed_summary_v5.txt,reviewer_corrections.md,timing_run{1,2,3}.txt,alloc_counts.txt,prof/}` | M5.21 profiling evidence, method, corrections |
 | `…/m522/{gate-e-prereg.md,primary_old.txt,primary_new.txt,secondary_ab.txt,alloc_counts_m522.txt,review_packet.md,ref_m58_lines_preM522.txt,m58_lines_run{1,2}.txt,base_hashes.txt,after_hashes.txt}` | M5.22 pre‑registration, raw timings, allocation evidence, corpus logs |
@@ -554,8 +554,8 @@ metric that cannot be defended.
 
 ## 9. Source evidence index
 
-**Primary raw evidence** (`E = /Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z/evidence`,
-`T = /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode`)
+**Primary raw evidence** (`E = /Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z/evidence`,
+`T = /private/var/folders/*/T/opencode`)
 
 * Interleaved A/B: `T/m516_ab.txt`, `T/m517_ab.txt`, `T/m518_ab.txt`,
   `T/m519_ab.txt` + `T/m519_ab_ext.txt`, `T/m520_ab.txt` + `T/m520_ab_ext.txt`,
@@ -564,7 +564,7 @@ metric that cannot be defended.
   `T/m518_after_m58_full.txt`, `T/m519_{old,new,new_rerun}_m58…`, `T/m520_{ref,new,new_rerun}_m58…`,
   `T/m522/{ref_m58_lines_preM522,m58_lines_run1,m58_lines_run2,corpus_run1,corpus_final}.txt`,
   `T/m5*_{base,after,final}_hashes.txt`; durable fixtures
-  `/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/m52-rust-aac/m58-corpus/*.m58.aac` (manifest
+  `/var/folders/*/T/m52-rust-aac/m58-corpus/*.m58.aac` (manifest
   `201b292d…`).
 * In‑process timing: `T/m522/primary_old.txt`, `T/m522/primary_new.txt`, `T/m522/primary_ab.sh`,
   `T/m521/timing_run{1,2,3}.txt`.

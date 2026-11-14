@@ -3,7 +3,7 @@
 import re, sys
 
 BITATTR = "/tmp/v429-bitattr"
-LIVELOG = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.29-bitattr-20261020/v429-live.log"
+LIVELOG = "/private/var/folders/*/T/opencode/v4.29-bitattr-20261020/v429-live.log"
 
 def parse_real(fixture, frame):
     d = {}

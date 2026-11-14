@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem with the encoder or converter.
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Ferrite version
+      description: Release tag (e.g. v0.3.1) or commit hash, and `aac-convert --version` output where relevant.
+      placeholder: v0.3.1
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, and Rust toolchain (`rustc --version`).
+      placeholder: macOS ARM64, rustc 1.99.1
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Exact commands and input files needed to reproduce the problem.
+      placeholder: |
+        1. `aac-convert track.flac track.m4a`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead, including exact output or error text.
+    validations:
+      required: true

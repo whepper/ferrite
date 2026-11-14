@@ -6,7 +6,7 @@ Guarded by -DV429_BITATTR; baseline build omits the flag for byte-identity check
 """
 import sys
 
-SCRATCH = "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v429-scratch"
+SCRATCH = "/private/var/folders/*/T/opencode/v429-scratch"
 
 AACENC_HELPER = r'''
 #if defined(V429_BITATTR)

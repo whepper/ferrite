@@ -15,14 +15,14 @@ exclusion or conclusion was changed.*
 
 | Item | Value |
 |---|---|
-| Repository | `/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac` (worktree, not `HEAD`) |
+| Repository | `/Users/USER/Documents/VSCode/fdk-aac/fdk-aac` (worktree, not `HEAD`) |
 | `HEAD` | `e4258d2a5b55581f5f2b27aa6c1a369bb2503e43` — does **not** contain the harness |
 | Rust path | `rust/src/aac_enc/**` (10 tracked-modified files + untracked `stream_driver.rs`, `phase1b.rs`) |
 | C reference | `cpp/libAACenc/src/**` (production, unmodified) |
 | Reference C binary | `…/T/opencode/phase0-20261015/bin/aac-enc`, md5 `850a8e6ed56641f453dc12b3c83946f5` |
 | Rust build | default `release`/`test` profile, rustc/cargo 1.99.0 |
 | Fixture manifest | `201b292db60d6bebb59a18891ce8d9e4ffda6f6f57b2f303f747107d87eb2998` |
-| Preservation backup | `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (untouched) |
+| Preservation backup | `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z` (untouched) |
 
 ---
 
@@ -333,7 +333,7 @@ because they show the stage itself reproduces C bit-exactly when fed C's vectors
 ### 5.1 Behaviour-preservation check (required)
 
 ```sh
-T=/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode
+T=/private/var/folders/*/T/opencode
 # instrumented temp copy
 cd "$T/m526/work/rust" && M526_OUT="$T/m526/out" \
   cargo test --features aac_enc m526_dump_cases -- --nocapture
@@ -790,7 +790,7 @@ oracle-replay investigation, item 3 a state trace. They are separate, smaller mi
   `850a8e6ed56641f453dc12b3c83946f5`.
 * Pinned Rust reference outputs: `/var/folders/…/T/m52-rust-aac/m58-corpus/*.m58.aac`
   (hashes also in `…/T/opencode/m522/{base,after}_hashes.txt`).
-* Preservation backup: `/Users/jeroen/backups/fdk-aac-m5.23-worktree-20261016T193606Z`.
+* Preservation backup: `/Users/USER/backups/fdk-aac-m5.23-worktree-20261016T193606Z`.
 
 **This milestone's temporary artefacts (outside the repository)**
 

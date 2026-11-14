@@ -12,7 +12,7 @@ warning: `ferrite-aac` (manifest) generated 1 warning
    Compiling bitflags v2.13.2
    Compiling itertools v0.10.5
    Compiling num-traits v0.2.19
-   Compiling ferrite-aac v0.1.0 (/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aac-c-vs-rust-2026-11-10/src/ferrite/rust)
+   Compiling ferrite-aac v0.1.0 (/private/var/folders/*/T/opencode/aac-c-vs-rust-2026-11-10/src/ferrite/rust)
    Compiling num-complex v0.4.6
 warning: method `emitted_frames` is never used
    --> src/aac_enc/pcm.rs:226:12

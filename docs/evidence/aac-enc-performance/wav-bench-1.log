@@ -3,7 +3,7 @@ warning: Cargo.toml: only one of `license` or `license-file` is necessary
 `license-file` should be used if the package uses a non-standard license.
 See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
 warning: `ferrite-aac` (manifest) generated 1 warning
-   Compiling ferrite-aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+   Compiling ferrite-aac v0.1.0 (/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust)
 warning: method `emitted_frames` is never used
    --> src/aac_enc/pcm.rs:226:12
     |

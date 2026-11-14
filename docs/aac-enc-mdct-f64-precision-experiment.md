@@ -513,7 +513,7 @@ The key derived evidence is retained in the repository under
 [`docs/evidence/aac-enc-mdct-f64/`](evidence/aac-enc-mdct-f64/README.md):
 per-fixture downstream comparison, oracle comparison, decoded quality, and
 performance. The full raw artifacts remain in
-`/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/f64-mdct-experiment/`:
+`/private/var/folders/*/T/opencode/f64-mdct-experiment/`:
 
 | Artifact | Contents |
 |---|---|

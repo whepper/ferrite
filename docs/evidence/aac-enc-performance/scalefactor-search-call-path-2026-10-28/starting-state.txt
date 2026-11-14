@@ -40,7 +40,7 @@ diffstat:
  10 files changed, 1855 insertions(+), 56 deletions(-)
 production_binary_sha256: 61126376e5672d86ca9de8d23cbcfa4f8e8d52d2684f7386612b19ed67c61756
 rustc: rustc 1.99.1 (58cf8f9c3 2026-10-13) binary: rustc commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67 commit-date: 2026-10-13 host: aarch64-apple-darwin release: 1.99.1 LLVM version: 23.1.1 
-uname: Darwin MacBook-Pro.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:59 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8142 arm64
+uname: Darwin host.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:59 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8142 arm64
 sw_vers: ProductName:		macOS ProductVersion:		27.0.1 BuildVersion:		26A434 
 cpu: Apple M5
 ncpu: 10

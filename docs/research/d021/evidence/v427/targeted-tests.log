@@ -1,4 +1,4 @@
-   Compiling aac v0.1.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+   Compiling aac v0.1.0 (/Users/USER/Documents/VSCode/fdk-aac/fdk-aac/rust)
 warning: value assigned to `fac1` is never read
    --> src/aac_enc/tns.rs:596:20
     |

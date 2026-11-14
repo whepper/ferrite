@@ -59,9 +59,13 @@ Ferrite does not currently resample, downmix, or change channel layouts. Other s
 
 VBR-1 through VBR-5 follow the upstream FDK profile parameter plane; VBR-6 is an additional Ferrite profile. See the [profile documentation](rust/docs/vbr-profiles.md) for the authoritative settings and distinctions.
 
+### Supported platforms
+
+Validated on macOS (ARM64) and Linux (x86_64, via CI). Other platforms, including Windows, are expected to build from source but are not validated.
+
 ## Get started
 
-Ferrite is currently distributed as source. You need Rust and Cargo **1.99.1** or later matching the project's declared toolchain.
+Ferrite is currently distributed as source. You need Rust and Cargo **1.99.1** — the toolchain declared by the workspace (`rust-version`) and pinned in CI.
 
 Clone the repository and build the converter:
 

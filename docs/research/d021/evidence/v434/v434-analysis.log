@@ -6,7 +6,7 @@ live-vs-C (f32-rounded C as reference): 0/64 differ
 live-vs-C exact-float: maxabs 2.934e-08 over 63 lines
 theta range: [0.006136, 0.779262], spacing min/max: 0.01227179/0.01227190
 Traceback (most recent call last):
-  File "/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/v4.34-winstate-20261020/v434_analyze.py", line 52, in <module>
+  File "/private/var/folders/*/T/opencode/v4.34-winstate-20261020/v434_analyze.py", line 52, in <module>
     res = [abs((math.cos(t0 + k*dt) - lre[k], math.sin(t0 + k*dt) - lim[k])) for k in range(len(th))]
            ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TypeError: bad operand type for abs(): 'tuple'

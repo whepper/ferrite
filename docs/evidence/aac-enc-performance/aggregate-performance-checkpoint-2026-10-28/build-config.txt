@@ -20,7 +20,7 @@
   harness. `git diff` confirms only the four files above differ between the
   baseline and current source trees.
 - Both arms were built in the same isolated Git worktree
-  (`/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/aggregate-baseline`),
+  (`/private/var/folders/*/T/opencode/aggregate-baseline`),
   with the same target directory and command, to hold the build path constant.
 
 ## Binaries

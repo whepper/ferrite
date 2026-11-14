@@ -1,4 +1,4 @@
-== /private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/scf-base
+== /private/var/folders/*/T/opencode/scf-base
   7aac_enc3scf28estimate_channel_with_inv_ws                   0x1000b6d00 size=0x3748 (14152)
   __text section 1837692
 == target/release/deps/ferrite_aac-549f414e79686bc8
