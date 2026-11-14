@@ -33,7 +33,7 @@ jobs:
       CARGO_TERM_COLOR: always
     steps:
       - name: Check out Ferrite
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
         with:
           persist-credentials: false
 
@@ -73,7 +73,7 @@ jobs:
       # repository — the checkout itself may live here. Scratch output
       # stays under ${{ runner.temp }} (see the driver step).
       - name: Check out pinned reference (private)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
         with:
           repository: whepper/fdk-aac-reference
           ref: ${{ steps.pin.outputs.sha }}

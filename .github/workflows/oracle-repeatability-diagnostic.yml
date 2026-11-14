@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out Ferrite
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
         with:
           persist-credentials: false
 
@@ -82,7 +82,7 @@ jobs:
       # Workspace-relative path: the pinned actions/checkout implementation
       # rejects paths outside $GITHUB_WORKSPACE.
       - name: Check out pinned reference (private)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
         with:
           repository: whepper/fdk-aac-reference
           ref: ${{ steps.pin.outputs.sha }}
