@@ -145,7 +145,7 @@ See [CI configuration](.github/workflows/ci.yml) and [workspace documentation](r
 
 Ferrite is a **float-native Rust port derived from FDK AAC**, not a 1:1 or bit-exact translation. Encoder control logic, tables, and design concepts are ported and attributed in the relevant source files. DSP is re-implemented in floating point, while the Rust architecture, state representation, streaming interface, and error model are native to this project.
 
-The upstream Fraunhofer FDK AAC C/C++ implementation is **not vendored in this repository**. It is held in a separate private reference repository, pinned by revision in `docs/reference/fdk-aac-reference-revision.txt`, and used solely as a reference oracle. It is not compiled, linked, or executed by production Rust builds.
+The upstream Fraunhofer FDK AAC C/C++ implementation is **not part of the current source tree** or production Cargo workspace. The historical upstream source import remains in Ferrite's Git history, which is publicly accessible. A separate private reference repository, pinned by revision in `docs/reference/fdk-aac-reference-revision.txt`, remains the source used for ongoing pinned reference validation. The private reference checkout is used solely as a reference oracle; it is not compiled, linked, or executed by production Rust builds.
 
 There is no official affiliation with or endorsement by Fraunhofer.
 
