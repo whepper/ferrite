@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aac-convert"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "ebur128",
  "ferrite-aac",
@@ -77,14 +77,13 @@ checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
 name = "ferrite-aac"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "arrayvec",
  "bitflags 2.13.2",
  "itertools",
  "num-complex",
  "paste",
- "rustversion",
  "zerocopy",
 ]
 
@@ -156,12 +155,6 @@ name = "regex-lite"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
-
-[[package]]
-name = "rustversion"
-version = "1.0.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "shiguredo_mp4"

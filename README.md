@@ -132,12 +132,12 @@ Run the following commands from the `rust/` Cargo workspace root:
 ```sh
 cargo build --locked -p aac-convert
 cargo test --locked -p aac-convert
-cargo build --locked --features aac_enc
-cargo test --locked --features aac_enc --lib
+cargo build --locked -p ferrite-aac
+cargo test --locked -p ferrite-aac --lib
 cargo fmt --all -- --check
 ```
 
-CI runs the default and encoder-only configurations, encoder library tests, documentation tests, package validation, and a separate decoder-backed validation job. Formatting and Clippy are informational jobs.
+CI runs the default and no-default-feature configurations, encoder library tests, documentation tests, package validation, and a separate decoder-backed validation job. Formatting and Clippy are informational jobs.
 
 See [CI configuration](.github/workflows/ci.yml) and [workspace documentation](rust/README.md).
 
@@ -191,7 +191,7 @@ Ferrite-derived encoder sources retain the applicable FDK AAC license notices. T
 
 The FDK-AAC license requires preservation of license text and prominent modified-version notices. The license grants **no patent license**. Any patent authorization required for AAC encoding or decoding must be assessed separately before use or distribution.
 
-The repository includes the applicable license and notice materials. Review the root `NOTICE`, `rust/NOTICE`, `rust/LICENSE-FDK-AAC`, and `rust/convert/THIRD-PARTY-NOTICES.md` before redistributing source or binaries. This documentation is not legal advice, and no legal or patent clearance is claimed.
+The repository includes the applicable license and notice materials. Review the root `NOTICE`, `rust/NOTICE`, `rust/LICENSE-FDK-AAC`, `rust/convert/LICENSE-MIT`, `rust/convert/LICENSE-APACHE`, and `rust/convert/THIRD-PARTY-NOTICES.md` before redistributing source or binaries. This documentation is not legal advice, and no legal or patent clearance is claimed.
 
 ---
 

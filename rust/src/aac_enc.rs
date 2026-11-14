@@ -97,9 +97,8 @@ amm-info@iis.fraunhofer.de
 ----------------------------------------------------------------------------- */
 //! Native Rust AAC-LC encoder (VBR-1 through VBR-6, afterburner-on, default VBR-6).
 //!
-//! This module is the isolated home of the native encoder. It is gated behind
-//! the `aac_enc` feature and uses the shared ungated `common` primitives
-//! by call only.
+//! This module is the isolated home of the native encoder. It uses the
+//! shared `common` primitives by call only.
 //!
 //! The supported public surface is [`config`] (validated VBR
 //! configuration and its AAC-LC AudioSpecificConfig), [`channel_map`] (channel
@@ -149,7 +148,7 @@ pub(crate) mod sfb_tables;
 pub(crate) mod static_bits;
 // M6.1: production module. Test-only harnesses, fixtures, and census
 // instrumentation inside remain individually `#[cfg(test)]`-gated (verified
-// by `cargo build --features aac_enc` passing without test code); the
+// by `cargo build` passing without test code); the
 // encoder path itself (`StreamEncoder`, snapshots, helpers) carries no
 // test-only behavior.
 pub(crate) mod stream_driver;

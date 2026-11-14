@@ -7,19 +7,13 @@ not describe the psychoacoustic or quantization internals.
 
 ## Dependency
 
-The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.3.1`). The
+The crate is `ferrite-aac` (library name `ferrite_aac`, version `0.3.2`). The
 supported path today is a source dependency; this repository does not yet
 publish a stable crates.io release contract.
 
 ```toml
 [dependencies]
 ferrite-aac = { path = "../fdk-aac/rust" }
-```
-
-The default feature is `aac_enc`; the encoder-only configuration is:
-
-```toml
-ferrite-aac = { path = "../fdk-aac/rust", default-features = false, features = ["aac_enc"] }
 ```
 
 MSRV is Rust 1.99.1. No C toolchain, FFmpeg, or external library is needed at
@@ -210,7 +204,7 @@ encoders for independent streams.
 - Whole-buffer pushes are linear in buffer work but hold the input, feeder
   copy, and all returned frames at once; use bounded chunks to keep peak
   memory low.
-- The crate is source-consumed and version `0.3.1`; the public API and MSRV are
+- The crate is source-consumed and version `0.3.2`; the public API and MSRV are
   not yet a stable published contract.
 - Licensing is the FDK-AAC license (see `rust/NOTICE` and
   `rust/LICENSE-FDK-AAC`); it is not a general-purpose permissive license, and

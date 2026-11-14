@@ -162,7 +162,7 @@ config stem:
 
 ```sh
 # Writes $TMPDIR/m5b-quality/inputs/onset-mono-44100.orig.wav
-(cd rust && cargo test --features aac_enc m5b_dump_inputs)
+(cd rust && cargo test m5b_dump_inputs)
 "$BLD/enc_oracle" "$TMPDIR/m5b-quality/inputs/onset-mono-44100.orig.wav" \
   "$BLD/oracle/onset-mono-44100.oracle.txt"
 python3 tools/enc-oracle/extract_testdata.py --cfg-only \

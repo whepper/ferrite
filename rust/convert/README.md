@@ -13,16 +13,16 @@ VBR-1 through VBR-6 with `--vbr`). For M4A, each
 frame's validated raw access-unit payload (`AdtsFrame::raw_payload`) and the
 configuration's AudioSpecificConfig (`EncoderConfig::audio_specific_config`)
 are handed to the muxer. The encoded audio is identical for both containers.
-See [`../docs/vbr-profiles.md`](../docs/vbr-profiles.md) for the authoritative
+See the [VBR profiles reference](https://github.com/whepper/ferrite/blob/main/rust/docs/vbr-profiles.md) for the authoritative
 profile reference.
 
 The application-facing contract (input precision, metadata, errors, atomic
-publication, gapless signaling) is documented in
-[`docs/aac-convert-integration-contract.md`](../docs/aac-convert-integration-contract.md).
+publication, gapless signaling) is documented in the
+[aac-convert integration contract](https://github.com/whepper/ferrite/blob/main/rust/docs/aac-convert-integration-contract.md).
 
 For an end-user walkthrough covering installation, single-file conversion,
 batch jobs, metadata, safe reruns, exit codes and troubleshooting, see the
-[Ferrite User Manual](../docs/user-manual.md).
+[Ferrite User Manual](https://github.com/whepper/ferrite/blob/main/rust/docs/user-manual.md).
 
 ## Supported input
 
@@ -84,7 +84,7 @@ converted input.flac -> output.m4a (14 AAC frames, 1961 bytes, M4A, VBR-6, nomin
 `--vbr` accepts `1` through `6` (also `VBR-1`..`VBR-6`, `vbr1`..). Default is
 `6`. VBR-1..VBR-5 are the upstream FDK AAC profiles; VBR-6 is the Ferrite
 default (VBR-5 with 20 kHz bandwidth). Invalid values fail with exit 2.
-See [`../docs/vbr-profiles.md`](../docs/vbr-profiles.md) for the full table.
+See the [VBR profiles reference](https://github.com/whepper/ferrite/blob/main/rust/docs/vbr-profiles.md) for the full table.
 
 `--no-tags` omits user metadata from M4A output (see Metadata); it is accepted
 for ADTS output as a no-op.
@@ -607,7 +607,7 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 There is no standalone `cargo package` for `aac-convert`: its path
 dependency on the workspace-local, unpublished `ferrite-aac` crate cannot
 resolve against the public registry (the package is unpublished, so no
-version satisfies the required `^0.3.1`), and publishing `ferrite-aac` is
+version satisfies the required `^0.3.2`), and publishing `ferrite-aac` is
 out of scope. The supported distribution
 model is a **workspace source bundle built with the pinned toolchain**:
 
@@ -621,10 +621,12 @@ Requirements: Rust 1.99.1 (`rustup install 1.99.1`), dependency sources
 resolved from crates.io against the committed `rust/Cargo.lock`. No
 vendoring is needed. Do not publish either crate to a registry.
 
-Before distributing a binary, include the complete source bundle and
+Before distributing a binary, include the complete source bundle,
 `rust/NOTICE` (including the prominent modified-version notice dated
-2026-10-26), retain all dependency notices, and complete the review in
-`THIRD-PARTY-NOTICES.md` (FDK-AAC conditions, MPL-2.0 source availability,
+2026-10-26), the converter's `LICENSE-MIT` and `LICENSE-APACHE`, retain all
+dependency notices, and complete the review in
+`THIRD-PARTY-NOTICES.md` (converter MIT/Apache-2.0 texts, FDK-AAC conditions
+for the encoder dependency, MPL-2.0 source availability,
 Apache/MIT/BSD attributions, and separate AAC patent authorization). Do not
 charge a copyright license fee for the FDK-derived codec, and do not imply
 Fraunhofer endorsement.

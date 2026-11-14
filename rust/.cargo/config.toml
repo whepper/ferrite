@@ -1,6 +1,6 @@
 [alias]
 # Build the encoder library and conversion app
-build_enc = "build --locked --features aac_enc"
+build_enc = "build --locked -p ferrite-aac"
 build_convert = "build --locked -p aac-convert"
 
 # Shorts for shorts
@@ -8,5 +8,5 @@ be = "build_enc"
 bc = "build_convert"
 
 # Check the encoder library and conversion app
-check_enc = "check --locked --features aac_enc"
+check_enc = "check --locked -p ferrite-aac"
 check_convert = "check --locked -p aac-convert"

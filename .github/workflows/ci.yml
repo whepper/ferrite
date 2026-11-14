@@ -40,15 +40,15 @@ jobs:
       - name: Build default configuration
         run: cargo build --locked
 
-      - name: Build encoder-only configuration
-        run: cargo build --locked --no-default-features --features aac_enc
+      - name: Build no-default-features configuration
+        run: cargo build --locked --no-default-features
 
       # These 15 tests require external C artifacts, an external decoder, or
       # opt-in environment variables. The other phase1 tests use committed
       # vectors and remain in the self-contained Tier A set.
       - name: Run self-contained encoder tests
         run: |
-          cargo test --locked --features aac_enc --lib -- \
+          cargo test --locked --lib -- \
             --skip m5a_decode_check \
             --skip m55_streams_match_c_reference \
             --skip phase1_frontend_agreement_sine_f5 \
@@ -66,10 +66,10 @@ jobs:
             --skip m511_profile_loop
 
       - name: Run public encoder API integration tests
-        run: cargo test --locked --features aac_enc --test production_api
+        run: cargo test --locked --test production_api
 
       - name: Run encoder doctests
-        run: cargo test --locked --features aac_enc --doc
+        run: cargo test --locked --doc
 
       - name: Verify package contents
         run: cargo package --locked -p ferrite-aac
@@ -143,7 +143,7 @@ jobs:
           components: clippy
 
       - name: Run Clippy (informational)
-        run: cargo clippy --locked --features aac_enc --all-targets
+        run: cargo clippy --locked --all-targets
 
   # Independent decode validation. This job deliberately uses the historical
   # Ferrite commit that the private FDK AAC reference was derived from, so no
@@ -227,7 +227,7 @@ jobs:
           run_test() {
             local test_path=$1
             local log=$2
-            if ! cargo test --locked --features aac_enc --lib -- \
+            if ! cargo test --locked --lib -- \
               --exact "$test_path" --nocapture >"$log" 2>&1; then
               printf 'error: test failed: %s\n' "$test_path" >&2
               cat "$log" >&2

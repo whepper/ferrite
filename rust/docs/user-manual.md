@@ -633,6 +633,7 @@ Ferrite 0.3.1 is deliberately focused:
 - [Ferrite encoder API integration guide](encoder-integration.md)
 - [VBR profile reference](vbr-profiles.md)
 - [aac-convert integration contract](aac-convert-integration-contract.md)
+- [Ferrite 0.3.2 release notes](releases/0.3.2.md)
 - [Ferrite 0.3.1 release notes](releases/0.3.1.md)
 - [Ferrite 0.3.0 release notes](releases/0.3.0.md)
 

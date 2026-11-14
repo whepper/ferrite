@@ -1,14 +1,36 @@
 [package]
 name = "aac-convert"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 # MSRV
 rust-version = "1.99.1"
-license = "FDK-AAC"
+license = "MIT OR Apache-2.0"
 description = "FLAC to AAC (ADTS or M4A) converter for the native Ferrite Rust AAC encoder"
+repository = "https://github.com/whepper/ferrite"
+
+# Published-crate contents: the converter source, its READMEs, license
+# texts, and notices.
+#
+# The integration suite under tests/ is strictly repository-development
+# testing (CLI/batch behavior against a committed synthetic FLAC corpus)
+# with no downstream value, so it is excluded. The shipped src unit tests
+# need only six small fixtures, retained below; every other file under
+# tests/fixtures/ (including the generator script) stays in the repository.
+# The MIT/Apache texts and THIRD-PARTY-NOTICES.md must always ship.
+exclude = [
+    "tests/*.rs",
+    "tests/common/",
+    "tests/fixtures/*",
+    "!tests/fixtures/stereo-48k-16.flac",
+    "!tests/fixtures/mono-32k-16.flac",
+    "!tests/fixtures/mono-441k-24.flac",
+    "!tests/fixtures/stereo-48k-24.flac",
+    "!tests/fixtures/three-channel-48k-16.flac",
+    "!tests/fixtures/boundary-48k-24.flac",
+]
 
 [dependencies]
-ferrite-aac = { version = "0.3.1", path = "..", default-features = false, features = ["aac_enc"] }
+ferrite-aac = { version = "0.3.2", path = ".." }
 # Pinned to the L3 evidence-phase selection; pure Rust, no C toolchain on the
 # default build path. MIT. See docs/archive/aac-convert-l3-prep-report.md Gate 1.
 ebur128 = "=0.1.10"

@@ -395,7 +395,7 @@ for t in $TIER_B; do
         PHASE1_C_DIR="$OUT_DIR/cref" \
         M55_C_DIR="$OUT_DIR/m55" \
         AAC_DEC_BIN="$REF_BUILD/aac-dec" \
-        cargo test --locked --features aac_enc --lib -- --exact "$t" --nocapture \
+        cargo test --locked --lib -- --exact "$t" --nocapture \
             >>"$LOGDIR/tests.log" 2>&1
     ); then
         cargo_rc=1
@@ -442,7 +442,7 @@ printf '%s: Tier-B tests: %d/%d passed\n' "$prog" "$ran" "$EXPECTED"
 # explicit stem (see tools/enc-oracle/README.md "Config-only regeneration").
 (
     cd "$FERRITE_ROOT/rust" && \
-    cargo test --locked --features aac_enc --lib -- --exact \
+    cargo test --locked --lib -- --exact \
         aac_enc::m5b_measure::m5b_tests::m5b_dump_inputs \
         >>"$LOGDIR/tests.log" 2>&1
 ) || { log_tail "$LOGDIR/tests.log"; fail "m5b_dump_inputs failed"; }

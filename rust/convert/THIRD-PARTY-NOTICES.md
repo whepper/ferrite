@@ -4,16 +4,32 @@ Inventory for release review. This file records license evidence; it is not
 legal advice. Versions are pinned by `rust/Cargo.lock`.
 
 Production graph = `cargo tree --locked -p aac-convert --edges normal`
-(unique crates below; build-time-only tooling such as `rustversion`, `syn`,
-and `autocfg` is listed separately). The converter links all of the
+(unique crates below; build-time-only tooling such as `syn` and `autocfg`
+is listed separately). The converter links all of the
 following into the `aac-convert` binary except where noted.
+
+## Licensing boundary
+
+`aac-convert` itself is independently developed converter code, licensed
+`MIT OR Apache-2.0` (`rust/convert/Cargo.toml`; complete texts in
+`rust/convert/LICENSE-MIT` and `rust/convert/LICENSE-APACHE`). Depending on
+`ferrite-aac` does not place the converter's own source under the FDK-AAC
+license.
+
+The `ferrite-aac` dependency is separately licensed FDK-AAC
+(`rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and
+`rust/NOTICE`). Distributions that include the encoder — including
+`aac-convert` binaries, which link it — remain subject to the FDK-AAC
+conditions for that dependency (see below). No FDK-AAC license text is
+duplicated in this package; the encoder's complete text ships in the
+`ferrite-aac` package.
 
 ## First-party code
 
 | Package | Version | License field | Evidence |
 |---|---|---|---|
-| `ferrite-aac` (codec, path dependency `rust/`) | 0.3.1 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
-| `aac-convert` (this application) | 0.3.1 | `FDK-AAC` | `rust/convert/Cargo.toml`; wraps/redistributes the FDK-derived codec |
+| `ferrite-aac` (codec dependency, path `rust/`) | 0.3.1 | `FDK-AAC` | `rust/Cargo.toml`; complete text in `rust/LICENSE-FDK-AAC` and `rust/NOTICE` |
+| `aac-convert` (this application) | 0.3.1 | `MIT OR Apache-2.0` | `rust/convert/Cargo.toml`; complete texts in `rust/convert/LICENSE-MIT` and `rust/convert/LICENSE-APACHE` |
 
 The FDK-AAC SPDX identifier is `FDK-AAC`. The codec crate manifest declares
 `license = "FDK-AAC"` (the standard SPDX identifier) and also sets
@@ -67,14 +83,16 @@ the local registry; bundled texts were confirmed present where noted.
 
 ## Build-time-only dependencies (not linked into the binary)
 
-`rustversion`, `syn`, `quote`, `proc-macro2`, `unicode-ident`, `autocfg`,
+`syn`, `quote`, `proc-macro2`, `unicode-ident`, `autocfg`,
 `zerocopy-derive`, `hound` (dev/workspace scope). Recorded for completeness;
 confirm with legal review whether their texts must also ship.
 
 ## Required actions before distributing a binary (for review)
 
-1. Include the FDK-AAC license text and satisfy its binary-redistribution
-   conditions (text retention, source availability, modification notices).
+1. Include the converter's MIT/Apache-2.0 license texts and, for the linked
+   `ferrite-aac` dependency, the FDK-AAC license text while satisfying its
+   binary-redistribution conditions (text retention, source availability,
+   modification notices).
 2. Satisfy MPL-2.0 obligations for the statically linked Symphonia crates
    (notices, source availability for the covered files).
 3. Include Apache-2.0/MIT/BSD/Zlib attributions for `shiguredo_mp4` and the
@@ -83,15 +101,20 @@ confirm with legal review whether their texts must also ship.
    platform (FDK grants none itself).
 5. Do not publish crates to a registry; standalone `cargo package`/`cargo
    publish` for `aac-convert` remains unsupported (see `README.md`
-   Distribution). The `FDK-AAC` value is the standard SPDX identifier.
+   Distribution) while `ferrite-aac` is an unpublished path dependency the
+   public registry cannot resolve. The converter's own license is now
+   `MIT OR Apache-2.0`; the `FDK-AAC` value remains the standard SPDX
+   identifier of the `ferrite-aac` dependency.
 6. Distribute `aac-convert` as the workspace source bundle described in
    `README.md` Distribution: the corresponding `ferrite-aac` source plus
-   `rust/LICENSE-FDK-AAC`, `rust/NOTICE`, and the applicable third-party
-   notices. The standalone `aac-convert` Cargo source archive is not the
-   supported complete distribution artifact; do not redistribute that
-   archive as though it independently contains all FDK-AAC licensing
-   materials for the supported model. This states project distribution
-   policy and is not a legal conclusion about any standalone archive.
+   `rust/LICENSE-FDK-AAC`, `rust/NOTICE`, the converter's
+   `rust/convert/LICENSE-MIT` and `rust/convert/LICENSE-APACHE`, and the
+   applicable third-party notices. The standalone `aac-convert` Cargo
+   source archive is not the supported complete distribution artifact; do
+   not redistribute that archive as though it independently contains the
+   FDK-AAC licensing materials of the encoder dependency. This states
+   project distribution policy and is not a legal conclusion about any
+   standalone archive.
 
 ## Out of scope for this inventory
 

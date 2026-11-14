@@ -101,9 +101,8 @@ amm-info@iis.fraunhofer.de
 #![expect(clippy::excessive_precision)]
 
 pub mod aac_enc;
-pub mod common;
-
+// Implementation detail: shared DSP/transport primitives used by `aac_enc`
+// (and by the in-tree doctests). Hidden from the rendered public API;
+// the supported surface is `aac_enc::{config, channel_map, encoder}`.
 #[doc(hidden)]
-pub fn dummy_call() {
-    print!("");
-}
+pub mod common;

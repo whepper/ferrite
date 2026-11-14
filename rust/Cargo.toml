@@ -1,6 +1,6 @@
 [package]
 name = "ferrite-aac"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 # MSRV
 rust-version = "1.99.1"
@@ -10,6 +10,37 @@ description = "Native Rust AAC-LC encoder derived from Fraunhofer FDK AAC (Ferri
 readme = "README.md"
 repository = "https://github.com/whepper/ferrite"
 keywords = ["aac", "audio", "codec", "encoder", "fdk"]
+
+# Published-crate contents: the production library plus the materials needed
+# to build, use, and understand it. Development-only material (test corpus,
+# dev tooling, platform config, audit evidence) stays in the repository.
+#
+# The 18 cfg_*.txt snapshots are REQUIRED in the crate: production module
+# src/aac_enc/psy_config.rs embeds them with include_str!. Every other file
+# under src/aac_enc/testdata/ is read only by #[cfg(test)] code.
+exclude = [
+    "src/aac_enc/testdata/*",
+    "!src/aac_enc/testdata/cfg_*.txt",
+    # Benchmark/audit examples bound to the repository test corpus.
+    "examples/aac_bench_wav.rs",
+    "examples/m7_audit_spectral.rs",
+    "examples/m7_audit_sweep.rs",
+    # Developer tooling and local configuration.
+    "tools/",
+    ".cargo/",
+    "rustfmt.toml",
+    "Android.bp",
+    # App-facing and historical docs; the encoder crate keeps the two
+    # integration docs linked from its README.
+    "docs/aac-convert-integration-contract.md",
+    "docs/aac-convert-roadmap.md",
+    "docs/user-manual.md",
+    "docs/releases/",
+    # NOTE: Cargo always ships the workspace Cargo.lock in the crate unless
+    # the publish invocation passes --exclude-lockfile (manifest exclude
+    # rules do not apply to it); prefer that flag when publishing this
+    # library. The repository Cargo.lock itself is unaffected.
+]
 
 [lib]
 crate-type = ["lib"]
@@ -21,13 +52,6 @@ itertools = "0.10.5"
 num-complex = "0.4.6"
 paste = "1.0.15"
 zerocopy = "0.8.20"
-
-[build-dependencies]
-rustversion = "1.0.20"
-
-[features]
-default = ["aac_enc"]
-aac_enc = []
 
 # Cargo build profiles
 ## Build profile to be used by developers when testing their code.

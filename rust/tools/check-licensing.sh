@@ -7,10 +7,17 @@
 # Modified Version notice (accepting either the complete-block or
 # the concise form).
 #
-# Scope is deliberately narrow: only rust/src is treated as codec
-# code. rust/convert, rust/build.rs, rust/tools, tools, tests, and
-# fixtures are NOT checked for codec headers; establish their
-# relationship to the codec before marking them.
+# It also verifies the licensing boundary: rust/convert is
+# independently developed converter code licensed MIT OR Apache-2.0,
+# so it must declare that license, ship both license texts, and must
+# NOT carry the FDK-derived codec notice.
+#
+# Scope: rust/src is codec code under FDK-AAC; rust/convert/src is
+# independent code under MIT OR Apache-2.0. rust/build.rs, rust/tools,
+# tools, tests, and fixtures are NOT checked for either header; their
+# relationship to the codec was established separately (converter
+# provenance: application code over the public encoder API, no
+# FDK-derived tables or logic).
 #
 # This check is a text-match hygiene signal only. It does not prove
 # legal compliance and never rewrites files. No network access.
@@ -114,4 +121,47 @@ if [ -n "$missing" ]; then
 fi
 
 printf 'licensing hygiene OK: NOTICE + LICENSE-FDK-AAC present, manifest declares FDK-AAC, %d rust/src file(s) carry the modified-version notice\n' "$count"
+
+# 4. Converter licensing boundary: independently developed code under
+# MIT OR Apache-2.0, not FDK-AAC.
+CONVERT_DIR="$CRATE_DIR/convert"
+CONVERT_MANIFEST="$CONVERT_DIR/Cargo.toml"
+[ -f "$CONVERT_MANIFEST" ] || fail "missing converter manifest: $CONVERT_MANIFEST"
+
+grep -q 'license *= *"MIT OR Apache-2.0"' "$CONVERT_MANIFEST" || \
+    fail "rust/convert/Cargo.toml does not declare license = \"MIT OR Apache-2.0\""
+if grep -q 'license *= *"FDK-AAC"' "$CONVERT_MANIFEST"; then
+    fail "rust/convert/Cargo.toml must not declare the FDK-AAC license for independent converter code"
+fi
+
+for f in "$CONVERT_DIR/LICENSE-MIT" "$CONVERT_DIR/LICENSE-APACHE" "$CONVERT_DIR/THIRD-PARTY-NOTICES.md"; do
+    [ -f "$f" ] || fail "missing converter licensing file: $f"
+done
+
+grep -q "Permission is hereby granted, free of charge" "$CONVERT_DIR/LICENSE-MIT" || \
+    fail "rust/convert/LICENSE-MIT lacks the MIT license text"
+grep -q "Apache License" "$CONVERT_DIR/LICENSE-APACHE" || \
+    fail "rust/convert/LICENSE-APACHE lacks the Apache license text"
+grep -q "Version 2.0, January 2004" "$CONVERT_DIR/LICENSE-APACHE" || \
+    fail "rust/convert/LICENSE-APACHE lacks the Apache 2.0 version marker"
+
+# No FDK-derived codec notice may appear in independently developed
+# converter sources.
+stray=""
+for rs in $(find "$CONVERT_DIR/src" -name '*.rs' -print | sort); do
+    if grep -q "Third-Party Modified Version" "$rs"; then
+        stray="$stray
+$rs"
+    fi
+done
+
+if [ -n "$stray" ]; then
+    printf '%s: error: %d converter source file(s) under rust/convert/src carry the FDK-derived codec notice:\n' \
+        "$prog" "$(printf '%s' "$stray" | grep -c /)" >&2
+    printf '%s\n' "$stray" >&2
+    printf '%s: hint: converter sources are independent MIT OR Apache-2.0 code; do not copy FDK-derived headers into them.\n' "$prog" >&2
+    exit 1
+fi
+
+printf 'converter licensing OK: MIT OR Apache-2.0 declared, both texts present, no FDK-derived notices under rust/convert/src\n'
 exit 0
