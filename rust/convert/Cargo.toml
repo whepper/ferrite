@@ -33,7 +33,7 @@ exclude = [
 ferrite-aac = { version = "0.3.2", path = ".." }
 # Pinned to the L3 evidence-phase selection; pure Rust, no C toolchain on the
 # default build path. MIT. See docs/archive/aac-convert-l3-prep-report.md Gate 1.
-ebur128 = "=0.1.10"
+ebur128 = "=0.1.11"
 symphonia = { version = "0.6.1", default-features = false, features = ["flac"] }
 # Pinned to the M7.5 feasibility-spike selection; zero dependencies, Apache-2.0.
 shiguredo_mp4 = "=2026.5.0"
