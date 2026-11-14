@@ -1,7 +1,7 @@
 # Ferrite User Manual
 
-**Version:** 0.3.0<br>
-**Release:** 13 November 2026<br>
+**Version:** 0.3.1<br>
+**Release:** 14 November 2026<br>
 **Audience:** Users converting FLAC music files with `aac-convert`
 
 Ferrite is a native Rust AAC-LC encoder. Its companion command-line application, **`aac-convert`**, converts FLAC files into AAC audio in an M4A container or an ADTS stream.
@@ -12,10 +12,10 @@ This manual explains how to build and use the standalone converter. It focuses o
 
 ## 1. What you need
 
-Ferrite 0.3.0 is distributed as source. Build it locally with:
+Ferrite 0.3.1 is distributed as source. Build it locally with:
 
 - Rust and Cargo **1.99.1**.
-- The Ferrite 0.3.0 source tree, including its workspace files and committed `Cargo.lock`.
+- The Ferrite 0.3.1 source tree, including its workspace files and committed `Cargo.lock`.
 - Network access to resolve crates.io dependencies on the first build (unless they are already cached).
 
 FFmpeg is **not** required to build or run `aac-convert`. It is useful for independently checking converted files, but is not a runtime dependency.
@@ -27,7 +27,7 @@ Download or clone the repository, then select the release tag:
 ```sh
 git clone https://github.com/whepper/ferrite.git
 cd ferrite
-git checkout v0.3.0
+git checkout v0.3.1
 ```
 
 Install the required Rust toolchain with rustup if necessary:
@@ -130,7 +130,7 @@ Warnings, such as the 24-bit precision notice or metadata warnings, are printed 
 | `--vbr 1..6` | Select VBR-1 through VBR-6 (default: 6). VBR-1..VBR-5 are upstream FDK; VBR-6 is the Ferrite default. |
 | `--no-tags` | Omit user metadata from M4A. Encoder identification is retained. Accepted for ADTS as a no-op. |
 | `--cover-art embedded` | Embed selected cover art in the M4A (default). |
-| `--cover-art external` | Do not embed; write `cover.jpg` or `cover.png` beside the output. |
+| `--cover-art external` | Do not embed; write `cover.jpg`, `cover.png` or `cover.webp` beside the output. |
 | `--cover-art both` | Embed and write the same selected cover art externally. |
 | `-h`, `--help` | Display command help. |
 | `-V`, `--version` | Display the application version (written to stderr). |
@@ -149,9 +149,9 @@ aac-convert --vbr 5 "track.flac" "track.m4a"
 aac-convert --vbr 1 "track.flac" "track.aac"
 ```
 
-Existing output files are **never overwritten**. There is no force or overwrite option in 0.3.0. Choose a new output path when the destination already exists.
+Existing output files are **never overwritten**. There is no force or overwrite option in 0.3.1. Choose a new output path when the destination already exists.
 
-Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg` or `cover.png` beside the output is left untouched.
+Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg`, `cover.png` or `cover.webp` beside the output is left untouched.
 
 Single-file mode does not accept batch-only options such as `--recursive`, `--dry-run`, `--skip-existing`, `--jobs`, `--verbose` or `--quiet`.
 
@@ -224,7 +224,7 @@ aac-convert --format adts "music/" "converted-adts/"
 | `--jobs N` | Process at most `N` files concurrently. Default: available logical CPUs. `--jobs 1` is strictly sequential. |
 | `--no-tags` | Omit user metadata, cover art and loudness tags from M4A. Encoder identification is retained. |
 | `--cover-art embedded` | Embed selected cover art (the default). |
-| `--cover-art external` | Write `cover.jpg`/`cover.png` beside each album's audio instead of embedding. |
+| `--cover-art external` | Write `cover.jpg`/`cover.png`/`cover.webp` beside each album's audio instead of embedding. |
 | `--cover-art both` | Embed and write the same selected cover art externally. |
 | `-v`, `--verbose` | Show extra per-file audio and metadata details, including ignored-entry reasons. |
 | `-q`, `--quiet` | Print only the final summary on standard output. Failure diagnostics remain on standard error. |
@@ -254,7 +254,7 @@ aac-convert --jobs 8 "music/" "m4a/"
 # Show sample rate, channels, bit depth, and tag diagnostics.
 aac-convert --verbose "music/" "m4a/"
 
-# Write cover.jpg/cover.png beside each album instead of embedding artwork.
+# Write cover.jpg/cover.png/cover.webp beside each album instead of embedding artwork.
 aac-convert --cover-art external "music/" "m4a/"
 
 # Keep the final summary but suppress normal per-file progress.
@@ -287,8 +287,8 @@ the limit is the number of available logical CPUs; `--jobs N` selects a
 different limit, and `--jobs 1` restores strictly sequential processing. The
 effective count is shown in the `batch:` header line.
 
-Preparation and encoding are separate stages: album loudness analysis and the
-external artwork pre-scan finish before any audio is encoded, and each stage
+Preparation and encoding are separate stages: album artwork discovery and album
+loudness analysis finish before any audio is encoded, and each stage
 reuses the same `--jobs` limit. At most `N` files are therefore in flight at
 once. Each worker has its own decoder, encoder, metadata state and temporary
 output file, so files cannot share or corrupt each other's encoder state.
@@ -297,14 +297,17 @@ Some work is intentionally coordinated rather than parallel:
 
 - Tracks in one album are analysed sequentially because they contribute to one
   shared album-loudness result. Different albums run concurrently.
-- External artwork reads are concurrent, but conflict detection and
-  `cover.jpg`/`cover.png` publication happen in deterministic plan order, so
-  workers cannot race on a shared image.
+- Artwork is discovered once per album directory, not once per file.
+  Conflict detection and `cover.jpg`/`cover.png`/`cover.webp` publication
+  happen in deterministic plan order, so workers cannot race on a shared
+  image.
 - Destination collision checks and the atomic no-overwrite publication path
   are unchanged. Distinct files still publish independently and atomically.
 
 Peak memory grows with the worker count (one in-flight file per worker), not
-with the size of the library. A typical `--jobs 1` run uses the least memory;
+with the size of the library. Artwork adds at most one image (up to the 16 MiB
+cover limit) per in-flight worker for embedding; embedded fallback covers are
+staged on disk, not retained in RAM. A typical `--jobs 1` run uses the least memory;
 the default usually gives the best wall-clock throughput. Dry runs start no
 workers.
 
@@ -400,6 +403,15 @@ Missing optional fields do not warn. Malformed values, unsupported values and lo
 
 ### Cover art
 
+Before embedded pictures are considered, the converter looks for a conventional image file in the source album directory. The search is deterministic:
+
+1. `cover`, `folder`, `front`, `album` with `.jpg`;
+2. the same four stems with `.jpeg`;
+3. the same four stems with `.png`;
+4. the same four stems with `.webp`.
+
+Matching is case-insensitive. The first readable, supported file within the 16 MiB limit wins for the whole album directory. JPEG and PNG images can be embedded in M4A and published externally; WebP images are external-only (written as `cover.webp`) because the M4A `covr` atom supports JPEG and PNG only. Images are never decoded, recompressed or resized. When no suitable album file exists, embedded FLAC pictures are used as before:
+
 M4A output can carry at most one JPEG or PNG image:
 
 - Front cover is preferred.
@@ -418,7 +430,7 @@ Image type is identified from its file signature, not just its declared MIME typ
 | `external` | No | Yes |
 | `both` | Yes | Yes |
 
-External files are named `cover.jpg` for JPEG and `cover.png` for PNG. They are written in the same output directory as the converted audio (for a batch, the mirrored album directory under the output root). The original image bytes are preserved exactly; the converter does not recompress or resize them.
+External files are named `cover.jpg` for JPEG, `cover.png` for PNG and `cover.webp` for reused WebP album artwork. They are written in the same output directory as the converted audio (for a batch, the mirrored album directory under the output root). The original image bytes are preserved exactly; the converter does not recompress or resize them.
 
 One cover file is written per output directory, not per track. Before writing, the converter checks all planned tracks that target the directory:
 
@@ -426,7 +438,7 @@ One cover file is written per output directory, not per track. Before writing, t
 - If different images are found, a warning names the affected directory and external artwork is skipped for that directory. Audio conversion continues normally. No arbitrary first image and no partial file is published. All planned tracks take part in this check, including tracks skipped under `--skip-existing` and tracks that later fail conversion, so a failed track with different artwork can veto external publication for its directory.
 - If no track has eligible artwork, no file is written.
 
-External cover publication never overwrites an existing `cover.jpg` or `cover.png`; the existing file is left untouched. With `--skip-existing`, an album whose audio outputs already exist can still receive an external cover if no cover file exists yet. Dry runs create no artwork.
+External cover publication never overwrites an existing `cover.jpg`, `cover.png` or `cover.webp`; the existing file is left untouched. With `--skip-existing`, an album whose audio outputs already exist can still receive an external cover if no cover file exists yet. Dry runs create no artwork.
 
 `--no-tags` disables both embedding and external extraction, and suppresses cover warnings. ADTS output never carries or writes cover art, regardless of `--cover-art`.
 
@@ -473,27 +485,40 @@ An abrupt process termination, machine shutdown or power loss can leave a hidden
 ### Batch progress
 
 Normal batch mode prints live progress to **standard error**. With `--jobs 1`
-the lines follow plan order; with more workers they arrive in completion
-order. M4A runs with tags first print a preparation line for the loudness
-pre-pass (and artwork pre-scan when external cover art is requested):
+events follow plan order; with more workers they arrive in completion
+order. M4A runs with tags first print a preparation section for album artwork
+discovery and the loudness pre-pass:
 
 ```text
-preparing 111 files (loudness)...
-[  1/111] Artist/Album/01 - Track.flac  encoding...
-[  1/111] Artist/Album/01 - Track.flac  done
-[  2/111] Artist/Album/02 - Track.flac  encoding...
-[  2/111] Artist/Album/02 - Track.flac  done
-[  3/111] Artist/Album/03 - Track.flac  skipped (already exists)
-[  4/111] Artist/Album/04 - Track.flac  encoding...
-[  4/111] Artist/Album/04 - Track.flac  failed (UnsupportedChannels)
+Preparing 111 files across 12 albums
+
+Preparation
+  Artwork discovery    12/12  100%, reused cover.jpg
+  Loudness analysis    111/111  100%
+  Artwork reused       3 albums
+  Artwork extracted    9 albums
+  Prepared             111 files (1.23s)
 ```
 
-The first number is the item's position in the deterministic plan and the
-second is the total planned items, so counters stay meaningful even when items
-finish out of order. Each file emits its own start line (unless it was already
-known to be skipped) and exactly one terminal line with its real outcome.
-Per-file warnings appear on stderr immediately after the item's `done` line,
-not after the whole batch. Long nested paths are printed in full. The batch
+followed by an encoding section with a running file counter:
+
+```text
+Encoding
+  Files                111/111  100%
+  Converted            110 converted, 1 skipped, 0 failed (4.56s)
+```
+
+On an interactive terminal the counters update on a single live line
+(truncated to fit narrow terminals); redirected output (pipes, files, CI logs)
+gets milestone lines instead, throttled to ten-percent steps with a
+one-second fallback and always at completion. A run with no preparation work
+(for example ADTS output) prints a `Converting …` header instead of the
+preparation section. With `--verbose`, each file additionally gets its own
+`encoding`, `done`, `skipped`, `failed` or `planned` line with its full path.
+
+The counters stay meaningful even when items finish out of order. Per-file
+warnings appear on stderr as soon as the file finishes, not after the whole
+batch. Long nested paths are printed in full in verbose mode. The batch
 header on stdout reports the effective worker count.
 
 Machine-readable per-file results and the final summary remain on **standard
@@ -517,7 +542,7 @@ The final summary has this form:
 summary: <converted> converted, <failed> failed, <existing> existing, <ignored> ignored (<seconds>s)
 ```
 
-With `--skip-existing`, the summary also includes a skipped count. A dry-run summary begins with `dry-run:`. Dry runs print the plan on stdout and never emit `encoding...` progress.
+With `--skip-existing`, the summary also includes a skipped count. A dry-run summary begins with `dry-run:`. Dry runs print the plan on stdout and never emit progress.
 
 ### Warnings and verbose output
 
@@ -555,7 +580,7 @@ The converter accepts only 44.1 or 48 kHz, mono or stereo FLAC. It does not resa
 
 ### “24-bit FLAC input is truncated…”
 
-This is an informational warning, not a conversion failure. Ferrite 0.3.0 encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
+This is an informational warning, not a conversion failure. Ferrite 0.3.1 encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
 
 ### “Output already exists” / publication failure
 
@@ -587,7 +612,7 @@ If the process was forcibly terminated or the machine shut down during conversio
 
 ## 11. Scope and limitations
 
-Ferrite 0.3.0 is deliberately focused:
+Ferrite 0.3.1 is deliberately focused:
 
 - AAC-LC VBR-1 through VBR-6 (default VBR-6); no other object types or modes.
   See [VBR profiles](vbr-profiles.md).
@@ -608,6 +633,7 @@ Ferrite 0.3.0 is deliberately focused:
 - [Ferrite encoder API integration guide](encoder-integration.md)
 - [VBR profile reference](vbr-profiles.md)
 - [aac-convert integration contract](aac-convert-integration-contract.md)
+- [Ferrite 0.3.1 release notes](releases/0.3.1.md)
 - [Ferrite 0.3.0 release notes](releases/0.3.0.md)
 
 For encoder-library consumers, use the encoder integration guide. This user manual covers the standalone `aac-convert` application.

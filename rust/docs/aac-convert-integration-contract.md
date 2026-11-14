@@ -98,8 +98,12 @@ Behavior:
   conversion.
 - Unmapped keys are counted in the `TagDiagnostics` and shown by the CLI in
   verbose mode. They are not guessed into non-standard atoms.
-- Artwork selection is deterministic: front cover, then other typed pictures,
-  then untyped pictures, in source order. JPEG/PNG only, maximum 16 MiB.
+- Artwork selection is deterministic: a conventional image in the source album
+  directory (`cover`/`folder`/`front`/`album` with `.jpg`, `.jpeg`, `.png` or
+  `.webp`, case-insensitive, in that priority order) is reused before embedded
+  pictures are considered; otherwise front cover, then other typed pictures,
+  then untyped pictures, in source order. JPEG/PNG only for embedding (WebP
+  is external-publication only), maximum 16 MiB.
 - `--no-tags` omits user tags, cover art, and loudness atoms; it does not
   change audio payloads, `iTunSMPB`, or the `©too` encoder identification.
 - Tags never alter the AAC payload. The encoded AAC access units are
@@ -163,7 +167,7 @@ gapless metadata; consumers must trim using the known encoder delay.
 - 44.1/48 kHz, mono/stereo only; no resampling or downmixing.
 - `i16` PCM only; 24-bit input is truncated before encoding, with no dither.
 - Core tags only; multi-values are first-value, identifiers are not mapped.
-- One cover image only; JPEG/PNG only; 16 MiB limit.
+- One cover image only; JPEG/PNG only for embedding (WebP external-only); 16 MiB limit.
 - Bounded parallel batch conversion; no intra-file or frame-level
   parallelism.
 - No perceptual quality, transparency, or ABX claim.
