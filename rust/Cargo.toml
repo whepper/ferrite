@@ -48,7 +48,7 @@ crate-type = ["lib"]
 [dependencies]
 arrayvec = "0.7.6"
 bitflags = "2.5.0"
-itertools = "0.10.5"
+itertools = "0.15.0"
 num-complex = "0.4.6"
 paste = "1.0.15"
 zerocopy = "0.8.20"
