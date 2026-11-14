@@ -3454,7 +3454,7 @@ by the full-suite `qprobe_transcript_exact` / `s3_corpus_exact` paths.
 | Cross-compilation + disassembly | x86-64 build clean; corrected `blend(0xAA)` emitted; AVX2 confined; `vzeroupper` on exits (§33.6) |
 | ARM64/NEON execution | full release suite 356 pass / 11 pre-existing artifact failures / 6 ignored; goldens 2/2; quant 22/1 |
 | Rosetta scalar fallback | AVX2 tests skip honestly; dispatch confirms scalar; goldens 2/2 |
-| **Native AVX2 execution** | **PENDING** — workflow authored + lint-clean; first run requires a push/PR (out of scope here) |
+| **Native AVX2 execution** | **DONE** — GitHub Actions run [43643928322](https://github.com/whepper/ferrite/actions/runs/43643928322) on x86-64 AMD EPYC 9V45 (AVX2); `CONFIRMED backend=Avx2`, 17/17 AVX2 tests pass in debug and release; see §36 |
 | Performance measurement | **PENDING / not claimed** — no benchmarks in this phase |
 
 ### 34.6 Local verification performed while authoring (ARM64 host)
@@ -3566,11 +3566,11 @@ multi-line test steps already used `set -euo pipefail`.
 
 **Evidence classes:** the branch instrumentation is *compiled* and *structurally
 verified* (record calls lexically inside the production branches; test invokes
-the production entry points; counters absent from production asm). **Native
-AVX2 execution remains PENDING** — the counters incrementing on a real AVX2
-runner, and the `CONFIRMED … branches=…` line, will be produced by the first
-GitHub run (requires a push, out of scope here). Cross-compilation and ARM64
-execution are **not** native AVX2 execution. No performance claim.
+the production entry points; counters absent from production asm). At authoring
+time native AVX2 execution was pending; it has **since been achieved** in GitHub
+Actions run 43643928322 (§36), which produced the `CONFIRMED … branches=…` line
+on a real AVX2 runner. Cross-compilation, ARM64 and Rosetta execution are **not**
+native AVX2 execution. No performance claim.
 
 ### 35.4 Files changed (Phase 2.2.1, uncommitted)
 
@@ -3582,3 +3582,85 @@ execution are **not** native AVX2 execution. No performance claim.
 | `docs/aac-enc-performance-baseline.md` | §34.3 cross-reference; this §35. |
 
 No commit, push, amend, rebase or history rewrite; no fixture/golden change.
+
+## 36. 2026-11-14 Native AVX2 execution results (GitHub Actions run 43643928322)
+
+The Phase 2.2 commits were published (`1c825c6..c8b11fd`, fast-forward, 4
+commits) and the dedicated workflow executed on a GitHub-hosted x86-64 Linux
+runner. **This is native AVX2 hardware execution** — distinct from the prior
+cross-compilation, intrinsic-level simulation, ARM64/NEON and Rosetta
+scalar-fallback evidence (§33–§35). All gates passed; logs and artifacts were
+inspected directly, not inferred from the green status.
+
+### 36.1 Run and runner environment
+
+- **Run:** https://github.com/whepper/ferrite/actions/runs/43643928322
+  (job `Native AVX2 correctness (x86-64, Rust 1.99.1)`, ID 132597371316, ~45 s).
+- **Commit:** `c8b11fd3e02e5d12468043db20bbc9ba8a1b57ae`; event `push` to `main`;
+  conclusion `success`.
+- **Runner:** `ubuntu-latest` Azure VM, kernel `7.0.0-1017-azure`
+  (`#17~24.04.1-Ubuntu SMP`), **x86_64**.
+- **CPU:** AMD EPYC 9V45 96-Core Processor; `/proc/cpuinfo` flags include
+  **`avx2`** (also `avx512*`, but the kernels use AVX2 only). Prerequisite gate
+  logged `PREREQ OK: arch=x86_64 avx2=present`.
+- **Toolchain:** rustc **1.99.1** (`58cf8f9c3`, 2026-10-13), LLVM 23.1.1,
+  cargo 1.99.1; host and target **`x86_64-unknown-linux-gnu`**. Gate logged
+  `PREREQ OK: target=x86_64-unknown-linux-gnu`.
+
+### 36.2 Production dispatch confirmation (actual branch observation)
+
+`avx2_dispatch_selection` emitted, in **both** release and debug:
+
+```
+AVX2_TEST avx2_dispatch_selection: CONFIRMED backend=Avx2 avx2=true branches=quantize:1,dist:1,energy:1
+```
+
+All three production AVX2 branch counters are nonzero (`quantize:1, dist:1,
+energy:1`). Counts are exactly 1 because the gate runs `--test-threads=1`, so
+only the observing test's own production invocations are counted. This proves
+the real `quantize_spectrum`, `calc_sfb_dist` and
+`calc_sfb_quant_energy_and_dist` dispatchers entered their AVX2 branches on
+native hardware (closes MEDIUM-1 by observation, not by feature availability).
+
+### 36.3 Test results (from the uploaded logs)
+
+| Suite | Result |
+|---|---|
+| AVX2 module — **release** | **17 passed; 0 failed; 1 ignored** (microbench); 0 skips |
+| AVX2 module — **debug** | **17 passed; 0 failed; 1 ignored**; 0 skips; identical test set to release |
+| VBR-5 corpus golden (`production_f32_corpus_baseline_is_unchanged`) | pass |
+| VBR-6 music golden (`production_default_profile_vbr6_music_baseline_is_unchanged`) | pass (2/2; no fixture regeneration) |
+| Full self-contained suite (release) | **361 passed; 0 failed; 6 ignored; 15 filtered out** (the ci.yml artifact-dependent skips) |
+| Public encoder API (`production_api`) | 6 passed; 0 failed |
+| Formatting (`cargo fmt --all -- --check`) | clean (empty log) |
+| Clippy (`--all-targets`, non-gating) | 0 errors; pre-existing warnings only |
+
+The 17 executed AVX2 tests include the `fmult8`/`fixmuldiv2_ds8` regression
+anchors, deterministic all-lane quantize/energy tests, the 5,000-trial
+randomized differentials (`generated=5000 accepted=5000 rejected=0` for
+quantize/dist/energy), the residue sweep (`q_idx=[12,12,12,12]`,
+`m_row=[12,12,12,12]` — all four quantizer constants and all four mantissa
+rows), boundary lengths (`checked=320`), prefix-write/violation positions, and
+exceptional-magnitude positions (`violating=400 passing=160`). No AVX2 test
+skipped; the only ignored test is the opt-in microbenchmark (no benchmarks run).
+
+### 36.4 Artifacts
+
+`avx2-native-validation-logs` uploaded successfully (`if: always()`), containing
+`environment.txt`, `toolchain.txt`, `build-release.txt`, `avx2-release.txt`,
+`avx2-debug.txt`, `full-suite-release.txt`, `goldens.txt`, `production-api.txt`,
+`fmt.txt`, `clippy.txt`. All inspection above is from these logs.
+
+### 36.5 Status and limitations
+
+- **Native AVX2 correctness validation: PASSED.** The AVX2 kernels execute
+  natively and are bit-identical to the scalar reference; production dispatch
+  selects AVX2; goldens and the full self-contained suite pass.
+- **Performance: still NOT measured / NOT claimed.** No benchmark ran; the
+  §32.7 end-to-end performance acceptance campaign remains a separate, pending
+  phase. This run establishes correctness only.
+- Runner-image notes (informational, non-blocking): GitHub annotated that
+  `ubuntu-latest` migrates to Ubuntu 26 from 2026-10-19 and that
+  `actions/cache@v4`/`upload-artifact@v4` target Node 20 (forced to Node 24).
+  Neither affected this run; the architecture/AVX2 gates remain fail-closed
+  against future runner changes.
