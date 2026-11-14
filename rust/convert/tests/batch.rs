@@ -1064,9 +1064,11 @@ fn cli_batch_reports_ok_lines_and_summary_with_exit_zero() {
     );
     assert_eq!(
         // VBR-6 default (20 kHz): +2 bytes over the VBR-5 1959-byte baseline
-        // (+37 bytes over the pre-metadata baseline for `©too`).
+        // (+37 bytes over the pre-metadata baseline for `©too`), minus the
+        // 72-byte `free` placeholder dropped by fast-start relocation
+        // (ftyp/moov/mdat with no free box).
         lines[1],
-        "ok a.flac -> a.m4a (14 frames, 1961 bytes)",
+        "ok a.flac -> a.m4a (14 frames, 1889 bytes)",
         "{lines:?}"
     );
     assert!(
@@ -1548,7 +1550,7 @@ fn cli_batch_verbose_reports_ignores_and_details() {
     assert!(
         lines
             .iter()
-            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1961 bytes, 48000 Hz, stereo")),
+            .any(|l| l.starts_with("ok a.flac -> a.m4a (14 frames, 1889 bytes, 48000 Hz, stereo")),
         "{lines:?}"
     );
 }

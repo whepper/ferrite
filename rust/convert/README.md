@@ -78,7 +78,7 @@ extension, keeps the historical ADTS default. The success message names the
 selected format and VBR profile:
 
 ```text
-converted input.flac -> output.m4a (14 AAC frames, 1961 bytes, M4A, VBR-6, nominal 192000 bit/s, 20000 Hz bandwidth)
+converted input.flac -> output.m4a (14 AAC frames, 1889 bytes, M4A, VBR-6, nominal 192000 bit/s, 20000 Hz bandwidth)
 ```
 
 `--vbr` accepts `1` through `6` (also `VBR-1`..`VBR-6`, `vbr1`..). Default is
