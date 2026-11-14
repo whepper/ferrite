@@ -433,7 +433,35 @@ pub fn quantize_spectrum(
                     );
                 }
             }
-            #[cfg(not(target_arch = "aarch64"))]
+            #[cfg(target_arch = "x86_64")]
+            {
+                // Runtime dispatch: AVX2 kernels only after the feature check;
+                // the `#[target_feature]` + `#[inline(never)]` entry points keep
+                // AVX2 instructions out of the baseline path (see quant_avx2).
+                if std::arch::is_x86_feature_detected!("avx2") {
+                    // SAFETY: feature-checked above; the kernel reads/writes
+                    // exactly `end - start` lines and falls back to
+                    // `quantize_line_body` for tails.
+                    unsafe {
+                        super::quant_avx2::quantize_lines_avx2(
+                            &spec[start..end],
+                            &mut out[start..end],
+                            qss,
+                            quantizer_shift,
+                            k,
+                        );
+                    }
+                } else {
+                    quantize_lines_scalar(
+                        &spec[start..end],
+                        &mut out[start..end],
+                        quantizer,
+                        quantizer_shift,
+                        k,
+                    );
+                }
+            }
+            #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
             {
                 quantize_lines_scalar(
                     &spec[start..end],
@@ -519,14 +547,34 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
             None => 0,
         }
     }
-    #[cfg(not(target_arch = "aarch64"))]
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
         calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant)
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        // Runtime dispatch: AVX2 kernels only after the feature check; the
+        // `#[target_feature]` + `#[inline(never)]` entry points keep AVX2
+        // instructions out of the baseline path (see quant_avx2).
+        if std::arch::is_x86_feature_detected!("avx2") {
+            // SAFETY: feature-checked above. The kernel writes exactly the
+            // scalar prefix on early-out and is bit-identical otherwise;
+            // tails and exceptional groups use the scalar path.
+            let sum = unsafe {
+                super::quant_avx2::calc_sfb_dist_sum_avx2(spec, quant, gain, quantizer_shift, k)
+            };
+            match sum {
+                Some(xfsf) => calc_ld_data(xfsf),
+                None => 0,
+            }
+        } else {
+            calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant)
+        }
     }
 }
 
 /// Scalar reference for [`calc_sfb_dist`]: always available for differential
-/// testing, including on AArch64 where the public entry uses NEON.
+/// testing, including where the public entry uses SIMD (NEON/AVX2).
 pub(crate) fn calc_sfb_dist_scalar(
     spec: &[i32],
     gain: i32,
@@ -579,9 +627,31 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
             None => (0, 0),
         }
     }
-    #[cfg(not(target_arch = "aarch64"))]
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
         calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain)
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        // Runtime dispatch: AVX2 kernels only after the feature check; the
+        // `#[target_feature]` + `#[inline(never)]` entry points keep AVX2
+        // instructions out of the baseline path (see quant_avx2).
+        if std::arch::is_x86_feature_detected!("avx2") {
+            // SAFETY: feature-checked above. Bit-identical sums;
+            // exceptional groups and tails use the scalar path.
+            let sums = unsafe {
+                super::quant_avx2::calc_sfb_quant_energy_and_dist_sums_avx2(spec, quant, gain)
+            };
+            match sums {
+                Some((energy, distortion)) => (
+                    calc_ld_data(energy).wrapping_add(0x0400_0000),
+                    calc_ld_data(distortion),
+                ),
+                None => (0, 0),
+            }
+        } else {
+            calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain)
+        }
     }
 }
 
@@ -613,9 +683,70 @@ pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
     )
 }
 
+/// Which SIMD backend the production dispatch in this module selects on the
+/// current target. Test-only: it mirrors the exact `cfg` gates and the same
+/// `is_x86_feature_detected!("avx2")` macro used by `quantize_spectrum`,
+/// `calc_sfb_dist` and `calc_sfb_quant_energy_and_dist`, so it resolves
+/// identically to the real dispatch on this machine. It exists so a native
+/// test run can *positively assert* the selected backend (Phase 2.1,
+/// MEDIUM-1) rather than inferring AVX2 selection from a passing kernel test.
+/// No production atomics, counters, or runtime overhead.
+#[cfg(test)]
+#[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(crate) enum Backend {
+    Neon,
+    Avx2,
+    Scalar,
+}
+
+#[cfg(test)]
+pub(crate) fn selected_backend() -> Backend {
+    #[cfg(target_arch = "aarch64")]
+    {
+        Backend::Neon
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        if std::arch::is_x86_feature_detected!("avx2") {
+            Backend::Avx2
+        } else {
+            Backend::Scalar
+        }
+    }
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+    {
+        Backend::Scalar
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Phase 2.1 (MEDIUM-1): the dispatch-selection helper must resolve to the
+    /// backend mandated by the target and runtime features. Runs on every
+    /// architecture: AArch64 -> NEON, x86-64 -> AVX2 iff detected else scalar,
+    /// other -> scalar. This is a positive assertion of the selection logic,
+    /// not an inference from a kernel test passing.
+    #[test]
+    fn dispatch_backend_matches_arch_and_features() {
+        let b = selected_backend();
+        #[cfg(target_arch = "aarch64")]
+        assert_eq!(b, Backend::Neon, "AArch64 must dispatch NEON");
+        #[cfg(target_arch = "x86_64")]
+        {
+            let want = if std::arch::is_x86_feature_detected!("avx2") {
+                Backend::Avx2
+            } else {
+                Backend::Scalar
+            };
+            assert_eq!(b, want, "x86-64 dispatch must follow AVX2 detection");
+        }
+        #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+        assert_eq!(b, Backend::Scalar, "other targets must dispatch scalar");
+    }
+
     #[test]
     fn probe_table_anchors_hold() {
         // C-probed literals (quant_probe QTAB dump): the scripted

@@ -2968,3 +2968,393 @@ committed golden outputs are unchanged.
 
 No staging, commit, push, amend, reset, rebase, cherry-pick, or history
 rewrite occurred while preparing this section.
+
+## 32. 2026-11-14 SIMD Phase 2: x86-64 AVX2 quantization kernels
+
+### 32.1 Question and status
+
+Can the S3/S4 quantization and distortion kernels be vectorized with AVX2,
+bit-identical to the existing x86-64 scalar path? **Implementation complete;
+hardware execution and performance acceptance PENDING.** No AVX2-capable
+hardware was available in this environment (ARM64 Apple M5 host; Rosetta 2
+exposes no AVX2; QEMU user-mode is unavailable on macOS), so the AVX2
+differential tests compile but report `SKIP (no AVX2)` at runtime here, and no
+AVX2 performance number was measured or is claimed. Everything that could be
+validated without AVX2 hardware was validated (§32.6); the AVX2-vs-scalar
+equivalence gate and the paired performance campaign must run on native x86-64
+hardware with AVX2 before any acceptance claim.
+
+Preconditions (§0): Phase 1.1 was checkpointed alone as `7adf935`
+(`docs/aac-enc-performance-baseline.md`, `rust/src/aac_enc/quant_neon.rs`,
+`rust/src/aac_enc/stream_driver.rs`), parent `c530054`, clean tree verified.
+No AVX2 code is in that commit. No Phase 2 commit or push occurred.
+
+### 32.2 Architecture and dispatch
+
+Three-way dispatch in `rust/src/aac_enc/quant.rs`, without disturbing NEON:
+
+| Target | Path |
+|---|---|
+| AArch64 | existing NEON implementation (unchanged) |
+| x86-64 with AVX2 | new AVX2 implementation (`quant_avx2.rs`), after `is_x86_feature_detected!("avx2")` |
+| x86-64 without AVX2 / other | portable scalar fallback (unchanged) |
+
+The scalar functions remain the testable reference (`calc_sfb_dist_scalar`,
+`calc_sfb_quant_energy_and_dist_scalar`, `quantize_lines_scalar`). The AVX2
+entry points carry `#[target_feature(enable = "avx2")]` **and**
+`#[inline(never)]`, so AVX2 instructions cannot be inlined into baseline code
+that executes before the runtime feature check. No `target-cpu=native`
+requirement, no AVX-512, no multithreading, no new dependencies, no public API
+or algorithmic change. `rust/src/aac_enc.rs` registers the module under
+`#[cfg(target_arch = "x86_64")]`; the ARM build is unaffected by this phase
+(module compiled out).
+
+### 32.3 x86 fixed-point semantics (the critical requirement)
+
+The NEON sequence cannot be translated literally. The independent Phase 1
+review identified the architecture-specific `fmult` LSB difference; derivation
+against the scalar source gives:
+
+- The **Rust scalar** `fmult(a, b) = floor(a*b/2^31)` (keeps bit 0) is
+  portable: identical on ARM64 and x86-64. The **x86 C** `fixmul` variant
+  (`shl edx,1`) computes `((a*b)>>32)<<1` and clears bit 0 (verified:
+  `fmult(0x40000000, 10)` is 5 in Rust/ARM64-C vs 4 in x86-C). Committed
+  fixtures pin the floor behavior, so AVX2 must reproduce the **floor**, never
+  a high-half-doubled value.
+- `fixmuldiv2_DS` (quantize first stage) is the plain high half `>>32` on all
+  arches; `fixmuldiv2_SS` (mantissa times `QUANT_TABLE_E`) is the plain
+  32-bit low product with no shift; `fpow2` (energy/distortion squares) is
+  `((a*a)>>32)<<1` on all arches — exactly the floor with bit 0 cleared for
+  non-negative products.
+- AVX2 has no 32-bit-high-half instruction, so `fmult`/`DS`/`fpow2` use
+  `mul_epi32` even/odd halves (full 64-bit products) + logical `>>31`/`>>32`,
+  whose low 32 bits equal the arithmetic floor (upper fill bits fall outside
+  the kept word). The even/odd results are re-interleaved with
+  `slli_epi64::<32>(odd_s) + blend(0xAA)` (Phase 2.1 correction; the original
+  `unpacklo/unpackhi + blend(0xCC)` kept the high product halves in lanes
+  2,3,6,7 — see §32.6 and §33). `fixmuldiv2_SS` is a single `mullo`.
+- AVX2 64-bit products never saturate at these magnitudes (verified bound
+  `|2·s·t| ≈ 8.7e18 < 2^63-1`), so unlike NEON `sqdmulh` there is **no**
+  `fmult(INT_MIN, INT_MIN)` saturation divergence and no `inv == INT_MIN`
+  guard is needed (`fpow2(INT_MIN) == INT_MIN` exactly, as scalar).
+- AVX2 has no per-lane `clz`; it is emulated by an exact 5-step binary search
+  with unsigned compares (sign-bit bias + signed `cmpgt`). Variable shifts
+  mask counts to 5 bits explicitly, matching the scalar wrapping semantics.
+- Table lookups use scalar lane loads (as NEON does); no hardware gather is
+  assumed faster — §32.7 leaves a gather-vs-lane-load comparison for hardware
+  with counters. Energy/distortion sums are wrapping `i32` adds (associative
+  mod 2^32), so vector summation order is exact. Zero fast paths and sign
+  restoration are selects, not branches; early-out prefix-write semantics and
+  the `i16::MIN`/`MAX_QUANT` guards mirror NEON (8-lane groups, scalar
+  fallback per violating group, scalar tails).
+
+### 32.4 Implementation
+
+New file `rust/src/aac_enc/quant_avx2.rs`: 8-lane `quantize8`,
+`inv_quantize8`, `dist8`, `over_max_quant`, wrapping horizontal sum, and the
+three band entry points (`quantize_lines_avx2`, `calc_sfb_dist_sum_avx2`,
+`calc_sfb_quant_energy_and_dist_sums_avx2`) with the same early-out/prefix
+contract as NEON. Allocation-free; only stack-resident temporaries.
+
+### 32.5 Differential test coverage
+
+`quant_avx2.rs` tests (all `#[cfg(target_arch = "x86_64")]`, each skipping
+cleanly with `SKIP (no AVX2)` when the feature is absent; scalar tests
+untouched):
+
+- `avx2_quantize_lines_matches_scalar`: 5,000 randomized trials, residue-
+  complete gain grid (all four `QUANT_TABLE_Q` constants), fixed seed, visible
+  `AVX2_TEST` accounting, zero envelope rejections expected.
+- `avx2_calc_sfb_dist_matches_scalar`: 5,000 trials over the production gain
+  envelope with zero/`INT_MIN`/`INT_MAX` injection, via the production dispatch.
+- `avx2_calc_sfb_dist_early_out_prefix_matches`: residue-complete gains ×
+  lengths `{1..5,7,8,9,15,16,17,18,24,25,32,33,64}` × dead zones, plus the
+  `i16::MIN` sentinel energy/dist early-out.
+- `avx2_dist_violation_positions`: single violating lane at every position of
+  a 16-line band (both SIMD groups), sentinel tail proof.
+- `avx2_energy_max_quant_positions`: every edge magnitude
+  (`8191/8192/-8192/-8193/MIN/MAX/0`) at every lane of a 16-line band.
+- `avx2_boundary_lengths`: lengths `0..10,12,15,16,17,18,24,25,32,33` across
+  all three kernels incl. tails.
+- `avx2_energy_dist_matches_scalar`: 5,000 trials with arbitrary gains and
+  guard-heavy quant generation.
+- `avx2_residue_sweep_all_quantizers_and_rows`: Phase 1.1 coverage carried
+  forward — every production gain base `+0..+3` (all four quantizer constants
+  and all four `SPEC_EXP` rows, asserted non-empty), lengths `14..=17`
+  (one full group + tail at each residue), sentinel-filled dist buffers.
+- `avx2_fpow2_int_min_anchor` (portable scalar anchors) and an opt-in
+  `avx2_kernel_microbench` (`#[ignore]`, same shape as the NEON one, with the
+  corrected production gain→shift mapping).
+
+### 32.6 Validation performed without AVX2 hardware
+
+> **Correction (Phase 2.1, see §33):** the "portable lane-algorithm sims" row
+> below was **overstated**. Those sims computed the *intended per-lane
+> mathematical result* (e.g. `floor(a*b/2^31)` per lane); they did **not**
+> model the composition of the AVX2 intrinsics — in particular the even/odd
+> `mul_epi32` → shift → **re-interleave** lane routing. They therefore could
+> not, and did not, detect the `unpacklo/unpackhi + blend(0xCC)` re-interleave
+> defect that corrupts lanes 2,3,6,7. The independent adversarial review's
+> **intrinsic-level** simulation (which models each intrinsic's actual lane
+> semantics, cross-checked against the generated x86-64 assembly) detected the
+> defect immediately, with no AVX2 hardware. The claim "everything that could
+> be validated without AVX2 hardware was validated" was false at the time:
+> a faithful intrinsic-level simulation was available and would have caught
+> it. No AVX2 kernel has been executed on native AVX2 hardware, and no AVX2
+> performance improvement has been measured or established. The corrected
+> methodology and results are in §33.
+
+| Check | Result |
+|---|---|
+| x86-64 cross-compile (`cargo check --target x86_64-apple-darwin`) | clean; `#[inline(always)]`+`#[target_feature]` conflict found and fixed |
+| Portable lane-algorithm sims (throwaway, outside the repo) — **lane-intent only, superseded by §33** | `clz8` exact over 2.39M values; per-lane `fmult`/`dist8` *math* matched the intended formula. **These sims did not model intrinsic lane routing and missed the re-interleave defect** (Phase 2.1). They did catch two `clz8` lane-logic defects (a step-2 threshold `0xC0000000`→`0x40000000` and a folded bias-shift). The re-interleave defect was found only by the review's intrinsic-level simulation + disassembly (§33). |
+| Full x86_64 suite under Rosetta 2 (scalar fallback; AVX2 absent) | 347 passed; only failure is the pre-existing missing-artifact `m55_streams_match_c_reference` (`$M55_C_DIR` unset). `production_baseline` (VBR-5 19-fixture goldens + VBR-6 music pin) passes bit-exactly → the x86-64 scalar output **is** the committed reference (no cross-platform output difference in the Rust implementation), and the new dispatch takes the scalar path safely |
+| Benchmark smoke under Rosetta (2 fixtures × 1 rep, VBR-5, production+core) | harness works on x86_64 (`arch=x86_64`, `vbr=5` records, hash gates pass). Numbers are emulation-skewed and are **not** a baseline; recorded here only as a dispatch/harness check |
+| ARM64 suites (scalar + NEON paths) | debug: 359 passed, 11 failed (all pre-existing missing-artifact), 2 ignored; release: 355 passed, same 11, 6 ignored; failure set proven identical with the AVX2 change stashed. `quant` 18/18, `scf` 6/6, `production_baseline` 2/2 in release |
+| Licensing / formatting | `tools/check-licensing.sh` OK (69 files carry the notice); `git diff --check` clean; rustfmt clean |
+
+### 32.7 Benchmark plan (native x86-64 hardware, not yet run)
+
+Baseline: `git worktree` at `7adf935` (pre-AVX2) vs this tree, same toolchain
+(rustc 1.99.1, release, default flags — no `target-cpu=native`), existing
+harness (`AAC_PERF_BENCH=1`, VBR-tagged records), ≥8 alternating
+baseline/AVX2 pairs over the VBR-5 corpus (+VBR-6 music separately), mono/
+stereo and 44.1/48 kHz coverage as available. Kernel microbenchmarks
+(`avx2_kernel_microbench` vs scalar) stay separate from end-to-end. If a
+lane-load vs `vpgatherdd` question is material, compare with counters before
+changing lookup strategy. Acceptance: ≥1% median end-to-end VBR-5 improvement,
+≥6/8 pairs positive, no material workload regression, bit-exact output, no
+unacceptable size/memory change — else report honestly and do not retain.
+
+### 32.8 Performance results
+
+**None measured; none claimed.** No AVX2 hardware executed this code. The
+acceptance campaign in §32.7 is pending.
+
+### 32.9 Binary-size impact
+
+x86-64 release `aac_bench_wav` example binary (production code only, no test
+harness), same toolchain/profile, `7adf935` tree vs this tree: `__text`
+679,536 → 690,272 B (**+10,736 B, +1.58%**); `__TEXT` 897,024 → 913,408 B
+(+1.83%); total file +17,560 B. ARM binaries are unaffected (module compiled
+out). Heap/stack behavior unchanged (no allocation, stack temporaries only);
+no multithreading.
+
+### 32.10 Files
+
+| File | Change |
+|---|---|
+| `rust/src/aac_enc/quant_avx2.rs` | New AVX2 kernels + differential tests + ignored microbenchmark. |
+| `rust/src/aac_enc/quant.rs` | Three-way dispatch (AArch64 NEON / x86-64 AVX2-or-scalar / scalar); scalar arithmetic untouched. |
+| `rust/src/aac_enc.rs` | Module registration (`cfg x86_64`). |
+| `docs/aac-enc-performance-baseline.md` | This section. |
+
+No staging, commit, push, amend, reset, rebase, cherry-pick, or history
+rewrite occurred while preparing this section.
+
+## 33. 2026-11-14 SIMD Phase 2.1: AVX2 re-interleave correctness repair
+
+### 33.1 Question and status
+
+The independent adversarial review of Phase 2 returned **REJECT**: the even/odd
+64-bit product reconstruction in `fmult8` and `fixmuldiv2_ds8`
+(`unpacklo/unpackhi + blend(0xCC)`) selected the wrong dwords, corrupting lanes
+2,3,6,7 of every product-based kernel. Phase 2.1 is a **narrowly scoped
+correctness repair** of that defect, plus regression tests, a dispatch-selection
+assertion, and corrected validation documentation. **No performance work, no
+native performance acceptance, no scalar/NEON arithmetic change.** Status:
+repair applied and validated to the extent possible on this ARM64 host;
+**no AVX2 kernel has been executed on native AVX2 hardware, and no AVX2
+performance improvement has been measured or established.**
+
+### 33.2 The defect and the corrected lane mapping
+
+`_mm256_mul_epi32` produces four 64-bit products in the even dword positions
+(qword *i* = lane 2*i* × lane 2*i*); the odd lanes are obtained by
+`srli_epi64::<32>` of the inputs and a second `mul_epi32`. After the logical
+`>>31` (`fmult`) or `>>32` (`DS`), each 128-bit lane of `even_s` holds
+`[lo(P0), hi(P0), lo(P2), hi(P2)]` and `odd_s` holds
+`[lo(P1), hi(P1), lo(P3), hi(P3)]`, where `lo`/`hi` are the low/high 32-bit
+halves of the shifted 64-bit product.
+
+**Old (defective):** `unpacklo → [lo(P0),lo(P1),hi(P0),hi(P1)]`,
+`unpackhi → [lo(P2),lo(P3),hi(P2),hi(P3)]`; `blend(0xCC)` keeps dwords 0,1 of
+`unpacklo` and dwords **2,3** of `unpackhi` = `hi(P2),hi(P3)` — the garbage high
+halves. The wanted `lo(P2),lo(P3)` sit at dwords **0,1** of `unpackhi`, which a
+blend cannot reach (a blend selects at fixed positions; it cannot move them).
+Result: lanes 2,3,6,7 became the high halves — `0` for `DS` (`>>32`), and `0`
+(p≥0) / `1` (p<0) for `fmult` (`>>31`). No blend mask fixes this; the
+construction itself was wrong.
+
+**Corrected (both helpers):**
+```rust
+let odd_hi = _mm256_slli_epi64::<32>(odd_s); // [0, lo(P1), 0, lo(P3)] per lane
+_mm256_blend_epi32::<0xAA>(even_s, odd_hi)    // 0xAA = 10101010
+```
+`slli_epi64::<32>` lifts each odd low half into the high dword of its qword;
+`blend(0xAA)` takes even dword positions (0,2,4,6) from `even_s`
+(`lo(P0),lo(P2),…`) and odd positions (1,3,5,7) from `odd_hi`
+(`lo(P1),lo(P3),…`). Final lane order: `[P0,P1,P2,P3,P4,P5,P6,P7]` (low halves).
+The multiplication, shifts, rounding, fixed-point semantics and scalar fallback
+are unchanged.
+
+### 33.3 Regression tests added (fail on the old implementation)
+
+In `quant_avx2.rs` (all `#[cfg(all(test, target_arch = "x86_64"))]`, honest
+`SKIP (no AVX2)` when the feature is absent). They call the **real** helpers
+(`super::fmult8`, `super::fixmuldiv2_ds8`) and production kernels, not a
+test-only reimplementation; scalar oracles are the production `q31::fmult` and
+the `*_scalar` reference functions, or hand-computed constants:
+
+- `avx2_fmult8_identical_lanes_anchor`: eight identical lanes
+  `0x40000000 × 0x40000000` must all be `0x20000000`. Old code: lanes 2,3,6,7 = 0.
+- `avx2_ds8_all_lanes_nonzero`: `DS(x, 16384<<16) = floor(x/4)`,
+  `x = [4,8,…,32]` → `[1,2,…,8]`, distinct nonzero in every lane. Old code zeroes
+  lanes 2,3,6,7.
+- `avx2_fmult8_alternating_even_odd`: alternating distinct even/odd magnitudes,
+  differential vs production `q31::fmult` on every lane (exposes lane ordering).
+- `avx2_fmult8_negative_and_near_zero`: negative products, ±1/0, and the
+  `INT_MIN × INT_MIN` corner (no AVX2 saturation), vs `q31::fmult` per lane.
+- `avx2_ds8_negative_and_zero`: `x = [4,-4,0,1,-1,8,-8,12]` →
+  `[1,-1,0,0,-1,2,-2,3]` (hand-computed `floor(x/4)`).
+- `avx2_quantize_lines_all_lanes_deterministic`: crafted loud 16-line spectrum,
+  loud gain grid `[-72,-71,-70,-69,-32,-8]` × both dead zones, full-vector
+  equality vs `quantize_lines_scalar`; every scalar lane verified nonzero (so a
+  zeroed lane is unambiguously the bug). Fails deterministically on old code.
+- `avx2_energy_dist_all_lanes_deterministic`: full-group nonzero caller quant,
+  energy/dist vs the production scalar reference (exercises `inv_quantize8` +
+  `fmult8` on all lanes).
+
+The intrinsic-level simulation (§33.5) confirms these anchors **fail on the old
+interleave (10 anchor failures)** and **pass on the corrected interleave (0)**.
+All existing randomized, residue, boundary, tail, sentinel and exceptional-input
+tests are retained unchanged.
+
+### 33.4 Dispatch-selection assertion (review MEDIUM-1)
+
+`quant.rs` gains a **test-only** `Backend { Neon, Avx2, Scalar }` enum and
+`selected_backend()` that mirrors the exact `cfg` gates and the identical
+`is_x86_feature_detected!("avx2")` macro used by the three production dispatch
+sites, so it resolves identically to the real dispatch on the running machine.
+No production atomics, counters, or runtime overhead; production dispatch code
+is untouched.
+
+- `quant::tests::dispatch_backend_matches_arch_and_features` (portable): asserts
+  AArch64 → NEON, x86-64 → AVX2 iff detected else scalar, other → scalar.
+- `quant_avx2::tests::avx2_dispatch_selection`: on a native AVX2 run positively
+  asserts `Backend::Avx2` (proving production dispatch takes the AVX2 branch);
+  without AVX2 it asserts `Backend::Scalar` and skips honestly. This is a direct
+  assertion of the selection logic, **not** an inference from a kernel test
+  passing.
+
+### 33.5 Corrected simulation methodology and results
+
+The Phase 2 "lane-algorithm sims" computed the intended per-lane mathematical
+result and therefore did not model intrinsic lane routing (§32.6 correction).
+The review's **intrinsic-level** simulation (throwaway, outside the repo) models
+each AVX2 intrinsic at the dword/qword/byte level per the Intel SDM —
+`mul_epi32` even-dword products, `srli/slli_epi64`, `unpacklo/hi_epi32`,
+`blend_epi32`/`blendv_epi8`, masked variable shifts, `cmpgt/cmpeq`, the 5-step
+`clz8`, and the full `quantize8`/`inv_quantize8`/`dist8`/`hsum` composition —
+and compares against an independent transcription of the x86-64 scalar
+reference. It was cross-checked against the generated x86-64 assembly. **This is
+a model of the intrinsics, not AVX2 execution.**
+
+Results with the **current (corrected) repo interleave**:
+
+| Check | Result |
+|---|---|
+| `clz8` | exact: exhaustive 20-bit + all power boundaries ±2 + 2M random; 0 mismatches |
+| `hsum_wrapping` | 100k random vectors; 0 mismatches |
+| `fmult8` / `DS8` random | 200k vectors; 0 per-lane mismatches (all 8 lanes) |
+| Phase 2.1 regression anchors | 0 failures (identical-lane, DS8 nonzero, alternating, negative/near-zero) |
+| `quantize8` vs scalar | 72,000 cases (incl. gains `i32::MIN/MAX`, ±100000); 0 mismatches |
+| `inv_quantize8` vs scalar | all 16,383 valid `q` × 14 gains; 0 mismatches |
+| `dist8` vs scalar | 300,000 pairs + targeted `INT_MIN`; 0 good-lane mismatches, 0 bad-flag errors |
+| exceptional `inv` lanes | `8192/-8193/i16::MIN/INT_MIN/INT_MAX`: no OOB (indices clamped) |
+
+For contrast, the **old defective interleave** in the same simulation: 10
+regression-anchor failures; `fmult8`/`DS8` lanes 2,3,6,7 wrong in 100% of random
+vectors; `fmult8(0x40000000,0x40000000)` → `[0x20000000,0x20000000,0,0,…]`.
+
+### 33.6 Disassembly evidence (x86-64 release, default flags)
+
+The corrected interleave is emitted as `vpblendd …, 170` (0xAA) in every
+`fmult8`/`DS8` instance; the old `vpshufd 244/224 + vpblendd 204` pattern is
+gone. LLVM fuses `(odd>>31)<<32` into `vpaddq ymm,ymm,ymm` (odd<<1, whose high
+dword = P[62:31] = the wanted floor low word) for `fmult8`, and for `DS8` takes
+the odd products' high dword directly (= low half of `P>>32`). **Zero YMM/ZMM
+instructions outside the four-function AVX2 cluster** (`inv_quantize8`,
+`quantize_lines_avx2`, `calc_sfb_dist_sum_avx2`,
+`calc_sfb_quant_energy_and_dist_sums_avx2`); `vzeroupper` before every `ret`;
+baseline dispatch functions contain only the cached feature test and an
+out-of-line call. AVX2 confinement is unchanged from Phase 2.
+
+### 33.7 Review findings addressed
+
+- **LOW-1 (out-of-envelope debug behaviour):** scalar `quantize_line_body`
+  panics on the `total_shift >= 0` `debug_assert` for out-of-envelope inputs;
+  the AVX2 kernels compute release-style masked shifts and never panic. In the
+  production envelope the two agree; differential tests pre-filter envelope
+  violations via `catch_unwind` on the scalar reference. AVX2 intentionally does
+  not reproduce the debug envelope panic (it cannot, being vector). Documented,
+  not a correctness gap for production inputs.
+- **LOW-2 (`over_max_quant(INT_MIN)`):** uses wrapping `abs`, so `INT_MIN`
+  (whose `abs` wraps negative) is *not* flagged. This input is unreachable in
+  production: `quantize8` output is bounded to ±19470 and the energy path
+  sign-extends `i16` (|q| ≤ 32768). Same property as NEON; recorded as an
+  assumption, not changed.
+- **INFO-1 (residue-sweep column reach):** the residue sweep's energy quant
+  `(i*37)%8191` with n ≤ 17 only reaches `spec_exp ≤ 10`. Exponent columns 11–13
+  are covered by `avx2_energy_dist_matches_scalar` (full-random `i16` lanes) and
+  `avx2_energy_max_quant_positions` / `avx2_boundary_lengths` (8191/8192 edges).
+  The sweep's *row* (`m = gain & 3`) claim is accurate and asserted.
+- **LOW-3 (bad-lane fallback accounting):** no test counts `bad` (diff==`INT_MIN`)
+  fallback triggers. Analysis + targeted simulation show AVX2 bad-lane values
+  actually equal scalar (both 0 — no `sqdmulh` saturation), so the `bad` mask is
+  conservative on AVX2 (it is required on NEON). Trigger accounting is optional
+  diagnostic coverage, not a correctness requirement; left as-is.
+
+### 33.8 Verification performed on this host (ARM64 Apple M5, no AVX2)
+
+| Check | Result |
+|---|---|
+| rustfmt (`cargo fmt --check`) | clean |
+| clippy (x86-64, `--all-targets`) | no new warnings in `quant_avx2.rs` / `quant.rs` (pre-existing warnings unchanged) |
+| x86-64 cross-compile + test compile (`--target x86_64-apple-darwin`) | clean |
+| Intrinsic-level simulation (corrected interleave) | 0 mismatches across the full battery (§33.5); old interleave fails the new anchors |
+| x86-64 release assembly | corrected `blend(0xAA)` emitted; AVX2 confined; `vzeroupper` on all exits (§33.6) |
+| ARM64 NEON regression + dispatch selection (`quant` filter, release) | 22 passed, 1 ignored; `dispatch_backend_matches_arch_and_features` asserts NEON |
+| ARM64 VBR-5 + VBR-6 goldens (release) | `production_f32_corpus_baseline_is_unchanged` + `production_default_profile_vbr6_music_baseline_is_unchanged`: 2/2 pass, bit-exact |
+| ARM64 full release suite | 356 passed, 11 failed (all pre-existing missing-artifact), 6 ignored — failure set unchanged from Phase 2 (+1 pass is the new dispatch-selection test) |
+| Rosetta 2 x86-64 scalar fallback | AVX2 differential tests `SKIP (no AVX2)`; `avx2_dispatch_selection` confirms scalar; scalar goldens pass |
+| Licensing | `tools/check-licensing.sh` OK; `git diff --check` clean |
+
+**Evidence classes:** *proven* (derivation + faithful simulation): corrected
+lane mapping, all kernel arithmetic, regression anchors. *Compiled*: x86-64
+cross-build, AVX2 confinement, corrected interleave in real codegen. *Executed
+(non-AVX2)*: ARM64 scalar+NEON suite, VBR goldens, Rosetta scalar fallback +
+honest skips. *Awaiting native AVX2*: all AVX2 kernel execution, the
+dispatch-selection `Avx2` assertion, and any performance measurement.
+
+### 33.9 Remaining work requiring native AVX2 hardware
+
+- Run all AVX2 differential + regression tests on a native AVX2 machine
+  (they skip honestly here). Confirm `avx2_dispatch_selection` reports `Avx2`.
+- The §32.7 end-to-end performance acceptance campaign (not started; no
+  performance claim is made or implied by this repair).
+- Optional: gather-vs-lane-load comparison with hardware counters; `bad`-lane
+  trigger accounting (LOW-3).
+
+### 33.10 Files changed (Phase 2.1)
+
+| File | Change |
+|---|---|
+| `rust/src/aac_enc/quant_avx2.rs` | Corrected `fmult8`/`fixmuldiv2_ds8` interleave + comments; added 7 regression tests + dispatch-selection test. |
+| `rust/src/aac_enc/quant.rs` | Test-only `Backend`/`selected_backend()` + portable dispatch-selection test. Production dispatch and scalar arithmetic untouched. |
+| `docs/aac-enc-performance-baseline.md` | §32.3/§32.6 corrections; this §33. |
+
+`rust/src/aac_enc.rs` is unchanged in Phase 2.1 (module registration already
+present from Phase 2). No staging, commit, push, amend, reset, rebase,
+cherry-pick, or history rewrite occurred; all Phase 2.1 changes remain
+uncommitted.

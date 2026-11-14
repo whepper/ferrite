@@ -140,6 +140,8 @@ pub(crate) mod psy;
 pub(crate) mod psy_config;
 pub(crate) mod q31;
 pub(crate) mod quant;
+#[cfg(target_arch = "x86_64")]
+pub(crate) mod quant_avx2;
 #[cfg(target_arch = "aarch64")]
 pub(crate) mod quant_neon;
 pub(crate) mod quant_tables;
