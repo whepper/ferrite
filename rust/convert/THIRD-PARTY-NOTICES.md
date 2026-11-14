@@ -55,7 +55,7 @@ must be assessed separately through Via Licensing or the patent owners.
 |---|---|---|---|
 | `symphonia` (+ `symphonia-bundle-flac`, `symphonia-common`, `symphonia-core`, `symphonia-metadata`; FLAC features only) | 0.6.1 | `MPL-2.0` | `LICENSE` in each crate |
 | `shiguredo_mp4` | 2026.5.0 | `Apache-2.0` | `LICENSE` |
-| `ebur128` (direct; R128 loudness analysis) | 0.1.10 | `MIT` | `LICENSE` |
+| `ebur128` (direct; R128 loudness analysis) | 0.1.11 | `MIT` | `LICENSE` |
 
 ## Transitive dependencies (linked)
 
@@ -68,7 +68,7 @@ must be assessed separately through Via Licensing or the patent owners.
 | `dasp_frame` (via `ebur128`) | 0.11.0 | `MIT OR Apache-2.0` |
 | `dasp_sample` (via `ebur128`) | 0.11.0 | `MIT OR Apache-2.0` |
 | `either` | 1.19.0 | `MIT OR Apache-2.0` |
-| `itertools` | 0.10.5 | `MIT/Apache-2.0` |
+| `itertools` | 0.15.0 | `MIT/Apache-2.0` |
 | `lazy_static` | 1.5.1 | `MIT OR Apache-2.0` |
 | `log` | 0.4.34 | `MIT OR Apache-2.0` |
 | `num-complex` | 0.4.6 | `MIT OR Apache-2.0` |
