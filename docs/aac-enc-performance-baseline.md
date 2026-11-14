@@ -2762,3 +2762,115 @@ regression reference.
 At measurement time no staging, commit, push, amend, reset, rebase,
 cherry-pick, or history rewrite occurred; the final publication is a separate
 commit recorded outside this report.
+
+## 30. 2026-11-14 SIMD Phase 1: AArch64 NEON quantization kernels
+
+### 30.1 Question and verdict
+
+Can the S3/S4 quantization and distortion kernels be vectorized with
+bit-identical output? **Yes: +15.69% median end-to-end over eight
+alternating pairs** (all pairs positive, all heavy workloads positive, all
+fixture hashes unchanged), measured before this milestone's audit. The audit
+below confirms scalar/NEON equivalence, adds index-clamping for exceptional
+lanes, upgrades the differential tests with trial accounting and explicit
+boundary cases, and makes the benchmark VBR mode explicit (VBR-5 default for
+historical comparisons, VBR-6 opt-in). No further optimization was undertaken.
+
+### 30.2 Implementation
+
+Production change: `rust/src/aac_enc/quant_neon.rs` (new) plus dispatch in
+`rust/src/aac_enc/quant.rs` (`rust/src/aac_enc.rs` registers the module).
+Public behavior, tables, psychoacoustics, VBR parameters, rate control, and
+APIs are unchanged; the scalar code is the unmodified behavioral reference.
+
+- Four-line NEON kernels for `quantize_lines`,
+  `calc_sfb_dist` (quantize + inverse + distortion), and
+  `calc_sfb_quant_energy_and_dist` (inverse + energy + distortion).
+- `sqdmulh` for the fixed-point products (operand bounds prove no
+  saturation: quantizer path `|2·x·q'| ≤ 3.9e18 < 2^63-1; inverse path
+  `2·s·t ≤ 8.7e18 < 2^63-1`; distortion/energy squares `< 2^63`). The single
+  saturation divergence, `fpow2(INT_MIN)`, is routed to the scalar fallback
+  by an explicit `inv == INT_MIN` guard.
+- `clz` + variable `sshl` normalization with 5-bit masked shifts, matching
+  the scalar wrapping-shift semantics (verified `>> negative` masks mod 32
+  in release; the valid input envelope of `quant.rs` ("Valid input
+  envelope") guarantees non-negative shifts in production).
+- Lane loads for the 512-entry tables (9-bit indices always in bounds);
+  exponent-row indices clamped to 13 so exceptional `|q| > MAX_QUANT` lanes
+  load in-bounds before the `|q|` guard discards them via scalar fallback.
+  `fmult` keeps bit 0 (ARM64 floor); only `fpow2` clears it.
+- Zero fast paths and sign restoration are selects (`bsl`/`bic`), not
+  branches. Early-out and prefix-write semantics are preserved: a violating
+  group falls back to the scalar loop, which writes the exact scalar prefix
+  and returns `None`; tails always run scalar. Energy/distortion sums are
+  wrapping `i32` adds, associative mod 2^32.
+- Non-AArch64 targets use the portable scalar path. No AVX2 implementation
+  (investigated; x86-64 keeps the scalar fallback). No new dependencies.
+
+### 30.3 Correctness and tests
+
+- `quant` 10, `scf` 6, `production_baseline` 2 (debug + release); focused
+  encoder suites (`quant`, `scf`, `bitcount`, `bitenc`, `frame`, `rate`,
+  `production_baseline`, `encoder`) 96 passed, 0 failed, in both
+  configurations; doctests 19 passed; `aac-convert` suites pass (debug +
+  release). Full library suites: debug 357 passed + 11 failed, release 353
+  passed + 11 failed — all 11 are the documented missing-artifact set
+  (`AAC_DEC_BIN`, `PHASE1_ORACLE_DIR`, `PHASE1_C_DIR` unset), unrelated to
+  this change.
+- NEON differentials (AArch64, debug + release, fixed seeds): 5,000
+  randomized trials per kernel (0 rejections, 615/26/3,771 early-outs
+  across dist/matrix/energy), explicit boundary lengths
+  0,1,2,3,4,5,6,7,8,9,12,15,16,17, per-position `i16::MIN`/`MAX_QUANT` guard
+  tests, per-position single-violation prefix/tail tests with sentinel
+  fill, and zero/edge-gain cases. Trial counts print as
+  `NEON_TEST <name>: generated=… accepted=… rejected=… early_out=…`; any
+  envelope rejection fails the test.
+- Generated assembly (release test binary) shows the intended vector
+  codegen in the production path (`sqdmulh.4s`, `abs.4s`, `clz.4s`,
+  `sshl.4s`, `shrn.4h`, lane `ld1.h`/`ld1.s` gathers).
+- Binary impact: `__text` 1,890,108 → 1,904,508 B (+14,400 B, +0.76%);
+  no heap allocation; stack-resident constants only.
+
+### 30.4 Benchmark harness VBR selection
+
+The default `EncoderConfig` moved to VBR-6 after the §29 checkpoint while
+the harness's `production` mode still validated against the VBR-5
+`production_baseline` pins, so a default full-corpus run failed its hash
+gate. Corrected without changing historical semantics:
+
+- `AAC_PERF_VBR` selects the profile for `production` and `core`
+  (`"5"` default, `"6"` opt-in; parsed via `VbrMode::from_str`).
+- VBR-5 (`core` and `production`) validates every fixture against the
+  committed VBR-5 bytes/hash pins, as in all prior reports.
+- VBR-6 validates the pinned music fixture against its VBR-6 pin
+  (256,763 bytes / `d6fc9d2c59cf5c36`, from
+  `production_default_profile_vbr6_music_baseline_is_unchanged`) and checks
+  ADTS framing plus cross-repetition byte/hash determinism elsewhere.
+- `AACPERF_CONFIG` now carries `vbr=5|6`; the per-fixture `expected` column
+  shows the mode-applicable pin. `feed` is mode-independent.
+- Verified: full 20-workload VBR-5 run passes both modes with VBR-5 pins;
+  full VBR-6 run passes with the music pin and determinism gates; an
+  invalid `AAC_PERF_VBR` value fails loudly.
+
+### 30.5 Performance evidence status
+
+The +15.69% campaign (eight alternating old/new pairs, 15 reps, 19
+fixtures + derived 40 s music, `core`/VBR-5) predates the §30.2 clamp and
+the `as_chunks` refactor; a two-pair re-verification on the final tree
+measured +15.92% / +16.44%, consistent with the campaign median, and all
+heavy workloads improved with no meaningful regression (largest short-fixture
+delta: silence −0.49%, run noise). The campaign remains the result of
+record; the harness correction does not alter its `core`/VBR-5 comparison.
+No VBR-6 speedup is claimed.
+
+### 30.6 Files
+
+| File | Change |
+|---|---|
+| `rust/src/aac_enc/quant_neon.rs` | New NEON kernels + differential tests + ignored microbenchmark. |
+| `rust/src/aac_enc/quant.rs` | NEON dispatch; scalar helpers as the testable reference. |
+| `rust/src/aac_enc.rs` | Module registration (`cfg aarch64`). |
+| `rust/src/aac_enc/stream_driver.rs` | `AAC_PERF_VBR`, mode-applicable pins, determinism gates. |
+
+No staging, commit, push, amend, reset, rebase, cherry-pick, or history
+rewrite occurred while preparing this section.

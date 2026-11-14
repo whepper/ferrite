@@ -7120,12 +7120,22 @@ mod m511_tests {
 /// Opt-in benchmark of the production `Encoder` API. `#[ignore]` keeps normal
 /// suites unchanged; `AAC_PERF_BENCH=1` is a second explicit guard.
 ///
+/// VBR selection: `AAC_PERF_VBR` (`"5"` default, `"6"` for the Ferrite
+/// default profile; accepts the same spellings as `VbrMode::from_str`, e.g.
+/// `"VBR-5"`). Both `production` and `core` modes encode with the selected
+/// profile. VBR-5 preserves the historical baseline semantics: every fixture
+/// is hash-gated against the committed `production_baseline` pins. VBR-6 has
+/// no full-corpus golden set; the music fixture is gated against the VBR-6
+/// pin from `production_default_profile_vbr6_music_baseline_is_unchanged`,
+/// and every other fixture is checked for ADTS framing plus byte/hash
+/// determinism across repetitions.
+///
 /// Timed regions:
 /// - `production`: `Encoder::new` (reported separately) plus the real
 ///   `Encoder::push`/`flush` calls over 8,000-sample-frame chunks, the
 ///   `aac-convert` chunk size.
 /// - `feed`: `PcmFeeder::push_interleaved`/`finish` only (the production
-///   feeder, without psychoacoustic/quantiser work).
+///   feeder, without psychoacoustic/quantiser work). Mode-independent.
 /// - `core`: prebuilt feeder frames through the same per-frame clone plus
 ///   `StreamEncoder::step_frame` loop used by `Encoder::emit_frames`.
 ///
@@ -7140,6 +7150,13 @@ mod perf_tests {
 
     const BENCH_CHUNK_FRAMES: usize = 8_000;
     const BENCH_ENCODER_DELAY: usize = 1_600;
+
+    /// VBR-6 music pin, mirroring
+    /// `production_default_profile_vbr6_music_baseline_is_unchanged`
+    /// (same reference platform, same encoder path).
+    const VBR6_MUSIC_STEM: &str = "m7-music-stereo-48k";
+    const VBR6_MUSIC_BYTES: usize = 256_763;
+    const VBR6_MUSIC_HASH: u64 = 0xd6fc_9d2c_59cf_5c36;
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum BenchMode {
@@ -7192,6 +7209,14 @@ mod perf_tests {
             .unwrap_or(default)
     }
 
+    /// VBR profile under test. Defaults to VBR-5, the historical baseline
+    /// profile; set `AAC_PERF_VBR=6` to measure the current default profile.
+    fn perf_vbr_mode() -> VbrMode {
+        use std::str::FromStr;
+        let raw = std::env::var("AAC_PERF_VBR").unwrap_or_else(|_| "5".to_string());
+        VbrMode::from_str(&raw).unwrap_or_else(|_| panic!("unknown AAC_PERF_VBR {raw:?}"))
+    }
+
     fn parse_modes() -> Vec<BenchMode> {
         let raw =
             std::env::var("AAC_PERF_MODES").unwrap_or_else(|_| "production,feed,core".to_string());
@@ -7213,6 +7238,16 @@ mod perf_tests {
         short: &str,
     ) -> Option<&'static (&'static str, &'static str, u32, usize, usize, u64)> {
         BASELINE.iter().find(|row| row.0 == short)
+    }
+
+    /// Bytes printed in the `expected` median column: the golden pin that
+    /// actually applies to this (`fixture`, `vbr`) pair.
+    fn display_expected_bytes(fixture: &BenchFixture, vbr: VbrMode) -> usize {
+        if vbr == VbrMode::Vbr6 && fixture.stem == VBR6_MUSIC_STEM {
+            VBR6_MUSIC_BYTES
+        } else {
+            fixture.expected_bytes.unwrap_or(0)
+        }
     }
 
     fn build_fixture(short: &str, stem: &str, sample_rate: u32, channels: usize) -> BenchFixture {
@@ -7364,12 +7399,13 @@ mod perf_tests {
         }
     }
 
-    fn run_production(fixture: &BenchFixture) -> BenchRun {
-        let cfg = EncoderConfig::new(
+    fn run_production(fixture: &BenchFixture, vbr: VbrMode) -> BenchRun {
+        let cfg = EncoderConfig::new_with_mode(
             fixture.sample_rate,
             fixture.channels as u32,
             FRAME_LENGTH,
             TransportType::Adts,
+            vbr,
         )
         .expect("benchmark config");
         let t0 = std::time::Instant::now();
@@ -7404,12 +7440,13 @@ mod perf_tests {
         }
     }
 
-    fn run_core(fixture: &BenchFixture) -> BenchRun {
-        let cfg = EncoderConfig::new(
+    fn run_core(fixture: &BenchFixture, vbr: VbrMode) -> BenchRun {
+        let cfg = EncoderConfig::new_with_mode(
             fixture.sample_rate,
             fixture.channels as u32,
             FRAME_LENGTH,
             TransportType::Adts,
+            vbr,
         )
         .expect("benchmark config");
         // Setup outside timing: the same feeder output the production path
@@ -7422,8 +7459,7 @@ mod perf_tests {
         assert_eq!(feeder_frames.len(), fixture.frames, "core feeder frame law");
 
         let t0 = std::time::Instant::now();
-        let mut enc =
-            StreamEncoder::with_mode(fixture.sample_rate, fixture.channels, VbrMode::Vbr5);
+        let mut enc = StreamEncoder::with_mode(fixture.sample_rate, fixture.channels, vbr);
         let init_ns = t0.elapsed().as_nanos();
         let mut out = Vec::with_capacity(
             fixture
@@ -7466,25 +7502,52 @@ mod perf_tests {
         }
     }
 
-    fn run_mode(mode: BenchMode, fixture: &BenchFixture) -> BenchRun {
+    fn run_mode(mode: BenchMode, fixture: &BenchFixture, vbr: VbrMode) -> BenchRun {
         match mode {
-            BenchMode::Production => run_production(fixture),
+            BenchMode::Production => run_production(fixture, vbr),
             BenchMode::Feed => run_feed(fixture),
-            BenchMode::Core => run_core(fixture),
+            BenchMode::Core => run_core(fixture, vbr),
         }
     }
 
-    fn validate_run(mode: BenchMode, fixture: &BenchFixture, run: &BenchRun, enforce_hash: bool) {
+    fn validate_run(
+        mode: BenchMode,
+        fixture: &BenchFixture,
+        run: &BenchRun,
+        enforce_hash: bool,
+        vbr: VbrMode,
+    ) {
         assert_eq!(run.frames, fixture.frames, "{}: frame count", fixture.stem);
         if mode == BenchMode::Feed {
             return;
         }
-        if let Some(want) = fixture.expected_bytes {
-            assert_eq!(run.bytes, want, "{}: byte total", fixture.stem);
+        if vbr == VbrMode::Vbr5 {
+            if let Some(want) = fixture.expected_bytes {
+                assert_eq!(run.bytes, want, "{}: byte total", fixture.stem);
+            }
+            if enforce_hash {
+                if let Some(want) = fixture.expected_hash {
+                    assert_eq!(run.hash, want, "{}: ADTS hash", fixture.stem);
+                }
+            }
+            return;
         }
-        if enforce_hash {
-            if let Some(want) = fixture.expected_hash {
-                assert_eq!(run.hash, want, "{}: ADTS hash", fixture.stem);
+        // Non-VBR-5 profiles have no full-corpus golden set: gate the pinned
+        // VBR-6 music fixture, and require framing (checked in `run_*`) for
+        // the rest. Cross-repetition determinism is asserted separately in
+        // the per-fixture summary.
+        if fixture.stem == VBR6_MUSIC_STEM {
+            assert_eq!(
+                run.bytes, VBR6_MUSIC_BYTES,
+                "{}: VBR-6 byte total",
+                fixture.stem
+            );
+            if enforce_hash {
+                assert_eq!(
+                    run.hash, VBR6_MUSIC_HASH,
+                    "{}: VBR-6 ADTS hash",
+                    fixture.stem
+                );
             }
         }
     }
@@ -7514,15 +7577,17 @@ mod perf_tests {
         let reps = env_usize("AAC_PERF_REPS", 9).max(1);
         let warmups = env_usize("AAC_PERF_WARMUPS", 1);
         let modes = parse_modes();
+        let vbr = perf_vbr_mode();
         let quiet = std::env::var("AAC_PERF_QUIET").ok().as_deref() == Some("1");
         let enforce_hash = cfg!(all(target_os = "macos", target_arch = "aarch64"));
         let mut fixtures = select_fixtures();
 
         println!(
-            "AACPERF_CONFIG\tprofile={}\tfeatures=aac_enc,default\tarch={}\tos={}\tthreads=single\treps={reps}\twarmups={warmups}\tmodes={}",
+            "AACPERF_CONFIG\tprofile={}\tfeatures=aac_enc,default\tarch={}\tos={}\tthreads=single\treps={reps}\twarmups={warmups}\tvbr={}\tmodes={}",
             if cfg!(debug_assertions) { "debug" } else { "release" },
             std::env::consts::ARCH,
             std::env::consts::OS,
+            vbr.number(),
             modes.iter().map(|m| m.tag()).collect::<Vec<_>>().join(",")
         );
 
@@ -7531,8 +7596,8 @@ mod perf_tests {
         for i in 0..fixtures.len() {
             let mut derived: Option<(usize, u64)> = None;
             for &mode in &modes {
-                let run = run_mode(mode, &fixtures[i]);
-                validate_run(mode, &fixtures[i], &run, enforce_hash);
+                let run = run_mode(mode, &fixtures[i], vbr);
+                validate_run(mode, &fixtures[i], &run, enforce_hash, vbr);
                 if mode != BenchMode::Feed && derived.is_none() {
                     derived = Some((run.bytes, run.hash));
                 }
@@ -7548,8 +7613,8 @@ mod perf_tests {
         for rep in 0..reps {
             for (fixture_index, fixture) in fixtures.iter().enumerate() {
                 for &mode in &modes {
-                    let run = run_mode(mode, fixture);
-                    validate_run(mode, fixture, &run, enforce_hash);
+                    let run = run_mode(mode, fixture, vbr);
+                    validate_run(mode, fixture, &run, enforce_hash, vbr);
                     if !quiet {
                         println!(
                             "AACPERF_ROW\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:016x}",
@@ -7587,6 +7652,18 @@ mod perf_tests {
                 if selected.is_empty() {
                     continue;
                 }
+                // Cross-repetition determinism for every byte-producing
+                // fixture. Golden fixtures already get this implicitly via
+                // `validate_run`; fixtures without an applicable golden
+                // (VBR-6 corpus beyond the music pin, derived workloads)
+                // need it explicitly.
+                if mode != BenchMode::Feed {
+                    let (b0, h0) = (selected[0].run.bytes, selected[0].run.hash);
+                    for r in &selected {
+                        assert_eq!(r.run.bytes, b0, "{}: nondeterministic bytes", fixture.stem);
+                        assert_eq!(r.run.hash, h0, "{}: nondeterministic hash", fixture.stem);
+                    }
+                }
                 let init = selected.iter().map(|r| r.run.init_ns).collect::<Vec<_>>();
                 let encode = selected.iter().map(|r| r.run.encode_ns).collect::<Vec<_>>();
                 let total = selected
@@ -7608,7 +7685,7 @@ mod perf_tests {
                     fixture.samples,
                     audio_s,
                     fixture.frames,
-                    fixture.expected_bytes.unwrap_or(0),
+                    display_expected_bytes(fixture, vbr),
                     median_u128(&init),
                     median_u128(&encode),
                     median_total,

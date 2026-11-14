@@ -256,7 +256,7 @@ fn fixmuldiv2_ds(a: i32, b: i16) -> i32 {
 /// No architecture overrides this path, so bit 0 is always cleared —
 /// unlike [`fmult`], which keeps it (ARM64 `asr #31`). The two must
 /// never be interchanged; the distortion accumulations depend on it.
-fn fpow2(a: i32) -> i32 {
+pub(crate) fn fpow2(a: i32) -> i32 {
     (((a as i64 * a as i64) >> 32) << 1) as i32
 }
 
@@ -299,7 +299,7 @@ pub fn quantize_line(gain: i32, spec: i32, dzone_quant_enable: bool) -> i16 {
 /// inline is safe: the body is straight-line integer code with no
 /// recursion, and Gate D verifies the resulting shape.
 #[inline(always)]
-fn quantize_line_body(quantizer: i16, quantizer_shift: i32, k: i32, spec: i32) -> i16 {
+pub(crate) fn quantize_line_body(quantizer: i16, quantizer_shift: i32, k: i32, spec: i32) -> i16 {
     let accu = fixmuldiv2_ds(spec, quantizer);
     if accu == 0 {
         return 0;
@@ -408,6 +408,7 @@ pub fn quantize_spectrum(
     while sfb_offs < cnt {
         for sfb in 0..max_per {
             let qss = global_gain.wrapping_sub(scf[sfb_offs + sfb]);
+            #[cfg_attr(target_arch = "aarch64", allow(unused_variables))]
             let quantizer = QUANT_TABLE_Q[(qss.wrapping_neg() & 3) as usize];
             let quantizer_shift = (qss.wrapping_neg() >> 2) + 1;
             let k = if dzone_quant_enable {
@@ -417,11 +418,45 @@ pub fn quantize_spectrum(
             };
             let start = off[sfb_offs + sfb] as usize;
             let end = off[sfb_offs + sfb + 1] as usize;
-            for line in start..end {
-                out[line] = quantize_line_body(quantizer, quantizer_shift, k, spec[line]);
+            #[cfg(target_arch = "aarch64")]
+            {
+                // SAFETY: NEON is part of the AArch64 baseline; the kernel
+                // reads/writes exactly `end - start` lines and falls back to
+                // `quantize_line_body` for tails.
+                unsafe {
+                    super::quant_neon::quantize_lines_neon(
+                        &spec[start..end],
+                        &mut out[start..end],
+                        qss,
+                        quantizer_shift,
+                        k,
+                    );
+                }
+            }
+            #[cfg(not(target_arch = "aarch64"))]
+            {
+                quantize_lines_scalar(
+                    &spec[start..end],
+                    &mut out[start..end],
+                    quantizer,
+                    quantizer_shift,
+                    k,
+                );
             }
         }
         sfb_offs += per;
+    }
+}
+
+pub(crate) fn quantize_lines_scalar(
+    spec: &[i32],
+    quant: &mut [i16],
+    quantizer: i16,
+    quantizer_shift: i32,
+    k: i32,
+) {
+    for (s, q_out) in spec.iter().zip(quant.iter_mut()) {
+        *q_out = quantize_line_body(quantizer, quantizer_shift, k, *s);
     }
 }
 
@@ -429,7 +464,7 @@ pub fn quantize_spectrum(
 /// (`quantize.cpp:334-344`): `diff = ||inv| - |spec>>1||`, squared via
 /// [`fpow2`] after `CountLeadingBits` renormalization, accumulated with
 /// wrap. Shared by both distortion entry points.
-fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
+pub(crate) fn accumulate_dist(acc: i32, inv: i32, spec: i32) -> i32 {
     let mut diff = (inv.wrapping_abs().wrapping_sub((spec >> 1).wrapping_abs())).wrapping_abs();
     let scale = count_leading_bits(diff);
     diff = shift_int(diff, scale);
@@ -465,6 +500,39 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
         quant.len(),
         "calc_sfb_dist: spec and quant lengths differ"
     );
+    let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
+    let k = if dzone_quant_enable {
+        QUANT_K1
+    } else {
+        QUANT_K0
+    };
+    #[cfg(target_arch = "aarch64")]
+    {
+        // SAFETY: NEON is part of the AArch64 baseline. The kernel writes
+        // exactly the scalar prefix on early-out and is bit-identical
+        // otherwise; tails and exceptional groups use the scalar path.
+        let sum = unsafe {
+            super::quant_neon::calc_sfb_dist_sum_neon(spec, quant, gain, quantizer_shift, k)
+        };
+        match sum {
+            Some(xfsf) => calc_ld_data(xfsf),
+            None => 0,
+        }
+    }
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant)
+    }
+}
+
+/// Scalar reference for [`calc_sfb_dist`]: always available for differential
+/// testing, including on AArch64 where the public entry uses NEON.
+pub(crate) fn calc_sfb_dist_scalar(
+    spec: &[i32],
+    gain: i32,
+    dzone_quant_enable: bool,
+    quant: &mut [i16],
+) -> i32 {
     let quantizer = QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize];
     let quantizer_shift = (gain.wrapping_neg() >> 2) + 1;
     let k = if dzone_quant_enable {
@@ -496,6 +564,33 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
 /// `(0, 0)`; otherwise `(CalcLdData(energy) + 0.03125,
 /// CalcLdData(distortion))`.
 pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) -> (i32, i32) {
+    #[cfg(target_arch = "aarch64")]
+    {
+        // SAFETY: NEON is part of the AArch64 baseline. Bit-identical sums;
+        // exceptional groups and tails use the scalar path.
+        let sums = unsafe {
+            super::quant_neon::calc_sfb_quant_energy_and_dist_sums_neon(spec, quant, gain)
+        };
+        match sums {
+            Some((energy, distortion)) => (
+                calc_ld_data(energy).wrapping_add(0x0400_0000),
+                calc_ld_data(distortion),
+            ),
+            None => (0, 0),
+        }
+    }
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain)
+    }
+}
+
+/// Scalar reference for [`calc_sfb_quant_energy_and_dist`].
+pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
+    spec: &[i32],
+    quant: &[i16],
+    gain: i32,
+) -> (i32, i32) {
     let mut energy: i32 = 0;
     let mut distortion: i32 = 0;
     for (i, &s) in spec.iter().enumerate() {
