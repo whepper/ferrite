@@ -1,0 +1,233 @@
+name: avx2-native-validation
+
+# Native x86-64 AVX2 correctness validation for the S3 quantizer kernels.
+# This workflow is a CORRECTNESS gate only: it does not run performance
+# benchmarks and makes no performance claim. It fails clearly if the runner
+# is not x86-64, lacks AVX2, or if any AVX2 test skips/falls back to scalar.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avx2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  avx2-native:
+    name: Native AVX2 correctness (x86-64, Rust 1.99.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      LOG_DIR: ${{ github.workspace }}/avx2-logs
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify x86-64 architecture and AVX2 feature
+        run: |
+          set -euo pipefail
+          mkdir -p "$LOG_DIR"
+          {
+            echo "=== Runner environment ==="
+            date -u +"%Y-%m-%dT%H:%M:%SZ"
+            uname -a
+            echo
+            lscpu
+            echo
+            echo "=== /proc/cpuinfo flags (first CPU) ==="
+            grep -m1 '^flags' /proc/cpuinfo
+          } | tee "$LOG_DIR/environment.txt"
+          arch="$(uname -m)"
+          if [ "$arch" != "x86_64" ]; then
+            echo "FAIL: runner architecture is '$arch', expected x86_64" >&2
+            exit 1
+          fi
+          if ! grep -qw avx2 /proc/cpuinfo; then
+            echo "FAIL: runner CPU does not expose the avx2 flag" >&2
+            exit 1
+          fi
+          echo "PREREQ OK: arch=x86_64 avx2=present" | tee -a "$LOG_DIR/environment.txt"
+
+      - name: Install Rust 1.99.1 (pinned, matches ci.yml)
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # dtolnay/rust-toolchain stable
+        with:
+          toolchain: 1.99.1
+          targets: x86_64-unknown-linux-gnu
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-avx2-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-avx2-
+
+      - name: Record Rust toolchain and target
+        run: |
+          set -euo pipefail
+          {
+            echo "=== rustc ==="
+            rustc --version --verbose
+            echo
+            echo "=== cargo ==="
+            cargo --version
+            echo
+            echo "=== rustup targets ==="
+            rustup target list --installed
+          } | tee "$LOG_DIR/toolchain.txt"
+          if ! rustup target list --installed | grep -q '^x86_64-unknown-linux-gnu'; then
+            echo "FAIL: x86_64-unknown-linux-gnu target not installed" >&2
+            exit 1
+          fi
+          echo "PREREQ OK: target=x86_64-unknown-linux-gnu" | tee -a "$LOG_DIR/toolchain.txt"
+
+      - name: Build encoder (release)
+        run: |
+          set -euo pipefail
+          cargo build --locked --release -p ferrite-aac 2>&1 | tee "$LOG_DIR/build-release.txt"
+
+      # The AVX2 module tests must EXECUTE on this native runner. Any
+      # "SKIP (no AVX2)" line means scalar fallback and fails the job; the
+      # dispatch-selection test must positively print "CONFIRMED backend=Avx2".
+      - name: AVX2 tests (release) — execute, no fallback
+        run: |
+          set -euo pipefail
+          cargo test --locked --release -p ferrite-aac --lib quant_avx2 \
+            -- --nocapture --test-threads=1 2>&1 | tee "$LOG_DIR/avx2-release.txt"
+          if grep -q "SKIP (no AVX2)" "$LOG_DIR/avx2-release.txt"; then
+            echo "FAIL: AVX2 tests skipped (scalar fallback) on a native runner" >&2
+            exit 1
+          fi
+          if ! grep -q "CONFIRMED backend=Avx2" "$LOG_DIR/avx2-release.txt"; then
+            echo "FAIL: production dispatch did not confirm Avx2" >&2
+            exit 1
+          fi
+          echo "AVX2 release: no skips, dispatch confirmed Avx2"
+          grep "test result:" "$LOG_DIR/avx2-release.txt"
+
+      - name: AVX2 tests (debug) — debug_assert envelope coverage
+        run: |
+          set -euo pipefail
+          cargo test --locked -p ferrite-aac --lib quant_avx2 \
+            -- --nocapture --test-threads=1 2>&1 | tee "$LOG_DIR/avx2-debug.txt"
+          if grep -q "SKIP (no AVX2)" "$LOG_DIR/avx2-debug.txt"; then
+            echo "FAIL: AVX2 debug tests skipped (scalar fallback)" >&2
+            exit 1
+          fi
+          if ! grep -q "CONFIRMED backend=Avx2" "$LOG_DIR/avx2-debug.txt"; then
+            echo "FAIL: production dispatch did not confirm Avx2 (debug)" >&2
+            exit 1
+          fi
+          echo "AVX2 debug: no skips, dispatch confirmed Avx2"
+          grep "test result:" "$LOG_DIR/avx2-debug.txt"
+
+      # Full self-contained suite (same artifact-dependent skips as ci.yml).
+      # Includes the VBR-5 corpus and VBR-6 music goldens (production_baseline)
+      # and all scalar/NEON-independent regression tests.
+      - name: Full self-contained suite (release)
+        run: |
+          set -euo pipefail
+          cargo test --locked --release -p ferrite-aac --lib -- \
+            --skip m5a_decode_check \
+            --skip m55_streams_match_c_reference \
+            --skip phase1_frontend_agreement_sine_f5 \
+            --skip phase1e_sine_f5_band16_residue \
+            --skip phase1e_onset_f24_bands_causality \
+            --skip phase1f_multitone_f1_no_live_divergence \
+            --skip phase1f_stepdown_f1_no_live_divergence \
+            --skip phase1g_long_flips_residue \
+            --skip phase1i_sine44_f5_tier_b \
+            --skip phase1i_multitone_f5_tier_b \
+            --skip phase1_full_stream_parity \
+            --skip intensity_probe_c_oracle_parity \
+            --skip intensity_probe_wav_parity \
+            --skip intensity_probe_adts_decodes \
+            --skip m511_profile_loop \
+            2>&1 | tee "$LOG_DIR/full-suite-release.txt"
+          grep "test result:" "$LOG_DIR/full-suite-release.txt"
+
+      - name: VBR-5 / VBR-6 goldens (explicit)
+        run: |
+          set -euo pipefail
+          cargo test --locked --release -p ferrite-aac --lib production_baseline \
+            -- --nocapture 2>&1 | tee "$LOG_DIR/goldens.txt"
+          grep "test result:" "$LOG_DIR/goldens.txt"
+
+      - name: Public encoder API integration tests
+        run: |
+          set -euo pipefail
+          cargo test --locked --release -p ferrite-aac --test production_api \
+            2>&1 | tee "$LOG_DIR/production-api.txt"
+          grep "test result:" "$LOG_DIR/production-api.txt"
+
+      # Formatting and Clippy are reported, not hidden. The repository has
+      # known pre-existing drift (see ci.yml informational jobs); these steps
+      # capture full output for the record and do not gate AVX2 correctness.
+      - name: Formatting (reported, non-gating)
+        continue-on-error: true
+        run: cargo fmt --all -- --check 2>&1 | tee "$LOG_DIR/fmt.txt"
+
+      - name: Clippy (reported, non-gating)
+        continue-on-error: true
+        run: cargo clippy --locked --all-targets 2>&1 | tee "$LOG_DIR/clippy.txt"
+
+      - name: Write step summary
+        if: always()
+        run: |
+          {
+            echo "## Native AVX2 correctness validation"
+            echo
+            echo '```'
+            grep -E "PREREQ OK|uname -m|Linux" "$LOG_DIR/environment.txt" | head -5 || true
+            grep -E "rustc |release:|host:" "$LOG_DIR/toolchain.txt" | head -5 || true
+            echo '```'
+            echo
+            echo "### Backend confirmation"
+            echo '```'
+            grep -h "CONFIRMED backend=" "$LOG_DIR"/avx2-*.txt || echo "NO AVX2 CONFIRMATION FOUND"
+            echo '```'
+            echo
+            echo "### Test results"
+            echo '```'
+            for f in avx2-release avx2-debug full-suite-release goldens production-api; do
+              echo "--- $f ---"
+              grep -h "test result:" "$LOG_DIR/$f.txt" || echo "no result line"
+            done
+            echo '```'
+            echo
+            echo "### Formatting / Clippy (informational)"
+            echo '```'
+            tail -n 3 "$LOG_DIR/fmt.txt" || true
+            tail -n 3 "$LOG_DIR/clippy.txt" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: avx2-native-validation-logs
+          path: avx2-logs/
+          retention-days: 14
+          if-no-files-found: error

@@ -439,6 +439,8 @@ pub fn quantize_spectrum(
                 // the `#[target_feature]` + `#[inline(never)]` entry points keep
                 // AVX2 instructions out of the baseline path (see quant_avx2).
                 if std::arch::is_x86_feature_detected!("avx2") {
+                    #[cfg(test)]
+                    avx2_dispatch_observe::record(avx2_dispatch_observe::QUANTIZE);
                     // SAFETY: feature-checked above; the kernel reads/writes
                     // exactly `end - start` lines and falls back to
                     // `quantize_line_body` for tails.
@@ -557,6 +559,8 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
         // `#[target_feature]` + `#[inline(never)]` entry points keep AVX2
         // instructions out of the baseline path (see quant_avx2).
         if std::arch::is_x86_feature_detected!("avx2") {
+            #[cfg(test)]
+            avx2_dispatch_observe::record(avx2_dispatch_observe::DIST);
             // SAFETY: feature-checked above. The kernel writes exactly the
             // scalar prefix on early-out and is bit-identical otherwise;
             // tails and exceptional groups use the scalar path.
@@ -637,6 +641,8 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
         // `#[target_feature]` + `#[inline(never)]` entry points keep AVX2
         // instructions out of the baseline path (see quant_avx2).
         if std::arch::is_x86_feature_detected!("avx2") {
+            #[cfg(test)]
+            avx2_dispatch_observe::record(avx2_dispatch_observe::ENERGY);
             // SAFETY: feature-checked above. Bit-identical sums;
             // exceptional groups and tails use the scalar path.
             let sums = unsafe {
@@ -683,14 +689,15 @@ pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
     )
 }
 
-/// Which SIMD backend the production dispatch in this module selects on the
-/// current target. Test-only: it mirrors the exact `cfg` gates and the same
-/// `is_x86_feature_detected!("avx2")` macro used by `quantize_spectrum`,
-/// `calc_sfb_dist` and `calc_sfb_quant_energy_and_dist`, so it resolves
-/// identically to the real dispatch on this machine. It exists so a native
-/// test run can *positively assert* the selected backend (Phase 2.1,
-/// MEDIUM-1) rather than inferring AVX2 selection from a passing kernel test.
-/// No production atomics, counters, or runtime overhead.
+/// Which SIMD backend the production dispatch condition in this module
+/// resolves to on the current target. Test-only: it mirrors the exact `cfg`
+/// gates and the same `is_x86_feature_detected!("avx2")` macro used by
+/// `quantize_spectrum`, `calc_sfb_dist` and `calc_sfb_quant_energy_and_dist`.
+/// NOTE: this re-evaluates the dispatch *condition*; it does not by itself
+/// prove the production branch executed. Actual branch entry is observed by
+/// [`avx2_dispatch_observe`] (Phase 2.2.1), which the native diagnostic
+/// asserts before confirming AVX2. No production atomics, counters, or
+/// runtime overhead.
 #[cfg(test)]
 #[derive(Debug, PartialEq, Eq)]
 #[allow(dead_code)]
@@ -717,6 +724,40 @@ pub(crate) fn selected_backend() -> Backend {
     #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
         Backend::Scalar
+    }
+}
+
+/// Test-only instrumentation recording *actual entry* into the production
+/// AVX2 dispatch branches (Phase 2.2.1). Unlike [`selected_backend`] — which
+/// only re-evaluates the feature-detection condition — these counters are
+/// incremented inside the real `if is_x86_feature_detected!("avx2")` branches
+/// of [`quantize_spectrum`], [`calc_sfb_dist`] and
+/// [`calc_sfb_quant_energy_and_dist`], so a nonzero count proves the
+/// production dispatcher actually called the AVX2 kernel (not merely that
+/// AVX2 is available). Compiled only for x86-64 test builds; absent from
+/// production builds (zero overhead, no public API change).
+#[cfg(all(test, target_arch = "x86_64"))]
+pub(crate) mod avx2_dispatch_observe {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Mutex;
+
+    pub(crate) const QUANTIZE: usize = 0;
+    pub(crate) const DIST: usize = 1;
+    pub(crate) const ENERGY: usize = 2;
+
+    /// Monotonic per-branch entry counts. Atomics make concurrent increments
+    /// from parallel tests race-free.
+    pub(crate) static COUNTS: [AtomicU64; 3] =
+        [AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0)];
+
+    /// Serializes the reset→invoke→assert critical section of the observing
+    /// test so its measurement window cannot be interleaved with another
+    /// observation.
+    pub(crate) static LOCK: Mutex<()> = Mutex::new(());
+
+    #[inline]
+    pub(crate) fn record(branch: usize) {
+        COUNTS[branch].fetch_add(1, Ordering::Relaxed);
     }
 }
 

@@ -3358,3 +3358,227 @@ dispatch-selection `Avx2` assertion, and any performance measurement.
 present from Phase 2). No staging, commit, push, amend, reset, rebase,
 cherry-pick, or history rewrite occurred; all Phase 2.1 changes remain
 uncommitted.
+
+## 34. 2026-11-14 SIMD Phase 2.2: native AVX2 validation via GitHub Actions
+
+### 34.1 Question and status
+
+Phases 2/2.1 were validated by source review, intrinsic-level simulation,
+x86-64 cross-compilation/disassembly, ARM64 NEON execution and Rosetta scalar
+fallback — but **no AVX2 kernel had executed on native AVX2 hardware**. Phase
+2.2 closes that gap by adding a dedicated GitHub Actions workflow that runs the
+AVX2 tests on a GitHub-hosted x86-64 Linux runner with AVX2.
+
+**Status: mechanism established; native run PENDING.** The Phase 2.1 work was
+checkpointed locally as commit `276eca6609412fa83465c02e4e37a58675433959`
+(parent `7adf9356328620bf025c3cf4af3d9d4b1205c412`). The workflow
+`.github/workflows/avx2-native-validation.yml` is authored and `actionlint`
+clean. **The workflow has not yet executed on a GitHub runner**: triggering it
+requires pushing the branch / opening a pull request, which is explicitly out
+of scope for this phase (no push, no publish). Accordingly there is **no native
+runner environment, run URL, or native test result to record yet** — those will
+be produced by the first run once the change is pushed. No performance
+improvement is measured or claimed.
+
+### 34.2 Checkpoint (Part 1)
+
+- Commit: `276eca6609412fa83465c02e4e37a58675433959`
+- Parent: `7adf9356328620bf025c3cf4af3d9d4b1205c412`
+- Contents: the complete approved Phase 2 + 2.1 changes only —
+  `rust/src/aac_enc/quant_avx2.rs` (new), `rust/src/aac_enc/quant.rs`,
+  `rust/src/aac_enc.rs`, `docs/aac-enc-performance-baseline.md`
+  (4 files, +1963/−4). Worktree verified clean after committing. Not pushed;
+  no prior commit amended or rewritten.
+
+### 34.3 Workflow design (Parts 2/3/5)
+
+`.github/workflows/avx2-native-validation.yml`:
+
+- Triggers: `push` to `main`, `pull_request` to `main`, `workflow_dispatch`.
+- `permissions: contents: read`; `concurrency` cancel-in-progress;
+  `timeout-minutes: 30`; `working-directory: rust` (matches `ci.yml`).
+- Runner: `ubuntu-latest` (GitHub-hosted x86-64). Toolchain pinned to
+  **Rust 1.99.1** via the same `dtolnay/rust-toolchain` SHA pin used by
+  `ci.yml`; target `x86_64-unknown-linux-gnu`; components `rustfmt, clippy`.
+  First-party `actions/cache@v4` for the Cargo registry + `rust/target`.
+- **Prerequisite gates (fail clearly, no scalar fallback credit):**
+  1. `uname -m` must equal `x86_64`.
+  2. `/proc/cpuinfo` must expose the `avx2` flag.
+  3. `x86_64-unknown-linux-gnu` target must be installed.
+  4. The AVX2 test logs must contain **no** `SKIP (no AVX2)` line and **must**
+     contain `CONFIRMED backend=Avx2` (printed by `avx2_dispatch_selection`).
+     As of Phase 2.2.1 (§35) that confirmation is emitted only after the test
+     observes the *actual production AVX2 dispatch branches* execute, not merely
+     that AVX2 is available.
+- Tests: `quant_avx2` module in **release and debug** (`--nocapture
+  --test-threads=1`); full self-contained suite (same 15 artifact-dependent
+  skips as `ci.yml`); explicit `production_baseline` (VBR-5 corpus + VBR-6
+  music); `production_api` integration. Formatting and Clippy run as reported
+  non-gating steps (pre-existing drift, per `ci.yml`), with full output kept.
+- Artifacts (`actions/upload-artifact@v4`, `if: always()`):
+  `avx2-logs/` containing `environment.txt` (uname/lscpu/cpuinfo flags +
+  prereq OK), `toolchain.txt` (rustc/cargo/targets), `build-release.txt`,
+  `avx2-release.txt`, `avx2-debug.txt`, `full-suite-release.txt`,
+  `goldens.txt`, `production-api.txt`, `fmt.txt`, `clippy.txt`. A step summary
+  surfaces the backend confirmation and every `test result:` line.
+- No performance benchmarks.
+
+To make the selected backend explicit and greppable (Part 3), Phase 2.2 added a
+diagnostic `eprintln` to `avx2_dispatch_selection`
+(`CONFIRMED backend=Avx2 avx2=true` on the success path). Phase 2.2.1 (§35)
+strengthened this so the confirmation is gated on observed production branch
+execution. These are test-only changes; no AVX2/scalar/NEON arithmetic changed.
+
+### 34.4 Test inventory the workflow executes
+
+The `quant_avx2` filter selects **18 tests** (17 runnable + 1 ignored
+microbenchmark): `fmult8` anchors (identical-lane, alternating, negative/near-
+zero), `fixmuldiv2_ds8` (all-lane nonzero, negative/zero), quantize
+(`quantize_lines_matches_scalar`, `quantize_lines_all_lanes_deterministic`),
+inverse + distortion/energy (`energy_dist_matches_scalar`,
+`energy_dist_all_lanes_deterministic`, `energy_max_quant_positions`),
+randomized differential (`calc_sfb_dist_matches_scalar`), residue coverage
+(`residue_sweep_all_quantizers_and_rows`), boundaries/tails
+(`boundary_lengths`), prefix-write/exceptional (`calc_sfb_dist_early_out_prefix_matches`,
+`dist_violation_positions`), `dispatch_selection`, and the portable
+`fpow2_int_min_anchor`. On a native AVX2 runner all 17 execute (none skip);
+the microbenchmark stays ignored. Production dispatch is additionally exercised
+by the full-suite `qprobe_transcript_exact` / `s3_corpus_exact` paths.
+
+### 34.5 Evidence classes (current)
+
+| Class | Status |
+|---|---|
+| Mathematically derived | corrected interleave + all kernel arithmetic (§33.2/§33.5) |
+| Intrinsic-level simulation | 0 mismatches with the fix; old interleave fails the anchors (§33.5). A model, **not** hardware execution |
+| Cross-compilation + disassembly | x86-64 build clean; corrected `blend(0xAA)` emitted; AVX2 confined; `vzeroupper` on exits (§33.6) |
+| ARM64/NEON execution | full release suite 356 pass / 11 pre-existing artifact failures / 6 ignored; goldens 2/2; quant 22/1 |
+| Rosetta scalar fallback | AVX2 tests skip honestly; dispatch confirms scalar; goldens 2/2 |
+| **Native AVX2 execution** | **PENDING** — workflow authored + lint-clean; first run requires a push/PR (out of scope here) |
+| Performance measurement | **PENDING / not claimed** — no benchmarks in this phase |
+
+### 34.6 Local verification performed while authoring (ARM64 host)
+
+- `actionlint .github/workflows/avx2-native-validation.yml`: clean.
+- x86-64 test binary rebuilt with the diagnostic; `quant_avx2` filter confirmed
+  to select 18 tests; `production_baseline` filter selects the 2 goldens;
+  `avx2_dispatch_selection` under Rosetta prints `SKIP (no AVX2; scalar
+  confirmed)` (correct fallback behaviour).
+- `cargo fmt --all -- --check`: clean. Clippy (x86-64, `--all-targets`): no new
+  warnings in the touched files (only the pre-existing `quant.rs:993`);
+  repository-wide pre-existing warning baseline unchanged.
+- ARM64 release: `production_baseline` 2/2; `quant` filter 22 pass / 1 ignored.
+
+### 34.7 Remaining work / limitations
+
+- **Push the branch / open a PR** to trigger the first native run (forbidden in
+  this phase). Then record the runner CPU/lscpu, the `CONFIRMED backend=Avx2`
+  line, the per-profile `test result:` counts (executed/passed/failed/skipped),
+  the golden results, and the run URL + artifact location here.
+- If the runner lacks AVX2 or any test skips, the workflow fails by design;
+  investigate the runner image rather than relaxing the gate.
+- Pre-existing artifact-dependent failures (the 15 skipped tests) remain
+  out of scope; they are reported separately, not hidden.
+- Native performance acceptance (§32.7) remains a separate, later phase.
+
+### 34.8 Files changed (Phase 2.2, uncommitted)
+
+| File | Change |
+|---|---|
+| `.github/workflows/avx2-native-validation.yml` | New native AVX2 correctness workflow. |
+| `rust/src/aac_enc/quant_avx2.rs` | One test-only diagnostic `eprintln` in `avx2_dispatch_selection`. |
+| `docs/aac-enc-performance-baseline.md` | This §34. |
+
+No scalar/NEON/AVX2 arithmetic, VBR profile, table, public API, dependency or
+fixture changed. No push, publish, amend, rebase or history rewrite. Phase 2.2
+changes remain uncommitted on top of the Phase 2.1 checkpoint.
+
+## 35. 2026-11-14 SIMD Phase 2.2.1: close native dispatch-proof findings
+
+Two narrowly scoped corrections from the independent Phase 2.2 review. No SIMD
+arithmetic, algorithm, VBR, fixture, public-API or unrelated-CI change. All
+changes remain uncommitted on top of the Phase 2.1 checkpoint (`276eca6`).
+
+### 35.1 Finding 1 — observe the actual production AVX2 branches
+
+The Phase 2.2 `selected_backend()` only re-evaluated the feature-detection
+condition; it did not prove the production dispatcher *entered* the AVX2
+branch (and, because AVX2 and scalar are bit-identical, no output-based test
+could detect a dispatch regression to scalar). Phase 2.2.1 adds test-only
+instrumentation inside the real branches:
+
+- `rust/src/aac_enc/quant.rs` gains `avx2_dispatch_observe`, gated
+  `#[cfg(all(test, target_arch = "x86_64"))]`: three monotonic `AtomicU64`
+  counters (`QUANTIZE`, `DIST`, `ENERGY`), a `Mutex<()>` observation lock, and
+  an `#[inline] record(branch)` that does `fetch_add(1, Relaxed)`.
+- A `#[cfg(test)] avx2_dispatch_observe::record(...)` call is placed at the top
+  of each production `if is_x86_feature_detected!("avx2")` branch:
+  `quantize_spectrum` (quant.rs:443), `calc_sfb_dist` (quant.rs:563),
+  `calc_sfb_quant_energy_and_dist` (quant.rs:645). The counter increments only
+  when that branch is actually entered.
+- `avx2_dispatch_selection` (quant_avx2.rs) now: asserts the condition resolves
+  to `Avx2`; acquires the observation lock; resets the counters; invokes the
+  **real production entry points** (`quantize_spectrum`, `calc_sfb_dist`,
+  `calc_sfb_quant_energy_and_dist`) with valid 8-line inputs; asserts each
+  counter is nonzero; and only then emits
+  `CONFIRMED backend=Avx2 avx2=true branches=quantize:…,dist:…,energy:…`.
+  `selected_backend()` is retained as a condition mirror (its comment now says
+  so explicitly); the direct-call differential/regression tests are unchanged.
+
+**What is measured:** actual entry into the production AVX2 dispatch branches,
+not feature availability and not inference from a passing kernel test.
+
+**Parallel-test safety:** the observing test holds `LOCK` across
+reset→invoke→assert; counters are atomics, so concurrent increments from other
+tests are race-free. Concurrent production calls can only *add* to the counts;
+because dispatch is deterministic for a fixed machine, a regression to scalar
+produces zero increments across *all* tests, so the nonzero assertion still
+fails correctly. The CI gate runs the module with `--test-threads=1`, removing
+concurrency for the gated run.
+
+**Production overhead:** the module and all `record` calls are `#[cfg(test)]`;
+the x86-64 **release** assembly contains zero `avx2_dispatch_observe` symbols
+(verified by `--emit asm` + grep). No production-build overhead, dependency or
+public-API change.
+
+### 35.2 Finding 2 — build-step failure propagation
+
+The workflow's `Build encoder (release)` step piped `cargo build` through `tee`
+without `pipefail`; under GitHub's default `bash -e {0}` shell a build failure
+was masked (the pipeline returned `tee`'s success). Added `set -euo pipefail`
+to that step. Verified by shell simulation: `set -e; false | tee` exits 0
+(masked), whereas `set -euo pipefail; false | tee` exits 1 (propagates). The
+multi-line test steps already used `set -euo pipefail`.
+
+### 35.3 Validation performed (ARM64 host; NOT native AVX2)
+
+| Check | Result |
+|---|---|
+| rustfmt (`cargo fmt --all -- --check`) | clean |
+| clippy (x86-64, `--all-targets`) | no new warnings in touched files (only pre-existing `s3_input_spec` loop, now quant.rs:1034) |
+| x86-64 test compilation (`--target x86_64-apple-darwin`) | clean; instrumentation compiles |
+| x86-64 release assembly | **0** `avx2_dispatch_observe` symbols → no production instrumentation |
+| Rosetta x86-64 (no AVX2) | `avx2_dispatch_selection` prints `SKIP (no AVX2; scalar confirmed)`; `quant_avx2` module 17 pass / 1 ignored / 0 fail |
+| ARM64 release `quant` filter | 22 pass / 1 ignored (NEON + portable dispatch test); instrumentation is x86-64-only |
+| ARM64 release goldens | VBR-5 + VBR-6: 2/2 pass, fixtures unchanged |
+| actionlint | workflow clean |
+| build-step failure propagation | shell simulation: old masks (exit 0), new propagates (exit 1) |
+
+**Evidence classes:** the branch instrumentation is *compiled* and *structurally
+verified* (record calls lexically inside the production branches; test invokes
+the production entry points; counters absent from production asm). **Native
+AVX2 execution remains PENDING** — the counters incrementing on a real AVX2
+runner, and the `CONFIRMED … branches=…` line, will be produced by the first
+GitHub run (requires a push, out of scope here). Cross-compilation and ARM64
+execution are **not** native AVX2 execution. No performance claim.
+
+### 35.4 Files changed (Phase 2.2.1, uncommitted)
+
+| File | Change |
+|---|---|
+| `rust/src/aac_enc/quant.rs` | `avx2_dispatch_observe` test-only module; `record()` in the 3 production AVX2 branches; clarified `selected_backend()` comment. |
+| `rust/src/aac_enc/quant_avx2.rs` | `avx2_dispatch_selection` observes real branches before `CONFIRMED`. |
+| `.github/workflows/avx2-native-validation.yml` | `set -euo pipefail` on the build step. |
+| `docs/aac-enc-performance-baseline.md` | §34.3 cross-reference; this §35. |
+
+No commit, push, amend, rebase or history rewrite; no fixture/golden change.

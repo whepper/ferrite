@@ -634,19 +634,71 @@ mod tests {
         out
     }
 
-    /// Phase 2.1 (MEDIUM-1): positively assert that production dispatch
-    /// selects AVX2 on this machine when the feature is present. The helper
-    /// mirrors the exact dispatch gates and the identical detection macro, so
-    /// `Avx2` here means the real `calc_sfb_dist` / energy / quantize_spectrum
-    /// dispatch takes the AVX2 branch. Without AVX2 it must resolve to scalar
-    /// (honest skip of the AVX2 assertion). This does not infer selection from
-    /// a kernel test passing.
+    /// Phase 2.2.1 (closes Phase 2.2 MEDIUM-1): positively observe that the
+    /// *actual production dispatch branches* execute on this machine. Unlike
+    /// `selected_backend()` (which only re-evaluates the feature condition),
+    /// this resets the test-only `avx2_dispatch_observe` counters, invokes the
+    /// real production entry points (`quantize_spectrum`, `calc_sfb_dist`,
+    /// `calc_sfb_quant_energy_and_dist`) with valid inputs, and asserts each
+    /// per-branch counter is nonzero. The counters are incremented inside the
+    /// production `if is_x86_feature_detected!("avx2")` branches, so a nonzero
+    /// count proves the production dispatcher called the AVX2 kernel — not
+    /// merely that AVX2 is available, and not inferred from a kernel test
+    /// passing. `CONFIRMED backend=Avx2` is emitted only after all three
+    /// branches are observed. Without AVX2 it resolves to scalar and skips.
+    ///
+    /// Parallel-test safety: the observation holds `avx2_dispatch_observe::LOCK`
+    /// across reset→invoke→assert, and the counters are atomics. Concurrent
+    /// production calls from other tests can only *add* to the counts; because
+    /// dispatch is deterministic for a fixed machine, a regression to scalar
+    /// yields zero increments across *all* tests, so the nonzero assertion
+    /// still fails correctly. The CI gate runs this module single-threaded.
     #[test]
     fn avx2_dispatch_selection() {
         use super::super::quant::{selected_backend, Backend};
+        use std::sync::atomic::Ordering;
         let b = selected_backend();
         if avx2_available() {
-            assert_eq!(b, Backend::Avx2, "production dispatch must select AVX2");
+            assert_eq!(b, Backend::Avx2, "feature detection must resolve to AVX2");
+            use super::super::quant::avx2_dispatch_observe as obs;
+            let _guard = obs::LOCK.lock().unwrap();
+            for c in obs::COUNTS.iter() {
+                c.store(0, Ordering::Relaxed);
+            }
+            // Valid inputs exercising each production entry point's AVX2 branch.
+            let spec = [0x1000_0000i32; 8];
+            let off = [0i32, 8];
+            let scf = [0i32];
+            let mut out = [0i16; 8];
+            super::super::quant::quantize_spectrum(1, 1, 1, &off, &spec, 0, &scf, &mut out, false);
+            let mut q = [0i16; 8];
+            let _ = super::super::quant::calc_sfb_dist(&spec, 0, false, &mut q);
+            let quant_in = [100i16; 8];
+            let _ = super::super::quant::calc_sfb_quant_energy_and_dist(&spec, &quant_in, 0);
+            let qn = obs::COUNTS[obs::QUANTIZE].load(Ordering::Relaxed);
+            let dn = obs::COUNTS[obs::DIST].load(Ordering::Relaxed);
+            let en = obs::COUNTS[obs::ENERGY].load(Ordering::Relaxed);
+            // Intentionally assert only `> 0`, not an exact count. Production
+            // dispatch is deterministic for a given process, so a regression to
+            // scalar yields zero increments across all tests (still caught), but
+            // concurrent test calls may increase the observed counts. An exact
+            // counter assertion would require serial execution (`--test-threads=1`,
+            // as the CI gate uses) or synchronization of all writers.
+            assert!(
+                qn > 0,
+                "production quantize_spectrum did not enter the AVX2 branch"
+            );
+            assert!(
+                dn > 0,
+                "production calc_sfb_dist did not enter the AVX2 branch"
+            );
+            assert!(
+                en > 0,
+                "production energy/dist did not enter the AVX2 branch"
+            );
+            eprintln!(
+                "AVX2_TEST avx2_dispatch_selection: CONFIRMED backend=Avx2 avx2=true branches=quantize:{qn},dist:{dn},energy:{en}"
+            );
         } else {
             assert_eq!(
                 b,
