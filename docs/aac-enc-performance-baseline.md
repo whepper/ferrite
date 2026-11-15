@@ -50,7 +50,10 @@ optimized DWARF source-line profiling method and the ranked targets.
 Sections 22–28 record the subsequent rejected or reverted candidates, the
 retained `find_max_merge` decision, and the reverted SCF trial-array
 experiment. Section 29 is the aggregate performance checkpoint for the
-complete retained set.
+complete retained set. Sections 30–37 record the SIMD phases. Section 38 is the
+**2026-11-15 Phase 2.4.4a A/B campaign readiness record** (documentation and
+procedure only; no campaign was run at that time). Section 39 is the
+**2026-11-15 Phase 2.4.5 native ARM64 NEON A/B campaign result**.
 
 ## 1. Executive summary
 
@@ -3115,6 +3118,13 @@ untouched):
 
 ### 32.7 Benchmark plan (native x86-64 hardware, not yet run)
 
+> **Superseded (2026-11-15, Phase 2.4.4; updated Phase 2.4.4a):** the
+> acceptance sketch below (≥1% median, ≥6/8 pairs) is project history. The
+> active acceptance protocol is `docs/aac-enc-simd-performance-plan.md` **§8A**
+> (practical bands, K = 16 paired observations, fixed 30-invocation warm-up,
+> no 1%-certification gate); the worktree/overlay rules are §8A.6, the required
+> campaign record is §8A.7 and the operator procedure is §8A.8.
+
 Baseline: `git worktree` at `7adf935` (pre-AVX2) vs this tree, same toolchain
 (rustc 1.99.1, release, default flags — no `target-cpu=native`), existing
 harness (`AAC_PERF_BENCH=1`, VBR-tagged records), ≥8 alternating
@@ -3129,7 +3139,13 @@ unacceptable size/memory change — else report honestly and do not retain.
 ### 32.8 Performance results
 
 **None measured; none claimed.** No AVX2 hardware executed this code. The
-acceptance campaign in §32.7 is pending.
+x86-64 AVX2 acceptance campaign sketched in §32.7 has **not** been run and is
+not scheduled; the active campaign is the ARM64 VBR-5 A/B in plan §8A. AVX2
+performance remains unmeasured.
+
+> **Update 2026-11-15 (Phase 2.4.4a):** the sentence above previously read
+> "the acceptance campaign in §32.7 is pending". §32.7 is superseded by plan
+> §8A, so there is no pending x86-64 campaign to wait for.
 
 ### 32.9 Binary-size impact
 
@@ -3677,6 +3693,11 @@ cleanup. All of this work remains uncommitted in the worktree on top of
 time; `quant_bench.rs` is an untracked file with no Git history, so no
 Git-verifiable comparison against an earlier version exists or is claimed).
 
+> **Update 2026-11-15 (Phase 2.4.4a):** the paragraph above was accurate when
+> recorded and is preserved as history. The Phase 2.4.2/2.4.2a/2.4.2b work —
+> including `quant_bench.rs` — is now **committed** in `02158ff`; the file is
+> tracked and has Git history. Nothing in §37 has been rewritten.
+
 ### 37.1 Historical diagnostic measurements (preserved as reported)
 
 Production-weighted aggregate kernel time ratios (`time_ratio = T_simd /
@@ -3793,8 +3814,10 @@ fallback observation: across all 1499 captured joint cells,
   per-repetition data, dispersion and confidence intervals were not
   preserved and are not invented here.
 - Diagnostic kernel evidence only: no A/A calibration, no frozen MDE, no
-  paired acceptance campaign; formal acceptance (plan §6/§8) remains pending
-  and requires production-build end-to-end measurement.
+  paired acceptance campaign; formal acceptance (plan §8A) remains pending and
+  requires production-build end-to-end measurement on ARM64. *(Superseded
+  2026-11-15, §39: the ARM64 campaign has been run and the improvement
+  accepted.)*
 - AVX2 performance and fallback execution remain unmeasured; the AVX2
   fallback instrumentation has no recorded native execution (correctness
   evidence: §36).
@@ -3802,4 +3825,354 @@ fallback observation: across all 1499 captured joint cells,
   execution; this section's native-execution claim rests on the documented
   runs above, not on the labels.
 - All Phase 2.4.2/2.4.2a/2.4.2b work remains uncommitted; `quant_bench.rs`
-  is untracked and has no Git history.
+  is untracked and has no Git history. *(Superseded 2026-11-15, Phase 2.4.4a:
+  this work is committed in `02158ff`; `quant_bench.rs` is tracked.)*
+
+## 38. 2026-11-15 SIMD Phase 2.4.4a: A/B campaign readiness (no campaign run)
+
+**Status: preparation and documentation only — no campaign had been run when
+this section was written.** This section records the readiness
+state of the practical ARM64 NEON-versus-scalar A/B campaign defined by
+`docs/aac-enc-simd-performance-plan.md` §8A. It changes no encoder code, no
+kernel arithmetic, no fixture, no golden hash, no manifest and no lockfile.
+
+### 38.1 Campaign composition (frozen)
+
+| Role | Revision | Overlay |
+|---|---|---|
+| Scalar baseline | `1c825c685147ea71e65471b65bd7893742423fcb` (`1c825c6`) | benchmark harness below |
+| Candidate | `02158ffcca8526db240ac33fe01fc48b69695017` (`02158ff`) | benchmark harness below |
+| Benchmark overlay (both arms) | `rust/examples/aac_bench_wav.rs`, SHA-256 `578912583665e29c9be3146aba0a866ae0047a342ed2b2d98671f3c5fee505eb` | example target only; uncommitted by design |
+
+Why `1c825c6` is the correct scalar baseline: it is the direct parent of the
+NEON implementation commit `c530054` (`git rev-parse c530054^`), and the commit
+itself only edits `rust/convert/THIRD-PARTY-NOTICES.md`. It contains no
+NEON/AVX2 code, and the scalar quantize/distortion/energy arithmetic is
+unchanged between the two revisions. There are no intervening changes to
+`config.rs`, `encoder.rs`, the psychoacoustic model, VBR settings, `Cargo.toml`,
+`Cargo.lock`, or the fixture corpus (`docs/aac-enc-simd-performance-plan.md`
+§4.2).
+
+**What the comparison measures.** The delta is the **combined candidate
+change**: the NEON quantize / distortion / energy kernels plus their dispatch
+wiring, together with the removal of the now-unused per-band scalar
+`QUANT_TABLE_Q` lookup at the aarch64 dispatch sites. It is *not* an isolated
+instruction-level NEON measurement and must not be reported as one.
+
+**Overlay rules.** The VBR-5 capability in `aac_bench_wav.rs` is an uncommitted
+change on top of `02158ff`; it is **not** committed as part of this phase.
+Both worktrees must carry the identical file. In each worktree,
+`git status --porcelain` must contain exactly one entry
+(` M rust/examples/aac_bench_wav.rs`), and the file's SHA-256 must match the
+value above. Any other modified, staged, untracked or deleted path aborts the
+campaign. There are no other permitted overlays. Full procedure:
+`docs/aac-enc-simd-performance-plan.md` §8A.6.
+
+### 38.2 Procedure (summary)
+
+The authoritative procedure is `docs/aac-enc-simd-performance-plan.md` §8A.8;
+this is a summary only.
+
+1. Build both arms with the same toolchain (`rustc 1.99.1`), the same release
+   settings (`cargo build --release --locked --example aac_bench_wav`), the
+   same lockfile and the same overlay; build before any timing.
+2. Preflight: one invocation per arm (`AAC_WAV_VBR=5 AAC_WAV_REPS=15
+   AAC_WAV_WARMUP=1`); require the exact `WAVBENCH_CONFIG` line
+   (`profile=release arch=aarch64 os=macos reps=15 warmups=1 fixtures=5
+   vbr=VBR-5`), the four committed VBR-5 pins on both arms, and identical x4
+   hashes across arms.
+3. Warm-up: **30 discarded benchmark invocations per arm**, alternating
+   between arms; all warm-up measurements discarded; no extension or
+   shortening based on observed timings; no A/A qualification campaign.
+4. Measurement: **16 paired observations**, strict AB/BA alternation with a
+   randomised starting arm, each pair one full invocation per arm back-to-back.
+5. Analysis once, after all 16 pairs: per-invocation value = median of the 15
+   per-repetition sums of `init_ns + encode_ns` over the four formal fixtures;
+   headline = median paired log effect `d_i = ln(C_i/B_i)` with
+   `speedup% = (exp(−d_med) − 1) × 100`.
+6. Record: campaign manifest per plan §8A.7 (pair index, arm, AB/BA order,
+   timestamps, revisions, overlay hash, binary hashes, `rustc -vV`, `uname -m`,
+   `file`/`lipo -archs`, config line, aggregates, log names).
+
+The warm-up is a practical fixed count, not a claim that thermal conditions are
+stationary. Residual drift is handled by AB/BA pairing; the design does not
+attempt 1% certification (plan §8A.0–§8A.1).
+
+### 38.3 Correctness conditions
+
+- Byte-exact scalar/SIMD equivalence against the committed VBR-5 pins on every
+  invocation, for the four formal fixtures.
+- The derived `m7-music-stereo-48k-x4` fixture has **no** committed VBR-5 pin:
+  it is validated by within-run determinism plus **cross-arm hash equality**,
+  not as a pinned golden.
+- Existing VBR-5/VBR-6 golden tests pass unchanged. VBR-6 is a correctness
+  input only and is not measured in this campaign.
+- The ARM64 suite has a known baseline dependency:
+  `m55_streams_match_c_reference` reads reference streams from `$M55_C_DIR` and
+  fails with an explicit "reference validation artifact missing" panic when
+  those C-reference artifacts are absent (§32.6 records 11 such failures in
+  both debug and release). Both arms run with the same `M55_C_DIR`
+  configuration; the requirement is **no new failures or skips attributable to
+  the candidate**, not literally zero skips.
+- Both binaries must be native `aarch64` release builds, evidenced by
+  `uname -m`, `file`/`lipo -archs` and SHA-256 (plan §8A.7). NEON selection is
+  compile-time on AArch64; there is no runtime dispatch to verify.
+
+### 38.4 What this phase did and did not do
+
+Documentation only. Updated `docs/aac-enc-simd-performance-plan.md` (active
+protocol, superseded markers, worktree/overlay rules, manifest, runbook) and
+this document (superseded/obsolete references, readiness record). No production
+encoder code, NEON/AVX2 arithmetic, VBR or psychoacoustic behaviour, fixture
+content, golden hash, public API, dependency, Cargo manifest or lockfile was
+changed. The benchmark overlay pre-existed and was not modified. No A/A
+campaign and no A/B campaign was run at the time of this section. No commit,
+amendment, rebase, reset, tag or push occurred.
+
+> **Update 2026-11-15 (Phase 2.4.6):** the campaign described here was
+> subsequently executed (Phase 2.4.5). Its result is recorded in **§39**; §38.5
+> below is historical.
+
+### 38.5 Remaining prerequisites before the campaign starts *(resolved — see §39)*
+
+- The preflight in plan §8A.8 step 3 has not been executed: the VBR-5 pins have
+  never been verified through the public `Encoder` harness path (they are
+  proven through the `cfg(test)` corpus path, and the harness notes that push
+  chunking is semantically neutral, but the public-path run itself is
+  outstanding). The campaign begins with that check; a mismatch aborts it.
+- The overlay hash in §38.1 is the current file hash; if the file is edited
+  later, the recorded hash must be updated before any campaign run.
+
+> **Resolution (2026-11-15, Phase 2.4.6):** both prerequisites were satisfied
+> before measurement. The public-`Encoder` preflight passed on both arms with
+> the four committed VBR-5 pins and an identical x4 hash; the overlay remained
+> `5789125836…f3c5fee505eb` throughout. Campaign result: **§39**.
+
+## 39. 2026-11-15 SIMD Phase 2.4.5: native ARM64 NEON A/B campaign results
+
+**Status: campaign complete; the measured improvement is accepted as a
+substantial engineering win.** This is the permanent record of the practical
+A/B campaign defined in `docs/aac-enc-simd-performance-plan.md` §8A. It is a
+documentation record only: no encoder code, benchmark logic, fixture, golden
+hash, manifest, lockfile or dependency was changed to produce it, and no
+measurement was re-run for this section.
+
+### 39.1 Campaign configuration
+
+| Item | Value |
+|---|---|
+| Campaign ID | `ferrite-ab-2.4.5` |
+| Date (UTC) | 2026-11-15; preflight 17:30:40Z, warm-up 17:32:00–17:37:43Z, measurement 17:37:48–17:40:51Z |
+| Baseline | `1c825c685147ea71e65471b65bd7893742423fcb` (`1c825c6`, pre-NEON scalar) |
+| Candidate | `02158ffcca8526db240ac33fe01fc48b69695017` (`02158ff`, NEON) |
+| Runner | Apple M5 (10-core), `Mac17,2`, native `arm64` |
+| OS | macOS 27.0.1 (build 26A434) |
+| Toolchain | `rustc 1.99.1 (58cf8f9c3 2026-10-13)`, LLVM 23.1.1, host `aarch64-apple-darwin` |
+| Power / mode | AC connected; Low Power Mode disabled |
+| Encoder configuration | AAC-LC, ADTS, VBR-5 (`AAC_WAV_VBR=5`), 15 inner repetitions, 1 in-process warm-up pass |
+| Warm-up | 30 discarded benchmark invocations per arm, strict AB/BA, randomised start `candidate` |
+| Measured sample | 16 paired observations (8 AB + 8 BA), randomised start arm `candidate` |
+| Workload | Four formal VBR-5 WAV fixtures: `m7-music`, `m7-speech-clean`, `m7-speech-pauses`, `m8-music-eroica` (10 s, stereo, 48 kHz) |
+| Derived fixture | `m7-music-stereo-48k-x4` executed on every invocation; within-run determinism and cross-arm hash equality only (no committed VBR-5 pin) |
+| Benchmark overlay | `rust/examples/aac_bench_wav.rs`, SHA-256 `578912583665e29c9be3146aba0a866ae0047a342ed2b2d98671f3c5fee505eb` — uncommitted, identical in both worktrees |
+| Baseline binary | SHA-256 `01cc735061cdd0a362c30bcd18543fc4fb7f70f88941312b6f811de891488aec`, Mach-O 64-bit executable arm64 |
+| Candidate binary | SHA-256 `54120b4ae8dd3a7fa7e4cdbd8df9199d65094c216c39c4b39832dc2a32e43ab4`, Mach-O 64-bit executable arm64 |
+
+Both worktrees carried exactly one modification (` M rust/examples/aac_bench_wav.rs`)
+and were built with `cargo build --release --locked --example aac_bench_wav`
+using the same toolchain and environment. The baseline binary contains no
+`quant_neon` symbols; the candidate contains three.
+
+**What was measured.** The ARM64 delta is the **combined candidate change**:
+the NEON quantize/distortion/energy kernels plus their dispatch wiring, and the
+removal of the now-unused per-band scalar `QUANT_TABLE_Q` lookup at the aarch64
+dispatch sites. Scalar arithmetic is unchanged between the arms. The result
+must not be attributed entirely to NEON instructions.
+
+### 39.2 Overall result
+
+| Metric | Result |
+|---|---:|
+| Baseline median aggregate | 168.83 ms (168,825,124.5 ns) |
+| Candidate median aggregate | 147.39 ms (147,391,104.5 ns) |
+| Median paired log effect | −0.136069 |
+| Headline speedup | **+14.576 %** |
+| Faster pairs | 16/16 |
+| Descriptive interval | 13.98–15.09 % |
+
+Per-invocation aggregate = median of the 15 per-repetition sums of
+`init_ns + encode_ns` across the four formal fixtures. Pair effect
+`d_i = ln(C_i/B_i)`; headline `(exp(−median(d_i)) − 1) × 100`. Mean paired log
+effect −0.135543; MAD of the paired deltas 0.003697 (≈0.37 % log, ≈0.55 %
+σ-like); quartiles −0.139703 (14.99 %) and −0.131981 (14.11 %); range
+−0.145356 … −0.121891 (15.65 % … 12.96 %). Order split: AB 14.592 %, BA
+14.576 % — no run-order bias.
+
+| Pair | Order | Baseline ns | Candidate ns | `d_i` | Speedup |
+|---:|---|---:|---:|---:|---:|
+| 1 | BA | 168,700,875 | 148,075,543 | −0.130405 | 13.93 % |
+| 2 | AB | 168,618,375 | 147,597,500 | −0.133149 | 14.24 % |
+| 3 | BA | 168,414,583 | 147,051,752 | −0.135644 | 14.53 % |
+| 4 | AB | 170,033,290 | 147,219,583 | −0.144069 | 15.50 % |
+| 5 | BA | 168,680,667 | 149,323,626 | −0.121891 | 12.96 % |
+| 6 | AB | 169,172,873 | 147,484,709 | −0.137197 | 14.71 % |
+| 7 | BA | 170,159,833 | 147,139,709 | −0.145356 | 15.65 % |
+| 8 | AB | 169,026,749 | 147,111,918 | −0.138863 | 14.90 % |
+| 9 | BA | 168,540,000 | 147,492,584 | −0.133395 | 14.27 % |
+| 10 | AB | 168,209,040 | 146,935,793 | −0.135212 | 14.48 % |
+| 11 | BA | 168,949,374 | 147,175,415 | −0.137974 | 14.79 % |
+| 12 | AB | 169,064,124 | 146,897,624 | −0.140542 | 15.09 % |
+| 13 | BA | 169,729,584 | 147,297,500 | −0.141752 | 15.23 % |
+| 14 | AB | 168,491,292 | 147,831,082 | −0.130814 | 13.98 % |
+| 15 | BA | 169,134,291 | 147,554,793 | −0.136493 | 14.62 % |
+| 16 | AB | 168,435,709 | 148,505,043 | −0.125935 | 13.42 % |
+
+### 39.3 Fixture results
+
+Per-fixture value = median of each invocation's 15-repetition median, then the
+median over the 16 invocations of that arm. Diagnostic only; there is no
+per-fixture significance test and no Holm correction.
+
+| Fixture | Baseline | Candidate | Improvement |
+|---|---:|---:|---:|
+| `m7-music-stereo-48k` | 52.12 ms | 44.46 ms | **+17.24 %** |
+| `m7-speech-clean-stereo-48k` | 34.37 ms | 31.33 ms | **+9.71 %** |
+| `m7-speech-pauses-stereo-48k` | 34.18 ms | 31.28 ms | **+9.27 %** |
+| `m8-music-eroica-stereo-48k` | 48.15 ms | 40.25 ms | **+19.62 %** |
+
+All four formal fixtures improved and the direction is consistent with the
+aggregate. No fixture regressed, so no §8A.3 regression investigation applies.
+The music workloads gained more (17–20 %) than the speech workloads (9–10 %).
+
+### 39.4 Correctness evidence
+
+- Every one of the 94 invocations (2 preflight, 60 warm-up, 32 measurement)
+  exited 0 and produced the exact configuration line
+  `profile=release arch=aarch64 os=macos reps=15 warmups=1 fixtures=5 vbr=VBR-5`.
+- The four formal fixtures matched their committed VBR-5 pins on every
+  invocation and in both arms (byte-exact ADTS): `151e37b967d52678`,
+  `ea3183de57cbf39f`, `e64771cc5687e56b`, `3c40aaae93078019`.
+- The x4 fixture hash was `889c3be4ccd53dd7` for all 94 invocations and both
+  arms — within-run determinism plus cross-arm equality.
+- Both measured binaries are native `arm64` release builds (`file`/`lipo`,
+  SHA-256 above). NEON selection is compile-time on AArch64; no runtime
+  dispatch is involved.
+- `M55_C_DIR` was unset for both arms, so the known `$M55_C_DIR`-dependent
+  oracle artifacts were absent identically on both sides. The repository test
+  suites were **not** re-run during the measurement session; the last recorded
+  suite validation of the candidate tree is §37.4, and no source changed after
+  it.
+
+### 39.5 Analysis and caveats
+
+- The result is an **end-to-end VBR-5 measurement** on production release
+  builds, not a kernel microbenchmark. It says nothing about per-line kernel
+  speedup.
+- The measured change is the combined candidate change (NEON kernels,
+  dispatch wiring, removal of an unused scalar lookup). The whole result must
+  not be presented as an isolated NEON instruction-level comparison.
+- The result does **not** establish performance for VBR-6, other sample rates,
+  channel layouts, or native x86-64 AVX2. AVX2 performance remains unmeasured
+  (§32.8).
+- The interval 13.98–15.09 % is an order-statistic interval for the median
+  (plan §7.6 method, j = 4, 97.9 % coverage). It is **descriptive supporting
+  information, not a separate acceptance gate**; the campaign's acceptance
+  basis is the median paired effect against the §8A.1 engineering bands.
+- At +14.576 % the result is in the **"≥5 % strong improvement"** band and the
+  median effect is roughly 37× the MAD of the paired deltas. All 16 pairs moved
+  in the same direction.
+- Practical consistency measure, not a stationarity guarantee: the fixed
+  30-invocation warm-up reduces thermal ramp effects but does not prove
+  perfect thermal stationarity; residual drift is handled by AB/BA pairing.
+
+### 39.6 Invocation-wrapper aggregation defect (disclosure)
+
+The campaign wrapper that computed `meta/invocations.tsv` implemented the
+median incorrectly: it sorted the per-repetition sums by repetition index and
+then took the 8th value instead of sorting by value, so the manifest's
+`aggregate_ns` column holds one repetition's sum rather than the median of the
+15 sums.
+
+- **Impact:** mean 0.11 %, maximum 0.37 % per value (n = 32). Using the
+  defective column the headline would have read 14.485 % instead of 14.576 %;
+  the conclusion is unchanged either way.
+- **Correction:** all 32 aggregates were recomputed from the preserved
+  `WAVBENCH_ROW` lines in the raw logs with the documented two-stage sort, and
+  verified independently on two logs. The corrected values are the ones used
+  in this section.
+- **No measurement was repeated, re-ordered or discarded.** All 94 raw logs
+  were retained before and after the correction. The superseded analysis is
+  preserved alongside the corrected one.
+- The defect was in the campaign's operator wrapper, **not** in the documented
+  procedure (plan §8A.8 step 6 specifies the two-stage sort) and **not** in the
+  harness, its configuration checks, or its hash gate.
+
+### 39.7 Evidence location and disposition
+
+Raw evidence is a **local campaign artifact, not a repository file**:
+
+```text
+/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/ferrite-ab-2.4.5
+  meta/campaign-header.txt            environment, revisions, binaries, anomaly note
+  meta/invocations.tsv                94 invocation rows (aggregate column defective — see §39.6)
+  meta/aggregates-corrected.tsv       corrected per-invocation aggregates
+  meta/pairs.tsv, pairs-with-order.tsv, pair-deltas.tsv, deltas-sorted.txt
+  meta/fixture-medians.tsv, analysis.txt, SUMMARY.txt
+  meta/analysis-based-on-defective-aggregate-column.txt   superseded, preserved
+  meta/build-scalar.log, build-candidate.log
+  logs/001…094-<phase>-<arm>.log      full raw WAVBENCH_* output (94/94 WAVBENCH_DONE)
+```
+
+The directory lives in the session temp area and may be removed by the OS; the
+figures in this section are the durable record.
+
+**Disposition: accepted.** The NEON quantization optimisation is retained on
+ARM64 on the strength of a +14.58 % median end-to-end VBR-5 improvement, all 16
+pairs faster, all four formal fixtures improved, and no regression. The ARM64
+NEON performance question is closed. The x86-64 AVX2 performance question
+remains open and separate (§32.8).
+
+## 40. 2026-11-15 SIMD Phase 4.1: native x86-64 AVX2 end-to-end campaign — BLOCKED
+
+**Status: BLOCKED — no performance measurement taken.** This section records
+the outcome of the Phase 4.1 native x86-64 AVX2 end-to-end performance
+campaign. It is a documentation record only: no encoder code, benchmark code,
+fixture, golden hash, manifest, lockfile, workflow, or existing worktree
+change was made for this entry, and no benchmark was (re-)run.
+
+- **Campaign question (unanswered):** how much faster is AAC-LC VBR-5 encoding
+  with AVX2 enabled versus scalar on native x86-64 hardware.
+- **Blocker:** the available local machine is Apple M5 / ARM64 (Darwin 27.0.0),
+  not native x86-64. Rosetta 2 x86-64 translation exists on the machine but
+  was explicitly excluded by the campaign specification — no Apple Silicon,
+  Rosetta, QEMU, or emulated substitute is permitted. The approved alternative
+  (a native GitHub Actions x86-64 runner) requires pushing a branch/workflow,
+  which was not authorized for this session ("no commit or push").
+- **Consequence:** no AVX2 speedup, regression, or end-to-end performance
+  conclusion of any kind can be claimed. Blocked is not a performance result,
+  and this campaign must not be cited as evidence that AVX2 has no benefit.
+- **What stands:** native AVX2 correctness validation remains complete (§36:
+  kernels execute natively, production dispatch confirmed, goldens pass); its
+  **performance remains unmeasured**. The ARM64 NEON acceptance (§39) is
+  unaffected.
+- **Prepared, not executed:** the campaign design (same-revision arms with a
+  temporary isolated 3-line dispatch override isolating AVX2), the VBR-5
+  A/B driver, and the paired-analysis script were prepared and statically
+  verified (harness VBR-5 pins match the campaign hash table; all four WAV
+  fixtures present) but never run on native hardware.
+
+Evidence (local campaign artifacts, not repository files):
+
+```text
+/private/var/folders/6h/83xm7ljx4sz5njxdhkjsq53h0000gn/T/opencode/phase4.1-avx2-campaign
+  00-repo-state.txt          branch, HEAD, diff hashes, worktrees, hardware record
+  01-arm-design.md           arm rationale: dispatch sites, override, rejected alternative
+  runAB.sh                   warm-up + 16-pair AB/BA measurement driver (ABSTRACT — needs native x86-64)
+  analyze.py                 paired log-effect / % speedup / AB-BA splits / MAD / per-fixture
+  benchmark-workflow.yml.DRAFT  scoped native-runner workflow draft (NOT installed)
+  REPORT.md                  campaign final report (blocked)
+```
+
+**Next action:** resume on native x86-64 hardware, or on a native GitHub
+Actions runner after explicit authorization for the temporary branch/push
+workflow. Reuse the prepared artifacts rather than recreating the design.
