@@ -261,6 +261,8 @@ pub(crate) unsafe fn quantize_lines_neon(
     k: i32,
 ) {
     debug_assert_eq!(spec.len(), quant.len());
+    #[cfg(all(test, fallback_census))]
+    let mut fallback = super::quant::kernel_census::FallbackTally::new((spec.len() % 4) as u32);
     let c = NeonConsts::new(gain, quantizer_shift, k);
     let (groups, tail_spec) = spec.as_chunks::<4>();
     let (groups_q, tail_quant) = quant.as_chunks_mut::<4>();
@@ -268,6 +270,8 @@ pub(crate) unsafe fn quantize_lines_neon(
         let x = vld1q_s32(sg.as_ptr());
         let q = quantize4(x, &c);
         vst1_s16(qg.as_mut_ptr(), vmovn_s32(q));
+        #[cfg(all(test, fallback_census))]
+        fallback.vector_group(4);
     }
     for (q_out, &x) in tail_quant.iter_mut().zip(tail_spec.iter()) {
         *q_out = quantize_line_body(
@@ -276,7 +280,20 @@ pub(crate) unsafe fn quantize_lines_neon(
             k,
             x,
         );
+        #[cfg(all(test, fallback_census))]
+        fallback.tail_line();
     }
+    #[cfg(all(test, fallback_census))]
+    super::quant::kernel_census::record_fallback(
+        super::quant::kernel_census::Kernel::Quantize,
+        super::quant::Backend::Neon,
+        spec.len(),
+        gain,
+        Some(k == super::quant_tables::QUANT_K1),
+        false,
+        None,
+        fallback.profile(),
+    );
 }
 
 /// Re-quantize + inverse-quantize + distortion sum for one band; `None` on the
@@ -287,6 +304,7 @@ pub(crate) unsafe fn quantize_lines_neon(
 /// in debug); the slices guarantee pointer validity and alignment. On
 /// early-out only the scalar prefix through the violating line is written.
 #[cfg(target_arch = "aarch64")]
+#[allow(clippy::unused_enumerate_index)]
 pub(crate) unsafe fn calc_sfb_dist_sum_neon(
     spec: &[i32],
     quant: &mut [i16],
@@ -298,9 +316,11 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
     let c = NeonConsts::new(gain, quantizer_shift, k);
     let mut xfsf: i32 = 0;
     let mut vec_sum = vdupq_n_u32(0);
+    #[cfg(all(test, fallback_census))]
+    let mut fallback = super::quant::kernel_census::FallbackTally::new((spec.len() % 4) as u32);
     let (groups, tail_spec) = spec.as_chunks::<4>();
     let (groups_q, tail_quant) = quant.as_chunks_mut::<4>();
-    for (sg, qg) in groups.iter().zip(groups_q.iter_mut()) {
+    for (_group_idx, (sg, qg)) in groups.iter().zip(groups_q.iter_mut()).enumerate() {
         let x = vld1q_s32(sg.as_ptr());
         let q = quantize4(x, &c);
         let inv = inv_quantize4(q, &c);
@@ -308,9 +328,15 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
         if vmaxvq_u32(vorrq_u32(over_max_quant(q), bad)) == 0 {
             vst1_s16(qg.as_mut_ptr(), vmovn_s32(q));
             vec_sum = vaddq_u32(vec_sum, d);
+            #[cfg(all(test, fallback_census))]
+            fallback.vector_group(4);
             continue;
         }
-        for (q_out, &xs) in qg.iter_mut().zip(sg.iter()) {
+        #[cfg(all(test, fallback_census))]
+        fallback.exceptional_group();
+        for (_line_idx, (q_out, &xs)) in qg.iter_mut().zip(sg.iter()).enumerate() {
+            #[cfg(all(test, fallback_census))]
+            fallback.exceptional_line();
             let qs = quantize_line_body(
                 super::quant_tables::QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize],
                 quantizer_shift,
@@ -319,6 +345,17 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
             );
             *q_out = qs;
             if (qs as i32).abs() > MAX_QUANT {
+                #[cfg(all(test, fallback_census))]
+                super::quant::kernel_census::record_fallback(
+                    super::quant::kernel_census::Kernel::Dist,
+                    super::quant::Backend::Neon,
+                    spec.len(),
+                    gain,
+                    Some(k == super::quant_tables::QUANT_K1),
+                    true,
+                    Some(_group_idx * 4 + _line_idx),
+                    fallback.profile(),
+                );
                 return None;
             }
             let invs = inv_quantize_line(gain, qs);
@@ -326,7 +363,11 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
         }
     }
     xfsf = xfsf.wrapping_add(vaddvq_u32(vec_sum) as i32);
-    for (q_out, &xs) in tail_quant.iter_mut().zip(tail_spec.iter()) {
+    #[cfg(all(test, fallback_census))]
+    let tail_base = (spec.len() / 4) * 4;
+    for (_line_idx, (q_out, &xs)) in tail_quant.iter_mut().zip(tail_spec.iter()).enumerate() {
+        #[cfg(all(test, fallback_census))]
+        fallback.tail_line();
         let qs = quantize_line_body(
             super::quant_tables::QUANT_TABLE_Q[(gain.wrapping_neg() & 3) as usize],
             quantizer_shift,
@@ -335,11 +376,33 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
         );
         *q_out = qs;
         if (qs as i32).abs() > MAX_QUANT {
+            #[cfg(all(test, fallback_census))]
+            super::quant::kernel_census::record_fallback(
+                super::quant::kernel_census::Kernel::Dist,
+                super::quant::Backend::Neon,
+                spec.len(),
+                gain,
+                Some(k == super::quant_tables::QUANT_K1),
+                true,
+                Some(tail_base + _line_idx),
+                fallback.profile(),
+            );
             return None;
         }
         let invs = inv_quantize_line(gain, qs);
         xfsf = accumulate_dist(xfsf, invs, xs);
     }
+    #[cfg(all(test, fallback_census))]
+    super::quant::kernel_census::record_fallback(
+        super::quant::kernel_census::Kernel::Dist,
+        super::quant::Backend::Neon,
+        spec.len(),
+        gain,
+        Some(k == super::quant_tables::QUANT_K1),
+        false,
+        None,
+        fallback.profile(),
+    );
     Some(xfsf)
 }
 
@@ -351,6 +414,7 @@ pub(crate) unsafe fn calc_sfb_dist_sum_neon(
 /// in debug); the slices guarantee pointer validity and alignment. `quant` is
 /// read-only; nothing is written.
 #[cfg(target_arch = "aarch64")]
+#[allow(clippy::unused_enumerate_index)]
 pub(crate) unsafe fn calc_sfb_quant_energy_and_dist_sums_neon(
     spec: &[i32],
     quant: &[i16],
@@ -362,9 +426,11 @@ pub(crate) unsafe fn calc_sfb_quant_energy_and_dist_sums_neon(
     let mut distortion: i32 = 0;
     let mut en_sum = vdupq_n_s32(0);
     let mut dist_sum = vdupq_n_u32(0);
+    #[cfg(all(test, fallback_census))]
+    let mut fallback = super::quant::kernel_census::FallbackTally::new((spec.len() % 4) as u32);
     let (groups, tail_spec) = spec.as_chunks::<4>();
     let (groups_q, tail_quant) = quant.as_chunks::<4>();
-    for (sg, qg) in groups.iter().zip(groups_q.iter()) {
+    for (_group_idx, (sg, qg)) in groups.iter().zip(groups_q.iter()).enumerate() {
         let x = vld1q_s32(sg.as_ptr());
         let q = vmovl_s16(vld1_s16(qg.as_ptr()));
         let inv = inv_quantize4(q, &c);
@@ -374,10 +440,27 @@ pub(crate) unsafe fn calc_sfb_quant_energy_and_dist_sums_neon(
             let p = vandq_s32(vqdmulhq_s32(inv, inv), vdupq_n_s32(!1));
             en_sum = vaddq_s32(en_sum, p);
             dist_sum = vaddq_u32(dist_sum, d);
+            #[cfg(all(test, fallback_census))]
+            fallback.vector_group(4);
             continue;
         }
-        for (&qs, &xs) in qg.iter().zip(sg.iter()) {
+        #[cfg(all(test, fallback_census))]
+        fallback.exceptional_group();
+        for (_line_idx, (&qs, &xs)) in qg.iter().zip(sg.iter()).enumerate() {
+            #[cfg(all(test, fallback_census))]
+            fallback.exceptional_line();
             if (qs as i32).abs() > MAX_QUANT {
+                #[cfg(all(test, fallback_census))]
+                super::quant::kernel_census::record_fallback(
+                    super::quant::kernel_census::Kernel::Energy,
+                    super::quant::Backend::Neon,
+                    spec.len(),
+                    gain,
+                    None,
+                    true,
+                    Some(_group_idx * 4 + _line_idx),
+                    fallback.profile(),
+                );
                 return None;
             }
             let invs = inv_quantize_line(gain, qs);
@@ -387,19 +470,47 @@ pub(crate) unsafe fn calc_sfb_quant_energy_and_dist_sums_neon(
     }
     energy = energy.wrapping_add(vaddvq_s32(en_sum));
     distortion = distortion.wrapping_add(vaddvq_u32(dist_sum) as i32);
-    for (&qs, &xs) in tail_quant.iter().zip(tail_spec.iter()) {
+    #[cfg(all(test, fallback_census))]
+    let tail_base = (spec.len() / 4) * 4;
+    for (_line_idx, (&qs, &xs)) in tail_quant.iter().zip(tail_spec.iter()).enumerate() {
+        #[cfg(all(test, fallback_census))]
+        fallback.tail_line();
         if (qs as i32).abs() > MAX_QUANT {
+            #[cfg(all(test, fallback_census))]
+            super::quant::kernel_census::record_fallback(
+                super::quant::kernel_census::Kernel::Energy,
+                super::quant::Backend::Neon,
+                spec.len(),
+                gain,
+                None,
+                true,
+                Some(tail_base + _line_idx),
+                fallback.profile(),
+            );
             return None;
         }
         let invs = inv_quantize_line(gain, qs);
         energy = energy.wrapping_add(fpow2(invs));
         distortion = accumulate_dist(distortion, invs, xs);
     }
+    #[cfg(all(test, fallback_census))]
+    super::quant::kernel_census::record_fallback(
+        super::quant::kernel_census::Kernel::Energy,
+        super::quant::Backend::Neon,
+        spec.len(),
+        gain,
+        None,
+        false,
+        None,
+        fallback.profile(),
+    );
     Some((energy, distortion))
 }
 
 #[cfg(all(test, target_arch = "aarch64"))]
 mod tests {
+    #[cfg(fallback_census)]
+    use super::super::quant::kernel_census::{self, Kernel};
     use super::super::quant::{
         calc_sfb_dist_scalar, calc_sfb_quant_energy_and_dist_scalar, quantize_lines_scalar,
         MAX_QUANT,
@@ -884,83 +995,180 @@ mod tests {
         );
     }
 
-    /// Isolated kernel timing (opt-in): scalar vs NEON on a representative
-    /// 14-line band (the S4 average) and a 64-line band. Prints ns/line;
-    /// correctness is asserted, not just timed.
+    /// Phase 2.4.2a: `quantize_lines_neon` processes full 4-lane groups
+    /// through SIMD and the remainder through the scalar tail.
+    #[cfg(fallback_census)]
     #[test]
-    #[ignore = "opt-in NEON kernel microbenchmark"]
-    fn neon_kernel_microbench() {
-        let cases: &[(usize, i32)] = &[(14, 0), (14, -32), (64, 0), (64, 32)];
-        for &(n, gain) in cases {
-            let spec: Vec<i32> = (0..n)
-                .map(|i| (i as i32 * 1103515245 + 12345) >> 4)
-                .collect();
-            let dz = false;
-            let qs = gain.wrapping_neg();
-            let quantizer = QUANT_TABLE_Q[(qs.wrapping_neg() & 3) as usize];
-            let shift = (qs.wrapping_neg() >> 2) + 1;
-            let iters = 50_000usize;
-            // Warm up.
-            for _ in 0..1000 {
-                let mut q = vec![0i16; n];
-                let _ = calc_sfb_dist_scalar(&spec, gain, dz, &mut q);
-                let mut q2 = vec![0i16; n];
-                let _ = super::super::quant::calc_sfb_dist(&spec, gain, dz, &mut q2);
-            }
-            let t0 = std::time::Instant::now();
-            for _ in 0..iters {
-                let mut q = vec![0i16; n];
-                let d = calc_sfb_dist_scalar(&spec, gain, dz, &mut q);
-                std::hint::black_box(d);
-                std::hint::black_box(&q);
-            }
-            let scalar_ns = t0.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            let t1 = std::time::Instant::now();
-            for _ in 0..iters {
-                let mut q = vec![0i16; n];
-                let d = super::super::quant::calc_sfb_dist(&spec, gain, dz, &mut q);
-                std::hint::black_box(d);
-                std::hint::black_box(&q);
-            }
-            let neon_ns = t1.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            // Energy/dist path with fixed quant lines.
-            let quant: Vec<i16> = (0..n).map(|i| ((i as i32 * 7919) % 8191) as i16).collect();
-            let t2 = std::time::Instant::now();
-            for _ in 0..iters {
-                let (e, d) = calc_sfb_quant_energy_and_dist_scalar(&spec, &quant, gain);
-                std::hint::black_box((e, d));
-            }
-            let scalar_ed = t2.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            let t3 = std::time::Instant::now();
-            for _ in 0..iters {
-                let (e, d) =
-                    super::super::quant::calc_sfb_quant_energy_and_dist(&spec, &quant, gain);
-                std::hint::black_box((e, d));
-            }
-            let neon_ed = t3.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            // Quantize-only path.
-            let t4 = std::time::Instant::now();
-            for _ in 0..iters {
-                let mut q = vec![0i16; n];
-                quantize_lines_scalar(&spec, &mut q, quantizer, shift, QUANT_K0);
-                std::hint::black_box(&q);
-            }
-            let scalar_q = t4.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            let t5 = std::time::Instant::now();
-            for _ in 0..iters {
-                let mut q = vec![0i16; n];
-                unsafe {
-                    super::quantize_lines_neon(&spec, &mut q, gain, shift, QUANT_K0);
-                }
-                std::hint::black_box(&q);
-            }
-            let neon_q = t5.elapsed().as_nanos() as f64 / iters as f64 / n as f64;
-            println!(
-                "NEON_MICRO n={n} gain={gain}: dist scalar={scalar_ns:.2}ns neon={neon_ns:.2}ns ({:.2}x) | energy scalar={scalar_ed:.2}ns neon={neon_ed:.2}ns ({:.2}x) | quant scalar={scalar_q:.2}ns neon={neon_q:.2}ns ({:.2}x)",
-                scalar_ns / neon_ns.max(0.01),
-                scalar_ed / neon_ed.max(0.01),
-                scalar_q / neon_q.max(0.01),
-            );
+    fn fallback_census_quantize_tail() {
+        let n = 14usize;
+        let spec: Vec<i32> = (0..n).map(|i| (i as i32 - 7) * 1000).collect();
+        let mut q = vec![0i16; n];
+        kernel_census::begin();
+        unsafe {
+            super::quantize_lines_neon(&spec, &mut q, 0, 1, QUANT_K0);
         }
+        let (_, fallbacks) = kernel_census::end_capture();
+        assert_eq!(fallbacks.len(), 1, "one kernel call, one profile");
+        let (cell, profile, calls) = fallbacks[0];
+        assert_eq!(calls, 1);
+        assert_eq!(cell.kernel, Kernel::Quantize);
+        assert_eq!(cell.backend, super::super::quant::Backend::Neon);
+        assert_eq!(cell.n, n);
+        assert_eq!(cell.gain, 0);
+        assert_eq!(cell.dz, Some(false));
+        assert!(!cell.early_out);
+        assert_eq!(profile.vector_groups, 3);
+        assert_eq!(profile.vector_lines, 12);
+        assert_eq!(profile.exceptional_groups, 0);
+        assert_eq!(profile.exceptional_lines, 0);
+        assert_eq!(profile.tail_lines, 2);
+        assert_eq!(profile.tail_lines_processed, 2);
+    }
+
+    /// Phase 2.4.2a: a clean dist call has zero fallbacks and is associated
+    /// with exactly the production call-site census cell.
+    #[cfg(fallback_census)]
+    #[test]
+    fn fallback_census_clean_dist_association() {
+        let n = 8usize;
+        let spec = vec![0i32; n];
+        let mut q = vec![0i16; n];
+        kernel_census::begin();
+        let _ = super::super::quant::calc_sfb_dist(&spec, 0, false, &mut q);
+        let (cells, fallbacks) = kernel_census::end_capture();
+        assert_eq!(cells.len(), 1, "one production call, one cell");
+        let (cell, calls) = cells[0];
+        assert_eq!(calls, 1);
+        let (fallback_cell, profile, fallback_calls) = fallbacks[0];
+        assert_eq!(fallback_cell, cell, "fallback must attach to its cell");
+        assert_eq!(fallback_calls, 1);
+        assert_eq!(profile.vector_groups, 2);
+        assert_eq!(profile.vector_lines, 8);
+        assert_eq!(profile.exceptional_groups, 0);
+        assert_eq!(profile.exceptional_lines, 0);
+        assert_eq!(profile.tail_lines, 0);
+    }
+
+    /// Phase 2.4.2a: an exceptional vector group falls back to scalar lines;
+    /// the profile records the group, the lines processed before the early-out,
+    /// and the exact position, associated with the production census cell.
+    #[cfg(fallback_census)]
+    #[test]
+    fn fallback_census_dist_exceptional_group() {
+        let n = 8usize;
+        let mut spec = vec![0i32; n];
+        spec[1] = i32::MAX;
+        let mut q = vec![0i16; n];
+        kernel_census::begin();
+        let d = super::super::quant::calc_sfb_dist(&spec, -72, false, &mut q);
+        let (cells, fallbacks) = kernel_census::end_capture();
+        assert_eq!(d, 0, "early-out return");
+        let (cell, calls) = cells[0];
+        assert_eq!(calls, 1);
+        assert!(cell.early_out);
+        assert_eq!(cell.early_pos, Some(1));
+        let (fallback_cell, profile, fallback_calls) = fallbacks[0];
+        assert_eq!(fallback_cell, cell);
+        assert_eq!(fallback_calls, 1);
+        assert_eq!(profile.vector_groups, 0);
+        assert_eq!(profile.vector_lines, 0);
+        assert_eq!(profile.exceptional_groups, 1);
+        assert_eq!(profile.exceptional_lines, 2, "lines 0 and 1 processed");
+        assert_eq!(profile.tail_lines, 0);
+        assert_eq!(profile.tail_lines_processed, 0);
+    }
+
+    /// Phase 2.4.2a: a tail early-out runs entirely on the scalar tail path.
+    #[cfg(fallback_census)]
+    #[test]
+    fn fallback_census_dist_tail_early_out() {
+        let n = 9usize;
+        let mut spec = vec![0i32; n];
+        spec[8] = i32::MAX;
+        let mut q = vec![0i16; n];
+        kernel_census::begin();
+        let r = unsafe { super::calc_sfb_dist_sum_neon(&spec, &mut q, -72, 19, QUANT_K0) };
+        let (_, fallbacks) = kernel_census::end_capture();
+        assert!(r.is_none());
+        let (cell, profile, calls) = fallbacks[0];
+        assert_eq!(calls, 1);
+        assert!(cell.early_out);
+        assert_eq!(cell.early_pos, Some(8));
+        assert_eq!(profile.vector_groups, 2);
+        assert_eq!(profile.vector_lines, 8);
+        assert_eq!(profile.exceptional_groups, 0);
+        assert_eq!(profile.tail_lines, 1);
+        assert_eq!(profile.tail_lines_processed, 1);
+    }
+
+    /// Phase 2.4.2a: the energy kernel's exceptional-group fallback.
+    #[cfg(fallback_census)]
+    #[test]
+    fn fallback_census_energy_exceptional_group() {
+        let n = 8usize;
+        let spec = vec![0i32; n];
+        let mut quant = [0i16; 8];
+        quant[2] = 9000;
+        kernel_census::begin();
+        let r = unsafe { super::calc_sfb_quant_energy_and_dist_sums_neon(&spec, &quant, 0) };
+        let (_, fallbacks) = kernel_census::end_capture();
+        assert!(r.is_none());
+        let (cell, profile, calls) = fallbacks[0];
+        assert_eq!(calls, 1);
+        assert!(cell.early_out);
+        assert_eq!(cell.early_pos, Some(2));
+        assert_eq!(cell.dz, None);
+        assert_eq!(profile.vector_groups, 0);
+        assert_eq!(profile.exceptional_groups, 1);
+        assert_eq!(profile.exceptional_lines, 3, "lines 0..=2 processed");
+        assert_eq!(profile.tail_lines, 0);
+    }
+
+    /// Phase 2.4.2a: a clean energy call has zero fallbacks.
+    #[cfg(fallback_census)]
+    #[test]
+    fn fallback_census_clean_energy() {
+        let n = 8usize;
+        let spec = vec![0i32; n];
+        let quant = [0i16; 8];
+        kernel_census::begin();
+        let r = unsafe { super::calc_sfb_quant_energy_and_dist_sums_neon(&spec, &quant, 0) };
+        let (_, fallbacks) = kernel_census::end_capture();
+        assert!(r.is_some());
+        let (_, profile, calls) = fallbacks[0];
+        assert_eq!(calls, 1);
+        assert_eq!(profile.vector_groups, 2);
+        assert_eq!(profile.vector_lines, 8);
+        assert_eq!(profile.exceptional_groups, 0);
+        assert_eq!(profile.exceptional_lines, 0);
+        assert_eq!(profile.tail_lines, 0);
+    }
+
+    /// Isolated kernel timing (opt-in): the Phase 2.4.2 matrix in
+    /// `aac_enc::quant_bench` — prescribed size/gain/dz grid, a separate
+    /// synthetic edge class, and every captured production joint cell — on
+    /// this backend. Prints ns/call, ns/line, median/IQR and the
+    /// production-weighted aggregate; correctness (complete outputs) is
+    /// asserted per cell outside every timed region.
+    ///
+    /// `inv_quantize` coverage: no separate benchmark exists (or is needed).
+    /// The dist arm calls the production `calc_sfb_dist_sum_neon` kernel (the
+    /// entry the production dispatcher selects) and the energy arm calls
+    /// `calc_sfb_quant_energy_and_dist_sums_neon`; both run `inv_quantize4` on
+    /// full vector groups (with the scalar `inv_quantize_line` fallback for
+    /// tails and exceptional groups), so inverse quantization is both timed
+    /// and asserted through these two paths.
+    ///
+    /// Diagnostic only: not a formal acceptance measurement.
+    #[test]
+    #[ignore = "opt-in NEON kernel microbenchmark matrix"]
+    fn neon_kernel_microbench() {
+        super::super::quant_bench::run(super::super::quant_bench::SimdArm {
+            backend: super::super::quant::Backend::Neon,
+            group: 4,
+            quantize: super::quantize_lines_neon,
+            dist: super::calc_sfb_dist_sum_neon,
+            energy: super::calc_sfb_quant_energy_and_dist_sums_neon,
+        });
     }
 }

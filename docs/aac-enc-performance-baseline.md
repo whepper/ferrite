@@ -3664,3 +3664,142 @@ skipped; the only ignored test is the opt-in microbenchmark (no benchmarks run).
   `actions/cache@v4`/`upload-artifact@v4` target Node 20 (forced to Node 24).
   Neither affected this run; the architecture/AVX2 gates remain fail-closed
   against future runner changes.
+## 37. 2026-11-15 SIMD Phase 2.4.2b: diagnostic benchmark provenance and build isolation
+
+**Status: diagnostic evidence and provenance only — not formal performance
+acceptance.** No SIMD arithmetic, production behavior, fallback accounting,
+early-out handling, census implementation, benchmark matrix dimensions,
+inputs, statistical methodology, or timing loops were changed. This section
+(a) preserves the Phase 2.4.2 / 2.4.2a diagnostic measurements as historical
+observations, and (b) records the Phase 2.4.2b provenance and isolation
+cleanup. All of this work remains uncommitted in the worktree on top of
+`f063ac6` (Phases 2.4.2 and 2.4.2a were likewise uncommitted at recording
+time; `quant_bench.rs` is an untracked file with no Git history, so no
+Git-verifiable comparison against an earlier version exists or is claimed).
+
+### 37.1 Historical diagnostic measurements (preserved as reported)
+
+Production-weighted aggregate kernel time ratios (`time_ratio = T_simd /
+T_scalar`, NEON vs scalar) from the Phase 2.4.2 diagnostic matrix
+(`aac_enc::quant_bench`, plan §5/§5.1), as reported from the native
+diagnostic runs. These are historical observations; they are preserved here
+unchanged and are not replaced by any later run.
+
+| Phase | Kernel | time_ratio (T_simd/T_scalar) | Estimated kernel-time reduction (1 − ratio) |
+|---|---|---|---|
+| 2.4.2 (original) | quantize | 0.628422 | 37.1578% |
+| 2.4.2 (original) | distortion (`calc_sfb_dist`) | 0.472759 | 52.7241% |
+| 2.4.2 (original) | energy/distortion | 0.457256 | 54.2744% |
+| 2.4.2a (follow-up) | quantize | 0.623373 | 37.6627% |
+| 2.4.2a (follow-up) | distortion (`calc_sfb_dist`) | 0.476219 | 52.3781% |
+| 2.4.2a (follow-up) | energy/distortion | 0.461774 | 53.8226% |
+
+The reduction column is derived from the reported ratios as
+`(1 − time_ratio) × 100`. It is an estimated kernel-time reduction, not an
+end-to-end throughput claim (quantization is one stage among
+psychoacoustics/TNS/bit-counting/Huffman; plan §6.1). The raw per-repetition
+timings, per-cell records and dispersion behind these aggregates were not
+preserved in the repository; they are not reconstructed or invented here,
+and no confidence intervals exist for these figures.
+
+### 37.2 Provenance and interpretation of the historical figures
+
+- **Diagnostic only.** These figures are supporting kernel diagnostics
+  (plan §8 criterion 4), not formal performance acceptance. No A/A
+  calibration, frozen MDE, or paired acceptance campaign has been run.
+- **Weights.** Corpus call counts from the 19-fixture VBR-5 encoder-only
+  joint census supply the workload weights (frequency-weighted aggregate per
+  plan §5.1); the joint cell dimensions are never recombined marginally.
+- **Inputs.** Timed kernel inputs are synthetic per-cell reconstructions
+  (LCG/edge spectra constructed to match each joint cell), not replayed
+  production spectra.
+- **Platform.** Native Apple M5 / AArch64 / NEON observations. The arch/OS
+  labels emitted by the harness are descriptive metadata, not proof of
+  native hardware execution; native execution evidence is documented
+  separately (this section for NEON diagnostics; §36 for AVX2 correctness).
+- **Instrumentation separation.** The fallback-census capture was a separate
+  `--cfg fallback_census` instrumentation build and was not used for timing.
+  Since Phase 2.4.2b the timing matrix mechanically refuses that build
+  (§37.3).
+- **Fallback observation.** The VBR-5 corpus capture observed zero NEON
+  scalar fallback (exceptional) groups and zero tail lines.
+- **AVX2.** AVX2 performance and fallback execution were not measured in
+  this phase. AVX2 evidence remains correctness-only (§36) plus
+  compile-level inspection; the AVX2 fallback instrumentation has no
+  recorded native execution.
+
+### 37.3 Phase 2.4.2b changes (new in this phase)
+
+Two narrowly scoped harness changes in `rust/src/aac_enc/quant_bench.rs`
+(plus one `#[allow(unexpected_cfgs)]` attribute on its module declaration in
+`rust/src/aac_enc.rs`). No kernel, census, early-out, matrix, or timing-loop
+change; no manifest, dependency, fixture, or workflow change.
+
+1. **Mechanical timing guard.** `quant_bench::run` now calls
+   `assert_timing_build_allowed()` as its first statement — before the
+   backend check, the corpus capture, and any timing. In a
+   `--cfg fallback_census` build it panics immediately with:
+
+   ```
+   quant_bench: timing matrix refused: build carries --cfg fallback_census (intra-kernel fallback instrumentation would contaminate every timed arm). Rebuild without --cfg fallback_census for timing; the fallback-census build is for the capture tests only (simd_quant_census_corpus, fallback_census_*).
+   ```
+
+   `cfg!` is a compile-time constant, so normal builds carry no runtime
+   branch and their execution is unchanged. The fallback-census capture
+   tests do not pass through the guard and remain usable in the observation
+   build. Focused tests pin both variants:
+   `timing_guard_allows_normal_build` (compiled only without the cfg) and
+   `timing_guard_refuses_fallback_census_build` (`#[should_panic]`,
+   compiled only with the cfg).
+
+2. **Self-identifying configuration.** `BENCH_CONFIG` now emits
+   `fallback_census=true/false` and `harness=quant_bench` alongside the
+   existing arch/os/profile/backend/corpus/VBR fields, before any timing
+   record, so saved output is independently interpretable. Observed example
+   (normal release build, Apple M5, this phase's validation run):
+
+   ```
+   BENCH_CONFIG arch=aarch64 os=macos profile=release fallback_census=false backend=neon group=4 reps=15 warmup=1000 iters=1024 sizes=[1, 4, 7, 8, 9, 14, 16, 17, 32, 33, 64] matrix_qd_gains=[-72, -71, -70, -69, -32, -8, 0, 32, 64] matrix_energy_gains=[-72, -71, -70, -69, 0, 1, 2, 3, 32, 64] cells=2226 captured_cells=1499 harness=quant_bench corpus=M58_FIXTURES fixtures=19 vbr=5 mode=encoder-only
+   ```
+
+   The arch/OS/profile labels are descriptive metadata; they do not by
+   themselves prove native hardware execution (§37.2).
+
+### 37.4 Validation of the 2.4.2b changes (this worktree)
+
+Run on Apple M5 / AArch64 / macOS, rustc 1.99.1 (`58cf8f9c3`), release
+profile, `--locked`. These runs validate the guard and metadata; they are
+not a re-measurement of the historical figures and do not replace them.
+
+| Check | Command (from `rust/`) | Result |
+|---|---|---|
+| Normal build: guard + census + early-out regression | `cargo test --release --locked --lib -- quant_bench::tests simd_quant_census_corpus dist_census_early_out --nocapture` | 3 passed, 0 failed; `CENSUS_CONFIG … fallback_census=false`; totals quantize=206554, dist=670645, energy=151076 |
+| Normal build: full diagnostic matrix executes | `cargo test --release --locked --lib neon_kernel_microbench -- --ignored --nocapture` | pass (3.14 s); `BENCH_CONFIG … fallback_census=false … harness=quant_bench`; 2226 cells, 1499 captured production cells, coverage 1.0000 for all three kernels |
+| Observation build: capture tests + guard refusal test | `RUSTFLAGS='--cfg fallback_census' cargo test --release --locked --lib -- quant_bench::tests fallback_census simd_quant_census_corpus dist_census_early_out --nocapture` | 9 passed, 0 failed (6 NEON `fallback_census_*` capture tests, early-out regression, `timing_guard_refuses_fallback_census_build`, corpus census with full reconciliation); `CENSUS_FALLBACK_TOTAL calls=1028275` equals the census total sum exactly |
+| Observation build: timing entry point refuses | `RUSTFLAGS='--cfg fallback_census' cargo test --release --locked --lib neon_kernel_microbench -- --ignored --nocapture` | FAILED as intended (exit 101): guard panic at `quant_bench.rs:161` in 0.00 s, before any capture or timing; message names `--cfg fallback_census` and the remedy |
+| Production build carries no census code | `cargo build --release --locked --example aac_bench_wav` + `strings` on the binary | build succeeds; zero occurrences of `fallback_census`, `kernel_census`, `quant_bench`, `CENSUS_`, or the guard message (only the pre-existing production `WAVBENCH_*` strings) |
+| Formatting | `cargo fmt --all -- --check` | clean |
+| Clippy (informational, non-gating) | `cargo clippy --locked --all-targets`, then the same with `RUSTFLAGS='--cfg fallback_census'` | exit 0 in both variants; no warnings in any file touched by 2.4.2b; remaining warnings are pre-existing repository drift, with identical warning profiles in both variants |
+| Whitespace | `git diff --check` | clean |
+
+The observation-build corpus run independently reproduces the historical
+fallback observation: across all 1499 captured joint cells,
+`exceptional_groups=0`, `exceptional_lines=0`, `tail_lines=0`,
+`tail_lines_processed=0`, and zero early-out cells (§37.2).
+
+### 37.5 Limitations
+
+- The historical figures in §37.1 are preserved aggregate ratios only; raw
+  per-repetition data, dispersion and confidence intervals were not
+  preserved and are not invented here.
+- Diagnostic kernel evidence only: no A/A calibration, no frozen MDE, no
+  paired acceptance campaign; formal acceptance (plan §6/§8) remains pending
+  and requires production-build end-to-end measurement.
+- AVX2 performance and fallback execution remain unmeasured; the AVX2
+  fallback instrumentation has no recorded native execution (correctness
+  evidence: §36).
+- The arch/OS labels in harness output are descriptive, not proof of native
+  execution; this section's native-execution claim rests on the documented
+  runs above, not on the labels.
+- All Phase 2.4.2/2.4.2a/2.4.2b work remains uncommitted; `quant_bench.rs`
+  is untracked and has no Git history.

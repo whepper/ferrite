@@ -418,6 +418,16 @@ pub fn quantize_spectrum(
             };
             let start = off[sfb_offs + sfb] as usize;
             let end = off[sfb_offs + sfb + 1] as usize;
+            // Phase 2.4.2 test-only workload tap: joint (backend, lines,
+            // gain, dz) cell for the band about to be quantized. No effect on
+            // the dispatched call or its arguments.
+            #[cfg(test)]
+            kernel_census::record_quantize(
+                end - start,
+                qss,
+                dzone_quant_enable,
+                selected_backend(),
+            );
             #[cfg(target_arch = "aarch64")]
             {
                 // SAFETY: NEON is part of the AArch64 baseline; the kernel
@@ -544,6 +554,15 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
         let sum = unsafe {
             super::quant_neon::calc_sfb_dist_sum_neon(spec, quant, gain, quantizer_shift, k)
         };
+        #[cfg(test)]
+        kernel_census::record_dist(
+            spec.len(),
+            gain,
+            dzone_quant_enable,
+            quant,
+            Some(sum.is_none()),
+            Backend::Neon,
+        );
         match sum {
             Some(xfsf) => calc_ld_data(xfsf),
             None => 0,
@@ -551,7 +570,17 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
     }
     #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
-        calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant)
+        let result = calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant);
+        #[cfg(test)]
+        kernel_census::record_dist(
+            spec.len(),
+            gain,
+            dzone_quant_enable,
+            quant,
+            None,
+            Backend::Scalar,
+        );
+        result
     }
     #[cfg(target_arch = "x86_64")]
     {
@@ -567,12 +596,31 @@ pub fn calc_sfb_dist(spec: &[i32], gain: i32, dzone_quant_enable: bool, quant: &
             let sum = unsafe {
                 super::quant_avx2::calc_sfb_dist_sum_avx2(spec, quant, gain, quantizer_shift, k)
             };
+            #[cfg(test)]
+            kernel_census::record_dist(
+                spec.len(),
+                gain,
+                dzone_quant_enable,
+                quant,
+                Some(sum.is_none()),
+                Backend::Avx2,
+            );
             match sum {
                 Some(xfsf) => calc_ld_data(xfsf),
                 None => 0,
             }
         } else {
-            calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant)
+            let result = calc_sfb_dist_scalar(spec, gain, dzone_quant_enable, quant);
+            #[cfg(test)]
+            kernel_census::record_dist(
+                spec.len(),
+                gain,
+                dzone_quant_enable,
+                quant,
+                None,
+                Backend::Scalar,
+            );
+            result
         }
     }
 }
@@ -623,6 +671,8 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
         let sums = unsafe {
             super::quant_neon::calc_sfb_quant_energy_and_dist_sums_neon(spec, quant, gain)
         };
+        #[cfg(test)]
+        kernel_census::record_energy(spec.len(), gain, quant, Some(sums.is_none()), Backend::Neon);
         match sums {
             Some((energy, distortion)) => (
                 calc_ld_data(energy).wrapping_add(0x0400_0000),
@@ -633,7 +683,10 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
     }
     #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
     {
-        calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain)
+        let result = calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain);
+        #[cfg(test)]
+        kernel_census::record_energy(spec.len(), gain, quant, None, Backend::Scalar);
+        result
     }
     #[cfg(target_arch = "x86_64")]
     {
@@ -648,6 +701,14 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
             let sums = unsafe {
                 super::quant_avx2::calc_sfb_quant_energy_and_dist_sums_avx2(spec, quant, gain)
             };
+            #[cfg(test)]
+            kernel_census::record_energy(
+                spec.len(),
+                gain,
+                quant,
+                Some(sums.is_none()),
+                Backend::Avx2,
+            );
             match sums {
                 Some((energy, distortion)) => (
                     calc_ld_data(energy).wrapping_add(0x0400_0000),
@@ -656,7 +717,10 @@ pub fn calc_sfb_quant_energy_and_dist(spec: &[i32], quant: &[i16], gain: i32) ->
                 None => (0, 0),
             }
         } else {
-            calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain)
+            let result = calc_sfb_quant_energy_and_dist_scalar(spec, quant, gain);
+            #[cfg(test)]
+            kernel_census::record_energy(spec.len(), gain, quant, None, Backend::Scalar);
+            result
         }
     }
 }
@@ -699,12 +763,23 @@ pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
 /// asserts before confirming AVX2. No production atomics, counters, or
 /// runtime overhead.
 #[cfg(test)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(dead_code)]
 pub(crate) enum Backend {
     Neon,
     Avx2,
     Scalar,
+}
+
+#[cfg(test)]
+impl Backend {
+    pub(crate) fn tag(self) -> &'static str {
+        match self {
+            Backend::Neon => "neon",
+            Backend::Avx2 => "avx2",
+            Backend::Scalar => "scalar",
+        }
+    }
 }
 
 #[cfg(test)]
@@ -758,6 +833,338 @@ pub(crate) mod avx2_dispatch_observe {
     #[inline]
     pub(crate) fn record(branch: usize) {
         COUNTS[branch].fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+/// Test-only joint workload census for the three quantization production
+/// entry points (Phase 2.4.2, plan §5.1).
+///
+/// Records the *joint* cell actually seen by production code — kernel,
+/// dispatched backend, band line count, gain, gain residue, dead-zone flag,
+/// and (for dist/energy) whether the call took the `MAX_QUANT` early-out and
+/// at which line. A joint `BTreeMap` key keeps the dimensions correlated;
+/// marginal counts are never combined.
+///
+/// Isolation: `#[cfg(test)]`-only, per-thread (`thread_local!`) so parallel
+/// tests cannot pollute a capture, and recording is a no-op unless the
+/// capturing test called [`begin`]. Production builds contain none of this
+/// code. The instrumentation emits no output of its own; the capturing test
+/// formats the deterministic snapshot.
+///
+/// Intra-kernel scalar-fallback profiles are compiled only with
+/// `--cfg fallback_census` (a dedicated test build). The default test build —
+/// including the timed kernel benchmark — contains no fallback counter and no
+/// per-group hook, so it cannot be contaminated by this observation.
+#[allow(unexpected_cfgs)]
+#[cfg(test)]
+pub(crate) mod kernel_census {
+    use super::{Backend, MAX_QUANT};
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    pub(crate) enum Kernel {
+        Quantize,
+        Dist,
+        Energy,
+    }
+
+    impl Kernel {
+        pub(crate) fn tag(self) -> &'static str {
+            match self {
+                Kernel::Quantize => "quantize",
+                Kernel::Dist => "dist",
+                Kernel::Energy => "energy",
+            }
+        }
+    }
+
+    /// One observed production cell. `dz` is `None` for the energy path,
+    /// which has no dead-zone parameter; `early_pos` is the 0-based line of
+    /// the first `|q| > MAX_QUANT` value (the early-out point), `None` for a
+    /// clean call and for the quantize path (which never early-outs).
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    pub(crate) struct Cell {
+        pub(crate) kernel: Kernel,
+        pub(crate) backend: Backend,
+        pub(crate) n: usize,
+        pub(crate) gain: i32,
+        pub(crate) dz: Option<bool>,
+        pub(crate) early_out: bool,
+        pub(crate) early_pos: Option<usize>,
+    }
+
+    impl Cell {
+        pub(crate) fn residue(&self) -> i32 {
+            self.gain.wrapping_neg() & 3
+        }
+    }
+
+    /// Intra-kernel execution profile for one SIMD kernel call. Counts the
+    /// full vector groups, groups that took the exceptional scalar fallback
+    /// (and how many lines that fallback processed before any early-out), and
+    /// the scalar tail lines (how many were processed before any early-out).
+    /// Only populated in `--cfg fallback_census` builds (see
+    /// [`super::kernel_census::record_fallback`]); ordinary test builds leave
+    /// this observation empty so the timed kernels are untouched.
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+    pub(crate) struct FallbackProfile {
+        pub(crate) vector_groups: u32,
+        pub(crate) vector_lines: u32,
+        pub(crate) exceptional_groups: u32,
+        pub(crate) exceptional_lines: u32,
+        pub(crate) tail_lines: u32,
+        pub(crate) tail_lines_processed: u32,
+    }
+
+    /// Flattened fallback observations: `(cell, profile, call count)`.
+    pub(crate) type FallbackCaptures = Vec<(Cell, FallbackProfile, u64)>;
+
+    /// Mutable tally used inside the kernels in `--cfg fallback_census` builds.
+    /// Every method is a plain integer increment; no thread-local access
+    /// happens per group. The single census write is performed once per kernel
+    /// call, at the call's exit.
+    #[cfg(all(test, fallback_census))]
+    #[derive(Default)]
+    pub(crate) struct FallbackTally {
+        profile: FallbackProfile,
+    }
+
+    #[cfg(all(test, fallback_census))]
+    impl FallbackTally {
+        pub(crate) fn new(tail_lines: u32) -> Self {
+            Self {
+                profile: FallbackProfile {
+                    tail_lines,
+                    ..FallbackProfile::default()
+                },
+            }
+        }
+
+        #[inline(always)]
+        pub(crate) fn vector_group(&mut self, width: u32) {
+            self.profile.vector_groups += 1;
+            self.profile.vector_lines += width;
+        }
+
+        #[inline(always)]
+        pub(crate) fn exceptional_group(&mut self) {
+            self.profile.exceptional_groups += 1;
+        }
+
+        #[inline(always)]
+        pub(crate) fn exceptional_line(&mut self) {
+            self.profile.exceptional_lines += 1;
+        }
+
+        #[inline(always)]
+        pub(crate) fn tail_line(&mut self) {
+            self.profile.tail_lines_processed += 1;
+        }
+
+        pub(crate) fn profile(&self) -> FallbackProfile {
+            self.profile
+        }
+    }
+
+    thread_local! {
+        static ACTIVE: RefCell<Option<BTreeMap<Cell, u64>>> = const { RefCell::new(None) };
+    }
+
+    #[cfg(all(test, fallback_census))]
+    thread_local! {
+        static FALLBACKS: RefCell<Option<BTreeMap<Cell, BTreeMap<FallbackProfile, u64>>>> =
+            const { RefCell::new(None) };
+    }
+
+    fn active() -> bool {
+        ACTIVE.with(|a| a.borrow().is_some())
+    }
+
+    /// Start a capture on the current thread; panics if one is already
+    /// active (nested captures would silently mix corpora).
+    pub(crate) fn begin() {
+        ACTIVE.with(|a| {
+            let mut slot = a.borrow_mut();
+            assert!(slot.is_none(), "kernel_census: capture already active");
+            *slot = Some(BTreeMap::new());
+        });
+        #[cfg(all(test, fallback_census))]
+        FALLBACKS.with(|f| {
+            let mut slot = f.borrow_mut();
+            assert!(
+                slot.is_none(),
+                "kernel_census: fallback capture already active"
+            );
+            *slot = Some(BTreeMap::new());
+        });
+    }
+
+    /// Finish the capture and return its cells in deterministic key order.
+    #[allow(dead_code)]
+    pub(crate) fn end() -> Vec<(Cell, u64)> {
+        end_capture().0
+    }
+
+    /// Finish the capture and return both the workload cells and, in a
+    /// `--cfg fallback_census` build, the intra-kernel fallback profiles
+    /// keyed by the same cell. Ordinary builds return an empty fallback list.
+    pub(crate) fn end_capture() -> (Vec<(Cell, u64)>, FallbackCaptures) {
+        let cells = ACTIVE.with(|a| {
+            let mut slot = a.borrow_mut();
+            slot.take()
+                .expect("kernel_census: capture not active")
+                .into_iter()
+                .collect()
+        });
+        let fallbacks = take_fallbacks();
+        (cells, fallbacks)
+    }
+
+    #[cfg(all(test, fallback_census))]
+    fn take_fallbacks() -> FallbackCaptures {
+        FALLBACKS.with(|f| {
+            let mut slot = f.borrow_mut();
+            let map = slot
+                .take()
+                .expect("kernel_census: fallback capture not active");
+            let mut out = Vec::new();
+            for (cell, profiles) in map {
+                for (profile, count) in profiles {
+                    out.push((cell, profile, count));
+                }
+            }
+            out
+        })
+    }
+
+    #[cfg(not(all(test, fallback_census)))]
+    fn take_fallbacks() -> FallbackCaptures {
+        Vec::new()
+    }
+
+    fn record(cell: Cell) {
+        ACTIVE.with(|a| {
+            if let Some(cells) = a.borrow_mut().as_mut() {
+                *cells.entry(cell).or_insert(0) += 1;
+            }
+        });
+    }
+
+    /// Record one kernel call's intra-kernel execution profile against the
+    /// same joint cell the production call site reports. Compiled only in a
+    /// dedicated `--cfg fallback_census` test build; the normal benchmark build
+    /// contains no call and no counter.
+    #[cfg(all(test, fallback_census))]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_fallback(
+        kernel: Kernel,
+        backend: Backend,
+        n: usize,
+        gain: i32,
+        dz: Option<bool>,
+        early_out: bool,
+        early_pos: Option<usize>,
+        profile: FallbackProfile,
+    ) {
+        let cell = Cell {
+            kernel,
+            backend,
+            n,
+            gain,
+            dz,
+            early_out,
+            early_pos,
+        };
+        FALLBACKS.with(|f| {
+            if let Some(cells) = f.borrow_mut().as_mut() {
+                *cells.entry(cell).or_default().entry(profile).or_insert(0) += 1;
+            }
+        });
+    }
+
+    pub(crate) fn record_quantize(n: usize, gain: i32, dz: bool, backend: Backend) {
+        record(Cell {
+            kernel: Kernel::Quantize,
+            backend,
+            n,
+            gain,
+            dz: Some(dz),
+            early_out: false,
+            early_pos: None,
+        });
+    }
+
+    /// `quant` is the freshly written band after the call. `early_out` is the
+    /// authoritative kernel signal where the production wrapper can provide it
+    /// (`Some(sum.is_none())`); `None` derives it from the buffer for scalar
+    /// fallback paths. The first `|q| > MAX_QUANT` is exactly the early-out
+    /// line because a clean call writes every line and an early-out writes the
+    /// scalar prefix through the violating line; a stale suffix is never read
+    /// before a written violating line.
+    pub(crate) fn record_dist(
+        n: usize,
+        gain: i32,
+        dz: bool,
+        quant: &[i16],
+        early_out: Option<bool>,
+        backend: Backend,
+    ) {
+        if !active() {
+            return;
+        }
+        let pos = quant.iter().position(|&q| (q as i32).abs() > MAX_QUANT);
+        if let Some(signal) = early_out {
+            assert_eq!(
+                signal,
+                pos.is_some(),
+                "kernel_census: dist early-out signal disagrees with the written buffer"
+            );
+        }
+        let early = early_out.unwrap_or(pos.is_some());
+        record(Cell {
+            kernel: Kernel::Dist,
+            backend,
+            n,
+            gain,
+            dz: Some(dz),
+            early_out: early,
+            early_pos: if early { pos } else { None },
+        });
+    }
+
+    /// `quant` is the caller-supplied band (read-only); the early-out
+    /// condition is exactly "any `|q| > MAX_QUANT`", at that first position.
+    /// `early_out` is the production wrapper's `sums.is_none()` signal where
+    /// available; `None` derives it from the caller's immutable input.
+    pub(crate) fn record_energy(
+        n: usize,
+        gain: i32,
+        quant: &[i16],
+        early_out: Option<bool>,
+        backend: Backend,
+    ) {
+        if !active() {
+            return;
+        }
+        let pos = quant.iter().position(|&q| (q as i32).abs() > MAX_QUANT);
+        if let Some(signal) = early_out {
+            assert_eq!(
+                signal,
+                pos.is_some(),
+                "kernel_census: energy early-out signal disagrees with the caller quant"
+            );
+        }
+        let early = early_out.unwrap_or(pos.is_some());
+        record(Cell {
+            kernel: Kernel::Energy,
+            backend,
+            n,
+            gain,
+            dz: None,
+            early_out: early,
+            early_pos: if early { pos } else { None },
+        });
     }
 }
 
@@ -1122,5 +1529,63 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Phase 2.4.2a: the dist census must follow the written prefix, not stale
+    /// bytes in a reused output buffer. A clean call overwrites every line, so
+    /// a sentinel-filled buffer must report `early_out=false`; an early-out
+    /// call writes through its first `|q| > MAX_QUANT` line, so a stale suffix
+    /// cannot move the reported position.
+    #[test]
+    fn dist_census_early_out_ignores_stale_output_suffix() {
+        let n = 8usize;
+        let sentinel = 0x5555u16 as i16;
+        assert!((sentinel as i32).abs() > MAX_QUANT);
+
+        let spec = vec![0i32; n];
+        let mut q = vec![sentinel; n];
+        let mut q_ref = vec![0i16; n];
+        let backend = selected_backend();
+        kernel_census::begin();
+        let d = calc_sfb_dist(&spec, 0, false, &mut q);
+        let (cells, _) = kernel_census::end_capture();
+        assert_eq!(cells.len(), 1, "one production call, one cell");
+        let (cell, calls) = cells[0];
+        assert_eq!(calls, 1);
+        assert_eq!(cell.kernel, kernel_census::Kernel::Dist);
+        assert_eq!(cell.backend, backend);
+        assert_eq!(cell.n, n);
+        assert_eq!(cell.gain, 0);
+        assert_eq!(cell.dz, Some(false));
+        assert!(
+            !cell.early_out,
+            "clean call misread stale suffix as early-out"
+        );
+        assert_eq!(cell.early_pos, None);
+        assert!(
+            q.iter().all(|&v| v == 0),
+            "clean call must overwrite every line"
+        );
+        assert_eq!(d, calc_sfb_dist_scalar(&spec, 0, false, &mut q_ref));
+
+        let mut spec = vec![0i32; n];
+        spec[3] = i32::MAX;
+        let mut q = vec![sentinel; n];
+        kernel_census::begin();
+        let d = calc_sfb_dist(&spec, -72, false, &mut q);
+        let (cells, _) = kernel_census::end_capture();
+        assert_eq!(cells.len(), 1);
+        let (cell, calls) = cells[0];
+        assert_eq!(calls, 1);
+        assert_eq!(d, 0, "dist early-out returns the documented 0");
+        assert!(cell.early_out);
+        assert_eq!(cell.early_pos, Some(3));
+        assert!(
+            (q[3] as i32).abs() > MAX_QUANT,
+            "violating line must have been written"
+        );
+        assert!(q[..3].iter().all(|&v| v == 0));
+        assert_eq!(&q[4..], &vec![sentinel; n - 4][..]);
+        assert_eq!(d, calc_sfb_dist_scalar(&spec, -72, false, &mut q_ref));
     }
 }

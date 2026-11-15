@@ -6204,9 +6204,203 @@ fn m58_bench_corpus(
     Ok(out)
 }
 
+/// Phase 2.4.2 production-distribution capture: run the committed 19-fixture
+/// corpus through the real VBR-5 encoder path (`m58_run_once`, EncoderOnly:
+/// feeder + `StreamEncoder::step_frame`) with the test-only joint workload
+/// census active. Untimed and explicitly not a benchmark; `m58_run_once`
+/// performs its full output/ADTS/frame-accounting validation.
+///
+/// Determinism: one pass, one thread, `BTreeMap` keying. The capture is
+/// per-thread, so concurrently running tests cannot add cells.
+#[cfg(test)]
+pub(crate) struct QuantCensusRun {
+    pub(crate) cells: Vec<(super::quant::kernel_census::Cell, u64)>,
+    pub(crate) fallbacks: super::quant::kernel_census::FallbackCaptures,
+}
+
+#[cfg(test)]
+pub(crate) fn capture_simd_quant_distribution_full() -> QuantCensusRun {
+    let out_dir = m52_out_dir().join("simd-quant-census");
+    super::quant::kernel_census::begin();
+    for (short, stem, sr, ch) in M58_FIXTURES {
+        if let Err(e) = m58_run_once(
+            short,
+            stem,
+            sr,
+            ch,
+            M58Mode::EncoderOnly,
+            0,
+            &out_dir,
+            false,
+        ) {
+            let _ = super::quant::kernel_census::end_capture();
+            panic!("simd quant census: {e}");
+        }
+    }
+    let (cells, fallbacks) = super::quant::kernel_census::end_capture();
+    QuantCensusRun { cells, fallbacks }
+}
+
+/// Cell-only view used by the benchmark harness. Fallback profiles are only
+/// populated in a `--cfg fallback_census` build and are not part of the
+/// production-weighted cell key.
+#[cfg(test)]
+pub(crate) fn capture_simd_quant_distribution() -> Vec<(super::quant::kernel_census::Cell, u64)> {
+    capture_simd_quant_distribution_full().cells
+}
+
 #[cfg(test)]
 mod m58_tests {
     use super::*;
+
+    /// Phase 2.4.2 production-distribution capture (untimed, not a benchmark):
+    /// runs all 19 committed fixtures through the real VBR-5 encoder path with
+    /// the test-only joint census active and prints deterministic
+    /// machine-readable `CENSUS_*` lines. Asserts that every kernel was
+    /// observed, that all cells used the backend this target dispatches, and
+    /// that call totals are positive.
+    #[test]
+    #[allow(unexpected_cfgs)]
+    fn simd_quant_census_corpus() {
+        use crate::aac_enc::quant::kernel_census::Kernel;
+        let backend = crate::aac_enc::quant::selected_backend();
+        let run = capture_simd_quant_distribution_full();
+        let cells = &run.cells;
+        println!(
+            "CENSUS_CONFIG arch={} os={} profile={} corpus=M58_FIXTURES fixtures={} vbr=5 mode=encoder-only backend={} source=aac_enc::stream_driver::m58_run_once harness=simd_quant_census_corpus fallback_census={}",
+            std::env::consts::ARCH,
+            std::env::consts::OS,
+            if cfg!(debug_assertions) {
+                "debug"
+            } else {
+                "release"
+            },
+            M58_FIXTURES.len(),
+            backend.tag(),
+            cfg!(all(test, fallback_census)),
+        );
+        let mut totals = [0u64; 3];
+        for (cell, calls) in cells {
+            assert_eq!(cell.backend, backend, "capture backend mismatch: {cell:?}");
+            let group = match cell.backend {
+                crate::aac_enc::quant::Backend::Neon => 4,
+                crate::aac_enc::quant::Backend::Avx2 => 8,
+                crate::aac_enc::quant::Backend::Scalar => 1,
+            };
+            println!(
+                "CENSUS_CELL kernel={} backend={} n={} gain={} residue={} dz={} early_out={} early_pos={} group={} tail={} calls={}",
+                cell.kernel.tag(),
+                cell.backend.tag(),
+                cell.n,
+                cell.gain,
+                cell.residue(),
+                cell.dz.map(|d| d.to_string()).unwrap_or_else(|| "none".into()),
+                cell.early_out,
+                cell.early_pos
+                    .map(|p| p.to_string())
+                    .unwrap_or_else(|| "none".into()),
+                group,
+                cell.n % group,
+                calls,
+            );
+            let slot = match cell.kernel {
+                Kernel::Quantize => &mut totals[0],
+                Kernel::Dist => &mut totals[1],
+                Kernel::Energy => &mut totals[2],
+            };
+            *slot += *calls;
+        }
+        if cfg!(all(test, fallback_census)) && backend != crate::aac_enc::quant::Backend::Scalar {
+            assert!(
+                !run.fallbacks.is_empty(),
+                "fallback census build produced no intra-kernel profiles"
+            );
+            let mut fallback_lines = 0u64;
+            for (cell, profile, calls) in &run.fallbacks {
+                assert!(
+                    cells.iter().any(|(c, _)| c == cell),
+                    "fallback profile has no matching census cell: {cell:?}"
+                );
+                let group = match cell.backend {
+                    crate::aac_enc::quant::Backend::Neon => 4usize,
+                    crate::aac_enc::quant::Backend::Avx2 => 8,
+                    crate::aac_enc::quant::Backend::Scalar => 1,
+                };
+                assert_eq!(
+                    profile.tail_lines,
+                    (cell.n % group) as u32,
+                    "tail line count mismatch for {cell:?}"
+                );
+                if !cell.early_out {
+                    assert_eq!(
+                        profile.vector_groups + profile.exceptional_groups,
+                        (cell.n / group) as u32,
+                        "group accounting mismatch for {cell:?}: {profile:?}"
+                    );
+                    assert_eq!(
+                        profile.vector_lines + profile.exceptional_lines,
+                        (cell.n - cell.n % group) as u32,
+                        "line accounting mismatch for {cell:?}: {profile:?}"
+                    );
+                    assert_eq!(
+                        profile.tail_lines_processed, profile.tail_lines,
+                        "clean tail not fully processed for {cell:?}"
+                    );
+                }
+                fallback_lines += *calls;
+                println!(
+                    "CENSUS_FALLBACK kernel={} backend={} n={} gain={} residue={} dz={} early_out={} early_pos={} vector_groups={} vector_lines={} exceptional_groups={} exceptional_lines={} tail_lines={} tail_lines_processed={} calls={}",
+                    cell.kernel.tag(),
+                    cell.backend.tag(),
+                    cell.n,
+                    cell.gain,
+                    cell.residue(),
+                    cell.dz.map(|d| d.to_string()).unwrap_or_else(|| "none".into()),
+                    cell.early_out,
+                    cell.early_pos
+                        .map(|p| p.to_string())
+                        .unwrap_or_else(|| "none".into()),
+                    profile.vector_groups,
+                    profile.vector_lines,
+                    profile.exceptional_groups,
+                    profile.exceptional_lines,
+                    profile.tail_lines,
+                    profile.tail_lines_processed,
+                    calls,
+                );
+            }
+            for (cell, calls) in cells {
+                let observed: u64 = run
+                    .fallbacks
+                    .iter()
+                    .filter(|(c, _, _)| c == cell)
+                    .map(|(_, _, n)| *n)
+                    .sum();
+                assert_eq!(
+                    observed, *calls,
+                    "fallback profile call count does not match census cell: {cell:?}"
+                );
+            }
+            println!("CENSUS_FALLBACK_TOTAL calls={fallback_lines}");
+        } else {
+            assert!(run.fallbacks.is_empty());
+            println!(
+                "CENSUS_FALLBACK unavailable reason=build_with_--cfg_fallback_census backend={}",
+                backend.tag()
+            );
+        }
+        for (slot, kernel) in totals
+            .iter()
+            .zip([Kernel::Quantize, Kernel::Dist, Kernel::Energy])
+        {
+            println!("CENSUS_TOTAL kernel={} calls={}", kernel.tag(), slot);
+        }
+        assert!(!cells.is_empty(), "census captured no cells");
+        assert!(
+            totals.iter().all(|&t| t > 0),
+            "a kernel was never observed: {totals:?}"
+        );
+    }
 
     /// M5.8 smoke validation (explicitly untimed): subset covering silence
     /// plus transient fixtures, both modes. Pins M5.2/M5.3B-recorded byte
