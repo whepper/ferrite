@@ -4,21 +4,23 @@
 // production behavior. It exists so the public API can be timed in a normal
 // `cargo run --release --example` build (no `cfg(test)` harness, no test-only
 // failure-injection branch). It reads the four committed 16-bit PCM WAVs,
-// encodes them through `Encoder::push`/`flush` at the default profile
-// (VBR-6), validates the committed byte totals and FNV-1a hashes, and prints
-// per-repetition and median timings. The pinned hashes are the VBR-6 default
-// streams; the VBR-5 baseline totals differ (e.g. m7-music 250 926 bytes).
+// encodes them through `Encoder::push`/`flush` at the selected VBR profile,
+// validates the committed byte totals and FNV-1a hashes for that mode, and
+// prints per-repetition and median timings. Both pin sets are committed:
+// VBR-6 (the default-profile streams) and VBR-5 (the production-baseline
+// streams that carry the formal SIMD acceptance workload, plan §6.0).
 //
 // Usage:
-//   cargo run --release --locked --features aac_enc --example aac_bench_wav
+//   cargo run --release --locked --example aac_bench_wav
 // Env:
+//   AAC_WAV_VBR    VBR profile: 5 or 6 (default 6)
 //   AAC_WAV_REPS   measured repetitions (default 15)
 //   AAC_WAV_WARMUP warm-up passes (default 1)
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType, FRAME_LENGTH};
+use ferrite_aac::aac_enc::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
 use ferrite_aac::aac_enc::encoder::Encoder;
 
 const CHUNK_FRAMES: usize = 8_000;
@@ -165,14 +167,15 @@ fn check_adts(bytes: &[u8], want_frames: usize, label: &str) {
     assert_eq!(frames, want_frames, "{label}: frame count");
 }
 
-fn encode_once(fixture: &Fixture) -> Run {
+fn encode_once(fixture: &Fixture, vbr: VbrMode) -> Run {
     let cfg = EncoderConfig::new(
         fixture.sample_rate,
         fixture.channels as u32,
         FRAME_LENGTH,
         TransportType::Adts,
     )
-    .expect("benchmark config");
+    .expect("benchmark config")
+    .with_vbr_mode(vbr);
     let t0 = Instant::now();
     let mut enc = Encoder::new(cfg).expect("Encoder::new");
     let init_ns = t0.elapsed().as_nanos();
@@ -223,7 +226,45 @@ fn median(mut values: Vec<u128>) -> f64 {
     }
 }
 
+/// Expected `(byte total, FNV-1a hash)` pins per fixture, in fixture-table
+/// order (music, speech-clean, speech-pauses, eroica). VBR-5 values are
+/// copied verbatim from the committed production baseline
+/// (`src/aac_enc/production_baseline.rs:151–182`); VBR-6 values are this
+/// example's original default-profile pins, unchanged.
+const VBR5_PINS: [(usize, u64); 4] = [
+    (250_926, 0x151e_37b9_67d5_2678), // m7-music-stereo-48k
+    (127_900, 0xea31_83de_57cb_f39f), // m7-speech-clean-stereo-48k
+    (125_818, 0xe647_71cc_5687_e56b), // m7-speech-pauses-stereo-48k
+    (234_229, 0x3c40_aaae_9307_8019), // m8-music-eroica-stereo-48k
+];
+const VBR6_PINS: [(usize, u64); 4] = [
+    (256_763, 0xd6fc_9d2c_59cf_5c36), // m7-music-stereo-48k
+    (129_335, 0x7c3e_4095_74eb_c62e), // m7-speech-clean-stereo-48k
+    (127_326, 0x6c08_7bfb_228d_3bbe), // m7-speech-pauses-stereo-48k
+    (241_021, 0xdcf0_7392_921a_18b7), // m8-music-eroica-stereo-48k
+];
+
+/// VBR profile selector: `AAC_WAV_VBR=5|6`. Unset defaults to VBR-6 (the
+/// example's historical default profile). Only 5 and 6 are accepted — the
+/// two profiles with committed pin sets.
+fn parse_vbr(raw: Option<String>) -> Result<VbrMode, String> {
+    match raw.as_deref() {
+        None | Some("6") => Ok(VbrMode::Vbr6),
+        Some("5") => Ok(VbrMode::Vbr5),
+        Some(other) => Err(format!(
+            "AAC_WAV_VBR must be 5 or 6 (got {other:?}); both modes have committed pins"
+        )),
+    }
+}
+
 fn main() {
+    let vbr = match parse_vbr(std::env::var("AAC_WAV_VBR").ok()) {
+        Ok(mode) => mode,
+        Err(msg) => {
+            eprintln!("aac_bench_wav: {msg}");
+            std::process::exit(2);
+        }
+    };
     let reps: usize = std::env::var("AAC_WAV_REPS")
         .ok()
         .and_then(|s| s.parse().ok())
@@ -234,33 +275,39 @@ fn main() {
         .and_then(|s| s.parse().ok())
         .unwrap_or(1);
 
+    let pins = match vbr {
+        VbrMode::Vbr5 => &VBR5_PINS,
+        VbrMode::Vbr6 => &VBR6_PINS,
+        other => unreachable!("no committed pins for {other}"),
+    };
+    let [music, speech_clean, speech_pauses, eroica] = *pins;
     let mut fixtures = vec![
         fixture(
             "m7-music-stereo-48k",
             "m7-music-stereo-48k.wav",
-            Some(256_763),
-            Some(0xd6fc_9d2c_59cf_5c36),
+            Some(music.0),
+            Some(music.1),
         )
         .expect("music fixture"),
         fixture(
             "m7-speech-clean-stereo-48k",
             "m7-speech-clean-stereo-48k.wav",
-            Some(129_335),
-            Some(0x7c3e_4095_74eb_c62e),
+            Some(speech_clean.0),
+            Some(speech_clean.1),
         )
         .expect("speech-clean fixture"),
         fixture(
             "m7-speech-pauses-stereo-48k",
             "m7-speech-pauses-stereo-48k.wav",
-            Some(127_326),
-            Some(0x6c08_7bfb_228d_3bbe),
+            Some(speech_pauses.0),
+            Some(speech_pauses.1),
         )
         .expect("speech-pauses fixture"),
         fixture(
             "m8-music-eroica-stereo-48k",
             "m8-music-eroica-stereo-48k.wav",
-            Some(241_021),
-            Some(0xdcf0_7392_921a_18b7),
+            Some(eroica.0),
+            Some(eroica.1),
         )
         .expect("eroica fixture"),
     ];
@@ -268,7 +315,7 @@ fn main() {
     fixtures.push(long);
 
     println!(
-        "WAVBENCH_CONFIG\tprofile={}\tarch={}\tos={}\treps={reps}\twarmups={warmups}\tfixtures={}",
+        "WAVBENCH_CONFIG\tprofile={}\tarch={}\tos={}\treps={reps}\twarmups={warmups}\tfixtures={}\tvbr={vbr}",
         if cfg!(debug_assertions) {
             "debug"
         } else {
@@ -281,7 +328,7 @@ fn main() {
 
     for _ in 0..warmups {
         for f in &fixtures {
-            let _ = encode_once(f);
+            let _ = encode_once(f, vbr);
         }
     }
 
@@ -289,7 +336,7 @@ fn main() {
     let mut derived: Option<(usize, u64)> = None;
     for rep in 0..reps {
         for (index, f) in fixtures.iter().enumerate() {
-            let run = encode_once(f);
+            let run = encode_once(f, vbr);
             if f.expected_bytes.is_none() {
                 match derived {
                     None => derived = Some((run.bytes, run.hash)),
