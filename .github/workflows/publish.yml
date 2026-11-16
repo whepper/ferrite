@@ -23,8 +23,26 @@ name: publish
 #
 # Publication order is load-bearing: aac-convert requires ferrite-aac = "0.4.0"
 # from the registry, so ferrite-aac is published first and the job waits for
-# the new version to appear in the crates.io index before publishing
-# aac-convert.
+# the new version to appear in the Cargo sparse index (what Cargo actually
+# resolves against) before publishing aac-convert. The aac-convert guard
+# revalidates the ferrite-aac dependency (visible, not yanked, checksum
+# byte-identical to this tag) before deciding aac-convert's disposition.
+#
+# Recovery model (safe to re-run after partial success):
+# - Each crate's publication state is probed independently against the
+#   crates.io version API. A crate is skipped for publishing only when its
+#   expected version exists, is not yanked, and the published artifact is
+#   byte-identical to the locally packaged tag artifact (SHA-256 .crate
+#   checksum equality; cargo packaging is deterministic for the same tag
+#   commit). Crates that are not yet published continue in dependency order.
+# - An unexpected state never silently counts as success: a version that
+#   exists with different content, a yanked release, a crates.io API error,
+#   or aac-convert present without ferrite-aac all fail the release with an
+#   explicit message before any publish attempt.
+# - The publish job re-probes before each `cargo publish` (fresh checksum
+#   comparison), so "re-run failed jobs" and full workflow re-runs on the same
+#   tag are idempotent, and a version appearing between validate and publish
+#   cannot be silently skipped or double-published.
 
 on:
   push:
@@ -47,6 +65,9 @@ jobs:
     name: Release validation (Rust 1.99.1)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      ferrite_aac_state: ${{ steps.lib_state.outputs.state }}
+      aac_convert_state: ${{ steps.app_state.outputs.state }}
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -72,20 +93,6 @@ jobs:
               "$tag" "$lib_version" "$app_version" >&2
             exit 1
           fi
-
-      - name: Fail if a version is already published
-        run: |
-          set -euo pipefail
-          tag="${GITHUB_REF_NAME#v}"
-          for crate in ferrite-aac aac-convert; do
-            if curl -fsSL -H 'User-Agent: ferrite-publish-check' \
-                "https://crates.io/api/v1/crates/${crate}" \
-                | jq -e --arg v "$tag" 'any(.versions[]?.num; . == $v)' >/dev/null; then
-              printf 'error: %s %s is already published on crates.io\n' "$crate" "$tag" >&2
-              exit 1
-            fi
-            printf '%s %s is not yet published\n' "$crate" "$tag"
-          done
 
       - name: Build default configuration
         run: cargo build --locked
@@ -125,8 +132,125 @@ jobs:
       - name: Package ferrite-aac
         run: cargo package --locked -p ferrite-aac
 
+      # Publication-state classification. state is "unpublished" (will be
+      # published) or "published" (already on crates.io, byte-identical to
+      # this tag, not yanked -> will be skipped). Any other observation fails
+      # the job before the publish job can run.
+      - name: Classify ferrite-aac publication state
+        id: lib_state
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          crate="ferrite-aac"
+          status=$(curl -sS -o /tmp/lib-version.json -w '%{http_code}' \
+            -H 'User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)' \
+            "https://crates.io/api/v1/crates/${crate}/${version}") || status="network-error"
+          case "${status}" in
+            404)
+              printf 'ferrite-aac %s: not on crates.io -> will publish\n' "${version}"
+              printf 'state=unpublished\n' >> "$GITHUB_OUTPUT"
+              ;;
+            200)
+              yanked=$(jq -r '.version.yanked | tostring' /tmp/lib-version.json)
+              remote_sum=$(jq -r '.version.checksum // "unknown"' /tmp/lib-version.json)
+              local_sum=$(sha256sum "target/package/${crate}-${version}.crate" | awk '{print $1}')
+              if [ "${yanked}" != "false" ]; then
+                printf 'error: ferrite-aac %s exists on crates.io with unexpected yanked state (%s); yanked versions are immutable and cannot be re-published\n' "${version}" "${yanked}" >&2
+                exit 1
+              fi
+              if [ "${remote_sum}" != "${local_sum}" ]; then
+                printf 'error: ferrite-aac %s already exists on crates.io with DIFFERENT content than this tag\n' "${version}" >&2
+                printf '  published .crate sha256: %s\n' "${remote_sum}" >&2
+                printf '  tagged .crate sha256:    %s\n' "${local_sum}" >&2
+                printf '  refusing both publish and skip; investigate the existing release before re-running\n' >&2
+                exit 1
+              fi
+              printf 'ferrite-aac %s: already published, byte-identical (sha256 %s) -> will skip\n' "${version}" "${local_sum}"
+              printf 'state=published\n' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              printf 'error: unexpected crates.io API response for ferrite-aac %s (HTTP %s); refusing to guess publication state\n' "${version}" "${status}" >&2
+              exit 1
+              ;;
+          esac
+
       - name: Package aac-convert
-        run: cargo package --locked -p aac-convert
+        # The isolated verification build resolves ferrite-aac ^<version>
+        # from crates.io, which only exists once ferrite-aac is published.
+        # On a first release run only the contents listing is possible here;
+        # the publish job's `cargo publish` performs the isolated
+        # verification build. On recovery runs (ferrite-aac already visible)
+        # the full verification packaging runs here.
+        run: |
+          if [ "${{ steps.lib_state.outputs.state }}" = "published" ]; then
+            cargo package --locked -p aac-convert
+          else
+            cargo package --locked -p aac-convert --list
+          fi
+
+      - name: Classify aac-convert publication state
+        id: app_state
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          crate="aac-convert"
+          status=$(curl -sS -o /tmp/app-version.json -w '%{http_code}' \
+            -H 'User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)' \
+            "https://crates.io/api/v1/crates/${crate}/${version}") || status="network-error"
+          case "${status}" in
+            404)
+              printf 'aac-convert %s: not on crates.io -> will publish\n' "${version}"
+              printf 'state=unpublished\n' >> "$GITHUB_OUTPUT"
+              ;;
+            200)
+              if [ "${{ steps.lib_state.outputs.state }}" != "published" ]; then
+                printf 'error: aac-convert %s exists on crates.io but ferrite-aac %s does not; this dependency-inverted release state is unexpected and must be investigated\n' "${version}" "${version}" >&2
+                exit 1
+              fi
+              yanked=$(jq -r '.version.yanked | tostring' /tmp/app-version.json)
+              remote_sum=$(jq -r '.version.checksum // "unknown"' /tmp/app-version.json)
+              local_sum=$(sha256sum "target/package/${crate}-${version}.crate" | awk '{print $1}')
+              if [ "${yanked}" != "false" ]; then
+                printf 'error: aac-convert %s exists on crates.io with unexpected yanked state (%s); yanked versions are immutable and cannot be re-published\n' "${version}" "${yanked}" >&2
+                exit 1
+              fi
+              if [ "${remote_sum}" != "${local_sum}" ]; then
+                printf 'error: aac-convert %s already exists on crates.io with DIFFERENT content than this tag\n' "${version}" >&2
+                printf '  published .crate sha256: %s\n' "${remote_sum}" >&2
+                printf '  tagged .crate sha256:    %s\n' "${local_sum}" >&2
+                printf '  refusing both publish and skip; investigate the existing release before re-running\n' >&2
+                exit 1
+              fi
+              printf 'aac-convert %s: already published, byte-identical (sha256 %s) -> will skip\n' "${version}" "${local_sum}"
+              printf 'state=published\n' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              printf 'error: unexpected crates.io API response for aac-convert %s (HTTP %s); refusing to guess publication state\n' "${version}" "${status}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Print publication plan
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          note() {
+            printf '%s\n' "$1"
+            printf '%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+          }
+          disposition() {
+            if [ "$2" = "published" ]; then
+              printf 'skip (already published, byte-identical)'
+            else
+              printf 'publish'
+            fi
+          }
+          note "### crates.io release plan for v${version}"
+          note ""
+          note "| crate | state on crates.io | disposition |"
+          note "|---|---|---|"
+          note "| ferrite-aac | ${{ steps.lib_state.outputs.state }} | $(disposition ferrite-aac "${{ steps.lib_state.outputs.state }}") |"
+          note "| aac-convert | ${{ steps.app_state.outputs.state }} | $(disposition aac-convert "${{ steps.app_state.outputs.state }}") |"
 
   publish:
     name: Publish to crates.io (Trusted Publishing)
@@ -156,27 +280,215 @@ jobs:
         uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # rust-lang/crates-io-auth-action v1.0.6
         id: auth
 
+      # Pre-publish guard, re-done here so the job stays correct on
+      # "re-run failed jobs" (where validate's outputs can predate an
+      # earlier successful publish) and cannot race a version that appeared
+      # after validate. Skip requires the published artifact to be
+      # byte-identical to the locally packaged tag artifact.
+      - name: Guard ferrite-aac publication
+        id: guard_lib
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          crate="ferrite-aac"
+          status=$(curl -sS -o /tmp/guard-lib.json -w '%{http_code}' \
+            -H 'User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)' \
+            "https://crates.io/api/v1/crates/${crate}/${version}") || status="network-error"
+          case "${status}" in
+            404)
+              printf 'ferrite-aac %s: not visible -> publishing\n' "${version}"
+              printf 'action=publish\n' >> "$GITHUB_OUTPUT"
+              ;;
+            200)
+              yanked=$(jq -r '.version.yanked | tostring' /tmp/guard-lib.json)
+              remote_sum=$(jq -r '.version.checksum // "unknown"' /tmp/guard-lib.json)
+              cargo package --locked -p ferrite-aac
+              local_sum=$(sha256sum "target/package/${crate}-${version}.crate" | awk '{print $1}')
+              if [ "${yanked}" != "false" ] || [ "${remote_sum}" != "${local_sum}" ]; then
+                printf 'error: ferrite-aac %s exists on crates.io in an unexpected state: yanked=%s, published sha256 %s vs tagged sha256 %s; refusing to skip or re-publish\n' \
+                  "${version}" "${yanked}" "${remote_sum}" "${local_sum}" >&2
+                exit 1
+              fi
+              printf 'ferrite-aac %s: already published byte-identical -> skipping\n' "${version}"
+              printf 'action=skip\n' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              printf 'error: unexpected crates.io API response for ferrite-aac %s (HTTP %s); refusing to guess publication state\n' "${version}" "${status}" >&2
+              exit 1
+              ;;
+          esac
+
       - name: Publish ferrite-aac
+        id: publish_lib
+        if: steps.guard_lib.outputs.action == 'publish'
         run: cargo publish --locked -p ferrite-aac
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
-      - name: Wait for ferrite-aac in the crates.io index
+      - name: Wait for ferrite-aac in the Cargo sparse index
+        if: steps.publish_lib.conclusion == 'success'
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
+          # Sparse-index path for crates of >= 4 characters: first two
+          # characters / next two characters / crate name (constant for this
+          # crate). Cargo resolves aac-convert's ferrite-aac dependency from
+          # this index, so crates.io API visibility alone is not sufficient;
+          # the exact expected version must be present here before
+          # aac-convert can be published.
+          index_url="https://index.crates.io/fe/rr/ferrite-aac"
+          ua='User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)'
+          # Bounded wait: 60 attempts x 5 s = 5 minutes.
           for attempt in $(seq 1 60); do
-            if curl -fsSL -H 'User-Agent: ferrite-publish-check' \
-                "https://crates.io/api/v1/crates/ferrite-aac/${version}" >/dev/null 2>&1; then
-              printf 'ferrite-aac %s is visible in the registry\n' "$version"
-              exit 0
-            fi
+            status=$(curl -sS -o /tmp/lib-index.ndjson -w '%{http_code}' -H "$ua" "${index_url}") || status="network-error"
+            case "${status}" in
+              200)
+                # Newline-delimited JSON: jq processes each entry
+                # independently. Absence of the expected version is
+                # retryable; a present-but-unusable entry (wrong name, wrong
+                # version semantics are filtered, yanked, missing checksum)
+                # is an immediate failure.
+                if jq -e --arg v "${version}" '
+                    select(.name == "ferrite-aac" and .vers == $v)
+                    | if (.yanked | tostring) != "false" then
+                        error("unusable: yanked=" + (.yanked | tostring))
+                      elif (.cksum // "" | length) == 0 then
+                        error("unusable: missing checksum")
+                      else
+                        .
+                      end' /tmp/lib-index.ndjson > /tmp/lib-index-entry.json 2> /tmp/lib-index-err.txt
+                then
+                  printf 'ferrite-aac %s is visible in the Cargo sparse index (cksum %s)\n' \
+                    "${version}" "$(jq -r '.cksum' /tmp/lib-index-entry.json)"
+                  exit 0
+                fi
+                if [ -s /tmp/lib-index-err.txt ]; then
+                  printf 'error: unexpected sparse-index data for ferrite-aac %s: %s\n' \
+                    "${version}" "$(tr '\n' ' ' < /tmp/lib-index-err.txt)" >&2
+                  exit 1
+                fi
+                printf 'ferrite-aac %s: not yet in the sparse index (attempt %s/60)\n' "${version}" "${attempt}"
+                ;;
+              404)
+                # The index file exists once a crate has any published
+                # version; a miss right after publication is a propagation
+                # delay and retryable.
+                printf 'ferrite-aac %s: sparse index not yet serving the crate (attempt %s/60)\n' "${version}" "${attempt}"
+                ;;
+              *)
+                printf 'ferrite-aac %s: sparse-index fetch failed (HTTP %s, attempt %s/60)\n' "${version}" "${status}" "${attempt}"
+                ;;
+            esac
             sleep 5
           done
-          printf 'error: ferrite-aac %s did not appear in the registry within 5 minutes\n' "$version" >&2
+          printf 'error: ferrite-aac %s did not appear in the Cargo sparse index (%s) within 5 minutes; aac-convert cannot be published against it\n' "${version}" "${index_url}" >&2
           exit 1
 
+      - name: Guard aac-convert publication
+        id: guard_app
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          crate="aac-convert"
+          # Dependency revalidation: an HTTP 200 from the version API alone
+          # does not establish that the dependency is usable and
+          # byte-identical to this release. Verify visibility, yanked state,
+          # and checksum before deciding on aac-convert. Malformed JSON
+          # fails closed here: jq errors abort the step under set -e.
+          dep_status=$(curl -sS -o /tmp/guard-app-libdep.json -w '%{http_code}' \
+            -H 'User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)' \
+            "https://crates.io/api/v1/crates/ferrite-aac/${version}") || dep_status="network-error"
+          if [ "${dep_status}" != "200" ]; then
+            printf 'error: ferrite-aac %s dependency check failed (HTTP %s); refusing to decide aac-convert publication\n' "${version}" "${dep_status}" >&2
+            exit 1
+          fi
+          dep_yanked=$(jq -r '.version.yanked | tostring' /tmp/guard-app-libdep.json)
+          dep_remote_sum=$(jq -r '.version.checksum // ""' /tmp/guard-app-libdep.json)
+          # Locally packaged ferrite-aac artifact for this tag: reuse the
+          # one packaged by Guard ferrite-aac when present (provenance:
+          # this job, this tag checkout); repackage once otherwise (the
+          # fresh-publish path, where cargo publish does not leave the
+          # .crate in target/package).
+          dep_crate="target/package/ferrite-aac-${version}.crate"
+          if [ ! -f "${dep_crate}" ]; then
+            cargo package --locked -p ferrite-aac
+          fi
+          dep_local_sum=$(sha256sum "${dep_crate}" | awk '{print $1}')
+          if [ "${dep_yanked}" != "false" ] || [ -z "${dep_remote_sum}" ]; then
+            printf 'error: ferrite-aac %s dependency is not usable on crates.io (yanked=%s, checksum present=%s); refusing to decide aac-convert publication\n' \
+              "${version}" "${dep_yanked}" "$([ -n "${dep_remote_sum}" ] && printf 'yes' || printf 'no')" >&2
+            exit 1
+          fi
+          if [ "${dep_remote_sum}" != "${dep_local_sum}" ]; then
+            printf 'error: ferrite-aac %s dependency checksum mismatch: registry sha256 %s, tagged .crate sha256 %s; refusing to decide aac-convert publication\n' \
+              "${version}" "${dep_remote_sum}" "${dep_local_sum}" >&2
+            exit 1
+          fi
+          printf 'ferrite-aac %s dependency verified: visible, not yanked, registry checksum matches this tag (%s)\n' "${version}" "${dep_local_sum}"
+          # Independent aac-convert publication-state guard with its own
+          # checksum comparison (unchanged).
+          status=$(curl -sS -o /tmp/guard-app.json -w '%{http_code}' \
+            -H 'User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)' \
+            "https://crates.io/api/v1/crates/${crate}/${version}") || status="network-error"
+          case "${status}" in
+            404)
+              printf 'aac-convert %s: not visible -> publishing\n' "${version}"
+              printf 'action=publish\n' >> "$GITHUB_OUTPUT"
+              ;;
+            200)
+              yanked=$(jq -r '.version.yanked | tostring' /tmp/guard-app.json)
+              remote_sum=$(jq -r '.version.checksum // "unknown"' /tmp/guard-app.json)
+              cargo package --locked -p aac-convert
+              local_sum=$(sha256sum "target/package/${crate}-${version}.crate" | awk '{print $1}')
+              if [ "${yanked}" != "false" ] || [ "${remote_sum}" != "${local_sum}" ]; then
+                printf 'error: aac-convert %s exists on crates.io in an unexpected state: yanked=%s, published sha256 %s vs tagged sha256 %s; refusing to skip or re-publish\n' \
+                  "${version}" "${yanked}" "${remote_sum}" "${local_sum}" >&2
+                exit 1
+              fi
+              printf 'aac-convert %s: already published byte-identical -> skipping\n' "${version}"
+              printf 'action=skip\n' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              printf 'error: unexpected crates.io API response for aac-convert %s (HTTP %s); refusing to guess publication state\n' "${version}" "${status}" >&2
+              exit 1
+              ;;
+          esac
+
       - name: Publish aac-convert
+        id: publish_app
+        if: steps.guard_app.outputs.action == 'publish'
         run: cargo publish --locked -p aac-convert
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Verify release completeness
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          ua='User-Agent: ferrite-release (GitHub Actions; https://github.com/whepper/ferrite)'
+          check() {
+            local crate="$1" status
+            for _ in $(seq 1 24); do
+              status=$(curl -sS -o "/tmp/final-${crate}.json" -w '%{http_code}' -H "$ua" \
+                "https://crates.io/api/v1/crates/${crate}/${version}") || status="network-error"
+              if [ "${status}" = "200" ]; then
+                printf '%s %s verified on crates.io (sha256 %s)\n' "${crate}" "${version}" \
+                  "$(jq -r '.version.checksum' "/tmp/final-${crate}.json")"
+                return 0
+              fi
+              sleep 5
+            done
+            printf 'error: %s %s is not visible on crates.io after the release (last HTTP %s)\n' "${crate}" "${version}" "${status}" >&2
+            return 1
+          }
+          check ferrite-aac
+          check aac-convert
+          {
+            printf '### crates.io release %s complete\n\n' "${version}"
+            printf '| crate | disposition |\n'
+            printf '|---|---|\n'
+            printf '| ferrite-aac | %s |\n' \
+              "$([ "${{ steps.guard_lib.outputs.action }}" = "skip" ] && printf 'already published (byte-identical); skipped' || printf 'published by this run')"
+            printf '| aac-convert | %s |\n' \
+              "$([ "${{ steps.guard_app.outputs.action }}" = "skip" ] && printf 'already published (byte-identical); skipped' || printf 'published by this run')"
+          } >> "$GITHUB_STEP_SUMMARY"
