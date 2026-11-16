@@ -1,6 +1,6 @@
 [package]
 name = "ferrite-aac"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 # MSRV
 rust-version = "1.99.1"
@@ -9,7 +9,9 @@ license-file = "LICENSE-FDK-AAC"
 description = "Native Rust AAC-LC encoder derived from Fraunhofer FDK AAC (Ferrite)"
 readme = "README.md"
 repository = "https://github.com/whepper/ferrite"
+documentation = "https://docs.rs/ferrite-aac"
 keywords = ["aac", "audio", "codec", "encoder", "fdk"]
+categories = ["multimedia::audio", "multimedia::encoding"]
 
 # Published-crate contents: the production library plus the materials needed
 # to build, use, and understand it. Development-only material (test corpus,
@@ -36,10 +38,10 @@ exclude = [
     "docs/aac-convert-roadmap.md",
     "docs/user-manual.md",
     "docs/releases/",
-    # NOTE: Cargo always ships the workspace Cargo.lock in the crate unless
-    # the publish invocation passes --exclude-lockfile (manifest exclude
-    # rules do not apply to it); prefer that flag when publishing this
-    # library. The repository Cargo.lock itself is unaffected.
+    # NOTE: Cargo always ships the workspace Cargo.lock in the crate
+    # (manifest exclude rules do not apply to it); publication uses
+    # `cargo publish --locked -p ferrite-aac` and ships the lock as-is.
+    # The repository Cargo.lock itself is unaffected.
 ]
 
 [lib]

@@ -9,8 +9,8 @@ root `../README.md`.
 ### `src`
 
 This directory contains the Rust source files for the `ferrite-aac`
-(`ferrite_aac`) encoder library, covering the AAC-LC encoder (`aac_enc`
-feature) plus shared DSP/transport modules.
+(`ferrite_aac`) encoder library, covering the AAC-LC encoder (the `aac_enc`
+module) plus shared DSP/transport modules.
 
 ### `convert`
 

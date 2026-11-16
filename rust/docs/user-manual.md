@@ -1,7 +1,7 @@
 # Ferrite User Manual
 
-**Version:** 0.3.1<br>
-**Release:** 14 November 2026<br>
+**Version:** 0.4.0<br>
+**Release:** 16 November 2026<br>
 **Audience:** Users converting FLAC music files with `aac-convert`
 
 Ferrite is a native Rust AAC-LC encoder. Its companion command-line application, **`aac-convert`**, converts FLAC files into AAC audio in an M4A container or an ADTS stream.
@@ -12,22 +12,37 @@ This manual explains how to build and use the standalone converter. It focuses o
 
 ## 1. What you need
 
-Ferrite 0.3.1 is distributed as source. Build it locally with:
+Ferrite 0.4.0 is distributed as source. Released versions are published to
+crates.io; build locally with:
 
 - Rust and Cargo **1.99.1**.
-- The Ferrite 0.3.1 source tree, including its workspace files and committed `Cargo.lock`.
+- Either the crates.io-published `aac-convert` package or the Ferrite 0.4.0
+  source tree, including its workspace files and committed `Cargo.lock`.
 - Network access to resolve crates.io dependencies on the first build (unless they are already cached).
 
 FFmpeg is **not** required to build or run `aac-convert`. It is useful for independently checking converted files, but is not a runtime dependency.
 
-### Get the source
+### Install from crates.io
+
+Released versions can be installed directly with Cargo:
+
+```sh
+cargo install aac-convert
+```
+
+This compiles the published source with the published `ferrite-aac`
+encoder; no repository checkout is needed. The installed binary is on
+your Cargo `PATH` as `aac-convert`; check it with the version and help
+commands shown below.
+
+### Or build from the source tree
 
 Download or clone the repository, then select the release tag:
 
 ```sh
 git clone https://github.com/whepper/ferrite.git
 cd ferrite
-git checkout v0.3.1
+git checkout v0.4.0
 ```
 
 Install the required Rust toolchain with rustup if necessary:
@@ -149,7 +164,7 @@ aac-convert --vbr 5 "track.flac" "track.m4a"
 aac-convert --vbr 1 "track.flac" "track.aac"
 ```
 
-Existing output files are **never overwritten**. There is no force or overwrite option in 0.3.1. Choose a new output path when the destination already exists.
+Existing output files are **never overwritten**. There is no force or overwrite option in Ferrite. Choose a new output path when the destination already exists.
 
 Cover-art modes apply to M4A output with tags. `--no-tags` disables both embedding and extraction, and ADTS output ignores `--cover-art` entirely. An existing `cover.jpg`, `cover.png` or `cover.webp` beside the output is left untouched.
 
@@ -580,7 +595,7 @@ The converter accepts only 44.1 or 48 kHz, mono or stereo FLAC. It does not resa
 
 ### “24-bit FLAC input is truncated…”
 
-This is an informational warning, not a conversion failure. Ferrite 0.3.1 encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
+This is an informational warning, not a conversion failure. Ferrite encodes 16-bit PCM. The converter truncates 24-bit samples to their top 16 bits without dithering.
 
 ### “Output already exists” / publication failure
 
@@ -612,7 +627,7 @@ If the process was forcibly terminated or the machine shut down during conversio
 
 ## 11. Scope and limitations
 
-Ferrite 0.3.1 is deliberately focused:
+Ferrite 0.4.0 is deliberately focused:
 
 - AAC-LC VBR-1 through VBR-6 (default VBR-6); no other object types or modes.
   See [VBR profiles](vbr-profiles.md).
@@ -633,6 +648,7 @@ Ferrite 0.3.1 is deliberately focused:
 - [Ferrite encoder API integration guide](encoder-integration.md)
 - [VBR profile reference](vbr-profiles.md)
 - [aac-convert integration contract](aac-convert-integration-contract.md)
+- [Ferrite 0.4.0 release notes](releases/0.4.0.md)
 - [Ferrite 0.3.3 release notes](releases/0.3.3.md)
 - [Ferrite 0.3.2 release notes](releases/0.3.2.md)
 - [Ferrite 0.3.1 release notes](releases/0.3.1.md)

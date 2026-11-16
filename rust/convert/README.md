@@ -607,12 +607,21 @@ cargo test -p aac-convert --test independent_decode -- --ignored --nocapture
 
 ## Distribution
 
-There is no standalone `cargo package` for `aac-convert`: its path
-dependency on the workspace-local, unpublished `ferrite-aac` crate cannot
-resolve against the public registry (the package is unpublished, so no
-version satisfies the required `^0.3.2`), and publishing `ferrite-aac` is
-out of scope. The supported distribution
-model is a **workspace source bundle built with the pinned toolchain**:
+`aac-convert` is published to crates.io. Install a released version with
+Cargo (Rust **1.99.1** or newer; the crate enforces this MSRV):
+
+```sh
+cargo install aac-convert
+```
+
+This compiles from the published source with the Ferrite encoder linked as
+the published `ferrite-aac` dependency — no FDK checkout, C toolchain, or
+FFmpeg is involved. Released versions are listed at
+`https://crates.io/crates/aac-convert`; each release's exact source is the
+corresponding `v*` tag in this repository.
+
+Building from a workspace source bundle remains supported and is what the
+CI suite exercises:
 
 ```sh
 cd rust
@@ -622,7 +631,10 @@ cargo test --locked -p aac-convert              # app suite incl. M4A/ADTS check
 
 Requirements: Rust 1.99.1 (`rustup install 1.99.1`), dependency sources
 resolved from crates.io against the committed `rust/Cargo.lock`. No
-vendoring is needed. Do not publish either crate to a registry.
+vendoring is needed. Releases are published to crates.io from the
+tag-triggered GitHub Actions workflow (`.github/workflows/publish.yml`)
+using crates.io Trusted Publishing; there are no long-lived registry
+tokens in the repository.
 
 Before distributing a binary, include the complete source bundle,
 `rust/NOTICE` (including the prominent modified-version notice dated

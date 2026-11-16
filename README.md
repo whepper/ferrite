@@ -65,9 +65,25 @@ Validated on macOS (ARM64) and Linux (x86_64, via CI). Other platforms, includin
 
 ## Get started
 
-Ferrite is currently distributed as source. You need Rust and Cargo **1.99.1** — the toolchain declared by the workspace (`rust-version`) and pinned in CI.
+Ferrite ships as source. Released versions of both crates are published to
+crates.io; you need Rust and Cargo **1.99.1** — the toolchain declared by
+the workspace (`rust-version`) and pinned in CI.
 
-Clone the repository and build the converter:
+Install the converter from crates.io:
+
+```sh
+cargo install aac-convert
+```
+
+Or use the encoder library directly in another Rust project:
+
+```toml
+[dependencies]
+ferrite-aac = "0.4.0"
+```
+
+Building from a repository checkout gives the same result and is what CI
+exercises. Clone the repository and build the converter:
 
 ```sh
 git clone https://github.com/whepper/ferrite.git
@@ -164,7 +180,9 @@ The encoder and converter have a deliberately bounded initial scope:
 - 16-bit PCM at the encoder API; 24-bit FLAC conversion truncates to 16-bit.
 - No metadata-only retagging mode.
 - No true-peak analysis.
-- SIMD optimization is deferred.
+- SIMD quantization acceleration ships on ARM64 (NEON) and x86-64 (AVX2) with
+  runtime feature detection and a scalar fallback; AVX2 is correctness-validated
+  only, with its end-to-end performance campaign still outstanding.
 - A desktop GUI is not yet implemented.
 
 Perceptual equivalence claims are limited to the evidence documented in the project's quality and divergence reports. Ferrite does not claim bit-exact output equivalence with FDK AAC.

@@ -1,12 +1,16 @@
 [package]
 name = "aac-convert"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 # MSRV
 rust-version = "1.99.1"
 license = "MIT OR Apache-2.0"
 description = "FLAC to AAC (ADTS or M4A) converter for the native Ferrite Rust AAC encoder"
+readme = "README.md"
 repository = "https://github.com/whepper/ferrite"
+documentation = "https://docs.rs/aac-convert"
+keywords = ["aac", "audio", "converter", "flac", "cli"]
+categories = ["multimedia::audio", "command-line-utilities"]
 
 # Published-crate contents: the converter source, its READMEs, license
 # texts, and notices.
@@ -30,7 +34,7 @@ exclude = [
 ]
 
 [dependencies]
-ferrite-aac = { version = "0.3.2", path = ".." }
+ferrite-aac = { version = "0.4.0", path = ".." }
 # Pinned to the L3 evidence-phase selection; pure Rust, no C toolchain on the
 # default build path. MIT. See docs/archive/aac-convert-l3-prep-report.md Gate 1.
 ebur128 = "=0.1.11"
