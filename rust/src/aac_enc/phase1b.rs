@@ -340,6 +340,7 @@ fn phase1b_isolated_differential() {
                     is_book: &c5.is_book,
                     is_scale: &c5.is_scale,
                     tns: &tns_defaults[ci],
+                    seed_quant: None,
                 });
             }
             let digest = match &s1.msd {

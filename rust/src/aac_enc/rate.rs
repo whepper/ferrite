@@ -1335,6 +1335,30 @@ pub struct QcChannelInput<'a> {
     pub is_book: &'a [i32],
     pub is_scale: &'a [i32],
     pub tns: &'a TnsChannel,
+    /// R1b: optional S4 winning quantization seeding QC pass 0.
+    ///
+    /// When `Some`, pass 0 copies this into the working `quants` buffer
+    /// instead of running `quantize_spectrum`, then proceeds through the
+    /// unchanged QMAX check, bit count, and gain-loop machinery. The seed
+    /// is consumed exactly once (pass 0); every retry re-quantizes fresh
+    /// from `spectrum`, exactly as before.
+    ///
+    /// Fallback condition (no extra code needed): an accepted S4 trial that
+    /// took the `MAX_QUANT` early-out retains its own trigger line — the
+    /// line with `|q| > MAX_QUANT` is stored before the early return
+    /// (`quant.rs`), and the rest of the band may be zero or a completed
+    /// coarser trial's bounded values (`improve_scf` reuses its scratch),
+    /// but that tail can never remove the trigger. QC recomputes the
+    /// per-band maxima from the buffer before any bit counting
+    /// (`calc_max_value_in_sfb`), so a trigger makes `max_all > MAX_QUANT`
+    /// fire exactly as it would on fresh quantization; the standard
+    /// gain-bump retry then runs a fresh `quantize_spectrum`, which writes
+    /// every line (no early-out) and therefore replaces the complete band
+    /// before the data can affect bit counting or output. A seed band with
+    /// no trigger is line-for-line identical to fresh quantization at the
+    /// final gain/scalefactors; the step-3 deferred re-quantize in
+    /// `scf.rs` restores that invariant for bands moved after quantization.
+    pub seed_quant: Option<&'a [i16]>,
 }
 
 /// Element-level frame inputs (single element; `channels.len()` is 1 or 2).
@@ -1534,6 +1558,10 @@ pub fn qc_main_frame(
     let mut crash_mark = -1i32;
     let mut passes = Vec::new();
     let mut outer_guard = 0i32;
+    // R1b: per-channel S4 seed quants for pass 0. `.take()` consumes each
+    // seed exactly once, so any gain-loop retry falls through to fresh
+    // `quantize_spectrum`, exactly as before.
+    let mut seeds: Vec<Option<&[i16]>> = input.channels.iter().map(|c| c.seed_quant).collect();
     // Static recount for crash recovery (`ChannelElementWrite(NULL)`
     // mirror over `static_bits`, run after `maxSfbPerGroup` was reduced
     // like C `crashRecovery :1484-1486`). `surv_max_sfb` is the surviving
@@ -1644,17 +1672,26 @@ pub fn qc_main_frame(
                     if recalc[ch] {
                         recalc[ch] = false;
                         let c = &input.channels[ch];
-                        quantize_spectrum(
-                            c.sfb_cnt,
-                            max_sfb[ch],
-                            c.sfb_per_group,
-                            c.sfb_offsets,
-                            c.spectrum,
-                            gains[ch],
-                            c.scf,
-                            &mut quants[ch],
-                            false,
-                        );
+                        if let Some(seed) = seeds[ch].take() {
+                            // R1b: reuse S4's winning quantization for pass
+                            // 0 (length-checked copy; S4 guarantees
+                            // spectrum-length buffers). QMAX, the
+                            // `-32768` envelope assert, the bit count, and
+                            // all later passes run unchanged below.
+                            quants[ch].copy_from_slice(seed);
+                        } else {
+                            quantize_spectrum(
+                                c.sfb_cnt,
+                                max_sfb[ch],
+                                c.sfb_per_group,
+                                c.sfb_offsets,
+                                c.spectrum,
+                                gains[ch],
+                                c.scf,
+                                &mut quants[ch],
+                                false,
+                            );
+                        }
                         for &q in quants[ch].iter() {
                             assert_ne!(q, i16::MIN, "qc_main_frame: -32768 line");
                         }
@@ -2076,6 +2113,7 @@ mod tests {
                 is_book: &c5.is_book,
                 is_scale: &c5.is_scale,
                 tns: &tns_defaults[ci],
+                seed_quant: None,
             });
         }
         let digest = match &s1.msd {
@@ -2222,6 +2260,301 @@ mod tests {
             let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
                 .expect("s6 frame converges");
             check_frame_output(name, f, &s6, &out, &dist);
+        }
+    }
+
+    #[test]
+    fn r1b_seeded_pass0_matches_fresh_on_s6_corpus() {
+        // R1b differential layer B: QC pass 0 seeded with the committed
+        // oracle S4 quantization (authentic S4 winner output, `inv = 2`)
+        // must produce exactly the same frame output as fresh
+        // quantization. The oracle `qspec` plays the S4 role verbatim:
+        // `s4_corpus_exact` already proves the Rust estimator reproduces
+        // it bit-exactly, and `r1b_s4_winners_match_fresh_quantize`
+        // proves estimator output equals fresh quantization. Covers
+        // long/short blocks, mono/stereo, 44.1/48 kHz, and the production
+        // gain-residue spread across all 20 S6 corpus frames.
+        let tns_defaults = [TnsChannel::default(), TnsChannel::default()];
+        for (name, f) in S6_CASES {
+            let s1 = testdata::load_s1(name, f);
+            let s4 = testdata::load_s4(name, f);
+            let s5 = testdata::load_s5(name, f);
+            let s6 = testdata::load_s6(name, f);
+            let init = testdata::load_s6init(init_tag(name));
+            let (fresh_input, _) = build_frame_input(name, &s1, &s4, &s5, &init, &tns_defaults);
+            let (mut seeded_input, _) =
+                build_frame_input(name, &s1, &s4, &s5, &init, &tns_defaults);
+            for (ch_in, c4) in seeded_input.channels.iter_mut().zip(s4.ch.iter()) {
+                let lv = c4.levels.iter().find(|l| l.inv == 2).expect("inv=2 level");
+                assert_eq!(lv.qspec.len(), lv.spec.len(), "{name} f={f} seed length");
+                ch_in.seed_quant = Some(&lv.qspec);
+            }
+            let mut dist_fresh = forge_dist(&init, &s6.gstate);
+            let mut qc_fresh = QcState {
+                bit_res_tot: init.max,
+                bit_res_tot_max: init.max,
+                bc_scratch: Default::default(),
+            };
+            let out_fresh =
+                qc_main_frame(&mut qc_fresh, &mut dist_fresh, &fresh_input, MAX_ITERATIONS)
+                    .expect("fresh converges");
+            let mut dist_seeded = forge_dist(&init, &s6.gstate);
+            let mut qc_seeded = QcState {
+                bit_res_tot: init.max,
+                bit_res_tot_max: init.max,
+                bc_scratch: Default::default(),
+            };
+            let out_seeded = qc_main_frame(
+                &mut qc_seeded,
+                &mut dist_seeded,
+                &seeded_input,
+                MAX_ITERATIONS,
+            )
+            .expect("seeded converges");
+            assert_eq!(
+                format!("{:?}", out_fresh),
+                format!("{:?}", out_seeded),
+                "{name} f={f} full output"
+            );
+            assert_eq!(
+                out_fresh.final_quants, out_seeded.final_quants,
+                "{name} f={f} quants"
+            );
+            assert_eq!(out_fresh.passes, out_seeded.passes, "{name} f={f} passes");
+            assert_eq!(
+                out_fresh.total_bits, out_seeded.total_bits,
+                "{name} f={f} totals"
+            );
+        }
+    }
+
+    #[test]
+    fn r1b_seeded_fallback_matches_fresh_on_early_out() {
+        // R1b differential layer C: forced `MAX_QUANT` early-out. A loud
+        // line in one band makes the winning S4 trial take the early-out
+        // (trigger line stored over a zero/partial tail); seeded and fresh
+        // QC must still agree exactly, with the standard gain-bump retry as
+        // the fallback. The loud-line recipe mirrors the proven
+        // `early_out_spec` synthesizer (`quant_bench.rs`): the smallest
+        // magnitude that early-outs exactly at the band start wins, keeping
+        // the test away from the `-32768` sentinel (unreachable anyway: the
+        // quantizer table bounds cap |q| at 19,470).
+        //
+        // M2 risk acceptance — no estimator-produced trigger fixture could
+        // be constructed. This test forces the seed at the QC boundary; it is
+        // NOT equivalent to end-to-end estimator coverage. Targeted
+        // construction found no genuine estimator winner:
+        //   * the peak-derived floor (`min_max_quant`, `scf.rs`) pins even a
+        //     full-scale line to |q| ~= 6884 < MAX_QUANT at QSS ~= -68, and
+        //     `improve_scf`'s finer trial is bounded by that floor;
+        //   * `assimilate_single_scf` may go below the floor (only the
+        //     MAX_SCF_DELTA spread gate applies), but the entry gates, PE
+        //     gate, and strict distortion improvement must all hold;
+        //   * step 3 re-quantizes only bands whose move passed the energy
+        //     check (`en_q >= energy_ld - log2(1/0.7079)`); one finer step
+        //     drops reused-line energy by 2^-0.5 = 0.7071, marginally below
+        //     that allowance, rejecting most non-zero bands.
+        // No trigger appeared in the committed corpus, 900+ crafted
+        // estimator inputs, or 2,378 production frames (max |q| = 6884).
+        // The fallback is independent of how a trigger arises:
+        // `calc_sfb_dist` stores the trigger line before returning (SIMD
+        // kernels write the exact scalar prefix), QC recomputes the per-band
+        // maxima before bit counting (`calc_max_value_in_sfb`), the trigger
+        // fires `max_all > MAX_QUANT`, and the gain-bump retry runs a fresh
+        // `quantize_spectrum` that writes every line before any bit count or
+        // output. Residual uncertainty: suppression is structural/empirical,
+        // not a proof, because `assimilate_single_scf` has no floor check.
+        // Risk accepted on the strength of the trigger-preservation /
+        // full-overwrite argument plus this forced-seed test; add a natural
+        // fixture if one is ever constructed.
+        use super::super::quant::{calc_sfb_dist, quantize_spectrum};
+        let tns_defaults = [TnsChannel::default(), TnsChannel::default()];
+        let (name, f) = ("sine-stereo", 5);
+        let s1 = testdata::load_s1(name, f);
+        let s4 = testdata::load_s4(name, f);
+        let s5 = testdata::load_s5(name, f);
+        let s6 = testdata::load_s6(name, f);
+        let init = testdata::load_s6init(init_tag(name));
+        assert_eq!(s4.ch.len(), 2, "stereo fixture");
+        let c5 = &s5.ch[0];
+        let lv0 = s4.ch[0]
+            .levels
+            .iter()
+            .find(|l| l.inv == 2)
+            .expect("inv=2 level");
+        assert_eq!(&c5.offsets, &s1.ch[0].offsets, "geometry agreement");
+        // Loud-state hunt: triggers need a very negative `qss` (coarse
+        // quantizer, small right-shift) at a matching residue — a sparse
+        // window the coarse grid above missed. Scan every integer `qss`
+        // from -40 down to -120 with ascending loudness; the first
+        // (qss, loud) pair that early-outs exactly at the band start wins.
+        // Ascending loudness keeps the test clear of the out-of-envelope
+        // `-32768` corner; the setup asserts loudly if nothing triggers.
+        let b = (0..c5.geo_cnt)
+            .find(|&b| c5.offsets[b + 1] - c5.offsets[b] >= 8)
+            .expect("wide band");
+        let start = c5.offsets[b] as usize;
+        let end = c5.offsets[b + 1] as usize;
+        let mut setup = None;
+        let mut probe: Vec<(i32, i32, Option<usize>)> = Vec::new();
+        'gains: for qss in (-120..=-40).rev() {
+            for v in [
+                0x0400_0000i32,
+                0x0800_0000,
+                0x1000_0000,
+                0x2000_0000,
+                0x4000_0000,
+                0x7000_0000,
+                i32::MAX,
+            ] {
+                let mut spec = vec![0i32; end - start];
+                spec[0] = v;
+                // Nonzero tail: fresh quantization writes small-but-nonzero
+                // lines here, while the early-out seed must leave zeros.
+                // Without this the two candidates would agree trivially.
+                for x in spec.iter_mut().skip(1) {
+                    *x = 0x0010_0000;
+                }
+                let mut q = vec![0i16; end - start];
+                let d = calc_sfb_dist(&spec, qss, false, &mut q);
+                let pos = q.iter().position(|&x| (x as i32).abs() > MAX_QUANT);
+                if probe.len() < 32 {
+                    probe.push((qss, v, pos));
+                }
+                if d == 0
+                    && q.iter().position(|&x| (x as i32).abs() > MAX_QUANT) == Some(0)
+                    && q.iter().all(|&x| x != i16::MIN)
+                {
+                    setup = Some((qss, spec, q));
+                    break 'gains;
+                }
+            }
+        }
+        let (qss_band, band_spec, seed_band) = match setup {
+            Some(t) => t,
+            None => panic!("early-out setup triggers for some (qss, loud); probe={probe:?}"),
+        };
+        // Retarget this band's scalefactor so the frame carries the chosen
+        // `qss` (`gain - scf`), mirroring an S4 winning trial at that gain.
+        let mut scf0: Vec<i32> = lv0.scf.clone();
+        scf0[b] = lv0.gain.wrapping_sub(qss_band);
+        // Full-frame modified spectrum (channel 0 only) and the two
+        // candidate quantizations: fresh (full re-quantize) vs seed
+        // (early-out partial over a zero tail, exactly as S4 stores it).
+        let mut spec0: Vec<i32> = lv0.spec.clone();
+        spec0[start..end].copy_from_slice(&band_spec);
+        let mut fresh0 = vec![0i16; spec0.len()];
+        quantize_spectrum(
+            c5.geo_cnt,
+            c5.geo_max,
+            c5.geo_per,
+            &c5.offsets,
+            &spec0,
+            lv0.gain,
+            &scf0,
+            &mut fresh0,
+            false,
+        );
+        let mut seed0 = fresh0.clone();
+        seed0[start..end].copy_from_slice(&seed_band);
+        assert_ne!(seed0, fresh0, "fallback actually exercised");
+        assert!(
+            seed0.iter().all(|&q| q != i16::MIN) && fresh0.iter().all(|&q| q != i16::MIN),
+            "stays clear of the -32768 envelope corner"
+        );
+        #[allow(clippy::too_many_arguments)]
+        fn early_out_frame_input<'a>(
+            s1: &'a testdata::S1Frame,
+            s4: &'a testdata::S4Frame,
+            s5: &'a testdata::S5Frame,
+            init: &'a testdata::S6Init,
+            tns_defaults: &'a [TnsChannel],
+            spec0: &'a [i32],
+            scf0: &'a [i32],
+            seed_ch0: Option<&'a [i16]>,
+        ) -> QcFrameInput<'a> {
+            let mut channels = Vec::new();
+            for (ci, ((c1, c4), c5)) in s1.ch.iter().zip(s4.ch.iter()).zip(s5.ch.iter()).enumerate()
+            {
+                let lv = c4.levels.iter().find(|l| l.inv == 2).expect("inv=2 level");
+                assert_eq!(c5.geo_cnt, c1.geo_cnt, "ch={ci} cnt");
+                assert_eq!(&c5.offsets, &c1.offsets, "ch={ci} off");
+                let (spectrum, scf, seed) = if ci == 0 {
+                    (spec0, scf0, seed_ch0)
+                } else {
+                    (&lv.spec[..], &lv.scf[..], None)
+                };
+                channels.push(QcChannelInput {
+                    spectrum,
+                    scf,
+                    global_gain: lv.gain,
+                    sfb_cnt: c5.geo_cnt,
+                    max_sfb_per_group: c5.geo_max,
+                    sfb_per_group: c5.geo_per,
+                    sfb_offsets: &c5.offsets,
+                    block_type: c1.geo_seq as i32,
+                    noise_nrg: &c5.noise_nrg,
+                    is_book: &c5.is_book,
+                    is_scale: &c5.is_scale,
+                    tns: &tns_defaults[ci],
+                    seed_quant: seed,
+                });
+            }
+            let digest = match &s1.msd {
+                Some((d, _)) => MsDigest::from_i32(*d).expect("ms digest"),
+                None => MsDigest::None,
+            };
+            QcFrameInput {
+                channels,
+                no_red_pe: s1.pe[0],
+                static_bits: s1.static_bits,
+                ms_digest: digest,
+                glob_hdr_bits: 56,
+                max_bits_per_frame: init.max,
+                max_bits_el: init.maxbits_el,
+                relative_bits_el: init.relbits_el,
+                max_bit_fac: init.maxbitfac,
+                bit_res_mode: BitResMode::Full,
+            }
+        }
+        let out_fresh = {
+            let input =
+                early_out_frame_input(&s1, &s4, &s5, &init, &tns_defaults, &spec0, &scf0, None);
+            let mut dist_fresh = forge_dist(&init, &s6.gstate);
+            let mut qc_fresh = QcState {
+                bit_res_tot: init.max,
+                bit_res_tot_max: init.max,
+                bc_scratch: Default::default(),
+            };
+            qc_main_frame(&mut qc_fresh, &mut dist_fresh, &input, MAX_ITERATIONS)
+        };
+        let out_seeded = {
+            let input = early_out_frame_input(
+                &s1,
+                &s4,
+                &s5,
+                &init,
+                &tns_defaults,
+                &spec0,
+                &scf0,
+                Some(&seed0),
+            );
+            let mut dist_seeded = forge_dist(&init, &s6.gstate);
+            let mut qc_seeded = QcState {
+                bit_res_tot: init.max,
+                bit_res_tot_max: init.max,
+                bc_scratch: Default::default(),
+            };
+            qc_main_frame(&mut qc_seeded, &mut dist_seeded, &input, MAX_ITERATIONS)
+        };
+        match (&out_fresh, &out_seeded) {
+            (Ok(a), Ok(b)) => assert_eq!(
+                format!("{:?}", a),
+                format!("{:?}", b),
+                "early-out full output"
+            ),
+            (Err(a), Err(b)) => assert_eq!(a, b, "early-out error parity"),
+            _ => panic!("seeded/fresh convergence diverged on early-out"),
         }
     }
 

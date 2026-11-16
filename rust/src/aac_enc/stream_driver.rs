@@ -64,7 +64,7 @@
 //!   converged final pass per FDK (`crash` with reduced bandwidth).
 
 use super::adts::ADTS_HEADER_BITS;
-use super::bitcount::{dyn_bit_count_reuse, BitCountInput, NO_NOISE_PNS};
+use super::bitcount::NO_NOISE_PNS;
 use super::bitenc::BitWriter;
 use super::block_switch::{BlockSwitch, WindowSequence};
 use super::channel_map::ChannelMode;
@@ -85,10 +85,10 @@ use super::psy::{
 use super::psy_config::load_cfg_for_profile;
 use super::q31::calc_ld_data;
 use super::rate::{
-    adjust_bitrate, calc_bits_per_frame, calc_max_value_in_sfb, derive_qc_init,
-    distribute_state_init, init_bits2pe_factor, qc_main_frame, total_consumed_bits, BitResMode,
-    DistributeState, QcChannelInput, QcError, QcFrameInput, QcInitParams, QcState, GLOBAL_EXT_BITS,
-    MAXVAL_DBL, MAX_ITERATIONS,
+    adjust_bitrate, calc_bits_per_frame, derive_qc_init, distribute_state_init,
+    init_bits2pe_factor, qc_main_frame, total_consumed_bits, BitResMode, DistributeState,
+    QcChannelInput, QcError, QcFrameInput, QcInitParams, QcState, GLOBAL_EXT_BITS, MAXVAL_DBL,
+    MAX_ITERATIONS,
 };
 use super::scf::{
     estimate_scale_factors_channel_reuse, ScfChannelInput, ScfGeometry, ScfWorkspace,
@@ -1366,43 +1366,19 @@ impl StreamEncoder {
             });
         }
 
-        // --- S5: QMAX + sectioning ---
+        // --- S5: QMAX + sectioning (R1a: dead stage removed) ---
+        // The per-channel `calc_max_value_in_sfb` + `dyn_bit_count_reuse`
+        // computations formerly performed here were never consumed:
+        // `qc_main_frame` recomputes QMAX and every section on pass 0
+        // (`rate.rs`) — even when R1b seeds the quantization itself — and
+        // its results are the ones written downstream, so this stage
+        // performed only dead work. The shared `noise` vector is retained:
+        // it feeds the QC inputs below, and the M5.g census (pure read, no
+        // behavior change) still observes it.
         let noise = vec![NO_NOISE_PNS; live[0].cnt];
         // M5.g census (pure read, no behavior change): record any deviation
         // from the all-`NO_NOISE_PNS` vector passed at every S5 noise site.
         snap.noise_any_non_pns |= noise.iter().any(|&n| n != NO_NOISE_PNS);
-        let mut qmaxs: Vec<Vec<u32>> = Vec::with_capacity(self.channels);
-        let mut sections = Vec::with_capacity(self.channels);
-        for (ch, c) in live.iter().enumerate() {
-            let mut qmax = vec![0u32; c.cnt];
-            calc_max_value_in_sfb(
-                c.cnt,
-                max_common,
-                c.per,
-                &c.offsets,
-                &s4outs[ch].quant_spec,
-                &mut qmax,
-            );
-            let (sec, _) = dyn_bit_count_reuse(
-                &BitCountInput {
-                    quant_spec: &s4outs[ch].quant_spec,
-                    max_value_in_sfb: &qmax,
-                    scf: &s4outs[ch].scf,
-                    block_type: seqs[ch] as i32,
-                    sfb_cnt: c.cnt,
-                    max_sfb_per_group: max_common,
-                    sfb_per_group: c.per,
-                    sfb_offsets: &c.offsets,
-                    noise_nrg: &noise,
-                    is_book: &books[ch],
-                    is_scale: &scales[ch],
-                    use_vcb11: false,
-                },
-                &mut self.qc.bc_scratch,
-            );
-            qmaxs.push(qmax);
-            sections.push(sec);
-        }
 
         // --- S6: QC gain loop ---
         let ms_digest = MsDigest::from_i32(digest).expect("ms digest range");
@@ -1422,6 +1398,11 @@ impl StreamEncoder {
                 is_book: &books[ch],
                 is_scale: &scales[ch],
                 tns: &c.tns,
+                // R1b: seed QC pass 0 with S4's winning quantization.
+                // `s4outs` outlives the QC call (same borrow as `spectrum`
+                // / `scf` above); QC copies the seed into its owned
+                // working buffer and never mutates the S4 output.
+                seed_quant: Some(&s4outs[ch].quant_spec),
             })
             .collect();
         let qc_input = QcFrameInput {
@@ -6396,9 +6377,17 @@ mod m58_tests {
             println!("CENSUS_TOTAL kernel={} calls={}", kernel.tag(), slot);
         }
         assert!(!cells.is_empty(), "census captured no cells");
+        // R1b: QC pass 0 reuses the S4 seed instead of calling
+        // `quantize_spectrum`, so the Quantize kernel now only fires on
+        // gain-loop retries. This corpus is retry-free (see the M5.h
+        // retry/crash census: `npass == 1` throughout), hence zero
+        // Quantize calls is the expected steady state — not a harness
+        // gap. Dist (S4 search) and Energy (S4 step 3) still run every
+        // frame and must be observed.
+        assert_eq!(totals[0], 0, "R1b steady state: no QC re-quantize calls");
         assert!(
-            totals.iter().all(|&t| t > 0),
-            "a kernel was never observed: {totals:?}"
+            totals[1] > 0 && totals[2] > 0,
+            "dist/energy kernels were never observed: {totals:?}"
         );
     }
 

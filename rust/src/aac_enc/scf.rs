@@ -206,6 +206,43 @@ pub const MAX_SCF_DELTA: i32 = 60;
 /// Dead-band marker (`genericStds.h:503`, `FDK_INT_MIN`).
 pub const NO_SCF: i32 = i32::MIN;
 
+/// Test-only witness for the R1b step-3 deferred re-quantization path.
+///
+/// Records each band whose scalefactor step 3 moved (net) together with the
+/// first quantized line the deferred re-quantization changed. Thread-local so
+/// parallel tests cannot contaminate each other's witnesses; the estimator is
+/// single-threaded per call.
+#[cfg(test)]
+pub(crate) mod step3_probe {
+    use std::cell::RefCell;
+
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct Move {
+        pub(crate) band: usize,
+        pub(crate) scf_before: i32,
+        pub(crate) scf_after: i32,
+        /// `(line offset within the band, pre-move line, post-move line)`
+        /// for the first line the re-quantization changed, if any.
+        pub(crate) first_change: Option<(usize, i16, i16)>,
+    }
+
+    thread_local! {
+        static MOVES: RefCell<Vec<Move>> = const { RefCell::new(Vec::new()) };
+    }
+
+    pub(crate) fn clear() {
+        MOVES.with(|m| m.borrow_mut().clear());
+    }
+
+    pub(crate) fn record(m: Move) {
+        MOVES.with(|v| v.borrow_mut().push(m));
+    }
+
+    pub(crate) fn take() -> Vec<Move> {
+        MOVES.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+}
+
 // C-probed Q31 literals (`tools/enc-oracle/scf_probe.cpp`).
 const PE_C1: i32 = 50331648;
 const PE_C2: i32 = 22178274;
@@ -1019,6 +1056,9 @@ fn assimilate_multiple_scf2(
                 if smax3.wrapping_sub(smin3) <= MAX_SCF_DELTA - 3 {
                     let mut trial = [0i32; 60];
                     trial[..cnt].copy_from_slice(&scf[..cnt]);
+                    // R1b: snapshot for the deferred re-quantize below.
+                    let mut scf_before = [0i32; 60];
+                    scf_before[..cnt].copy_from_slice(&scf[..cnt]);
                     for _ in 0..3 {
                         let nw = trial[start].wrapping_sub(1);
                         for b in start..stop {
@@ -1064,6 +1104,45 @@ fn assimilate_multiple_scf2(
                                     }
                                 }
                             }
+                        }
+                    }
+                    // R1b: step 3 moves `scf` without re-quantizing, so the
+                    // stored band lines would no longer match the stored
+                    // gains (exactly what the seeded QC pass 0 consumes).
+                    // Re-quantize every band step 3 moved, restoring the
+                    // invariant. Decisions are untouched: `scf`/`dist`/PE
+                    // state keep their accepted values, and no later phase
+                    // reads `quant` (step 1/2 only write trial buffers, the
+                    // clamp reads `spectrum`, inversion does band math), so
+                    // later regions and frames decide identically. Any
+                    // `MAX_QUANT` early-out in this re-quantize stores its
+                    // trigger line (the tail is zero or stale bounded trial
+                    // values, but the trigger is always present), so the
+                    // existing QC retry machinery still fires exactly as on
+                    // fresh quantization.
+                    for b in start..stop {
+                        if scf[b] != NO_SCF && scf[b] != scf_before[b] {
+                            let w = (offsets[b + 1] - offsets[b]) as usize;
+                            let o = offsets[b] as usize;
+                            let t = &mut tmp[o..o + w];
+                            t.fill(0);
+                            let _ = calc_sfb_dist(&spectrum[o..o + w], scf[b], dz, t);
+                            #[cfg(test)]
+                            {
+                                step3_probe::record(step3_probe::Move {
+                                    band: b,
+                                    scf_before: scf_before[b],
+                                    scf_after: scf[b],
+                                    first_change: quant[o..o + w]
+                                        .iter()
+                                        .zip(t.iter())
+                                        .enumerate()
+                                        .find_map(|(i, (&before, &after))| {
+                                            (before != after).then_some((i, before, after))
+                                        }),
+                                });
+                            }
+                            quant[o..o + w].copy_from_slice(t);
                         }
                     }
                 }
@@ -1415,7 +1494,7 @@ fn estimate_channel_with_inv_ws(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::aac_enc::quant::{calc_sfb_dist, calc_sfb_quant_energy_and_dist};
+    use crate::aac_enc::quant::{calc_sfb_dist, calc_sfb_quant_energy_and_dist, quantize_spectrum};
 
     /// Committed S4 corpus: same 19 element-frames as S1/S2/S3.
     const S4_CASES: [(&str, u32); 19] = [
@@ -1611,6 +1690,148 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn r1b_s4_winners_match_fresh_quantize() {
+        // R1b differential layer A: on every committed S4 corpus case, the
+        // production estimator's winning quantization (`inv = 2`) is
+        // line-for-line identical to a fresh `quantize_spectrum` over the
+        // mutated spectrum with `qss = gain - scf`. This is the identity the
+        // seeded QC pass 0 relies on: same per-band gain, same spectrum,
+        // same per-line function, so the same lines. Covers long/short
+        // blocks, mono/stereo, 44.1/48 kHz, and hundreds of distinct
+        // `(band, gain)` pairs spanning all quantizer residues.
+        use super::super::testdata;
+        for (name, f) in S4_CASES {
+            let s1 = testdata::load_s1(name, f);
+            let s2 = testdata::load_s2(name, f);
+            for (ci, (c1, c2)) in s1.ch.iter().zip(s2.ch.iter()).enumerate() {
+                let spec0 =
+                    s4_input_spec(&c1.spec, &c1.offsets, c1.geo_cnt, c1.geo_per, c1.geo_max);
+                let mut spec = spec0.clone();
+                let mut input = ScfChannelInput {
+                    spectrum: &mut spec,
+                    energy_ld: &c1.penld,
+                    threshold_ld: &c2.thrv,
+                    form_factor_ld: &c1.ff,
+                    geo: ScfGeometry {
+                        offsets: &c1.offsets,
+                        sfb_cnt: c1.geo_cnt,
+                        sfb_per_group: c1.geo_per,
+                        max_sfb_per_group: c1.geo_max,
+                    },
+                };
+                let out = estimate_channel_with_inv(&mut input, 2);
+                let mut fresh = vec![0i16; 1024];
+                quantize_spectrum(
+                    c1.geo_cnt,
+                    c1.geo_max,
+                    c1.geo_per,
+                    &c1.offsets,
+                    &out.mutated_spectrum,
+                    out.global_gain,
+                    &out.scf,
+                    &mut fresh,
+                    false,
+                );
+                assert_eq!(fresh, out.quant_spec, "{name} f={f} ch={ci} seed==fresh");
+            }
+        }
+    }
+
+    #[test]
+    fn r1b_step3_requant_line_changing_differential() {
+        // R1b differential layer D: a *line-changing* step-3 move through the
+        // real `assimilate_multiple_scf2`, then the exact seed identity.
+        //
+        // The committed `noise-mono` f5 spectrum is scaled by 16 (integer
+        // multiply with explicit i32 clamping, portable) while the committed
+        // S2 thresholds stay put. That drives step 3 to accept net `-2`/`-3`
+        // moves on seven bands; the test-only `step3_probe` witness records
+        // the real acceptance and the first line the deferred re-quantize
+        // changes (the unscaled corpus frame has trivial step-3 moves with
+        // no line change, so layer A does not exercise this path).
+        // Assertions are on the witnessed event and on exact equality with
+        // fresh quantization at the final gain/scf — never on hardcoded
+        // quantized magnitudes, so the test is identical on every backend.
+        use super::super::testdata;
+        let (name, f) = ("noise-mono", 5);
+        let s1 = testdata::load_s1(name, f);
+        let s2 = testdata::load_s2(name, f);
+        let c1 = &s1.ch[0];
+        let c2 = &s2.ch[0];
+        let mut spec = s4_input_spec(&c1.spec, &c1.offsets, c1.geo_cnt, c1.geo_per, c1.geo_max);
+        for x in spec.iter_mut() {
+            *x = (*x as i64 * 16).clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+        }
+        let mut input = ScfChannelInput {
+            spectrum: &mut spec,
+            energy_ld: &c1.penld,
+            threshold_ld: &c2.thrv,
+            form_factor_ld: &c1.ff,
+            geo: ScfGeometry {
+                offsets: &c1.offsets,
+                sfb_cnt: c1.geo_cnt,
+                sfb_per_group: c1.geo_per,
+                max_sfb_per_group: c1.geo_max,
+            },
+        };
+        step3_probe::clear();
+        let out = estimate_channel_with_inv(&mut input, 2);
+        let moves = step3_probe::take();
+        assert!(
+            !moves.is_empty(),
+            "{name} f={f}: step 3 accepted no scalefactor move"
+        );
+        // 1. Step 3 accepted a net scalefactor move on at least one band.
+        let moved: Vec<_> = moves
+            .iter()
+            .filter(|m| m.scf_before != m.scf_after)
+            .collect();
+        assert!(
+            !moved.is_empty(),
+            "{name} f={f}: witnessed moves did not change scf"
+        );
+        // 2. Deferred re-quantization changed at least one line.
+        let witness = moved
+            .iter()
+            .find(|m| m.first_change.is_some())
+            .unwrap_or_else(|| {
+                panic!("{name} f={f}: re-quantize changed no line on any moved band")
+            });
+        let (line, before, after) = witness.first_change.expect("witnessed change");
+        assert_ne!(before, after, "{name} f={f}: witnessed line did not change");
+        assert!(
+            line < (c1.offsets[witness.band + 1] - c1.offsets[witness.band]) as usize,
+            "{name} f={f}: witnessed line outside band"
+        );
+        // 3. The final seed equals fresh quantization at the final gain/scf,
+        //    complete buffer and witnessed band (tail included).
+        let mut fresh = vec![0i16; 1024];
+        quantize_spectrum(
+            c1.geo_cnt,
+            c1.geo_max,
+            c1.geo_per,
+            &c1.offsets,
+            &out.mutated_spectrum,
+            out.global_gain,
+            &out.scf,
+            &mut fresh,
+            false,
+        );
+        assert_eq!(
+            fresh, out.quant_spec,
+            "{name} f={f}: seed != fresh quantization at final gain/scf"
+        );
+        let b = witness.band;
+        let start = c1.offsets[b] as usize;
+        let end = c1.offsets[b + 1] as usize;
+        assert_eq!(
+            &out.quant_spec[start..end],
+            &fresh[start..end],
+            "{name} f={f} band={b}: moved band (incl. tail) != fresh quantization"
+        );
     }
 
     #[test]
