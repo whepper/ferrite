@@ -1,0 +1,182 @@
+name: publish
+
+# Tag-triggered crates.io publication via crates.io Trusted Publishing (OIDC).
+#
+# Security model:
+# - No long-lived CARGO_REGISTRY_TOKEN secret exists. The publish job exchanges
+#   a short-lived GitHub OIDC ID token for a ~30-minute crates.io token via
+#   rust-lang/crates-io-auth-action, and the token is revoked when the job ends.
+# - The publish job runs only after the `validate` job (same tag, same source)
+#   passes the repository's release validation suite.
+# - Least privilege: the publish job holds exactly `contents: read` and
+#   `id-token: write`; every other job is `contents: read` only.
+# - The job targets the GitHub environment `crates-io`, which must match the
+#   environment name in the crates.io Trusted Publisher entry for each crate.
+#
+# Manual one-time setup (repository owner, crates.io web UI, per crate):
+#   ferrite-aac and aac-convert -> Settings -> Trusted Publishing:
+#     Provider:          GitHub Actions
+#     Repository owner:  whepper
+#     Repository name:   ferrite
+#     Workflow filename: publish.yml
+#     Environment name:  crates-io
+#
+# Publication order is load-bearing: aac-convert requires ferrite-aac = "0.4.0"
+# from the registry, so ferrite-aac is published first and the job waits for
+# the new version to appear in the crates.io index before publishing
+# aac-convert.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  validate:
+    name: Release validation (Rust 1.99.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # dtolnay/rust-toolchain stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Verify tag matches crate versions
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          lib_version=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          app_version=$(grep -m1 '^version' convert/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          printf 'tag=%s ferrite-aac=%s aac-convert=%s\n' "$tag" "$lib_version" "$app_version"
+          if [ "$tag" != "$lib_version" ] || [ "$tag" != "$app_version" ]; then
+            printf 'error: tag v%s does not match crate versions (ferrite-aac %s, aac-convert %s)\n' \
+              "$tag" "$lib_version" "$app_version" >&2
+            exit 1
+          fi
+
+      - name: Fail if a version is already published
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          for crate in ferrite-aac aac-convert; do
+            if curl -fsSL -H 'User-Agent: ferrite-publish-check' \
+                "https://crates.io/api/v1/crates/${crate}" \
+                | jq -e --arg v "$tag" 'any(.versions[]?.num; . == $v)' >/dev/null; then
+              printf 'error: %s %s is already published on crates.io\n' "$crate" "$tag" >&2
+              exit 1
+            fi
+            printf '%s %s is not yet published\n' "$crate" "$tag"
+          done
+
+      - name: Build default configuration
+        run: cargo build --locked
+
+      - name: Build no-default-features configuration
+        run: cargo build --locked --no-default-features
+
+      - name: Run self-contained encoder tests
+        # Same external-artifact skip set as ci.yml.
+        run: |
+          cargo test --locked --lib -- \
+            --skip m5a_decode_check \
+            --skip m55_streams_match_c_reference \
+            --skip phase1_frontend_agreement_sine_f5 \
+            --skip phase1e_sine_f5_band16_residue \
+            --skip phase1e_onset_f24_bands_causality \
+            --skip phase1f_multitone_f1_no_live_divergence \
+            --skip phase1f_stepdown_f1_no_live_divergence \
+            --skip phase1g_long_flips_residue \
+            --skip phase1i_sine44_f5_tier_b \
+            --skip phase1i_multitone_f5_tier_b \
+            --skip phase1_full_stream_parity \
+            --skip intensity_probe_c_oracle_parity \
+            --skip intensity_probe_wav_parity \
+            --skip intensity_probe_adts_decodes \
+            --skip m511_profile_loop
+
+      - name: Run public encoder API integration tests
+        run: cargo test --locked --test production_api
+
+      - name: Run encoder doctests
+        run: cargo test --locked --doc
+
+      - name: Test conversion app
+        run: cargo test --locked -p aac-convert
+
+      - name: Package ferrite-aac
+        run: cargo package --locked -p ferrite-aac
+
+      - name: Package aac-convert
+        run: cargo package --locked -p aac-convert
+
+  publish:
+    name: Publish to crates.io (Trusted Publishing)
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Must match the environment name configured in the crates.io Trusted
+    # Publisher entry for both crates.
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust 1.99.1
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # dtolnay/rust-toolchain stable
+        with:
+          toolchain: 1.99.1
+
+      - name: Authenticate to crates.io (OIDC exchange)
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # rust-lang/crates-io-auth-action v1.0.6
+        id: auth
+
+      - name: Publish ferrite-aac
+        run: cargo publish --locked -p ferrite-aac
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Wait for ferrite-aac in the crates.io index
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          for attempt in $(seq 1 60); do
+            if curl -fsSL -H 'User-Agent: ferrite-publish-check' \
+                "https://crates.io/api/v1/crates/ferrite-aac/${version}" >/dev/null 2>&1; then
+              printf 'ferrite-aac %s is visible in the registry\n' "$version"
+              exit 0
+            fi
+            sleep 5
+          done
+          printf 'error: ferrite-aac %s did not appear in the registry within 5 minutes\n' "$version" >&2
+          exit 1
+
+      - name: Publish aac-convert
+        run: cargo publish --locked -p aac-convert
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
