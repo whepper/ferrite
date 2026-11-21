@@ -187,6 +187,20 @@ impl PsyChannel {
     pub fn preecho_state(&self) -> (i32, bool) {
         (self.preecho.prev_scale(), self.preecho.is_enabled())
     }
+
+    /// TNS runtime state (test inspection only: FPE differential harness
+    /// persistent-state comparison, `docs/fpe/07` §3.1 / `09` FPE-2.5).
+    #[cfg(test)]
+    pub fn tns_state(&self) -> &TnsChannel {
+        &self.tns_state
+    }
+
+    /// M/S log-energy history, including stale-on-short contents (test
+    /// inspection only: FPE differential harness, `docs/fpe/07` §3.1).
+    #[cfg(test)]
+    pub fn ms_ld(&self) -> &[[f64; 64]; 8] {
+        &self.ms_ld
+    }
 }
 
 /// Grouped short-block output.
@@ -395,7 +409,7 @@ pub struct MsOutput {
 /// Per-frame M/S working state is held inline in `process_pair`.
 
 /// Lowpass-zero the float spectrum per window; report zeroSpec.
-fn lowpass_and_zero_check(
+pub(crate) fn lowpass_and_zero_check(
     spectrum: &mut [f64],
     n_windows: usize,
     window_len: usize,
@@ -1118,7 +1132,7 @@ pub fn process_pair_reuse(
 /// TNS pre-encode scaling, encode, and energy recompute for one channel
 /// (mirrors `psy_main.cpp:818-891`).
 #[allow(clippy::too_many_arguments)]
-fn tns_encode_channel(
+pub(crate) fn tns_encode_channel(
     state: &mut TnsChannel,
     info: &mut TnsChannel,
     tconf: &TnsConfig,
@@ -1203,7 +1217,7 @@ fn tns_encode_channel(
 
 /// TNS overflow rescale for one channel (`psy_main.cpp:893-912`).
 #[allow(clippy::too_many_arguments)]
-fn overflow_rescale(
+pub(crate) fn overflow_rescale(
     spectrum: &mut [f64],
     q: &mut Vec<i32>,
     e_stored: &mut [Vec<i32>],
@@ -1239,7 +1253,7 @@ fn overflow_rescale(
 /// spread-energy copy plus spreading. `active` is the channel's active
 /// band count (LFE-aware; differs from `conf.sfb_active()` for LFE).
 #[allow(clippy::too_many_arguments)]
-fn advance_thresholds(
+pub(crate) fn advance_thresholds(
     preecho: &mut PreEchoState,
     thr: &mut [Vec<i32>],
     spread: &mut [Vec<i32>],
@@ -1417,7 +1431,7 @@ fn group_short_channel(
 /// log-domain vectors. `ms` carries this channel's MS vectors (mid for
 /// ch0, side for ch1; zeros for mono) for short-block regrouping.
 #[allow(clippy::too_many_arguments)]
-fn finish_channel(
+pub(crate) fn finish_channel(
     preecho: &PreEchoState,
     thr: &[Vec<i32>],
     en: &[Vec<i32>],

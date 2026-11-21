@@ -457,6 +457,90 @@ pub(crate) fn fixture_samples(name: &str) -> Vec<Vec<i16>> {
         "music-eroica-stereo" => {
             wav_stereo_s16(include_bytes!("testdata/m8-music-eroica-stereo-48k.wav"))
         }
+        // FPE M1 edge-case fixtures (FPE-1.4, docs/fpe/07 §6). Formulae
+        // are identical to tools/enc-oracle/make_fpe_fixtures.py (same
+        // evaluation order, truncation toward zero, saturating i16 clamp).
+        // Oracle ring/psy vector anchoring for these fixtures requires the
+        // C reference (blocked on re-provisioning, R-12); the in-binary
+        // Q31↔FPE harness consumes this resynthesis directly.
+        "fpe-near-silence-ramp-stereo" => (0..2)
+            .map(|_| {
+                (0..48000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        // Amplitude ramps linearly 0 -> 64 LSB over 1 s.
+                        ((64.0 * t as f64 / 47999.0)
+                            * (2.0 * core::f64::consts::PI * 1000.0 * time).sin())
+                            as i16
+                    })
+                    .collect()
+            })
+            .collect(),
+        "fpe-fullscale-square-stereo" => (0..2)
+            .map(|c| {
+                (0..24000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        let v = if (2.0 * core::f64::consts::PI * 500.0 * time).sin() >= 0.0 {
+                            32767.0
+                        } else {
+                            -32768.0
+                        };
+                        // Channel 1 is the polarity inverse (zero mid,
+                        // full-scale side).
+                        (if c == 0 { v } else { -v }) as i16
+                    })
+                    .collect()
+            })
+            .collect(),
+        "fpe-pow2-boundary-stereo" => (0..2)
+            .map(|_| {
+                (0..48000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        // 15 segments of 3200 samples, amplitudes 2^0..2^14.
+                        let amp = (1u32 << (t / 3200)) as f64;
+                        (amp * (2.0 * core::f64::consts::PI * 1000.0 * time).sin()) as i16
+                    })
+                    .collect()
+            })
+            .collect(),
+        "fpe-max-headroom-stereo" => (0..2)
+            .map(|c| {
+                (0..24000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        // Full-scale impulse train every 512 samples;
+                        // ch1 offsets the train by 256 samples. Python %
+                        // semantics (non-negative remainder) mirrored.
+                        let off = if c == 1 { 256i64 } else { 0i64 };
+                        let click = if (t as i64 - off).rem_euclid(512) == 0 {
+                            30000.0
+                        } else {
+                            0.0
+                        };
+                        (click + 30000.0 * (2.0 * core::f64::consts::PI * 16000.0 * time).sin())
+                            as i16
+                    })
+                    .collect()
+            })
+            .collect(),
+        "fpe-allzero-stereo" => vec![vec![0i16; 12000], vec![0i16; 12000]],
+        "fpe-mixed-pair-stereo" => (0..2)
+            .map(|c| {
+                (0..48000)
+                    .map(|t| {
+                        // ch0: silence then 1 kHz sine at 0.5 s; ch1:
+                        // exactly silent throughout.
+                        if c == 1 || t < 24000 {
+                            0
+                        } else {
+                            sine_at(t, 10_000.0)
+                        }
+                    })
+                    .collect()
+            })
+            .collect(),
         _ => panic!("unknown fixture {name}"),
     }
 }

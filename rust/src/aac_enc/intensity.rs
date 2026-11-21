@@ -111,7 +111,7 @@ fn q31_abs(v: i32) -> i32 {
 }
 
 /// C `fMultDiv2`-based correlation for one SFB.
-fn sfb_correlation(spec_l: &[i32], spec_r: &[i32], start: usize, end: usize) -> i32 {
+pub(crate) fn sfb_correlation(spec_l: &[i32], spec_r: &[i32], start: usize, end: usize) -> i32 {
     let width = end.saturating_sub(start);
     if width == 0 {
         return 0;
@@ -192,7 +192,7 @@ fn sfb_correlation(spec_l: &[i32], spec_r: &[i32], start: usize, end: usize) -> 
 
 /// `prepareIntensityDecision` (`intensity.cpp:258-476`).
 #[allow(clippy::too_many_arguments)]
-fn prepare_decisions(
+pub(crate) fn prepare_decisions(
     e_l: &[i32],
     e_r: &[i32],
     e_ld_l: &[i32],
@@ -284,7 +284,7 @@ fn prepare_decisions(
 }
 
 /// `finalizeIntensityDecision` (`intensity.cpp:490-580`).
-fn finalize_decisions(
+pub(crate) fn finalize_decisions(
     hrr_err: &[i32],
     is_mask: &mut [i32],
     real_scale: &[i32],

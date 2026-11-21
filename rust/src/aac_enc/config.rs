@@ -448,6 +448,30 @@ impl VbrProfile {
     }
 }
 
+/// Psychoacoustic engine selection (FPE planning ADR-0001,
+/// `docs/fpe/06-encoder-integration.md` §1–§2).
+///
+/// [`PsyEngineKind::Q31`] is the validated bit-faithful fixed-point engine
+/// and the **default**; [`PsyEngineKind::Fpe`] selects the floating-point
+/// psychoacoustic engine under `aac_enc::fpe` (M3/FPE-3.1: float rescale
+/// band energy; remaining value kernels still delegate to Q31). Runtime
+/// enum, not a Cargo feature, so both engines live in one binary for the
+/// in-binary Q31↔FPE differential harness.
+///
+/// **Unstable:** this knob is test-selectable from M1/M2; documented,
+/// stable public exposure happens at M8 after Stage-1 validation
+/// (`docs/fpe/06` §2). Making FPE the default is out of Stage 1.
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PsyEngineKind {
+    /// Validated Q31 fixed-point psychoacoustic engine (default).
+    #[default]
+    Q31,
+    /// Floating-point psychoacoustic engine (FPE), independently
+    /// selectable for differential testing; never default in Stage 1.
+    Fpe,
+}
+
 /// Validated encoder configuration for the AAC-LC VBR path.
 ///
 /// Afterburner is not a field: it is unconditionally on
@@ -463,6 +487,9 @@ pub struct EncoderConfig {
     frame_length: usize,
     transport: TransportType,
     vbr_mode: VbrMode,
+    /// Psychoacoustic engine selection (additive, default Q31; FPE
+    /// planning `docs/fpe/06` §2). Existing constructors are unchanged.
+    psy_engine: PsyEngineKind,
 }
 
 impl EncoderConfig {
@@ -507,6 +534,7 @@ impl EncoderConfig {
             frame_length,
             transport,
             vbr_mode,
+            psy_engine: PsyEngineKind::default(),
         })
     }
 
@@ -518,12 +546,33 @@ impl EncoderConfig {
             frame_length: FRAME_LENGTH,
             transport: TransportType::Adts,
             vbr_mode: VbrMode::Vbr6,
+            psy_engine: PsyEngineKind::default(),
         }
     }
 
     /// Builder: return a copy with an explicit VBR profile.
     pub fn with_vbr_mode(self, vbr_mode: VbrMode) -> Self {
         Self { vbr_mode, ..self }
+    }
+
+    /// Builder: return a copy with an explicit psychoacoustic engine
+    /// (additive, mirrors [`EncoderConfig::with_vbr_mode`]; FPE planning
+    /// `docs/fpe/06` §2). Default remains Q31; FPE is independently
+    /// selectable for differential testing.
+    ///
+    /// **Unstable:** test-selectable from M1/M2; documented, stable public
+    /// exposure happens at M8 after Stage-1 validation.
+    #[doc(hidden)]
+    pub fn with_psy_engine(self, psy_engine: PsyEngineKind) -> Self {
+        Self { psy_engine, ..self }
+    }
+
+    /// Selected psychoacoustic engine (default Q31).
+    ///
+    /// **Unstable:** see [`EncoderConfig::with_psy_engine`].
+    #[doc(hidden)]
+    pub fn psy_engine(self) -> PsyEngineKind {
+        self.psy_engine
     }
 
     /// Selected VBR profile identifier.
@@ -988,5 +1037,44 @@ mod tests {
             assert_eq!(mono.channel_bitrate(), mode.profile().mono_bitrate());
             assert_eq!(mono.nominal_bitrate(), mode.profile().mono_bitrate());
         }
+    }
+
+    #[test]
+    fn psy_engine_defaults_to_q31_in_every_constructor() {
+        // FPE selection seam (docs/fpe/06 §2, roadmap M1 FPE-1.2): the
+        // additive knob defaults to Q31 everywhere; existing constructors
+        // are behaviourally unchanged.
+        assert_eq!(PsyEngineKind::default(), PsyEngineKind::Q31);
+        let new = EncoderConfig::new(48000, 2, FRAME_LENGTH, TransportType::Adts).unwrap();
+        assert_eq!(new.psy_engine(), PsyEngineKind::Q31);
+        for mode in VbrMode::ALL {
+            let cfg =
+                EncoderConfig::new_with_mode(48000, 2, FRAME_LENGTH, TransportType::Adts, mode)
+                    .unwrap();
+            assert_eq!(cfg.psy_engine(), PsyEngineKind::Q31, "{mode}");
+        }
+        assert_eq!(
+            EncoderConfig::stereo_48k_adts().psy_engine(),
+            PsyEngineKind::Q31
+        );
+    }
+
+    #[test]
+    fn with_psy_engine_builder_selects_fpe_and_preserves_other_fields() {
+        let base = EncoderConfig::stereo_48k_adts().with_vbr_mode(VbrMode::Vbr5);
+        let fpe = base.with_psy_engine(PsyEngineKind::Fpe);
+        assert_eq!(fpe.psy_engine(), PsyEngineKind::Fpe);
+        // Every other field is preserved (additive builder).
+        assert_eq!(fpe.sample_rate(), base.sample_rate());
+        assert_eq!(fpe.channels(), base.channels());
+        assert_eq!(fpe.frame_length(), base.frame_length());
+        assert_eq!(fpe.transport(), base.transport());
+        assert_eq!(fpe.vbr_mode(), base.vbr_mode());
+        assert_eq!(fpe.nominal_bitrate(), base.nominal_bitrate());
+        assert_eq!(fpe.effective_bandwidth_hz(), base.effective_bandwidth_hz());
+        // The base copy is untouched (Copy builder semantics).
+        assert_eq!(base.psy_engine(), PsyEngineKind::Q31);
+        // Selecting Q31 explicitly round-trips to the base config.
+        assert_eq!(fpe.with_psy_engine(PsyEngineKind::Q31), base);
     }
 }

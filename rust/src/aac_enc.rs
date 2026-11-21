@@ -118,6 +118,9 @@ pub mod channel_map;
 pub mod config;
 pub mod encoder;
 pub(crate) mod energy;
+// FPE: self-contained floating-point psychoacoustic engine module tree
+// (docs/fpe/ roadmap M1 scaffolding; Q31 remains authoritative/default).
+pub(crate) mod fpe;
 pub(crate) mod frame;
 pub(crate) mod intensity;
 #[cfg(test)]

@@ -68,8 +68,9 @@ use super::bitcount::NO_NOISE_PNS;
 use super::bitenc::BitWriter;
 use super::block_switch::{BlockSwitch, WindowSequence};
 use super::channel_map::ChannelMode;
-use super::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
+use super::config::{EncoderConfig, PsyEngineKind, TransportType, VbrMode, FRAME_LENGTH};
 use super::energy;
+use super::fpe::{self, FpeChannel, FpeScratch};
 use super::frame::{
     build_adts_frame, build_raw_block, channel_element_write, check_static_agreement,
     ChannelFrameInput, ElementFrameInput, FrameError, RawBlockInput, ID_CPE, ID_SCE,
@@ -250,7 +251,7 @@ fn group_windows(groups: u8, lens: &[u8; 4]) -> Vec<(usize, usize)> {
 /// left by [`intensity_stereo`]. MS bands are substituted in place; returns
 /// `(digest, mask)` with `SI_MS_MASK_{NONE,SOME,ALL} = 0/1/2`.
 #[allow(clippy::too_many_arguments)]
-fn ms_stereo_mirror(
+pub(crate) fn ms_stereo_mirror(
     e_l: &mut [i32],
     e_r: &mut [i32],
     t_l: &mut [i32],
@@ -543,6 +544,16 @@ pub(crate) struct FrameSnapshot {
     pub is_scale_nz: u32,
     /// Right-channel intensity scalefactors (test diagnostics).
     pub is_scale_values: Vec<i32>,
+    /// Right-channel IS book vector per band (R2.1-B test-only diagnostic;
+    /// populated under `cfg(test)` alongside `is_scale_values`). Kept
+    /// separate from the digest so a digest-only change is never misread
+    /// as a per-band coding-state change.
+    #[cfg(test)]
+    pub is_book_values: Vec<i32>,
+    /// Post-IS mask vector per band (R2.1-B test-only diagnostic; the
+    /// phase/mask vector left by `intensity_stereo`, before MS).
+    #[cfg(test)]
+    pub is_mask_values: Vec<i32>,
     /// Initial `msDigest` supplied by the IS stage (`MS_NONE`/`MS_SOME`).
     pub is_digest: i32,
     /// Final section codebooks (S5 output) per channel, test diagnostics.
@@ -585,6 +596,58 @@ pub(crate) struct LiveChannel {
     tns: TnsChannel,
 }
 
+/// Test-only read inspection for the R2 downstream harness
+/// (`fpe/tests/decision.rs`): pure getters over the production-built
+/// working sets. No numerical behavior change; compiled out of production.
+#[cfg(test)]
+impl LiveChannel {
+    pub(crate) fn spec_q31(&self) -> &[i32] {
+        &self.spec_q31
+    }
+    pub(crate) fn spec_q31_mut(&mut self) -> &mut Vec<i32> {
+        &mut self.spec_q31
+    }
+    pub(crate) fn e_stored(&self) -> &[i32] {
+        &self.e_stored
+    }
+    pub(crate) fn e_stored_mut(&mut self) -> &mut Vec<i32> {
+        &mut self.e_stored
+    }
+    pub(crate) fn t_stored(&self) -> &[i32] {
+        &self.t_stored
+    }
+    pub(crate) fn spread(&self) -> &[i32] {
+        &self.spread
+    }
+    pub(crate) fn e_ld(&self) -> &[i32] {
+        &self.e_ld
+    }
+    pub(crate) fn t_ld(&self) -> &[i32] {
+        &self.t_ld
+    }
+    pub(crate) fn ff(&self) -> &[i32] {
+        &self.ff
+    }
+    pub(crate) fn offsets(&self) -> &[i32] {
+        &self.offsets
+    }
+    pub(crate) fn cnt(&self) -> usize {
+        self.cnt
+    }
+    pub(crate) fn per(&self) -> usize {
+        self.per
+    }
+    pub(crate) fn short(&self) -> bool {
+        self.short
+    }
+    pub(crate) fn mdct_scale(&self) -> i32 {
+        self.mdct_scale
+    }
+    pub(crate) fn tns(&self) -> &TnsChannel {
+        &self.tns
+    }
+}
+
 /// Test-only streaming encoder: owns all cross-frame state.
 pub(crate) struct StreamEncoder {
     sample_rate: u32,
@@ -596,12 +659,20 @@ pub(crate) struct StreamEncoder {
     min_snr_short: Vec<i32>,
     switches: Vec<BlockSwitch>,
     transforms: Vec<ChannelTransform>,
+    /// Selected psychoacoustic engine (FPE seam, ADR-0001; default Q31).
+    psy_engine: PsyEngineKind,
     psy_ch: Vec<PsyChannel>,
+    /// FPE per-channel state; allocated only when FPE is selected
+    /// (`docs/fpe/06` §3 allocate-selected-only). Empty for Q31.
+    fpe_ch: Vec<FpeChannel>,
     ats: AtsElement,
     dist: DistributeState,
     qc: QcState,
     s4_ws: ScfWorkspace,
     psy_ws: PsyScratch,
+    /// FPE working buffers (encoder-owned, mirrors `psy_ws`; unused for
+    /// Q31, default-empty so carries no allocation).
+    fpe_ws: FpeScratch,
     init: QcInitParams,
     // Init constants kept for gated phase-1 diagnostics (`init_summary`);
     // unread in production builds by design.
@@ -669,9 +740,26 @@ impl StreamEncoder {
         let short_sp = tables.short_cfg.sfb_count();
         let switches = (0..channels).map(|_| BlockSwitch::new()).collect();
         let transforms = (0..channels).map(|_| ChannelTransform::new()).collect();
-        let psy_ch = (0..channels)
-            .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
-            .collect();
+        // FPE selection seam (ADR-0001, docs/fpe/06 §1/§3): the engine is
+        // chosen here from the additive config knob (default Q31) and only
+        // the selected engine's per-channel state is allocated. Both state
+        // types are initialized identically (FpeChannel mirrors
+        // PsyChannel::new), so selection is a config choice, not a rebuild.
+        let psy_engine = cfg.psy_engine();
+        let psy_ch = if psy_engine == PsyEngineKind::Q31 {
+            (0..channels)
+                .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let fpe_ch = if psy_engine == PsyEngineKind::Fpe {
+            (0..channels)
+                .map(|_| FpeChannel::new(tables.long_cfg.pcm_quant_q31()))
+                .collect()
+        } else {
+            Vec::new()
+        };
         let avg0 = calc_bits_per_frame(total_br as i32, FRAME_LENGTH as i32, sample_rate as i32);
         let init = derive_qc_init(
             total_br as i32,
@@ -699,12 +787,15 @@ impl StreamEncoder {
             min_snr_short: scfg.min_snr_ld,
             switches,
             transforms,
+            psy_engine,
             psy_ch,
+            fpe_ch,
             ats: AtsElement::for_vbr_mode(cfg.vbr_mode(), super::pe::vbr_pe_offset(ch_br)),
             dist,
             qc,
             s4_ws: ScfWorkspace::default(),
             psy_ws: PsyScratch::default(),
+            fpe_ws: FpeScratch::default(),
             init,
             b2m,
             b2e,
@@ -731,6 +822,25 @@ impl StreamEncoder {
     /// Selected VBR profile (diagnostic accessor for the production `Encoder`).
     pub(crate) fn vbr_mode(&self) -> VbrMode {
         self.vbr_mode
+    }
+
+    /// Selected psychoacoustic engine (test inspection only: FPE selection
+    /// seam tests, roadmap M1 FPE-1.2; no production API added).
+    #[cfg(test)]
+    pub(crate) fn psy_engine(&self) -> PsyEngineKind {
+        self.psy_engine
+    }
+
+    /// TNS output info of the selected engine's channel state, for the
+    /// `LiveChannel` construction below. Additive FPE seam: with Q31
+    /// selected this is exactly the former `self.psy_ch[ch].tns_info()`
+    /// read; with FPE selected the TNS info comes from the FPE-owned
+    /// state (the delegated TNS writes there, not into `psy_ch`).
+    fn psy_tns_info(&self, ch: usize) -> &TnsChannel {
+        match self.psy_engine {
+            PsyEngineKind::Q31 => self.psy_ch[ch].tns_info(),
+            PsyEngineKind::Fpe => self.fpe_ch[ch].tns_info(),
+        }
     }
 
     fn seq_of(&self, ch: usize) -> WindowSequence {
@@ -841,28 +951,62 @@ impl StreamEncoder {
                 grouping: groupings[1],
                 is_lfe: false,
             };
-            let (pl, pr) = self.psy_ch.split_at_mut(1);
-            // M5.20: encoder-owned psy scratch removes the per-frame
-            // internal working-buffer allocations; semantics unchanged.
-            let (ol, or_, m) = process_pair_reuse(
-                &mut pl[0],
-                Some(&mut pr[0]),
-                lin,
-                Some(rin),
-                &self.tables,
-                &mut self.psy_ws,
-            );
-            (ol, or_, m)
+            // Single FPE dispatch point (ADR-0001, docs/fpe/06 §1): both
+            // arms return the identical output tuple; everything after
+            // (LiveChannel, IS/MS, PE, S2, S4, S6, S8) is untouched.
+            match self.psy_engine {
+                PsyEngineKind::Q31 => {
+                    let (pl, pr) = self.psy_ch.split_at_mut(1);
+                    // M5.20: encoder-owned psy scratch removes the per-frame
+                    // internal working-buffer allocations; semantics unchanged.
+                    let (ol, or_, m) = process_pair_reuse(
+                        &mut pl[0],
+                        Some(&mut pr[0]),
+                        lin,
+                        Some(rin),
+                        &self.tables,
+                        &mut self.psy_ws,
+                    );
+                    (ol, or_, m)
+                }
+                PsyEngineKind::Fpe => {
+                    let (pl, pr) = self.fpe_ch.split_at_mut(1);
+                    let (ol, or_, m) = fpe::process_pair_reuse(
+                        &mut pl[0],
+                        Some(&mut pr[0]),
+                        lin,
+                        Some(rin),
+                        &self.tables,
+                        &mut self.fpe_ws,
+                    );
+                    (ol, or_, m)
+                }
+            }
         } else {
-            let (ol, _, _) = process_pair_reuse(
-                &mut self.psy_ch[0],
-                None,
-                lin,
-                None,
-                &self.tables,
-                &mut self.psy_ws,
-            );
-            (ol, None, None)
+            match self.psy_engine {
+                PsyEngineKind::Q31 => {
+                    let (ol, _, _) = process_pair_reuse(
+                        &mut self.psy_ch[0],
+                        None,
+                        lin,
+                        None,
+                        &self.tables,
+                        &mut self.psy_ws,
+                    );
+                    (ol, None, None)
+                }
+                PsyEngineKind::Fpe => {
+                    let (ol, _, _) = fpe::process_pair_reuse(
+                        &mut self.fpe_ch[0],
+                        None,
+                        lin,
+                        None,
+                        &self.tables,
+                        &mut self.fpe_ws,
+                    );
+                    (ol, None, None)
+                }
+            }
         };
         let mut outs: Vec<&ChannelOutput> = vec![&out_l];
         if let Some(r) = out_r.as_ref() {
@@ -961,7 +1105,7 @@ impl StreamEncoder {
                 per,
                 short,
                 mdct_scale: out.mdct_scale,
-                tns: self.psy_ch[ch].tns_info().clone(),
+                tns: self.psy_tns_info(ch).clone(),
             });
         }
         // Common maxSfbPerGroup from psy outputs (exact C rule,
@@ -1173,6 +1317,11 @@ impl StreamEncoder {
             snap.is_bands = books[1].iter().filter(|&&b| b != 0).count() as u32;
             snap.is_scale_nz = scales[1].iter().filter(|&&s| s != 0).count() as u32;
             snap.is_scale_values = scales[1].clone();
+            #[cfg(test)]
+            {
+                snap.is_book_values = books[1].clone();
+                snap.is_mask_values = is_mask.clone();
+            }
         }
         for c in live.iter_mut() {
             c.ff = form_factor(&c.spec_q31, &c.offsets, c.cnt, c.per, max_common);
@@ -7964,5 +8113,151 @@ mod perf_tests {
             );
         }
         println!("AACPERF_DONE fixtures={} reps={reps}", fixtures.len());
+    }
+}
+
+/// FPE selection-seam tests (roadmap M1 FPE-1.2, `docs/fpe/06` §1–§3/§9).
+///
+/// Additive seam only: Q31 remains the default and existing constructors are
+/// unchanged. **M2** proved the seam by byte-identical FPE/Q31 streams; from
+/// **M3 (FPE-3.1)** the FPE value lane is no longer a pass-through, so the
+/// end-to-end test asserts the structural contract (identical frame count,
+/// clean per-frame encode, FPE actually influencing downstream bytes) and
+/// leaves numerical equivalence to the psy-boundary differential harness
+/// (`fpe/tests`).
+#[cfg(test)]
+mod fpe_seam_tests {
+    use super::*;
+
+    fn cfg_with_engine(sr: u32, ch: u32, engine: PsyEngineKind) -> EncoderConfig {
+        EncoderConfig::new(sr, ch, FRAME_LENGTH, TransportType::Adts)
+            .expect("cfg")
+            .with_psy_engine(engine)
+    }
+
+    #[test]
+    fn default_selection_is_q31_and_allocates_q31_state_only() {
+        for (sr, ch) in [(48000u32, 2usize), (48000, 1), (44100, 2)] {
+            // Every existing constructor path defaults to Q31.
+            let enc = StreamEncoder::new(sr, ch);
+            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31, "new {sr}/{ch}");
+            assert_eq!(enc.psy_ch.len(), ch);
+            assert!(enc.fpe_ch.is_empty());
+            let enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
+            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31, "with_mode {sr}/{ch}");
+            assert_eq!(enc.psy_ch.len(), ch);
+            assert!(enc.fpe_ch.is_empty());
+            let enc = StreamEncoder::with_config(
+                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg"),
+            );
+            assert_eq!(
+                enc.psy_engine(),
+                PsyEngineKind::Q31,
+                "with_config {sr}/{ch}"
+            );
+            assert_eq!(enc.psy_ch.len(), ch);
+            assert!(enc.fpe_ch.is_empty());
+        }
+    }
+
+    #[test]
+    fn fpe_selection_allocates_fpe_state_only() {
+        for (sr, ch) in [(48000u32, 2usize), (48000, 1), (44100, 2)] {
+            let enc =
+                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Fpe));
+            assert_eq!(enc.psy_engine(), PsyEngineKind::Fpe, "{sr}/{ch}");
+            assert_eq!(enc.fpe_ch.len(), ch);
+            assert!(
+                enc.psy_ch.is_empty(),
+                "allocate-selected-only (docs/fpe/06 §3)"
+            );
+            // Explicit Q31 selection round-trips to the default layout.
+            let enc =
+                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Q31));
+            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31);
+            assert_eq!(enc.psy_ch.len(), ch);
+            assert!(enc.fpe_ch.is_empty());
+        }
+    }
+
+    /// Encode a fixture through `step_frame` with the given engine and
+    /// return the per-frame ADTS bytes (full production path: frontend,
+    /// LiveChannel, IS/MS, PE, S2, S4, S6, S8). Frame accounting is exact:
+    /// every feeder frame must produce bytes with no skip notes.
+    fn encode_fixture(name: &str, vbr: VbrMode, engine: PsyEngineKind) -> Vec<Vec<u8>> {
+        let pcm = testdata::fixture_samples(name);
+        let sr = testdata::fixture_sample_rate(name);
+        let ch = pcm.len();
+        let cfg = EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
+            .expect("cfg")
+            .with_vbr_mode(vbr)
+            .with_psy_engine(engine);
+        let mut feeder = PcmFeeder::new(cfg);
+        let s = pcm[0].len();
+        let mut interleaved = Vec::with_capacity(s * ch);
+        for i in 0..s {
+            for c in 0..ch {
+                interleaved.push(pcm[c][i]);
+            }
+        }
+        let mut frames = feeder.push_interleaved(&interleaved).expect("push");
+        frames.extend(feeder.finish().expect("finish"));
+        let want_frames = (s + 1600).div_ceil(FRAME_LENGTH);
+        assert_eq!(frames.len(), want_frames, "{name}: feeder frame law");
+        let mut enc = StreamEncoder::with_config(cfg);
+        let mut out = Vec::with_capacity(frames.len());
+        for (i, fr) in frames.iter().enumerate() {
+            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
+            let (bytes, snap) = enc.step_frame(i as u32, &fresh);
+            assert!(snap.notes.is_empty(), "{name} f{i}: notes {:?}", snap.notes);
+            assert_eq!(snap.crash, -1, "{name} f{i}: crash marker");
+            out.push(bytes.unwrap_or_else(|| panic!("{name} f{i}: no bytes")));
+        }
+        assert_eq!(out.len(), want_frames, "{name}: frame accounting");
+        out
+    }
+
+    #[test]
+    fn fpe_selected_streams_encode_cleanly_and_influence_downstream() {
+        // M3 (FPE-3.1) replaces the M2 byte-identity gate: the float band
+        // energies feed the unchanged downstream stages, so FPE-selected
+        // streams are no longer required to match Q31 bytes. This seam test
+        // keeps the end-to-end structural checks — identical frame count and
+        // a clean per-frame encode with no skip notes or crash markers
+        // (`encode_fixture`) — and confirms FPE is actually selected by
+        // requiring at least one frame to differ downstream. Numerical
+        // equivalence at the psy boundary is gated by `fpe/tests`.
+        let cases = [
+            ("onset-stereo", VbrMode::Vbr5),
+            ("stepdown-stereo", VbrMode::Vbr5),
+            ("sine-stereo", VbrMode::Vbr6),
+            ("click-mono", VbrMode::Vbr5),
+            ("impulse-mono", VbrMode::Vbr6),
+            ("sine-stereo-44100", VbrMode::Vbr5),
+            ("silence-stereo", VbrMode::Vbr6),
+        ];
+        let mut compared = 0usize;
+        let mut differing = 0usize;
+        for (name, vbr) in cases {
+            let q31 = encode_fixture(name, vbr, PsyEngineKind::Q31);
+            let fpe = encode_fixture(name, vbr, PsyEngineKind::Fpe);
+            assert_eq!(q31.len(), fpe.len(), "{name}: frame count");
+            for (a, b) in q31.iter().zip(fpe.iter()) {
+                compared += 1;
+                if a != b {
+                    differing += 1;
+                }
+            }
+        }
+        assert!(compared > 0, "seam: frames compared");
+        assert!(
+            differing > 0,
+            "seam: FPE-3.1 float energies must influence downstream bytes"
+        );
+        // Default selection remains Q31 (G9).
+        assert_eq!(
+            StreamEncoder::new(48000, 2).psy_engine(),
+            PsyEngineKind::Q31
+        );
     }
 }
