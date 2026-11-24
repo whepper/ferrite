@@ -240,6 +240,287 @@ struct Finding {
 }
 
 // ---------------------------------------------------------------------------
+// P0-B retained per-finding evidence (test-only, no decision behaviour)
+// ---------------------------------------------------------------------------
+//
+// B3/B4: for every applicable finding retain IS operands, decision margins,
+// trace chains and Class B line vectors using deterministic serialization
+// and ordering. This module only *records* values already computed by the
+// harness (`analyze_frame` locals); it never feeds a decision, bound,
+// envelope or routing predicate. Stateless IS margins (I1/I2/I3/I8/I10,
+// `real_scale`/`is_scale` exactness) are recomputed with the same helpers
+// the trace uses. Stateful accumulator margins (I4/I6/I7, I5 carry) are
+// reported via the retained trace events that carry them, never
+// re-derived out of context. Genuinely unavailable values (digest
+// findings with `band == -1`; unvisited/strided bands) are recorded
+// explicitly as `None`/sentinel strings, not invented.
+
+/// Stable per-finding evidence record. All integers render decimally;
+/// integer vectors render as comma-separated decimals in `[...]`;
+/// trace chains render as `Debug` event strings in production-walk order.
+/// No `f64` enters the canonical form (spectra are `i32` Q31 lines), so no
+/// decimal-float ambiguity exists. Ordering across findings is by
+/// `(material_idx, frame, band, detail)` — never by hash-map order.
+#[derive(Debug, Clone)]
+struct FindingEvidence {
+    material: &'static str,
+    material_idx: usize,
+    frame: u32,
+    band: i32,
+    cause: &'static str,
+    status: &'static str,
+    consequence: &'static str,
+    detail: String,
+    review_gated: bool,
+    unsupported: bool,
+    // IS operands (per band, both arms; `None` for digest findings band -1).
+    q_e_l: Option<i32>,
+    q_e_r: Option<i32>,
+    f_e_l: Option<i32>,
+    f_e_r: Option<i32>,
+    q_eld_l: Option<i32>,
+    q_eld_r: Option<i32>,
+    f_eld_l: Option<i32>,
+    f_eld_r: Option<i32>,
+    q_t_l: Option<i32>,
+    q_t_r: Option<i32>,
+    f_t_l: Option<i32>,
+    f_t_r: Option<i32>,
+    q_real: Option<i32>,
+    f_real: Option<i32>,
+    q_scale: Option<i32>,
+    f_scale: Option<i32>,
+    q_book: Option<i32>,
+    f_book: Option<i32>,
+    q_mid: Option<i32>,
+    f_mid: Option<i32>,
+    q_pre: Option<i32>,
+    f_pre: Option<i32>,
+    // Stateless IS margins (exact recomputation; `None` where unavailable).
+    q_i1: Option<i64>,
+    f_i1: Option<i64>,
+    q_i2a: Option<i64>,
+    q_i2b: Option<i64>,
+    f_i2a: Option<i64>,
+    f_i2b: Option<i64>,
+    q_i3: Option<i64>,
+    f_i3: Option<i64>,
+    q_i8a: Option<i64>,
+    q_i8b: Option<i64>,
+    f_i8a: Option<i64>,
+    f_i8b: Option<i64>,
+    q_i10a: Option<i64>,
+    q_i10b: Option<i64>,
+    f_i10a: Option<i64>,
+    f_i10b: Option<i64>,
+    // MS operands and first-pass margins (per band; `None` for digest
+    // findings or bands outside the capture span).
+    ms_supported: Option<bool>,
+    q_m: Option<i64>,
+    f_m: Option<i64>,
+    b_closed: Option<i64>,
+    use_q: Option<i32>,
+    use_f: Option<i32>,
+    d_el: Option<i64>,
+    d_er: Option<i64>,
+    d_em: Option<i64>,
+    d_es: Option<i64>,
+    d_tl: Option<i64>,
+    d_tr: Option<i64>,
+    // Trace chains: full frame event lists (both arms, walk order) plus the
+    // filtered view for this finding's band.
+    q_trace: Vec<String>,
+    f_trace: Vec<String>,
+    // Class B line vectors: Q31 spectral lines for the band window
+    // `[spec_off..spec_end)` on both channels and both arms. `None` for
+    // digest findings; empty vectors mean a zero-width window (recorded,
+    // not omitted).
+    spec_off: Option<usize>,
+    spec_end: Option<usize>,
+    q_spec_l: Option<Vec<i32>>,
+    q_spec_r: Option<Vec<i32>>,
+    f_spec_l: Option<Vec<i32>>,
+    f_spec_r: Option<Vec<i32>>,
+}
+
+fn cause_str(c: Cause) -> &'static str {
+    match c {
+        Cause::A => "A",
+        Cause::B => "B",
+        Cause::C => "C",
+        Cause::Unclassified => "U",
+    }
+}
+
+fn status_str(s: ValStatus) -> &'static str {
+    match s {
+        ValStatus::Pass => "Pass",
+        ValStatus::OutOfEnvelope => "OutOfEnvelope",
+        ValStatus::BoundFailure => "BoundFailure",
+        ValStatus::DomainUnsupported => "DomainUnsupported",
+        ValStatus::ReplayMismatch => "ReplayMismatch",
+        ValStatus::OkPropagated => "OkPropagated",
+    }
+}
+
+fn consequence_str(c: Consequence) -> &'static str {
+    match c {
+        Consequence::N => "N",
+        Consequence::L => "L",
+        Consequence::P => "P",
+        Consequence::G => "G",
+        Consequence::F => "F",
+    }
+}
+
+fn opt_i32(v: Option<i32>) -> String {
+    match v {
+        Some(x) => x.to_string(),
+        None => "n/a".to_string(),
+    }
+}
+
+fn opt_i64(v: Option<i64>) -> String {
+    match v {
+        Some(x) => x.to_string(),
+        None => "n/a".to_string(),
+    }
+}
+
+fn opt_vec(v: &Option<Vec<i32>>) -> String {
+    match v {
+        Some(xs) => {
+            let mut s = String::from("[");
+            for (i, x) in xs.iter().enumerate() {
+                if i > 0 {
+                    s.push(',');
+                }
+                s.push_str(&x.to_string());
+            }
+            s.push(']');
+            s
+        }
+        None => "n/a".to_string(),
+    }
+}
+
+impl FindingEvidence {
+    fn stable_id(&self) -> String {
+        format!("{}:f{}:b{}", self.material, self.frame, self.band)
+    }
+
+    /// Deterministic unique identifier for one evidence record.
+    ///
+    /// The original finding label (`stable_id`, `{material}:f{frame}:b{band}`)
+    /// is preserved unchanged for provenance (it appears in the canonical
+    /// string and in all historical prints). Because F-01/F-02 share the same
+    /// band/frame (`quiet-sine-stereo:f16:b13`), the stable label alone is not
+    /// unique; the unique id appends the 1-based occurrence ordinal of that
+    /// stable label in deterministic sorted order
+    /// (`sorted_evidences`: `(material_idx, frame, band, detail)`), e.g.
+    /// `quiet-sine-stereo:f16:b13#1` and `...#2`. The ordinal derives only
+    /// from the sorted position and the retained `detail` tie-break, so
+    /// repeated executions produce identical identifiers. No classification
+    /// or decision semantic is affected.
+    fn unique_id(&self, ordinal: usize) -> String {
+        format!("{}#{}", self.stable_id(), ordinal)
+    }
+
+    /// Deterministic canonical serialization. Field order is fixed;
+    /// integers are decimal; vectors are bracketed decimal lists; traces
+    /// are `|`-joined `Debug` strings in walk order. No map iteration,
+    /// no pointer formatting, no float formatting enters this string.
+    fn canonical_string(&self) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "id={} cause={} status={} cons={} gated={} unsupported={} detail={}\n",
+            self.stable_id(),
+            self.cause,
+            self.status,
+            self.consequence,
+            if self.review_gated { 1 } else { 0 },
+            if self.unsupported { 1 } else { 0 },
+            self.detail,
+        ));
+        s.push_str(&format!(
+            "is q_e={}/{} f_e={}/{} q_eld={}/{} f_eld={}/{} q_t={}/{} f_t={}/{} q_real={} f_real={} q_scale={} f_scale={} q_book={} f_book={} q_mid={} f_mid={} q_pre={} f_pre={}\n",
+            opt_i32(self.q_e_l),
+            opt_i32(self.q_e_r),
+            opt_i32(self.f_e_l),
+            opt_i32(self.f_e_r),
+            opt_i32(self.q_eld_l),
+            opt_i32(self.q_eld_r),
+            opt_i32(self.f_eld_l),
+            opt_i32(self.f_eld_r),
+            opt_i32(self.q_t_l),
+            opt_i32(self.q_t_r),
+            opt_i32(self.f_t_l),
+            opt_i32(self.f_t_r),
+            opt_i32(self.q_real),
+            opt_i32(self.f_real),
+            opt_i32(self.q_scale),
+            opt_i32(self.f_scale),
+            opt_i32(self.q_book),
+            opt_i32(self.f_book),
+            opt_i32(self.q_mid),
+            opt_i32(self.f_mid),
+            opt_i32(self.q_pre),
+            opt_i32(self.f_pre),
+        ));
+        s.push_str(&format!(
+            "margins q_i1={} f_i1={} q_i2={}/{} f_i2={}/{} q_i3={} f_i3={} q_i8={}/{} f_i8={}/{} q_i10={}/{} f_i10={}/{}\n",
+            opt_i64(self.q_i1),
+            opt_i64(self.f_i1),
+            opt_i64(self.q_i2a),
+            opt_i64(self.q_i2b),
+            opt_i64(self.f_i2a),
+            opt_i64(self.f_i2b),
+            opt_i64(self.q_i3),
+            opt_i64(self.f_i3),
+            opt_i64(self.q_i8a),
+            opt_i64(self.q_i8b),
+            opt_i64(self.f_i8a),
+            opt_i64(self.f_i8b),
+            opt_i64(self.q_i10a),
+            opt_i64(self.q_i10b),
+            opt_i64(self.f_i10a),
+            opt_i64(self.f_i10b),
+        ));
+        s.push_str(&format!(
+            "ms supported={} q_m={} f_m={} B={} use={}/{} d=el:{} er:{} em:{} es:{} tl:{} tr:{}\n",
+            match self.ms_supported {
+                Some(true) => "1",
+                Some(false) => "0",
+                None => "n/a",
+            },
+            opt_i64(self.q_m),
+            opt_i64(self.f_m),
+            opt_i64(self.b_closed),
+            opt_i32(self.use_q),
+            opt_i32(self.use_f),
+            opt_i64(self.d_el),
+            opt_i64(self.d_er),
+            opt_i64(self.d_em),
+            opt_i64(self.d_es),
+            opt_i64(self.d_tl),
+            opt_i64(self.d_tr),
+        ));
+        s.push_str(&format!(
+            "spec win={}..{} q_l={} q_r={} f_l={} f_r={}\n",
+            self.spec_off.map_or("n/a".to_string(), |v| v.to_string()),
+            self.spec_end.map_or("n/a".to_string(), |v| v.to_string()),
+            opt_vec(&self.q_spec_l),
+            opt_vec(&self.q_spec_r),
+            opt_vec(&self.f_spec_l),
+            opt_vec(&self.f_spec_r),
+        ));
+        s.push_str(&format!("trace_q={}\n", self.q_trace.join("|")));
+        s.push_str(&format!("trace_f={}\n", self.f_trace.join("|")));
+        s
+    }
+}
+
+// ---------------------------------------------------------------------------
 // MS first-pass margin, B_closed bound, supported domain
 // ---------------------------------------------------------------------------
 
@@ -289,7 +570,10 @@ fn ms_first_pass_margins(
     (margins, mask)
 }
 
-/// Candidate `B_closed` bound from the accepted R2.1-B analytical report.
+/// Candidate `B_closed` bound as reconstructed in
+/// `docs/fpe/R2.1-B-Bclosed-derivation-reconstruction.md` (owner-accepted D1
+/// replacement for the missing original R2.1-B analytical report; see P0-A
+/// report §3.1 and reconstruction §1).
 ///
 /// ```text
 /// M_ms = pnms - pnlr - 1
@@ -305,7 +589,8 @@ fn ms_first_pass_margins(
 /// selections: each halved term shifts by at most `ceil(d/2)` (all deltas
 /// are non-negative, so `(d + 1) / 2` is the exact ceiling), each threshold
 /// selection propagates into both `pnms` and `pnlr`, and the trailing `+3`
-/// covers the strict-`>` unit (`-1`) plus halving floors.
+/// is exactly 1 (min_tld parity) + 2 (four-way ceil grouping); the `-1` in
+/// `M` cancels in the delta (see reconstruction §3.2 Steps 1–4).
 fn b_closed(d_el: i64, d_er: i64, d_em: i64, d_es: i64, d_tl: i64, d_tr: i64) -> i64 {
     let half_sum = d_el + d_er + d_em + d_es;
     debug_assert!(half_sum >= 0, "B_closed deltas are absolute values");
@@ -1798,6 +2083,415 @@ struct FrameAnalysis {
     coding_diffs: Vec<usize>,
     digest_diff: bool,
     findings: Vec<Finding>,
+    evidences: Vec<FindingEvidence>,
+}
+
+/// Build the retained per-finding evidence for one frame's findings.
+/// Test-only recording: reads `analyze_frame` locals, writes nothing to
+/// production state and changes no predicate. Stateful accumulator
+/// margins (I4/I6/I7, I5 carry) are carried by the retained trace events,
+/// not re-derived here; stateless margins are recomputed exactly.
+#[allow(clippy::too_many_arguments)]
+fn build_frame_evidences(
+    material: &'static str,
+    material_idx: usize,
+    pair: &FramePair,
+    q_stage: &IsStage,
+    f_stage: &IsStage,
+    q_mid: &[i32],
+    f_mid: &[i32],
+    q_replay: &IsReplayOut,
+    f_replay: &IsReplayOut,
+    q_m: &[i64],
+    f_m: &[i64],
+    q_events: &[TraceEvent],
+    f_events: &[TraceEvent],
+    findings: &[Finding],
+) -> Vec<FindingEvidence> {
+    let q_cap_opt = pair.q_snap.ms_cap.as_ref();
+    let f_cap_opt = pair.f_snap.ms_cap.as_ref();
+    let q_trace: Vec<String> = q_events.iter().map(|e| format!("{e:?}")).collect();
+    let f_trace: Vec<String> = f_events.iter().map(|e| format!("{e:?}")).collect();
+    let mut out = Vec::with_capacity(findings.len());
+    for finding in findings {
+        if finding.band < 0 {
+            // Digest-level finding: no per-band operands exist. Record the
+            // absence explicitly rather than inventing band-0 values.
+            out.push(FindingEvidence {
+                material,
+                material_idx,
+                frame: finding.frame,
+                band: -1,
+                cause: cause_str(finding.cause),
+                status: status_str(finding.status),
+                consequence: consequence_str(finding.consequence),
+                detail: finding.detail.clone(),
+                review_gated: finding.consequence >= Consequence::P,
+                unsupported: finding.status == ValStatus::DomainUnsupported,
+                q_e_l: None,
+                q_e_r: None,
+                f_e_l: None,
+                f_e_r: None,
+                q_eld_l: None,
+                q_eld_r: None,
+                f_eld_l: None,
+                f_eld_r: None,
+                q_t_l: None,
+                q_t_r: None,
+                f_t_l: None,
+                f_t_r: None,
+                q_real: None,
+                f_real: None,
+                q_scale: None,
+                f_scale: None,
+                q_book: None,
+                f_book: None,
+                q_mid: None,
+                f_mid: None,
+                q_pre: None,
+                f_pre: None,
+                q_i1: None,
+                f_i1: None,
+                q_i2a: None,
+                q_i2b: None,
+                f_i2a: None,
+                f_i2b: None,
+                q_i3: None,
+                f_i3: None,
+                q_i8a: None,
+                q_i8b: None,
+                f_i8a: None,
+                f_i8b: None,
+                q_i10a: None,
+                q_i10b: None,
+                f_i10a: None,
+                f_i10b: None,
+                ms_supported: None,
+                q_m: None,
+                f_m: None,
+                b_closed: None,
+                use_q: None,
+                use_f: None,
+                d_el: None,
+                d_er: None,
+                d_em: None,
+                d_es: None,
+                d_tl: None,
+                d_tr: None,
+                q_trace: q_trace.clone(),
+                f_trace: f_trace.clone(),
+                spec_off: None,
+                spec_end: None,
+                q_spec_l: None,
+                q_spec_r: None,
+                f_spec_l: None,
+                f_spec_r: None,
+            });
+            continue;
+        }
+        let b = finding.band as usize;
+        let in_is_span = b < pair.q_op.cnt
+            && b < pair.f_op.cnt
+            && b < q_stage.hrr_err.len()
+            && b < f_stage.hrr_err.len()
+            && (b + 1) < pair.q_op.offsets.len()
+            && (b + 1) < pair.f_op.offsets.len();
+        // IS operands (None when the band is outside the captured span).
+        let (q_e_l, q_e_r, f_e_l, f_e_r) = if in_is_span {
+            (
+                Some(pair.q_op.e_l[b]),
+                Some(pair.q_op.e_r[b]),
+                Some(pair.f_op.e_l[b]),
+                Some(pair.f_op.e_r[b]),
+            )
+        } else {
+            (None, None, None, None)
+        };
+        let (q_eld_l, q_eld_r, f_eld_l, f_eld_r) = if in_is_span {
+            (
+                Some(pair.q_op.e_ld_l[b]),
+                Some(pair.q_op.e_ld_r[b]),
+                Some(pair.f_op.e_ld_l[b]),
+                Some(pair.f_op.e_ld_r[b]),
+            )
+        } else {
+            (None, None, None, None)
+        };
+        let (q_t_l, q_t_r, f_t_l, f_t_r) = if in_is_span {
+            (
+                Some(pair.q_op.t_l[b]),
+                Some(pair.q_op.t_r[b]),
+                Some(pair.f_op.t_l[b]),
+                Some(pair.f_op.t_r[b]),
+            )
+        } else {
+            (None, None, None, None)
+        };
+        let (q_real, f_real) = if in_is_span {
+            (Some(q_stage.real_scale[b]), Some(f_stage.real_scale[b]))
+        } else {
+            (None, None)
+        };
+        let (q_scale, f_scale) = if b < q_replay.is_scale.len() && b < f_replay.is_scale.len() {
+            (Some(q_replay.is_scale[b]), Some(f_replay.is_scale[b]))
+        } else {
+            (None, None)
+        };
+        let (q_book, f_book) = if b < q_replay.is_book.len() && b < f_replay.is_book.len() {
+            (Some(q_replay.is_book[b]), Some(f_replay.is_book[b]))
+        } else {
+            (None, None)
+        };
+        let (q_mid_v, f_mid_v) = if b < q_mid.len() && b < f_mid.len() {
+            (Some(q_mid[b]), Some(f_mid[b]))
+        } else {
+            (None, None)
+        };
+        let (q_pre, f_pre) = if in_is_span {
+            (Some(q_stage.is_mask_pre[b]), Some(f_stage.is_mask_pre[b]))
+        } else {
+            (None, None)
+        };
+        // Stateless IS margins (exact recomputation with trace helpers).
+        let (q_i1, f_i1) = if in_is_span {
+            let q_corr = sfb_correlation(
+                &pair.q_op.spec_l,
+                &pair.q_op.spec_r,
+                pair.q_op.offsets[b] as usize,
+                pair.q_op.offsets[b + 1] as usize,
+            );
+            let f_corr = sfb_correlation(
+                &pair.f_op.spec_l,
+                &pair.f_op.spec_r,
+                pair.f_op.offsets[b] as usize,
+                pair.f_op.offsets[b + 1] as usize,
+            );
+            (Some(i1_margin(q_corr)), Some(i1_margin(f_corr)))
+        } else {
+            (None, None)
+        };
+        let (q_i2a, q_i2b, f_i2a, f_i2b) = match (q_e_l, q_e_r, f_e_l, f_e_r) {
+            (Some(ql), Some(qr), Some(fl), Some(fr)) => {
+                let (a, c) = i2_margins(ql, qr);
+                let (e, g) = i2_margins(fl, fr);
+                (Some(a), Some(c), Some(e), Some(g))
+            }
+            _ => (None, None, None, None),
+        };
+        let (q_i3, f_i3) = if in_is_span {
+            (
+                Some(i3_margin(q_stage.hrr_err[b])),
+                Some(i3_margin(f_stage.hrr_err[b])),
+            )
+        } else {
+            (None, None)
+        };
+        let (q_i8a, q_i8b, f_i8a, f_i8b) =
+            match (q_e_l, q_e_r, f_e_l, f_e_r, q_t_l, q_t_r, f_t_l, f_t_r) {
+                (
+                    Some(ql),
+                    Some(qr),
+                    Some(fl),
+                    Some(fr),
+                    Some(qtl),
+                    Some(qtr),
+                    Some(ftl),
+                    Some(ftr),
+                ) => {
+                    let (a, c) = i8_margins(ql, qr, qtl, qtr);
+                    let (e, g) = i8_margins(fl, fr, ftl, ftr);
+                    (Some(a), Some(c), Some(e), Some(g))
+                }
+                _ => (None, None, None, None),
+            };
+        let (q_i10a, q_i10b, f_i10a, f_i10b) = match (q_eld_l, q_eld_r, f_eld_l, f_eld_r) {
+            (Some(ql), Some(qr), Some(fl), Some(fr)) => {
+                let (a, c) = i10_margins(ql.wrapping_sub(qr));
+                let (e, g) = i10_margins(fl.wrapping_sub(fr));
+                (Some(a), Some(c), Some(e), Some(g))
+            }
+            _ => (None, None, None, None),
+        };
+        // MS operands and first-pass margins.
+        let (ms_supported, q_mv, f_mv, bnd, use_q, use_f, d_el, d_er, d_em, d_es, d_tl, d_tr) =
+            match (q_cap_opt, f_cap_opt) {
+                (Some(q_cap), Some(f_cap)) if b < q_cap.cnt && b < f_cap.cnt => {
+                    let supported = ms_band_supported(b, q_cap, f_cap);
+                    let d_el_v = (q_cap.eld_l[b] as i64 - f_cap.eld_l[b] as i64).abs();
+                    let d_er_v = (q_cap.eld_r[b] as i64 - f_cap.eld_r[b] as i64).abs();
+                    let d_em_v = (q_cap.em_ld[b] as i64 - f_cap.em_ld[b] as i64).abs();
+                    let d_es_v = (q_cap.es_ld[b] as i64 - f_cap.es_ld[b] as i64).abs();
+                    let d_tl_v = (q_cap.tld_l[b] as i64 - f_cap.tld_l[b] as i64).abs();
+                    let d_tr_v = (q_cap.tld_r[b] as i64 - f_cap.tld_r[b] as i64).abs();
+                    let bound = b_closed(d_el_v, d_er_v, d_em_v, d_es_v, d_tl_v, d_tr_v);
+                    let qm = if b < q_m.len() { Some(q_m[b]) } else { None };
+                    let fm = if b < f_m.len() { Some(f_m[b]) } else { None };
+                    let (uq, uf) = match (qm, fm) {
+                        (Some(qm_v), Some(fm_v)) => (
+                            Some(i32::from(q_cap.allow_ms && qm_v >= 0)),
+                            Some(i32::from(f_cap.allow_ms && fm_v >= 0)),
+                        ),
+                        _ => (None, None),
+                    };
+                    (
+                        Some(supported),
+                        qm,
+                        fm,
+                        Some(bound),
+                        uq,
+                        uf,
+                        Some(d_el_v),
+                        Some(d_er_v),
+                        Some(d_em_v),
+                        Some(d_es_v),
+                        Some(d_tl_v),
+                        Some(d_tr_v),
+                    )
+                }
+                _ => (
+                    None, None, None, None, None, None, None, None, None, None, None, None,
+                ),
+            };
+        // Class B line vectors: Q31 spectral lines for the band window.
+        let (spec_off, spec_end, q_spec_l, q_spec_r, f_spec_l, f_spec_r) = if in_is_span {
+            let off = pair.q_op.offsets[b] as usize;
+            let end = pair.q_op.offsets[b + 1] as usize;
+            let f_off = pair.f_op.offsets[b] as usize;
+            let f_end = pair.f_op.offsets[b + 1] as usize;
+            // Both arms share geometry by gate 6; record the Q31 window and
+            // each arm's lines separately. Out-of-range windows are recorded
+            // as None (never sliced unsafely).
+            if end <= pair.q_op.spec_l.len()
+                && end <= pair.q_op.spec_r.len()
+                && f_end <= pair.f_op.spec_l.len()
+                && f_end <= pair.f_op.spec_r.len()
+                && off <= end
+                && f_off <= f_end
+            {
+                (
+                    Some(off),
+                    Some(end),
+                    Some(pair.q_op.spec_l[off..end].to_vec()),
+                    Some(pair.q_op.spec_r[off..end].to_vec()),
+                    Some(pair.f_op.spec_l[f_off..f_end].to_vec()),
+                    Some(pair.f_op.spec_r[f_off..f_end].to_vec()),
+                )
+            } else {
+                (None, None, None, None, None, None)
+            }
+        } else {
+            (None, None, None, None, None, None)
+        };
+        out.push(FindingEvidence {
+            material,
+            material_idx,
+            frame: finding.frame,
+            band: finding.band,
+            cause: cause_str(finding.cause),
+            status: status_str(finding.status),
+            consequence: consequence_str(finding.consequence),
+            detail: finding.detail.clone(),
+            review_gated: finding.consequence >= Consequence::P,
+            unsupported: finding.status == ValStatus::DomainUnsupported,
+            q_e_l,
+            q_e_r,
+            f_e_l,
+            f_e_r,
+            q_eld_l,
+            q_eld_r,
+            f_eld_l,
+            f_eld_r,
+            q_t_l,
+            q_t_r,
+            f_t_l,
+            f_t_r,
+            q_real,
+            f_real,
+            q_scale,
+            f_scale,
+            q_book,
+            f_book,
+            q_mid: q_mid_v,
+            f_mid: f_mid_v,
+            q_pre,
+            f_pre,
+            q_i1,
+            f_i1,
+            q_i2a,
+            q_i2b,
+            f_i2a,
+            f_i2b,
+            q_i3,
+            f_i3,
+            q_i8a,
+            q_i8b,
+            f_i8a,
+            f_i8b,
+            q_i10a,
+            q_i10b,
+            f_i10a,
+            f_i10b,
+            ms_supported,
+            q_m: q_mv,
+            f_m: f_mv,
+            b_closed: bnd,
+            use_q,
+            use_f,
+            d_el,
+            d_er,
+            d_em,
+            d_es,
+            d_tl,
+            d_tr,
+            q_trace: q_trace.clone(),
+            f_trace: f_trace.clone(),
+            spec_off,
+            spec_end,
+            q_spec_l,
+            q_spec_r,
+            f_spec_l,
+            f_spec_r,
+        });
+    }
+    out
+}
+
+/// Deterministic ordering for retained evidence: by material corpus order,
+/// then frame, then band, then detail. Never by hash-map order.
+fn sorted_evidences(evidences: &[FindingEvidence]) -> Vec<&FindingEvidence> {
+    let mut v: Vec<&FindingEvidence> = evidences.iter().collect();
+    v.sort_by(|a, b| {
+        (a.material_idx, a.frame, a.band, &a.detail).cmp(&(
+            b.material_idx,
+            b.frame,
+            b.band,
+            &b.detail,
+        ))
+    });
+    v
+}
+
+/// Deterministic unique identifiers for a sorted evidence view.
+///
+/// Returns one `unique_id` per input in the same order: the preserved
+/// `stable_id` plus `#n`, where `n` is the 1-based occurrence ordinal of that
+/// stable label among the preceding rows of the same sorted view. Because the
+/// view is sorted by `(material_idx, frame, band, detail)`, the ordinals — and
+/// hence the identifiers — are identical on every execution with the same
+/// inputs. No map iteration participates (linear scan over the sorted view).
+fn unique_evidence_ids(sorted: &[&FindingEvidence]) -> Vec<String> {
+    let mut ids = Vec::with_capacity(sorted.len());
+    for (i, ev) in sorted.iter().enumerate() {
+        let sid = ev.stable_id();
+        let mut ordinal = 1usize;
+        for prev in sorted[..i].iter() {
+            if prev.stable_id() == sid {
+                ordinal += 1;
+            }
+        }
+        ids.push(ev.unique_id(ordinal));
+    }
+    ids
 }
 
 /// Compare one stepped frame pair: validity, replays, traces, margins,
@@ -1807,6 +2501,7 @@ struct FrameAnalysis {
 fn analyze_frame(
     pair: &FramePair,
     material: &'static str,
+    material_idx: usize,
     sample_rate: u32,
     persist: &HashMap<usize, u32>,
 ) -> FrameAnalysis {
@@ -2155,10 +2850,27 @@ fn analyze_frame(
         );
     }
     let _ = ms_diff_bands.len();
+    let evidences = build_frame_evidences(
+        material,
+        material_idx,
+        pair,
+        &q_stage,
+        &f_stage,
+        &q_mid,
+        &f_mid,
+        &q_replay,
+        &f_replay,
+        &q_m,
+        &f_m,
+        &q_events,
+        &f_events,
+        &findings,
+    );
     FrameAnalysis {
         coding_diffs,
         digest_diff,
         findings,
+        evidences,
     }
 }
 
@@ -2275,6 +2987,7 @@ struct CorpusResult {
     frames: usize,
     agree_frames: usize,
     findings: Vec<Finding>,
+    evidences: Vec<FindingEvidence>,
     saw_short: bool,
     saw_long: bool,
     saw_start: bool,
@@ -2289,7 +3002,7 @@ struct CorpusResult {
 
 fn run_corpus() -> CorpusResult {
     let mut res = CorpusResult::default();
-    for m in materials() {
+    for (material_idx, m) in materials().into_iter().enumerate() {
         let mut h = R21BHarness::new(m.pcm, m.sample_rate);
         let mut persist: HashMap<usize, u32> = HashMap::new();
         let mut prev_geo = (0usize, 0usize);
@@ -2305,7 +3018,7 @@ fn run_corpus() -> CorpusResult {
                 3 => res.saw_stop = true,
                 _ => {}
             }
-            let analysis = analyze_frame(&pair, m.name, m.sample_rate, &persist);
+            let analysis = analyze_frame(&pair, m.name, material_idx, m.sample_rate, &persist);
             if analysis.findings.is_empty() {
                 res.agree_frames += 1;
             }
@@ -2327,6 +3040,7 @@ fn run_corpus() -> CorpusResult {
                 _ => {}
             }
             res.findings.extend(analysis.findings);
+            res.evidences.extend(analysis.evidences);
             res.frames += 1;
             // Persistence accounting for the next frame (reset on geometry
             // change: short/long cnt differs, band indices are incomparable).
@@ -2624,14 +3338,689 @@ mod gate_tests {
     }
 
     #[test]
+    fn r21b_p0b_aggregates_are_pinned() {
+        // P0-B B2: hard assertions for the five authoritative aggregate
+        // counts. Sources (verified by P0-A §6.1 against gate output, the
+        // owner-review ledger §1/§3, the implementation note §7, and the
+        // owner decision §1/§5 register 5 accepted + 9 conditional = 14):
+        // 30 findings / 16 coding frames / 0 digest diffs / 1 unsupported
+        // frame = reproduced gate output + owner-review ledger + impl note;
+        // 14 review-gated = reproduced gate11 output + owner decision §1/§5.
+        // Corpus scope: materials() = 8 fixtures (49+49+49+32+26+32+32+32 =
+        // 301) + silence (8) + 6 probes (12 each = 72) = 15 materials,
+        // 381 frames (the "16 materials" wording in owner records is the
+        // known A-22 error; 16 is the coding-difference frame count).
+        let c = corpus();
+        assert_eq!(c.frames, 381, "corpus frame accounting");
+        assert_eq!(c.agree_frames, 365, "agreeing frames");
+        assert_eq!(c.findings.len(), 30, "findings");
+        assert_eq!(
+            c.digest_diff_frames.len(),
+            0,
+            "digest differences (digest equality does not imply per-band equality)"
+        );
+        assert_eq!(c.coding_diff_frames.len(), 16, "coding-difference frames");
+        let review_gated = c
+            .findings
+            .iter()
+            .filter(|f| f.consequence >= Consequence::P)
+            .count();
+        assert_eq!(review_gated, 14, "review-gated (P/G/F) findings");
+        assert_eq!(
+            c.unsupported_band_frames, 1,
+            "unsupported-domain frames (sentinel domain, never a pass)"
+        );
+        // Evidence parity: one retained record per finding.
+        assert_eq!(
+            c.evidences.len(),
+            c.findings.len(),
+            "one evidence record per finding"
+        );
+        println!(
+            "R21B-P0B aggregates: findings=30 coding_frames=16 digest_diffs=0 review_gated=14 unsupported_frames=1"
+        );
+        summarize(&c, "p0b-aggregates");
+    }
+
+    #[test]
+    fn r21b_p0b_per_finding_evidence_is_complete_and_traceable() {
+        // P0-B B3/B4: every applicable finding retains IS operands, decision
+        // margins, trace chains and Class B line vectors on the G-1 BandRow
+        // pattern (retained rows, never re-derived decisions). A reviewer can
+        // trace each finding from inputs through margins to the decision.
+        let c = corpus();
+        assert_eq!(c.evidences.len(), 30, "evidence population");
+        let sorted = sorted_evidences(&c.evidences);
+        // Deterministic ordering: sorted view must be monotonic in the full
+        // (material_idx, frame, band, detail) tuple (detail is the documented
+        // tie-break for F-01/F-02; P0C-N3 strengthening).
+        let mut prev: Option<(usize, u32, i32, String)> = None;
+        for ev in &sorted {
+            let key = (ev.material_idx, ev.frame, ev.band, ev.detail.clone());
+            if let Some(p) = &prev {
+                assert!(key >= *p, "evidence ordering (material,frame,band,detail)");
+            }
+            prev = Some(key);
+        }
+        for ev in &sorted {
+            // Identity: which finding, frame and channel context.
+            assert!(!ev.material.is_empty(), "material present");
+            assert!(ev.material_idx < 15, "material index in corpus");
+            assert_eq!(
+                ev.review_gated,
+                ev.consequence == "P" || ev.consequence == "G" || ev.consequence == "F",
+                "{}: review-gated flag",
+                ev.stable_id()
+            );
+            assert_eq!(
+                ev.unsupported,
+                ev.status == "DomainUnsupported",
+                "{}: unsupported flag",
+                ev.stable_id()
+            );
+            if ev.band < 0 {
+                // Digest-level findings carry no per-band operands; the
+                // absence is explicit (this corpus has zero digest diffs, so
+                // this path documents the representation without firing).
+                assert!(
+                    ev.q_e_l.is_none(),
+                    "{}: digest has no IS operands",
+                    ev.stable_id()
+                );
+                assert!(
+                    ev.ms_supported.is_none(),
+                    "{}: digest has no MS band",
+                    ev.stable_id()
+                );
+                assert!(
+                    ev.q_spec_l.is_none(),
+                    "{}: digest has no line vectors",
+                    ev.stable_id()
+                );
+                continue;
+            }
+            // IS operands present on both arms.
+            assert!(
+                ev.q_e_l.is_some() && ev.f_e_l.is_some(),
+                "{}: IS e_l",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_e_r.is_some() && ev.f_e_r.is_some(),
+                "{}: IS e_r",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_real.is_some() && ev.f_real.is_some(),
+                "{}: real_scale",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_scale.is_some() && ev.f_scale.is_some(),
+                "{}: is_scale",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_book.is_some() && ev.f_book.is_some(),
+                "{}: is_book",
+                ev.stable_id()
+            );
+            // Stateless decision margins recomputed exactly.
+            assert!(
+                ev.q_i1.is_some() && ev.f_i1.is_some(),
+                "{}: I1",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_i2a.is_some()
+                    && ev.q_i2b.is_some()
+                    && ev.f_i2a.is_some()
+                    && ev.f_i2b.is_some(),
+                "{}: I2 dual",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_i3.is_some() && ev.f_i3.is_some(),
+                "{}: I3",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_i8a.is_some()
+                    && ev.q_i8b.is_some()
+                    && ev.f_i8a.is_some()
+                    && ev.f_i8b.is_some(),
+                "{}: I8 dual",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_i10a.is_some()
+                    && ev.q_i10b.is_some()
+                    && ev.f_i10a.is_some()
+                    && ev.f_i10b.is_some(),
+                "{}: I10 dual",
+                ev.stable_id()
+            );
+            // Stateful margins travel with the trace chains (I4/I6/I7, I5
+            // carry): the trace must be retained and non-empty on both arms.
+            assert!(!ev.q_trace.is_empty(), "{}: Q31 trace", ev.stable_id());
+            assert!(!ev.f_trace.is_empty(), "{}: FPE trace", ev.stable_id());
+            // MS operands and bound on in-span bands.
+            assert!(
+                ev.ms_supported.is_some(),
+                "{}: MS domain flag",
+                ev.stable_id()
+            );
+            assert!(
+                ev.q_m.is_some() && ev.f_m.is_some(),
+                "{}: MS margins",
+                ev.stable_id()
+            );
+            assert!(ev.b_closed.is_some(), "{}: B_closed", ev.stable_id());
+            assert!(
+                ev.use_q.is_some() && ev.use_f.is_some(),
+                "{}: MS use",
+                ev.stable_id()
+            );
+            // Class B line vectors retained (mapped Q31 lines per band).
+            assert!(
+                ev.spec_off.is_some() && ev.spec_end.is_some(),
+                "{}: spec window",
+                ev.stable_id()
+            );
+            assert!(ev.q_spec_l.is_some(), "{}: Q31 left lines", ev.stable_id());
+            assert!(ev.q_spec_r.is_some(), "{}: Q31 right lines", ev.stable_id());
+            assert!(ev.f_spec_l.is_some(), "{}: FPE left lines", ev.stable_id());
+            assert!(ev.f_spec_r.is_some(), "{}: FPE right lines", ev.stable_id());
+            let (off, end) = (ev.spec_off.unwrap(), ev.spec_end.unwrap());
+            assert!(off <= end, "{}: window order", ev.stable_id());
+            assert_eq!(
+                ev.q_spec_l.as_ref().unwrap().len(),
+                end - off,
+                "{}: Q31 left span",
+                ev.stable_id()
+            );
+            assert_eq!(
+                ev.f_spec_r.as_ref().unwrap().len(),
+                end - off,
+                "{}: FPE right span",
+                ev.stable_id()
+            );
+            // Canonical serialization is stable (determinism check per row).
+            let a = ev.canonical_string();
+            let b = ev.canonical_string();
+            assert_eq!(a, b, "{}: canonical determinism", ev.stable_id());
+            println!(
+                "R21B-FINDING {} cause={} status={} cons={} gated={} unsupported={} {}",
+                ev.stable_id(),
+                ev.cause,
+                ev.status,
+                ev.consequence,
+                if ev.review_gated { 1 } else { 0 },
+                if ev.unsupported { 1 } else { 0 },
+                ev.detail,
+            );
+        }
+        // No digest-level findings on this corpus (0 digest diffs); every
+        // retained record is a per-band finding with line vectors.
+        assert!(
+            c.evidences.iter().all(|e| e.band >= 0),
+            "all 30 findings are per-band (digest diffs are 0)"
+        );
+    }
+
+    #[test]
+    fn r21b_p0b_unsupported_frame_is_explicit() {
+        // P0-B B4: the unsupported frame is explicit evidence, never a pass
+        // and never silently omitted from aggregate accounting.
+        let c = corpus();
+        let unsupported: Vec<&FindingEvidence> = sorted_evidences(&c.evidences)
+            .into_iter()
+            .filter(|e| e.unsupported)
+            .collect();
+        assert_eq!(
+            unsupported.len(),
+            1,
+            "exactly one unsupported finding (F-01)"
+        );
+        let ev = unsupported[0];
+        assert_eq!(ev.material, "quiet-sine-stereo", "unsupported material");
+        assert_eq!(ev.frame, 16, "unsupported frame");
+        assert_eq!(ev.band, 13, "unsupported band");
+        assert_eq!(ev.status, "DomainUnsupported");
+        assert_eq!(ev.ms_supported, Some(false), "out of B_closed domain");
+        // The sentinel lives in the MS energy-Ld operands (eld/em/es domain
+        // rule, `ms_band_supported`): the IS stored energies retained above
+        // are finite on this frame, while the MS arm carries the MIN
+        // sentinel. The domain flag plus the retained MS deltas/bound carry
+        // the evidence; no sentinel value is invented here.
+        // The same frame carries the coding consequence (F-02): one frame
+        // with two findings, counted once in unsupported frames but twice
+        // in the finding population.
+        let frame_peers = c
+            .evidences
+            .iter()
+            .filter(|e| e.material == ev.material && e.frame == ev.frame)
+            .count();
+        assert_eq!(frame_peers, 2, "quiet f16 carries F-01 + F-02");
+        assert_eq!(
+            c.unsupported_band_frames, 1,
+            "unsupported frames counted once"
+        );
+        println!(
+            "R21B-UNSUPPORTED {} status={} ms_supported=0 peers_in_frame={frame_peers}",
+            ev.stable_id(),
+            ev.status,
+        );
+    }
+
+    #[test]
+    fn r21b_p0b_evidence_determinism_across_runs() {
+        // P0-B §4.1: identical output across repeated executions on the same
+        // inputs. Re-runs the full corpus (not the OnceLock cache) and
+        // compares canonical serializations byte-for-byte.
+        let a = run_corpus();
+        let b = run_corpus();
+        let sa: Vec<String> = sorted_evidences(&a.evidences)
+            .into_iter()
+            .map(|e| e.canonical_string())
+            .collect();
+        let sb: Vec<String> = sorted_evidences(&b.evidences)
+            .into_iter()
+            .map(|e| e.canonical_string())
+            .collect();
+        assert_eq!(sa.len(), sb.len(), "evidence population stable");
+        assert_eq!(sa, sb, "canonical evidence identical across runs");
+        println!("R21B-P0B determinism: {} evidence rows identical", sa.len());
+    }
+
+    fn p0b_fnv1a64(bytes: &[u8]) -> u64 {
+        let mut hash = 0xcbf2_9ce4_8422_2325u64;
+        for &byte in bytes {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        hash
+    }
+
+    #[test]
+    fn r21b_p0b_byte_baseline_is_pinned() {
+        // P0-B B1: deterministic byte-level baseline for the R2.1-B decision
+        // corpus, following the `production_baseline.rs` pattern (exact ADTS
+        // byte length + FNV-1a 64 hash per material per engine, plus a
+        // canonical-evidence digest). Scope: the 15 decision-corpus materials
+        // (381 frames) through the production `step_frame` path on both
+        // engines; the corpus definition (`materials()`) is the pinned
+        // input. Unexpected changes fail loudly; values are pinned below and
+        // never regenerated during normal test execution.
+        struct Row {
+            material: &'static str,
+            sample_rate: u32,
+            frames: u32,
+            q_len: usize,
+            q_hash: u64,
+            f_len: usize,
+            f_hash: u64,
+        }
+        let mut rows: Vec<Row> = Vec::new();
+        for m in materials() {
+            let mut h = R21BHarness::new(m.pcm, m.sample_rate);
+            let mut q_adts: Vec<u8> = Vec::new();
+            let mut f_adts: Vec<u8> = Vec::new();
+            for f in 0..m.frames {
+                let pair = h.step(f);
+                let q_b = pair.q_bytes.as_ref().expect("Q31 emits");
+                let f_b = pair.f_bytes.as_ref().expect("FPE emits");
+                assert_adts_valid(q_b, m.sample_rate, 2, &format!("{} f{f} Q31", m.name));
+                assert_adts_valid(f_b, m.sample_rate, 2, &format!("{} f{f} FPE", m.name));
+                q_adts.extend_from_slice(q_b);
+                f_adts.extend_from_slice(f_b);
+            }
+            let row = Row {
+                material: m.name,
+                sample_rate: m.sample_rate,
+                frames: m.frames,
+                q_len: q_adts.len(),
+                q_hash: p0b_fnv1a64(&q_adts),
+                f_len: f_adts.len(),
+                f_hash: p0b_fnv1a64(&f_adts),
+            };
+            println!(
+                "R21B-BASELINE {} sr={} frames={} q_len={} q_hash={:#018x} f_len={} f_hash={:#018x}",
+                row.material,
+                row.sample_rate,
+                row.frames,
+                row.q_len,
+                row.q_hash,
+                row.f_len,
+                row.f_hash,
+            );
+            rows.push(row);
+        }
+        // Pinned expectations (recorded 2026-11-21, aarch64-apple-darwin,
+        // toolchain 1.99.1; byte lengths are platform-neutral pins, hashes
+        // pin exact ADTS content on the reference platform per the
+        // production_baseline.rs convention).
+        let expected: &[(&str, u32, u32, usize, u64, usize, u64)] = &[
+            (
+                "sine-stereo",
+                48000,
+                49,
+                3147,
+                0x8921_b76c_2eb4_297e,
+                3147,
+                0x8921_b76c_2eb4_297e,
+            ),
+            (
+                "onset-stereo",
+                48000,
+                49,
+                2359,
+                0x2a6c_a107_a2f0_ba5d,
+                2359,
+                0x2a6c_a107_a2f0_ba5d,
+            ),
+            (
+                "stepdown-stereo",
+                48000,
+                49,
+                2236,
+                0xc5e3_cf81_d7c9_051d,
+                2236,
+                0xc5e3_cf81_d7c9_051d,
+            ),
+            (
+                "multitone-stereo",
+                48000,
+                32,
+                2846,
+                0x12b8_5b86_7b81_65e4,
+                2846,
+                0x12b8_5b86_7b81_65e4,
+            ),
+            (
+                "tonal-noise-stereo",
+                48000,
+                26,
+                10645,
+                0x09c8_010f_bb56_535b,
+                10645,
+                0x09c8_010f_bb56_535b,
+            ),
+            (
+                "quiet-sine-stereo",
+                48000,
+                32,
+                2709,
+                0xcaf0_4c85_7e5d_6686,
+                2709,
+                0x3aaf_db40_df87_98e6,
+            ),
+            (
+                "sine-stereo-44100",
+                44100,
+                32,
+                1968,
+                0x3719_4169_f53b_1234,
+                1968,
+                0x3719_4169_f53b_1234,
+            ),
+            (
+                "onset-stereo-44100",
+                44100,
+                32,
+                1220,
+                0x66dc_3820_6189_19ee,
+                1220,
+                0x66dc_3820_6189_19ee,
+            ),
+            (
+                "silence-stereo",
+                48000,
+                8,
+                120,
+                0x73f8_cdbf_8e69_830d,
+                120,
+                0x73f8_cdbf_8e69_830d,
+            ),
+            (
+                "probe-panned-48k",
+                48000,
+                12,
+                686,
+                0xc032_917a_b7b3_ad8f,
+                691,
+                0x6dbb_d0d6_0b26_ecfc,
+            ),
+            (
+                "probe-outphase-48k",
+                48000,
+                12,
+                672,
+                0xa727_d13c_20dc_a705,
+                682,
+                0xa5bb_f197_1dde_9932,
+            ),
+            (
+                "probe-centred-48k",
+                48000,
+                12,
+                667,
+                0x14d0_9c29_47d2_6449,
+                667,
+                0x14d0_9c29_47d2_6449,
+            ),
+            (
+                "probe-narrow-48k",
+                48000,
+                12,
+                1336,
+                0xf9f5_6aed_5d54_7f12,
+                1330,
+                0x75b8_344e_ed9d_a453,
+            ),
+            (
+                "probe-quiet-48k",
+                48000,
+                12,
+                1060,
+                0x5e44_589b_6ef2_dc74,
+                1060,
+                0x5e44_589b_6ef2_dc74,
+            ),
+            (
+                "probe-panned-44100",
+                44100,
+                12,
+                717,
+                0xb809_7967_e420_9627,
+                728,
+                0xc22e_8852_3a89_bfbf,
+            ),
+        ];
+        let total_frames: usize = rows.iter().map(|r| r.frames as usize).sum();
+        assert_eq!(total_frames, 381, "decision corpus frame accounting");
+        assert_eq!(rows.len(), 15, "decision corpus material count");
+        assert_eq!(expected.len(), 15, "pinned baseline material count");
+        for row in &rows {
+            let (_, want_sr, want_frames, want_q_len, want_q_hash, want_f_len, want_f_hash) =
+                expected
+                    .iter()
+                    .find(|(name, _, _, _, _, _, _)| *name == row.material)
+                    .copied()
+                    .unwrap_or_else(|| panic!("baseline: unexpected material {}", row.material));
+            assert_eq!(row.sample_rate, want_sr, "{}: sample rate", row.material);
+            assert_eq!(row.frames, want_frames, "{}: frame count", row.material);
+            assert_eq!(
+                row.q_len, want_q_len,
+                "{}: Q31 ADTS byte length",
+                row.material
+            );
+            assert_eq!(
+                row.f_len, want_f_len,
+                "{}: FPE ADTS byte length",
+                row.material
+            );
+            // Exact ADTS content is pinned on the reference platform; other
+            // targets keep the platform-neutral length/frame pins and report.
+            if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+                assert_eq!(row.q_hash, want_q_hash, "{}: Q31 ADTS hash", row.material);
+                assert_eq!(row.f_hash, want_f_hash, "{}: FPE ADTS hash", row.material);
+            } else {
+                eprintln!(
+                    "{}: exact ADTS hashes not enforced on this target; \
+                     byte length and frame count pinned",
+                    row.material
+                );
+            }
+        }
+        // Evidence digest: canonical serializations hashed deterministically.
+        let c = corpus();
+        let mut canon: Vec<String> = sorted_evidences(&c.evidences)
+            .into_iter()
+            .map(|e| e.canonical_string())
+            .collect();
+        canon.sort();
+        let joined = canon.join("\n");
+        let digest = p0b_fnv1a64(joined.as_bytes());
+        println!(
+            "R21B-EVIDENCE-DIGEST rows={} fnv1a64={:#018x}",
+            canon.len(),
+            digest
+        );
+        assert_eq!(canon.len(), 30, "evidence population");
+        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+            assert_eq!(digest, 0x0544_1ee2_9087_55aa, "canonical evidence digest");
+        } else {
+            eprintln!("canonical evidence digest not enforced on this target: {digest:#018x}");
+        }
+    }
+
+    #[test]
+    fn r21b_p0b_canonical_evidence_is_emitted() {
+        // P0-C N3: durable, inspectable representation of the complete
+        // canonical evidence rows (G-1 BandRow emission model).
+        //
+        // Provenance: each row is `FindingEvidence::canonical_string()` —
+        // deterministic serialization (fixed field order, decimal integers,
+        // bracketed decimal line vectors, `|`-joined `Debug` trace chains,
+        // `n/a` for absent optionals, no map iteration / pointer / float
+        // formatting) over values recorded from production-validated harness
+        // state (`build_frame_evidences` reads `analyze_frame` locals after
+        // the replay-equality gates; it never feeds a predicate). Includes
+        // all required per-finding operands (IS both arms), stateless margins
+        // (I1/I2/I3/I8/I10), MS operands/margins/`B_closed`/use, full frame
+        // trace chains both arms, and Class B line vectors (`spec_off..spec_end`
+        // Q31 lines both channels both arms). Unsupported-frame representation
+        // is preserved (`unsupported=1`, `DomainUnsupported`,
+        // `ms_supported=0` for F-01; never a pass, counted once in frames and
+        // twice in findings). Digest findings (`band == -1`) would record
+        // explicit `None`s (this corpus has 0 digest diffs, so the path is
+        // documented but unexercised).
+        //
+        // Generation: `cargo test --locked --lib
+        // r21b_p0b_canonical_evidence_is_emitted -- --nocapture` from `rust/`
+        // prints one `R21B-CANONICAL <unique-id>` header plus the full
+        // multi-line canonical row per finding in deterministic sorted order.
+        // The test re-hashes the rows with the same procedure as
+        // `r21b_p0b_byte_baseline_is_pinned` and pins the existing digest
+        // baseline `0x0544_1ee2_9087_55aa` (reference platform). No decision,
+        // bound, envelope, routing, or numerical behaviour is changed.
+        let c = corpus();
+        assert_eq!(c.evidences.len(), 30, "evidence population");
+        let sorted = sorted_evidences(&c.evidences);
+        let uids = unique_evidence_ids(&sorted);
+        assert_eq!(uids.len(), sorted.len(), "one id per row");
+        for (uid, ev) in uids.iter().zip(sorted.iter()) {
+            // Header carries the deterministic unique id; the body is the
+            // complete canonical row (all operands/margins/traces/vectors).
+            println!("R21B-CANONICAL {uid}");
+            println!("{}", ev.canonical_string());
+        }
+        // Reproduce the pinned digest baseline byte-for-byte.
+        let mut canon: Vec<String> = sorted.iter().map(|e| e.canonical_string()).collect();
+        canon.sort();
+        let joined = canon.join("\n");
+        let digest = p0b_fnv1a64(joined.as_bytes());
+        println!(
+            "R21B-CANONICAL-DIGEST rows={} fnv1a64={:#018x}",
+            canon.len(),
+            digest
+        );
+        assert_eq!(canon.len(), 30, "evidence population");
+        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+            assert_eq!(
+                digest, 0x0544_1ee2_9087_55aa,
+                "canonical evidence digest (preserved baseline)"
+            );
+        } else {
+            eprintln!("canonical evidence digest not enforced on this target: {digest:#018x}");
+        }
+    }
+
+    #[test]
+    fn r21b_p0b_stable_identifiers_are_unique_and_deterministic() {
+        // P0-C N4: deterministic identifiers uniquely identify each finding.
+        // Original labels (`stable_id` = `{material}:f{frame}:b{band}`) are
+        // preserved unchanged (they appear in the canonical string and in all
+        // historical prints); uniqueness comes from the appended per-label
+        // ordinal in sorted order (`unique_evidence_ids`). F-01/F-02 share
+        // `quiet-sine-stereo:f16:b13` and are disambiguated by ordinal + the
+        // retained `detail` tie-break. No classification or decision semantic
+        // is changed.
+        let c = corpus();
+        assert_eq!(c.evidences.len(), 30, "evidence population");
+        let sorted = sorted_evidences(&c.evidences);
+        let uids = unique_evidence_ids(&sorted);
+        assert_eq!(uids.len(), 30, "one id per finding");
+        // Uniqueness across the evidence corpus.
+        {
+            use std::collections::BTreeSet;
+            let set: BTreeSet<&String> = uids.iter().collect();
+            assert_eq!(set.len(), 30, "unique identifiers are distinct");
+        }
+        // Original labels preserved as prefixes.
+        for (uid, ev) in uids.iter().zip(sorted.iter()) {
+            let sid = ev.stable_id();
+            assert!(
+                uid.starts_with(&format!("{sid}#")),
+                "{uid}: preserves stable label {sid}"
+            );
+        }
+        // The known collision is resolved: exactly one stable label appears
+        // twice (F-01/F-02), with distinct unique ids.
+        {
+            use std::collections::BTreeMap;
+            let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+            for ev in &sorted {
+                *counts.entry(ev.stable_id()).or_insert(0) += 1;
+            }
+            let dupes: Vec<(&String, &usize)> = counts.iter().filter(|(_, &n)| n > 1).collect();
+            assert_eq!(dupes.len(), 1, "exactly one colliding stable label");
+            assert_eq!(
+                dupes[0].0, "quiet-sine-stereo:f16:b13",
+                "collision is F-01/F-02"
+            );
+            assert_eq!(*dupes[0].1, 2, "F-01/F-02 share one frame-band");
+            let mut pair: Vec<&String> = uids
+                .iter()
+                .filter(|u| u.starts_with("quiet-sine-stereo:f16:b13#"))
+                .collect();
+            pair.sort();
+            assert_eq!(pair.len(), 2, "two unique ids for F-01/F-02");
+            assert_ne!(pair[0], pair[1], "F-01/F-02 unique ids differ");
+        }
+        // Determinism: repeated executions produce identical identifiers.
+        let a = run_corpus();
+        let b = run_corpus();
+        let sa = unique_evidence_ids(&sorted_evidences(&a.evidences));
+        let sb = unique_evidence_ids(&sorted_evidences(&b.evidences));
+        assert_eq!(sa, sb, "unique identifiers identical across runs");
+        assert_eq!(sa, uids, "identifiers stable vs cached corpus");
+        println!("R21B-UNIQUE-IDS rows={} unique={}", uids.len(), uids.len());
+    }
+
+    #[test]
     fn r21b_tier_b_pinned_c_parity_blocked() {
-        // The pinned C reference remains an explicit external dependency.
-        // Tier-B C parity stays INCOMPLETE / BLOCKED: no pass is
-        // manufactured, no proxy is silently substituted. Unblocking needs
-        // the pinned `fdk-aac` C reference provisioned plus the R2.1-B IS/MS
-        // oracle dumps (`intensity` books/scales/masks and `ms_stereo`
-        // digests/masks per frame); resolution is required before the
-        // applicable later acceptance gate.
         match std::env::var("PINNED_C_REF") {
             Err(_) => {
                 println!(
