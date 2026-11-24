@@ -1,0 +1,4481 @@
+Fresh M1 verification for independent-review bundle
+2026-11-16T23:23:37Z
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+cargo 1.99.1 (5f94df478 2026-08-27)
+arm64
+b188415e3c16dbf00706984858c6a568c9b705ff
+
+$ cargo fmt --all -- --check
+[exit=0]
+
+$ cargo test --locked --lib fpe
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-074ceb3734cb5b4c)
+
+running 20 tests
+test aac_enc::fpe::constants::tests::float_constants_equal_q31_over_2_31_exactly ... ok
+test aac_enc::config::tests::with_psy_engine_builder_selects_fpe_and_preserves_other_fields ... ok
+test aac_enc::fpe::constants::tests::clip_constants_match_sfb_config_accessors ... ok
+test aac_enc::fpe::constants::tests::pcm_noise_constant_reproduces_per_band_floors_exactly ... ok
+test aac_enc::fpe::constants::tests::tabulated_mask_factors_are_fractions_and_match_stored ... ok
+test aac_enc::fpe::tests::differential::fresh_fpe_state_init_matches_q31 ... ok
+test aac_enc::fpe::tests::differential::committed_mdct_vectors_single_frame ... ok
+test aac_enc::fpe::tests::differential::onset_stereo_long_short_transitions_and_stale_ms_ld ... ok
+test aac_enc::stream_driver::fpe_seam_tests::default_selection_is_q31_and_allocates_q31_state_only ... ok
+test aac_enc::fpe::tests::differential::mixed_silent_active_pair ... ok
+test aac_enc::fpe::tests::differential::stepdown_stereo_offset_transition ... ok
+test aac_enc::fpe::tests::differential::mono_transients_click_impulse_edge ... ok
+test aac_enc::stream_driver::fpe_seam_tests::fpe_selection_allocates_fpe_state_only ... ok
+test aac_enc::fpe::tests::differential::pow2_boundary_energies ... ok
+test aac_enc::fpe::tests::differential::stress_and_full_scale_edges ... ok
+test aac_enc::fpe::tests::differential::rate_44100_sine_and_onset ... ok
+test aac_enc::fpe::tests::differential::silence_and_near_silence ... ok
+test aac_enc::fpe::tests::differential::sustained_tonal_and_noise ... ok
+test aac_enc::stream_driver::fpe_seam_tests::fpe_selected_streams_are_byte_identical_to_q31 ... ok
+test aac_enc::fpe::tests::differential::real_music_and_speech ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 381 filtered out; finished in 1.69s
+
+[exit=0]
+
+$ cargo test --release --locked --lib production_baseline -- --nocapture
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+   Compiling ferrite-aac v0.4.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `release` profile [optimized] target(s) in 5.81s
+     Running unittests src/lib.rs (target/release/deps/ferrite_aac-3f06558cb1c0c1f7)
+
+running 2 tests
+test aac_enc::production_baseline::production_default_profile_vbr6_music_baseline_is_unchanged ... ok
+test aac_enc::production_baseline::production_f32_corpus_baseline_is_unchanged ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 399 filtered out; finished in 0.22s
+
+[exit=0]
+
+$ cargo test --locked --lib -- --skip m5a_decode_check --skip m55_streams_match_c_reference --skip phase1_frontend_agreement_sine_f5 --skip phase1e_sine_f5_band16_residue --skip phase1e_onset_f24_bands_causality --skip phase1f_multitone_f1_no_live_divergence --skip phase1f_stepdown_f1_no_live_divergence --skip phase1g_long_flips_residue --skip phase1i_sine44_f5_tier_b --skip phase1i_multitone_f5_tier_b --skip phase1_full_stream_parity --skip intensity_probe_c_oracle_parity --skip intensity_probe_wav_parity --skip intensity_probe_adts_decodes --skip m511_profile_loop
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-074ceb3734cb5b4c)
+
+running 386 tests
+test aac_enc::adts::tests::malformed_frame_error_is_descriptive ... ok
+test aac_enc::adts::tests::mono_48k_header_matches_reference_encoder ... ok
+test aac_enc::adts::tests::header_fields_round_trip ... ok
+test aac_enc::adts::tests::stereo_48k_header_matches_reference_encoder ... ok
+test aac_enc::adts::tests::sample_rate_index_covers_encoder_whitelist ... ok
+test aac_enc::bitcount::tests::s5_all_zero_band_sections ... ok
+test aac_enc::adts::tests::rejects_bad_modes_and_oversize_frames ... ok
+test aac_enc::bitcount::tests::s5_synthetic_is_section ... ok
+test aac_enc::bitcount::tests::s5_synthetic_pns_section ... ok
+test aac_enc::bitcount::tests::stage2_candidate_scan_tie_break ... ok
+test aac_enc::bitcount::tests::s5_constants_match_reference ... ok
+test aac_enc::bitcount::tests::s5_count_values_matches_bit_count ... ok
+test aac_enc::bitcount::tests::s5_bit_count_dispatch_and_kernels ... ok
+test aac_enc::bitcount::tests::s5_scf_skip_forward_saves_bits ... ok
+test aac_enc::bitenc::tests::s7_code_values_rejects_invalid_books_widths_values ... ok
+test aac_enc::bitenc::tests::s7_constants_match_reference ... ok
+test aac_enc::bitenc::tests::s7_emitted_bits_match_s5_counters_on_probe_grid ... ok
+test aac_enc::bitenc::tests::s7_pns_and_is_walks_use_primitives_exactly ... ok
+test aac_enc::bitenc::tests::s7_section_headers_match_side_info_rule ... ok
+test aac_enc::bitenc::tests::s7_writer_packs_msb_first ... ok
+test aac_enc::bitenc::tests::s7_writer_rejects_bad_inputs_and_overflow ... ok
+test aac_enc::block_switch::tests::initial_state_matches_init_block_switching ... ok
+test aac_enc::block_switch::tests::lfe_path_freezes_history ... ok
+test aac_enc::bitcount::tests::s5_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::bitenc::tests::s7_probe_transcript_matches_c_bit_exact ... ok
+test aac_enc::block_switch::tests::sub_threshold_signal_never_triggers ... ok
+test aac_enc::block_switch::tests::sync_merge_table_spot_checks ... ok
+test aac_enc::block_switch::tests::sync_short_tie_goes_right ... ok
+test aac_enc::channel_map::tests::channel_config_matches_get_channel_config ... ok
+test aac_enc::channel_map::tests::discriminants_match_fdk_audio_h ... ok
+test aac_enc::channel_map::tests::from_channel_count_picks_first_matching_row ... ok
+test aac_enc::channel_map::tests::mode_table_matches_channel_map_cpp ... ok
+test aac_enc::channel_map::tests::only_mono_mode_is_mono ... ok
+test aac_enc::config::tests::accepts_full_sample_rate_whitelist ... ok
+test aac_enc::config::tests::audio_specific_config_covers_channel_configs ... ok
+test aac_enc::config::tests::audio_specific_config_covers_rate_table ... ok
+test aac_enc::config::tests::audio_specific_config_matches_m75_cases ... ok
+test aac_enc::config::tests::effective_bandwidth_respects_sample_rate ... ok
+test aac_enc::config::tests::error_display_is_informative ... ok
+test aac_enc::config::tests::explicit_profile_selection_and_defaults ... ok
+test aac_enc::config::tests::nominal_bitrate_uses_effective_channels ... ok
+test aac_enc::config::tests::primary_target_derivations ... ok
+test aac_enc::config::tests::psy_engine_defaults_to_q31_in_every_constructor ... ok
+test aac_enc::block_switch::tests::silence_never_triggers ... ok
+test aac_enc::config::tests::rejects_out_of_plane_parameters ... ok
+test aac_enc::config::tests::vbr6_inherits_vbr5_except_bandwidth ... ok
+test aac_enc::config::tests::vbr_mode_numbers_and_parsing ... ok
+test aac_enc::config::tests::vbr_profiles_match_upstream_table ... ok
+test aac_enc::config::tests::with_psy_engine_builder_selects_fpe_and_preserves_other_fields ... ok
+test aac_enc::encoder::tests::config_scope_gates ... ok
+test aac_enc::encoder::tests::double_flush_and_post_finish_push_fail ... ok
+test aac_enc::encoder::tests::empty_and_partial_flush_behaves ... ok
+test aac_enc::encoder::tests::empty_input_flush_emits_valid_stream ... ok
+test aac_enc::encoder::tests::flush_failure_poisons_and_emits_nothing ... ok
+test aac_enc::encoder::tests::frame_failure_display_and_source_preserve_cause ... ok
+test aac_enc::encoder::tests::default_profile_is_vbr6 ... ok
+test aac_enc::encoder::tests::outcome_mapping_table ... ok
+test aac_enc::encoder::tests::poisoned_encoder_rejects_all_operations ... ok
+test aac_enc::encoder::tests::frame_indices_are_sequential ... ok
+test aac_enc::block_switch::tests::oracle_window_decisions_match_exactly ... ok
+test aac_enc::encoder::tests::push_failure_poisons_and_discards_in_call_frames ... ok
+test aac_enc::encoder::tests::raw_payload_rejects_malformed_frames ... ok
+test aac_enc::encoder::tests::raw_payload_borrows_bytes_after_adts_header ... ok
+test aac_enc::encoder::tests::vbr5_baseline_unchanged_and_vbr6_differs_only_in_bandwidth ... ok
+test aac_enc::encoder::tests::vbr6_bandwidth_propagates_to_psy_and_qc ... ok
+test aac_enc::energy::tests::ld_data_conventions ... ok
+test aac_enc::energy::tests::max_scale_spec_matches_clz_rule ... ok
+test aac_enc::energy::tests::rescale_shifts_mirror_psy_main ... ok
+test aac_enc::fpe::constants::tests::clip_constants_match_sfb_config_accessors ... ok
+test aac_enc::fpe::constants::tests::float_constants_equal_q31_over_2_31_exactly ... ok
+test aac_enc::fpe::constants::tests::pcm_noise_constant_reproduces_per_band_floors_exactly ... ok
+test aac_enc::fpe::constants::tests::tabulated_mask_factors_are_fractions_and_match_stored ... ok
+test aac_enc::encoder::tests::unaligned_input_rejected_and_recoverable ... ok
+test aac_enc::fpe::tests::differential::fresh_fpe_state_init_matches_q31 ... ok
+test aac_enc::block_switch::tests::speech_clean_f107_attack_boundary_is_float_limited ... ok
+test aac_enc::encoder::tests::split_input_matches_single_push ... ok
+test aac_enc::bitcount::tests::s5_quantizer_envelope_holds ... ok
+test aac_enc::fpe::tests::differential::committed_mdct_vectors_single_frame ... ok
+test aac_enc::bitenc::tests::s7_corpus_payloads_match_c_and_s5 ... ok
+test aac_enc::bitcount::tests::s5_corpus_exact ... ok
+test aac_enc::fpe::tests::differential::mixed_silent_active_pair ... ok
+test aac_enc::bitcount::tests::s5_scratch_reuse_is_bit_exact ... ok
+test aac_enc::fpe::tests::differential::onset_stereo_long_short_transitions_and_stale_ms_ld ... ok
+test aac_enc::fpe::tests::differential::mono_transients_click_impulse_edge ... ok
+test aac_enc::frame::tests::s8_constants_match_reference ... ok
+test aac_enc::bitcount::tests::stage2_compacted_candidates_match_reference ... ok
+test aac_enc::frame::tests::s8_fill_sizing_matches_s6_counter ... ok
+test aac_enc::frame::tests::s8_global_gain_formula ... ok
+test aac_enc::frame::tests::s8_ics_info_widths_and_values ... ok
+test aac_enc::fpe::tests::differential::pow2_boundary_energies ... ok
+test aac_enc::frame::tests::s8_ms_some_costs_mask_bits ... ok
+test aac_enc::frame::tests::s8_rejects_unsupported_syntax_and_elements ... ok
+test aac_enc::frame::tests::s8_static_agreement_accepts_post_crash_static ... ok
+test aac_enc::frame::tests::s8_tns_round_trip_matches_static_count ... ok
+test aac_enc::intensity::tests::inv_int_matches_reference_table_edges ... ok
+test aac_enc::intensity::tests::max_scale_matches_clz_rule ... ok
+test aac_enc::m5b_measure::m5b_tests::m5b_dump_inputs ... ok
+test aac_enc::fpe::tests::differential::rate_44100_sine_and_onset ... ok
+test aac_enc::fpe::tests::differential::stepdown_stereo_offset_transition ... ok
+test aac_enc::pcm::tests::empty_stream_emits_delay_frames ... ok
+test aac_enc::pcm::tests::emitted_counts_match_observed_reference_runs ... ok
+test aac_enc::pcm::tests::exact_frame_input_still_flushes_delay ... ok
+test aac_enc::pcm::tests::invalid_usage_is_rejected ... ok
+test aac_enc::pcm::tests::irregular_chunks_preserve_samples_and_order ... ok
+test aac_enc::frame::tests::s8_corpus_elements_match_c_bit_exact ... ok
+test aac_enc::pcm::tests::large_single_push_matches_chunked_and_compacts_once ... ok
+test aac_enc::pe::tests::s1_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::pe::tests::s1_calc_sfb_pe_covers_both_ld_ratio_branches ... ok
+test aac_enc::pe::tests::s1_form_factor_zero_band_and_tail_sentinel ... ok
+test aac_enc::fpe::tests::differential::stress_and_full_scale_edges ... ok
+test aac_enc::pe::tests::s1_intensity_branch_contributes_nothing ... ok
+test aac_enc::pe::tests::s1_ms_steering_drives_ch1_patch ... ok
+test aac_enc::pe::tests::s1_pe_constants_match_reference_literals ... ok
+test aac_enc::pe::tests::s1_form_factor_matches_oracle ... ok
+test aac_enc::pe::tests::s1_pe_offset_is_added_verbatim ... ok
+test aac_enc::pe::tests::s1_prepare_clamps_estimate_to_band_width ... ok
+test aac_enc::pe::tests::s1_scf_dpcm_cost_table ... ok
+test aac_enc::pe::tests::s1_weighting_patch_gate_needs_prior_frame ... ok
+test aac_enc::encoder::tests::all_profiles_encode_mono_and_stereo ... ok
+test aac_enc::pe::tests::s1_weighting_short_element_arms_patch_state ... ok
+test aac_enc::pe::tests::s1_weighting_silence_stays_unpatched ... ok
+test aac_enc::pe::tests::vbr_pe_offset_matches_c_reference ... ok
+test aac_enc::pe::tests::s1_geo_and_inputs_are_self_consistent ... ok
+test aac_enc::pe::tests::s1_pe_matches_oracle_with_injected_state ... ok
+test aac_enc::psy::tests::d022_lfe_short_partner_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_mismatched_cpe_sequences_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_right_lfe_short_rejected - should panic ... ok
+test aac_enc::psy::tests::d022_valid_long_lfe_ok ... ok
+test aac_enc::psy::tests::d022_valid_matching_long_cpe_ok ... ok
+test aac_enc::phase1b::phase1b_isolated_differential ... ok
+test aac_enc::psy::tests::d022_valid_matching_short_cpe_ok ... ok
+test aac_enc::psy::tests::lfe_path_skips_tns_and_preecho ... ok
+test aac_enc::psy::tests::long_block_ms_path_unchanged ... ok
+test aac_enc::pcm::tests::frame_count_matches_reference_formula ... ok
+test aac_enc::fpe::tests::differential::silence_and_near_silence ... ok
+test aac_enc::psy::tests::short_grouped_ms_saturating_mapping ... ok
+test aac_enc::psy::tests::short_grouped_ms_equivalence_multiple_patterns ... ok
+test aac_enc::psy_config::tests::all_validated_snapshots_parse ... ok
+test aac_enc::psy_config::tests::every_profile_resolves_to_exact_snapshot ... ok
+test aac_enc::psy::tests::short_stereo_grouped_ms_integration ... ok
+test aac_enc::psy_config::tests::unsupported_combination_panics - should panic ... ok
+test aac_enc::q31::tests::primitives_match_c_semantics ... ok
+test aac_enc::q31::tests::s1_kernels_match_c_anchors ... ok
+test aac_enc::quant::tests::dispatch_backend_matches_arch_and_features ... ok
+test aac_enc::quant::tests::dist_census_early_out_ignores_stale_output_suffix ... ok
+test aac_enc::quant::tests::dist_max_quant_gate_exact ... ok
+test aac_enc::quant::tests::dist_min_quant_takes_early_out ... ok
+test aac_enc::quant::tests::dist_zero_band_reads_sentinel ... ok
+test aac_enc::quant::tests::fixmuldiv_widths_match_reference ... ok
+test aac_enc::quant::tests::probe_table_anchors_hold ... ok
+test aac_enc::quant::tests::inv_quantize_out_of_envelope_panics_loudly - should panic ... ok
+test aac_enc::quant::tests::quantize_sign_symmetry ... ok
+test aac_enc::quant::tests::qprobe_transcript_exact ... ok
+test aac_enc::quant::tests::quantize_zero_fast_path ... ok
+test aac_enc::quant_bench::tests::timing_guard_allows_normal_build ... ok
+test aac_enc::psy::tests::short_grouped_ms_ignores_stale_history ... ok
+test aac_enc::quant_neon::tests::neon_calc_sfb_dist_early_out_prefix_matches ... ok
+test aac_enc::quant_neon::tests::neon_boundary_lengths ... ok
+test aac_enc::quant_neon::tests::neon_dist_violation_positions ... ok
+test aac_enc::quant_neon::tests::neon_energy_dist_matches_scalar ... ok
+test aac_enc::quant_neon::tests::neon_energy_max_quant_positions ... ok
+test aac_enc::quant_neon::tests::neon_kernel_microbench ... ignored, opt-in NEON kernel microbenchmark matrix
+test aac_enc::fpe::tests::differential::sustained_tonal_and_noise ... ok
+test aac_enc::quant_neon::tests::neon_residue_sweep_all_quantizers_and_rows ... ok
+test aac_enc::rate::tests::crash_recovery_recounts_ms_mask_under_surviving_sfb ... ok
+test aac_enc::rate::tests::r1b_seeded_fallback_matches_fresh_on_early_out ... ok
+test aac_enc::psy::tests::psy_end_to_end_matches_oracle ... ok
+test aac_enc::rate::tests::s6_adjust_bitrate_padding_chain ... ok
+test aac_enc::rate::tests::s6_bits2pe_eld_path_panics - should panic ... ok
+test aac_enc::rate::tests::s6_bits2pe_factor_paths ... ok
+test aac_enc::rate::tests::s6_calc_bits_per_frame ... ok
+test aac_enc::quant_neon::tests::neon_calc_sfb_dist_matches_scalar ... ok
+test aac_enc::quant_neon::tests::neon_quantize_lines_matches_scalar ... ok
+test aac_enc::rate::tests::s6_calc_max_envelope_and_short_min ... ok
+test aac_enc::rate::tests::s6_crash_forced_by_starvation_budget ... ok
+test aac_enc::rate::tests::s6_crash_stereo_ms_some_recounts_static_consistently ... ok
+test aac_enc::rate::tests::s6_distribute_bits_reduced_and_disabled ... ok
+test aac_enc::rate::tests::s6_exit_matrix_cases ... ok
+test aac_enc::rate::tests::s6_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::rate::tests::s6_fill_and_finalize_vectors ... ok
+test aac_enc::quant::tests::s3_corpus_exact ... ok
+test aac_enc::rate::tests::s6_init_vectors_match_oracle ... ok
+test aac_enc::rate::tests::s6_padding_chain_matches_oracle ... ok
+test aac_enc::rate::tests::s6_pe_correction_low_bit_res_taken ... ok
+test aac_enc::rate::tests::s6_pe_correction_opposite_side_reset ... ok
+test aac_enc::rate::tests::s6_q31_literals_match_probe ... ok
+test aac_enc::rate::tests::s6_reduce_and_bitres_errors ... ok
+test aac_enc::rate::tests::s6_grant_state_evolution_onset_chain ... ok
+test aac_enc::rate::tests::s6_retry_forced_by_tiny_budget ... ok
+test aac_enc::scf::tests::r1b_step3_requant_line_changing_differential ... ok
+test aac_enc::scf::tests::s4_constants_match_c_probe ... ok
+test aac_enc::rate::tests::s6_calc_max_cross_checks_s5_qmax ... ok
+test aac_enc::scf::tests::s4_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::scf::tests::r1b_s4_winners_match_fresh_quantize ... ok
+test aac_enc::scf::tests::s4_silence_all_dead ... ok
+test aac_enc::rate::tests::s6_corpus_exact ... ok
+test aac_enc::sfb::tests::active_band_semantics ... ok
+test aac_enc::rate::tests::r1b_seeded_pass0_matches_fresh_on_s6_corpus ... ok
+test aac_enc::sfb::tests::lowbr_spreading_matches_c_reference_for_vbr1_stereo ... ok
+test aac_enc::sfb::tests::oracle_config_parity_441k_and_mono ... ok
+test aac_enc::sfb::tests::oracle_config_parity_48k ... ok
+test aac_enc::sfb::tests::table_selection_and_offsets_match_init_sfb_table ... ok
+test aac_enc::static_bits::tests::s1_hand_counted_element_bases ... ok
+test aac_enc::static_bits::tests::s1_ms_some_costs_exactly_the_mask_bits ... ok
+test aac_enc::sfb::tests::all_rates_config_parity ... ok
+test aac_enc::static_bits::tests::s1_static_tamper_changes_count ... ok
+test aac_enc::static_bits::tests::s1_tns_data_bits_hand_counted ... ok
+test aac_enc::stream_driver::fpe_seam_tests::default_selection_is_q31_and_allocates_q31_state_only ... ok
+test aac_enc::scf::tests::s4_quantizer_envelope_holds ... ok
+test aac_enc::scf::tests::s4_unit_probe_exact ... ok
+test aac_enc::stream_driver::fpe_seam_tests::fpe_selection_allocates_fpe_state_only ... ok
+test aac_enc::static_bits::tests::s1_static_bits_match_oracle ... ok
+test aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_accepts_empty_records ... ok
+test aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_rejects_synthetic_entry - should panic ... ok
+test aac_enc::scf::tests::s4_corpus_exact ... ok
+test aac_enc::stream_driver::m52_tests::crash_recovered_stream_decodes ... ok
+test aac_enc::stream_driver::m52_tests::crash_recovered_frame_emits_valid_adts ... ok
+test aac_enc::stream_driver::m52_tests::m52_emit_or_fail_is_loud ... ok
+test aac_enc::stream_driver::m52_tests::m53b_transient_groups_survive ... ok
+test aac_enc::stream_driver::m52_tests::m53b_zeroing_uses_group_stride ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_44100_stereo ... ok
+test aac_enc::stream_driver::m52_tests::multi_pass_retry_and_crash_frames_are_emitted_not_skipped ... ok
+test aac_enc::stream_driver::m58_tests::m58_smoke_untimed ... ok
+test aac_enc::stream_driver::fpe_seam_tests::fpe_selected_streams_are_byte_identical_to_q31 ... ok
+test aac_enc::stream_driver::perf_tests::aac_perf_bench ... ignored, opt-in production performance benchmark; set AAC_PERF_BENCH=1
+test aac_enc::stream_driver::perf_tests::perf_vbr_selection_accepts_only_5_and_6 ... ok
+test aac_enc::stream_driver::phase1_tests::cross_frame_state_onset_f25_is_upstream_and_output_neutral ... ok
+test aac_enc::stream_driver::m52_tests::m52_all_fixtures_write_complete ... ok
+test aac_enc::stream_driver::phase1_tests::minsnr1_divergence_is_upstream_of_s2 ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_ms_grouping_saturates_like_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1_reproducibility ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_short_ms_ld_grouped_refresh ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_threshold_ld_floor_matches_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_onset441_f22_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1c_short_ms_grouped_vectors_match_regroup_oracle ... ok
+test aac_enc::stream_driver::phase1_tests::phase1f_sine_f1_live_matches_real_c ... ok
+test aac_enc::stream_driver::phase1_tests::phase1i_click_f11_tier_b ... ok
+test aac_enc::stream_driver::phase1_tests::stress_resynthesis_matches_wav ... ok
+test aac_enc::stream_driver::vbr_parity_tests::vbr_profiles_match_c_reference_init ... ok
+test aac_enc::threshold_vbr::tests::s2_adapt_min_snr_silence_is_identity ... ok
+test aac_enc::threshold_vbr::tests::s2_adapt_min_snr_updates_quiet_band_under_loud_avg ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_ms_section_raises_masked_min_snr ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_skip_and_clamp_are_exact ... ok
+test aac_enc::threshold_vbr::tests::s2_avoid_hole_spread_scaling_is_block_dependent ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_measure_empty_is_one ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_measure_matches_c_probe_anchors ... ok
+test aac_enc::threshold_vbr::tests::s2_chaos_trajectory_is_continuous_across_onset_run ... ok
+test aac_enc::threshold_vbr::tests::s2_constants_match_reference_literals ... ok
+test aac_enc::threshold_vbr::tests::s2_enfac_add_touches_active_bands_only ... ok
+test aac_enc::threshold_vbr::tests::s2_expected_values_are_checked_non_vacuously ... ok
+test aac_enc::stream_driver::phase1_tests::phase1h_d021_live_frame_reconciliation ... ok
+test aac_enc::threshold_vbr::tests::s2_full_matches_oracle_with_injected_chaos ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_long_zero_guard_fires_on_condition ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_short_minus_one_guard_fires_on_condition ... ok
+test aac_enc::threshold_vbr::tests::s2_reduce_skips_gated_bands_exactly ... ok
+test aac_enc::threshold_vbr::tests::s2_short_group_number_quirk_is_real ... ok
+test aac_enc::threshold_vbr::tests::s2_pre_enfac_plus_enfac_is_thrv_on_active_bands ... ok
+test aac_enc::threshold_vbr::tests::s2_thresh_exp_zero_threshold_and_inactive_bands ... ok
+test aac_enc::thresholds::tests::clip_cap_mirrors_shift_branches ... ok
+test aac_enc::thresholds::tests::pcm_floor_shift_accumulates_per_window ... ok
+test aac_enc::thresholds::tests::pre_echo_bypass_clamp_floor_memorize ... ok
+test aac_enc::thresholds::tests::pre_echo_reset_disables_next_frame ... ok
+test aac_enc::thresholds::tests::spreading_max_envelope_is_exact ... ok
+test aac_enc::thresholds::tests::threshold_init_is_exact_mult ... ok
+test aac_enc::threshold_vbr::tests::s2_thresh_exp_matches_oracle ... ok
+test aac_enc::tns::tests15::c_exact_rxx_reproduces_c_tns_analysis ... ok
+test aac_enc::tns::tests15::fixed_merge_matches_rxx_bit_exact ... ok
+test aac_enc::tns::tests_gain_gate::gain_gate_policy ... ok
+test aac_enc::tns::tests_gain_gate::d013_activation_margin_census ... ok
+test aac_enc::tns::tests_gain_gate::schur_gains_match_committed_within_gate ... ok
+test aac_enc::transform::tests::mdct_parity_with_reference ... ok
+test aac_enc::transform::tests::rejects_low_overlap_shape ... ok
+test aac_enc::transform::tests::ring_schedule_matches_oracle ... ok
+test aac_enc::transform::tests::silence_in_silence_out ... ok
+test aac_enc::transform::tests::staging_constants_match_psy_main ... ok
+test aac_enc::transform::tests::naive_mdct_pins_absolute_scale ... ok
+test aac_enc::transform::tests::window_tables_have_encoder_lengths ... ok
+test common::autocorr2nd::test::alternating_cplx ... ok
+test common::autocorr2nd::test::constant_ones ... ok
+test common::autocorr2nd::test::constant_zeros ... ok
+test common::bitbuffer::tests::bit_states ... ok
+test common::bitbuffer::tests::buffer ... ok
+test common::bitbuffer::tests::default ... ok
+test common::bitbuffer::tests::feed ... ok
+test common::bitbuffer::tests::get ... ok
+test common::bitbuffer::tests::init ... ok
+test common::bitbuffer::tests::init_check_buffer_size - should panic ... ok
+test common::bitbuffer::tests::init_check_buffer_size_power_of_two - should panic ... ok
+test common::bitbuffer::tests::init_check_valid_bits - should panic ... ok
+test common::bitbuffer::tests::new ... ok
+test common::bitbuffer::tests::push ... ok
+test common::bitbuffer::tests::put ... ok
+test common::bitbuffer::tests::reset ... ok
+test common::bitstream::tests::align_read ... ok
+test common::bitstream::tests::align_write ... ok
+test common::bitstream::tests::bit_states ... ok
+test common::bitstream::tests::buffer ... ok
+test common::bitstream::tests::default ... ok
+test common::bitstream::tests::feed ... ok
+test common::bitstream::tests::init ... ok
+test common::bitstream::tests::mode ... ok
+test common::bitstream::tests::new ... ok
+test common::bitstream::tests::push_back_cache ... ok
+test common::bitstream::tests::push_back_cache_too_many_bits - should panic ... ok
+test common::bitstream::tests::push_reader ... ok
+test common::bitstream::tests::push_writer ... ok
+test common::bitstream::tests::read ... ok
+test common::bitstream::tests::read_too_many_bits - should panic ... ok
+test common::bitstream::tests::reset ... ok
+test common::bitstream::tests::sync_reader ... ok
+test common::bitstream::tests::sync_writer ... ok
+test common::bitstream::tests::write ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_not_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_init_not_valid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_invalid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_none ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_repetitions ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_is_valid_none_map ... ok
+test common::channel_map_descr::tests::test_ch_map_descr_new ... ok
+test common::channel_map_descr::tests::test_channel_map_info_default ... ok
+test common::channel_map_descr::tests::test_channel_map_info_new_none ... ok
+test common::channel_map_descr::tests::test_channel_map_info_not_none ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_cicp ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_mpeg ... ok
+test common::channel_map_descr::tests::test_check_ch_map_descr_order_wav ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_channel_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_map_idx_exceeded ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_map_info_is_none ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_mpeg ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_none_table ... ok
+test common::channel_map_descr::tests::test_get_ch_map_descr_value_wav_with_valid_map ... ok
+test common::crc::tests::crc_value ... ok
+test common::crc::tests::decode ... ok
+test common::crc::tests::decode_overlapping_region ... ok
+test common::crc::tests::encode ... ok
+test common::crc::tests::init ... ok
+test common::crc::tests::new ... ok
+test common::crc::tests::reset ... ok
+test common::crc::tests::start_region ... ok
+test aac_enc::transform::tests::synthesis_matches_oracle_input ... ok
+test common::fft::fft_n2::tests::t_complex_mult ... ok
+test common::fft::fft_n2::tests::t_fft_apply_rot_vec ... ok
+test common::fft::fft_n2::tests::t_window_overlap ... ok
+test common::fft::tests::t_pi_fourth ... ok
+test common::hybrid::test_initializing_analysis ... ok
+test common::hybrid::test_initializing_synthesis ... ok
+test common::pow::tests::test_scale_factor_2_exp ... ok
+test common::qmf::qmf_fb::tests::init_analysis_fb_clear_state ... ok
+test common::qmf::qmf_fb::tests::init_analysis_fb_keep_state ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_16 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_16_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_32_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_64 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_8 ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_8_synmode ... ok
+test common::qmf::qmf_fb::tests::init_cldfb_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::init_mpsldfb_num_subbands_64 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_12 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_16 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_20 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_24 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_32 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_32_downsampled ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_40 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_64 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_8 ... ok
+test common::qmf::qmf_fb::tests::init_num_channels_invalid ... ok
+test common::qmf::qmf_fb::tests::new_qmf_instance ... ok
+test common::quantize::tests::test_inverse_quantize_band ... ok
+test common::samplerate_index::test_get_sample_rate_idx ... ok
+test aac_enc::stream_driver::is_integration_tests::intensity_probe_decisions ... ok
+test common::dct::tests::cmp_to_ref ... ok
+test aac_enc::production_baseline::production_default_profile_vbr6_music_baseline_is_unchanged ... ok
+test aac_enc::fpe::tests::differential::real_music_and_speech ... ok
+test aac_enc::production_baseline::production_f32_corpus_baseline_is_unchanged ... ok
+test aac_enc::m5g_census::m5g_tests::m5g_branch_census ... ok
+test aac_enc::stream_driver::m58_tests::simd_quant_census_corpus ... ok
+test aac_enc::m6_migration::m6_tests::m6_api_matches_driver_bytes ... ok
+test aac_enc::stream_driver::m58_tests::m58_corpus_validation ... ok
+
+test result: ok. 384 passed; 0 failed; 2 ignored; 0 measured; 15 filtered out; finished in 20.24s
+
+[exit=0]
+
+$ cargo test --locked --test production_api
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:239:12
+    |
+204 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+239 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/aac_enc/pe.rs:272:12
+    |
+262 | impl AtsElement {
+    | --------------- associated function in this implementation
+...
+272 |     pub fn new(pe_offset: i32) -> Self {
+    |            ^^^
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, and `max_sfb_per_group` are never read
+   --> src/aac_enc/psy.rs:216:9
+    |
+208 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+216 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+217 |     /// Grouped threshold log vectors (clamped).
+218 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+222 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+226 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:265:9
+    |
+261 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+265 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+266 |     /// TNS overflow shift applied.
+267 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+271 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+281 |     pub nm1: Vec<i32>,
+    |         ^^^
+282 |     /// Previous scale / enabled flag after the frame.
+283 |     pub m_nm1: i32,
+    |         ^^^^^
+284 |     /// Calc flag after the frame (0/1).
+285 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `quantize_lines_scalar` is never used
+   --> src/aac_enc/quant.rs:491:15
+    |
+491 | pub(crate) fn quantize_lines_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:630:15
+    |
+630 | pub(crate) fn calc_sfb_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_quant_energy_and_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:729:15
+    |
+729 | pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1399:9
+     |
+1398 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1399 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1403 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1404 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1405 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1406 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1213:15
+     |
+1213 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+197 |     /// Transform lines covered (1024 long, 128 short).
+198 |     lines: usize,
+    |     ^^^^^
+...
+207 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+211 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+...
+223 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+224 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+225 |     /// Spreading factors (spread-energy domain): high/low.
+226 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+227 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+228 |     allow_is: bool,
+229 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+387 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+422 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+432 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+447 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+457 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+472 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: associated functions `new` and `with_mode` are never used
+   --> src/aac_enc/stream_driver.rs:629:19
+    |
+627 | impl StreamEncoder {
+    | ------------------ associated functions in this implementation
+628 |     /// Test/gated streaming encoder with the default profile (VBR-6).
+629 |     pub(crate) fn new(sample_rate: u32, channels: usize) -> Self {
+    |                   ^^^
+...
+634 |     pub(crate) fn with_mode(sample_rate: u32, channels: usize, vbr_mode: VbrMode) -> Self {
+    |                   ^^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:687:18
+    |
+687 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:699:15
+    |
+699 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:705:15
+    |
+705 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib) generated 23 warnings
+   Compiling ferrite-aac v0.4.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running tests/production_api.rs (target/debug/deps/production_api-ff43d1672f567d37)
+
+running 6 tests
+test unsupported_configurations_fail_with_explicit_errors ... ok
+test empty_and_short_input_finalize_predictably ... ok
+test unaligned_input_is_rejected_without_poisoning_the_encoder ... ok
+test all_supported_configurations_emit_valid_adts ... ok
+test chunk_boundaries_do_not_change_the_encoded_stream ... ok
+test long_stream_completes_with_the_expected_frame_count ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.28s
+
+[exit=0]
+
+$ cargo test --locked --doc
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:239:12
+    |
+204 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+239 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/aac_enc/pe.rs:272:12
+    |
+262 | impl AtsElement {
+    | --------------- associated function in this implementation
+...
+272 |     pub fn new(pe_offset: i32) -> Self {
+    |            ^^^
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, and `max_sfb_per_group` are never read
+   --> src/aac_enc/psy.rs:216:9
+    |
+208 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+216 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+217 |     /// Grouped threshold log vectors (clamped).
+218 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+222 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+226 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:265:9
+    |
+261 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+265 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+266 |     /// TNS overflow shift applied.
+267 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+271 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+281 |     pub nm1: Vec<i32>,
+    |         ^^^
+282 |     /// Previous scale / enabled flag after the frame.
+283 |     pub m_nm1: i32,
+    |         ^^^^^
+284 |     /// Calc flag after the frame (0/1).
+285 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `quantize_lines_scalar` is never used
+   --> src/aac_enc/quant.rs:491:15
+    |
+491 | pub(crate) fn quantize_lines_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:630:15
+    |
+630 | pub(crate) fn calc_sfb_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_quant_energy_and_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:729:15
+    |
+729 | pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1399:9
+     |
+1398 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1399 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1403 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1404 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1405 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1406 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1213:15
+     |
+1213 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+197 |     /// Transform lines covered (1024 long, 128 short).
+198 |     lines: usize,
+    |     ^^^^^
+...
+207 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+211 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+...
+223 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+224 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+225 |     /// Spreading factors (spread-energy domain): high/low.
+226 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+227 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+228 |     allow_is: bool,
+229 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+387 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+422 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+432 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+447 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+457 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+472 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: associated functions `new` and `with_mode` are never used
+   --> src/aac_enc/stream_driver.rs:629:19
+    |
+627 | impl StreamEncoder {
+    | ------------------ associated functions in this implementation
+628 |     /// Test/gated streaming encoder with the default profile (VBR-6).
+629 |     pub(crate) fn new(sample_rate: u32, channels: usize) -> Self {
+    |                   ^^^
+...
+634 |     pub(crate) fn with_mode(sample_rate: u32, channels: usize, vbr_mode: VbrMode) -> Self {
+    |                   ^^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:687:18
+    |
+687 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:699:15
+    |
+699 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:705:15
+    |
+705 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib) generated 23 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+   Doc-tests ferrite_aac
+
+running 19 tests
+test src/common/crc.rs - common::crc::CrcInfo::value (line 574) ... ok
+test src/aac_enc/config.rs - aac_enc::config::EncoderConfig::audio_specific_config (line 637) ... ok
+test src/common/crc.rs - common::crc::CrcInfo::init (line 223) ... ok
+test src/common/bitstream.rs - common::bitstream::Bitstream (line 127) ... ok
+test src/aac_enc/encoder.rs - aac_enc::encoder::Encoder (line 248) ... ok
+test src/common/fft.rs - common::fft::fft (line 893) ... ok
+test src/common/crc.rs - common::crc::CrcInfo::start_region (line 310) ... ok
+test src/common/crc.rs - common::crc::CrcInfo::end_region (line 347) ... ok
+test src/common/crc.rs - common::crc::CrcInfo::reset (line 273) ... ok
+test src/common/channel_map_descr.rs - common::channel_map_descr::ChannelMapDescriptor::init (line 133) ... ok
+test src/aac_enc/encoder.rs - aac_enc::encoder::AdtsFrame::raw_payload (line 57) ... ok
+test src/common/mdct.rs - common::mdct::Mdct (line 129) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::analysis_filtering (line 587) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::analysis_filtering_slot (line 661) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::init (line 346) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::new (line 205) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::set_output_gain (line 294) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::synthesis_filtering_slot (line 1095) ... ok
+test src/common/qmf/qmf_fb.rs - common::qmf::qmf_fb::QmfFilterBank::synthesis_filtering (line 1021) ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+[exit=0]
+
+$ cargo build --locked --no-default-features
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:239:12
+    |
+204 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+239 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/aac_enc/pe.rs:272:12
+    |
+262 | impl AtsElement {
+    | --------------- associated function in this implementation
+...
+272 |     pub fn new(pe_offset: i32) -> Self {
+    |            ^^^
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, and `max_sfb_per_group` are never read
+   --> src/aac_enc/psy.rs:216:9
+    |
+208 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+216 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+217 |     /// Grouped threshold log vectors (clamped).
+218 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+222 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+226 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:265:9
+    |
+261 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+265 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+266 |     /// TNS overflow shift applied.
+267 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+271 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+281 |     pub nm1: Vec<i32>,
+    |         ^^^
+282 |     /// Previous scale / enabled flag after the frame.
+283 |     pub m_nm1: i32,
+    |         ^^^^^
+284 |     /// Calc flag after the frame (0/1).
+285 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `quantize_lines_scalar` is never used
+   --> src/aac_enc/quant.rs:491:15
+    |
+491 | pub(crate) fn quantize_lines_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:630:15
+    |
+630 | pub(crate) fn calc_sfb_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_quant_energy_and_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:729:15
+    |
+729 | pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1399:9
+     |
+1398 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1399 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1403 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1404 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1405 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1406 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1213:15
+     |
+1213 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+197 |     /// Transform lines covered (1024 long, 128 short).
+198 |     lines: usize,
+    |     ^^^^^
+...
+207 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+211 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+...
+223 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+224 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+225 |     /// Spreading factors (spread-energy domain): high/low.
+226 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+227 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+228 |     allow_is: bool,
+229 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+387 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+422 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+432 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+447 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+457 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+472 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: associated functions `new` and `with_mode` are never used
+   --> src/aac_enc/stream_driver.rs:629:19
+    |
+627 | impl StreamEncoder {
+    | ------------------ associated functions in this implementation
+628 |     /// Test/gated streaming encoder with the default profile (VBR-6).
+629 |     pub(crate) fn new(sample_rate: u32, channels: usize) -> Self {
+    |                   ^^^
+...
+634 |     pub(crate) fn with_mode(sample_rate: u32, channels: usize, vbr_mode: VbrMode) -> Self {
+    |                   ^^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:687:18
+    |
+687 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:699:15
+    |
+699 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:705:15
+    |
+705 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib) generated 23 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+[exit=0]
+
+$ cargo clippy --locked --all-targets
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+    Checking ferrite-aac v0.4.0 (/Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust)
+warning: empty line after doc comment
+   --> src/aac_enc/psy.rs:409:1
+    |
+409 | / /// Per-frame M/S working state is held inline in `process_pair`.
+410 | |
+    | |_^
+411 |   /// Lowpass-zero the float spectrum per window; report zeroSpec.
+412 |   fn lowpass_and_zero_check(
+    |   ------------------------- the comment documents this function
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#empty_line_after_doc_comments
+    = note: `#[warn(clippy::empty_line_after_doc_comments)]` on by default
+    = help: if the empty line is unintentional, remove it
+help: if the documentation should include the empty line include it in the comment
+    |
+410 | ///
+    |
+
+warning: operator precedence might not be obvious
+   --> src/aac_enc/q31.rs:143:24
+    |
+143 |     wrap32(t as i64 + ((s as i64) * (s as i64) >> 32))
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider parenthesizing your expression: `((s as i64) * (s as i64)) >> 32`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#precedence
+    = note: `#[warn(clippy::precedence)]` on by default
+
+warning: method `emitted_frames` is never used
+   --> src/aac_enc/pcm.rs:239:12
+    |
+204 | impl PcmFeeder {
+    | -------------- method in this implementation
+...
+239 |     pub fn emitted_frames(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `sfb_n_lines`, `sfb_pe`, `sfb_const_part`, and `sfb_n_active_lines` are never read
+   --> src/aac_enc/pe.rs:175:9
+    |
+173 | pub struct PeChannelData {
+    |            ------------- fields in this struct
+174 |     /// Relevant lines per band (`prepareSfbPe` output).
+175 |     pub sfb_n_lines: Vec<i32>,
+    |         ^^^^^^^^^^^
+176 |     /// PE per band (`calcSfbPe` output).
+177 |     pub sfb_pe: Vec<i32>,
+    |         ^^^^^^
+178 |     /// Constant part per band.
+179 |     pub sfb_const_part: Vec<i32>,
+    |         ^^^^^^^^^^^^^^
+180 |     /// Active lines per band.
+181 |     pub sfb_n_active_lines: Vec<i32>,
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `PeChannelData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `channels`, `const_part`, `n_active_lines`, and `offset` are never read
+   --> src/aac_enc/pe.rs:191:9
+    |
+190 | pub struct PeData {
+    |            ------ fields in this struct
+191 |     pub channels: Vec<PeChannelData>,
+    |         ^^^^^^^^
+192 |     pub pe: i32,
+193 |     pub const_part: i32,
+    |         ^^^^^^^^^^
+194 |     pub n_active_lines: i32,
+    |         ^^^^^^^^^^^^^^
+195 |     pub offset: i32,
+    |         ^^^^^^
+    |
+    = note: `PeData` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `ah_start_sfb_l` and `ah_start_sfb_s` are never read
+   --> src/aac_enc/pe.rs:224:9
+    |
+210 | pub struct AtsElement {
+    |            ---------- fields in this struct
+...
+224 |     pub ah_start_sfb_l: i32,
+    |         ^^^^^^^^^^^^^^
+225 |     pub ah_start_sfb_s: i32,
+    |         ^^^^^^^^^^^^^^
+    |
+    = note: `AtsElement` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated function `new` is never used
+   --> src/aac_enc/pe.rs:272:12
+    |
+262 | impl AtsElement {
+    | --------------- associated function in this implementation
+...
+272 |     pub fn new(pe_offset: i32) -> Self {
+    |            ^^^
+
+warning: method `preecho_prev` is never used
+   --> src/aac_enc/psy.rs:181:12
+    |
+163 | impl PsyChannel {
+    | --------------- method in this implementation
+...
+181 |     pub fn preecho_prev(&self) -> &[i32] {
+    |            ^^^^^^^^^^^^
+
+warning: fields `energy_ld`, `threshold_ld`, `min_snr`, and `max_sfb_per_group` are never read
+   --> src/aac_enc/psy.rs:216:9
+    |
+208 | pub struct GroupedOutput {
+    |            ------------- fields in this struct
+...
+216 |     pub energy_ld: Vec<f64>,
+    |         ^^^^^^^^^
+217 |     /// Grouped threshold log vectors (clamped).
+218 |     pub threshold_ld: Vec<f64>,
+    |         ^^^^^^^^^^^^
+...
+222 |     pub min_snr: Vec<i32>,
+    |         ^^^^^^^
+...
+226 |     pub max_sfb_per_group: usize,
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `GroupedOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `final_shift`, `tns_shift`, `maxscale`, `nm1`, `m_nm1`, and `calc_pre_echo` are never read
+   --> src/aac_enc/psy.rs:265:9
+    |
+261 | pub struct ChannelOutput {
+    |            ------------- fields in this struct
+...
+265 |     pub final_shift: i32,
+    |         ^^^^^^^^^^^
+266 |     /// TNS overflow shift applied.
+267 |     pub tns_shift: i32,
+    |         ^^^^^^^^^
+...
+271 |     pub maxscale: Vec<Vec<i32>>,
+    |         ^^^^^^^^
+...
+281 |     pub nm1: Vec<i32>,
+    |         ^^^
+282 |     /// Previous scale / enabled flag after the frame.
+283 |     pub m_nm1: i32,
+    |         ^^^^^
+284 |     /// Calc flag after the frame (0/1).
+285 |     pub calc_pre_echo: i32,
+    |         ^^^^^^^^^^^^^
+    |
+    = note: `ChannelOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `quantize_lines_scalar` is never used
+   --> src/aac_enc/quant.rs:491:15
+    |
+491 | pub(crate) fn quantize_lines_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:630:15
+    |
+630 | pub(crate) fn calc_sfb_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calc_sfb_quant_energy_and_dist_scalar` is never used
+   --> src/aac_enc/quant.rs:729:15
+    |
+729 | pub(crate) fn calc_sfb_quant_energy_and_dist_scalar(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `granted_dyn_bits`, `granted_pe`, `granted_pe_corr`, `bit_res_level_el`, and `bit_res_max_el` are never read
+    --> src/aac_enc/rate.rs:1399:9
+     |
+1398 | pub struct QcFrameOutput {
+     |            ------------- fields in this struct
+1399 |     pub granted_dyn_bits: i32,
+     |         ^^^^^^^^^^^^^^^^
+...
+1403 |     pub granted_pe: i32,
+     |         ^^^^^^^^^^
+1404 |     pub granted_pe_corr: i32,
+     |         ^^^^^^^^^^^^^^^
+1405 |     pub bit_res_level_el: i32,
+     |         ^^^^^^^^^^^^^^^^
+1406 |     pub bit_res_max_el: i32,
+     |         ^^^^^^^^^^^^^^
+     |
+     = note: `QcFrameOutput` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `estimate_channel_with_inv` is never used
+    --> src/aac_enc/scf.rs:1213:15
+     |
+1213 | pub(crate) fn estimate_channel_with_inv(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+197 |     /// Transform lines covered (1024 long, 128 short).
+198 |     lines: usize,
+    |     ^^^^^
+...
+207 |     clip_energy: f64,
+    |     ^^^^^^^^^^^
+...
+211 |     pcm_quant: Vec<f64>,
+    |     ^^^^^^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+...
+223 |     mask_hi: Vec<f64>,
+    |     ^^^^^^^
+224 |     mask_lo: Vec<f64>,
+    |     ^^^^^^^
+225 |     /// Spreading factors (spread-energy domain): high/low.
+226 |     mask_hi_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+227 |     mask_lo_spr: Vec<f64>,
+    |     ^^^^^^^^^^^
+228 |     allow_is: bool,
+229 |     allow_ms: bool,
+    |     ^^^^^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+387 |     pub fn lines(&self) -> usize {
+    |            ^^^^^
+...
+422 |     pub fn clip_energy(&self) -> f64 {
+    |            ^^^^^^^^^^^
+...
+432 |     pub fn pcm_quant(&self) -> &[f64] {
+    |            ^^^^^^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+...
+447 |     pub fn mask_factors(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^
+...
+457 |     pub fn mask_factors_spr(&self) -> (&[f64], &[f64]) {
+    |            ^^^^^^^^^^^^^^^^
+...
+472 |     pub fn allow_ms(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: associated functions `new` and `with_mode` are never used
+   --> src/aac_enc/stream_driver.rs:629:19
+    |
+627 | impl StreamEncoder {
+    | ------------------ associated functions in this implementation
+628 |     /// Test/gated streaming encoder with the default profile (VBR-6).
+629 |     pub(crate) fn new(sample_rate: u32, channels: usize) -> Self {
+    |                   ^^^
+...
+634 |     pub(crate) fn with_mode(sample_rate: u32, channels: usize, vbr_mode: VbrMode) -> Self {
+    |                   ^^^^^^^^^
+
+warning: fields `red_val` and `chaos_measure` are never read
+   --> src/aac_enc/threshold_vbr.rs:536:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ fields in this struct
+535 |     /// One `redVal` for long blocks, one per group for short blocks.
+536 |     pub red_val: Vec<i32>,
+    |         ^^^^^^^
+537 |     /// Post-curve chaos measure feeding `redVal`.
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `threshold_pre_enfac`, `thr_exp`, `min_snr_ld`, `spread`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:597:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+597 |     pub threshold_pre_enfac: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^^^^^^^^^^
+598 |     /// `thrExp` per channel (`THREXP`).
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+600 |     /// minSnr after `adaptMinSnr` + avoid-hole init (`MINSNR1`).
+601 |     pub min_snr_ld: Vec<Vec<i32>>,
+    |         ^^^^^^^^^^
+602 |     /// Spread after avoid-hole init (`SPREAD1`).
+603 |     pub spread: Vec<Vec<i32>>,
+    |         ^^^^^^
+604 |     /// Final avoid-hole flags (not oracle-dumped; synthetic-tested).
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_FLOOR` is never used
+   --> src/aac_enc/tns.rs:687:18
+    |
+687 | pub(crate) const GAIN_TOL_FLOOR: i64 = 8;
+    |                  ^^^^^^^^^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: function `gain_tolerance` is never used
+   --> src/aac_enc/tns.rs:699:15
+    |
+699 | pub(crate) fn gain_tolerance(want: i32) -> i64 {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `gain_within_tolerance` is never used
+   --> src/aac_enc/tns.rs:705:15
+    |
+705 | pub(crate) fn gain_within_tolerance(got: i32, want: i32) -> bool {
+    |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/bitenc.rs:420:16
+    |
+420 |             if values.len() % 4 != 0 {
+    |                ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!values.len().is_multiple_of(4)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+    = note: `#[warn(clippy::manual_is_multiple_of)]` on by default
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/bitenc.rs:433:32
+    |
+433 |             for quad in values.chunks_exact(4) {
+    |                                ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+    = note: `#[warn(clippy::chunks_exact_to_as_chunks)]` on by default
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/bitenc.rs:458:16
+    |
+458 |             if values.len() % 4 != 0 {
+    |                ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!values.len().is_multiple_of(4)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/bitenc.rs:472:32
+    |
+472 |             for quad in values.chunks_exact(4) {
+    |                                ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/bitenc.rs:503:16
+    |
+503 |             if values.len() % 4 != 0 {
+    |                ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!values.len().is_multiple_of(4)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/bitenc.rs:517:32
+    |
+517 |             for quad in values.chunks_exact(4) {
+    |                                ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/bitenc.rs:549:16
+    |
+549 |             if values.len() % 2 != 0 {
+    |                ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!values.len().is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/bitenc.rs:559:32
+    |
+559 |             for pair in values.chunks_exact(2) {
+    |                                ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<2>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/bitenc.rs:605:16
+    |
+605 |             if values.len() % 2 != 0 {
+    |                ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!values.len().is_multiple_of(2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/bitenc.rs:614:32
+    |
+614 |             for pair in values.chunks_exact(2) {
+    |                                ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<2>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:140:18
+    |
+140 |         for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+    = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator
+    |
+140 -         for j in offsets[b] as usize..offsets[b + 1] as usize {
+140 +         for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:173:18
+    |
+173 |         for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+173 -         for j in offsets[b] as usize..offsets[b + 1] as usize {
+173 +         for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:227:18
+    |
+227 |         for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+227 -         for j in offsets[b] as usize..offsets[b + 1] as usize {
+227 +         for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:264:22
+    |
+264 |             for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+264 -             for j in offsets[b] as usize..offsets[b + 1] as usize {
+264 +             for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:270:22
+    |
+270 |             for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+270 -             for j in offsets[b] as usize..offsets[b + 1] as usize {
+270 +             for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: manual implementation of `.is_multiple_of()`
+    --> src/aac_enc/frame.rs:1077:8
+     |
+1077 |     if raw_bits % 8 != 0 {
+     |        ^^^^^^^^^^^^^^^^^ help: replace with: `!raw_bits.is_multiple_of(8)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: empty line after doc comment
+    --> src/aac_enc/psy.rs:1931:5
+     |
+1931 | /     /// in their entries below.
+1932 | |
+     | |_^
+1933 |       struct KnownMaxscaleDivergence {
+     |       ------------------------------ the comment documents this struct
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#empty_line_after_doc_comments
+     = help: if the empty line is unintentional, remove it
+
+warning: the loop variable `j` is only used to index `is_mask`
+   --> src/aac_enc/intensity.rs:357:30
+    |
+357 |                     for j in start_is_sfb..=b {
+    |                              ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+357 -                     for j in start_is_sfb..=b {
+357 +                     for <item> in is_mask.iter_mut().take(b + 1).skip(start_is_sfb) {
+    |
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/pcm.rs:262:12
+    |
+262 |         if samples.len() % self.channels as usize != 0 {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!samples.len().is_multiple_of(self.channels as usize)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: the loop variable `w` is used to index `tns_active`
+   --> src/aac_enc/psy.rs:865:18
+    |
+865 |         for w in 0..nw {
+    |                  ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+865 -         for w in 0..nw {
+865 +         for (w, <item>) in tns_active.iter_mut().enumerate().take(nw) {
+    |
+
+warning: derefed type is same as origin
+    --> src/aac_enc/psy.rs:1099:22
+     |
+1099 |         let rstate = right.as_deref_mut().expect("stereo state");
+     |                      ^^^^^^^^^^^^^^^^^^^^ help: try: `right`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_option_as_deref
+     = note: `#[warn(clippy::needless_option_as_deref)]` on by default
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+    --> src/aac_enc/psy.rs:1141:8
+     |
+1141 |     q: &mut Vec<i32>,
+     |        ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#ptr_arg
+     = note: `#[warn(clippy::ptr_arg)]` on by default
+help: change this to
+     |
+1141 -     q: &mut Vec<i32>,
+1141 +     q: &mut [i32],
+     |
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+    --> src/aac_enc/psy.rs:1222:8
+     |
+1222 |     q: &mut Vec<i32>,
+     |        ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#ptr_arg
+help: change this to
+     |
+1222 -     q: &mut Vec<i32>,
+1222 +     q: &mut [i32],
+     |
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+    --> src/aac_enc/psy.rs:1309:6
+     |
+1309 |   ) -> (
+     |  ______^
+1310 | |     Vec<i32>,
+1311 | |     Vec<i32>,
+1312 | |     Vec<i32>,
+...    |
+1317 | |     Vec<f64>,
+1318 | | ) {
+     | |_^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+     = note: `#[warn(clippy::type_complexity)]` on by default
+
+warning: the loop variable `grp` is only used to index `group_len`
+    --> src/aac_enc/psy.rs:1352:20
+     |
+1352 |         for grp in 0..no_of_groups {
+     |                    ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1352 -         for grp in 0..no_of_groups {
+1352 +         for <item> in group_len.iter().take(no_of_groups) {
+     |
+
+warning: the loop variable `sfb` is only used to index `offsets`
+    --> src/aac_enc/psy.rs:1354:24
+     |
+1354 |             for sfb in 0..active + 1 {
+     |                        ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1354 -             for sfb in 0..active + 1 {
+1354 +             for <item> in offsets.iter().take(active + 1) {
+     |
+
+warning: the loop variable `grp` is only used to index `group_len`
+    --> src/aac_enc/psy.rs:1369:20
+     |
+1369 |         for grp in 0..no_of_groups {
+     |                    ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1369 -         for grp in 0..no_of_groups {
+1369 +         for <item> in group_len.iter().take(no_of_groups) {
+     |
+
+warning: the loop variable `sfb` is only used to index `src`
+    --> src/aac_enc/psy.rs:1371:24
+     |
+1371 |             for sfb in 0..active {
+     |                        ^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1371 -             for sfb in 0..active {
+1371 +             for <item> in src.iter().take(active) {
+     |
+
+warning: the loop variable `sfb` is only used to index `min_snr`
+    --> src/aac_enc/psy.rs:1388:24
+     |
+1388 |             for sfb in 0..active {
+     |                        ^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1388 -             for sfb in 0..active {
+1388 +             for <item> in min_snr.iter().take(active) {
+     |
+
+warning: the loop variable `grp` is only used to index `group_len`
+    --> src/aac_enc/psy.rs:1402:20
+     |
+1402 |         for grp in 0..no_of_groups {
+     |                    ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1402 -         for grp in 0..no_of_groups {
+1402 +         for <item> in group_len.iter().take(no_of_groups) {
+     |
+
+warning: this function has too many arguments (8/7)
+   --> src/aac_enc/scf.rs:298:1
+    |
+298 | / pub fn calc_sfb_relevant_lines(
+299 | |     form_factor_ld: &[i32],
+300 | |     energy_ld: &[i32],
+301 | |     threshold_ld: &[i32],
+...   |
+306 | |     out: &mut Vec<i32>,
+307 | | ) {
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#too_many_arguments
+    = note: `#[warn(clippy::too_many_arguments)]` on by default
+
+warning: the loop variable `sfb` is used to index `offsets`
+   --> src/aac_enc/sfb.rs:276:20
+    |
+276 |         for sfb in 0..cnt {
+    |                    ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+276 -         for sfb in 0..cnt {
+276 +         for (sfb, <item>) in offsets.iter().enumerate().take(cnt) {
+    |
+
+warning: the loop variable `sfb` is used to index `offsets`
+   --> src/aac_enc/sfb.rs:284:20
+    |
+284 |         for sfb in 0..cnt {
+    |                    ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+284 -         for sfb in 0..cnt {
+284 +         for (sfb, <item>) in offsets.iter().enumerate().take(cnt) {
+    |
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/static_bits.rs:179:40
+    |
+179 |     debug_assert!(sfb_per_group > 0 && sfb_cnt % sfb_per_group == 0);
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `sfb_cnt.is_multiple_of(sfb_per_group)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: the loop variable `g` is only used to index `group_len`
+   --> src/aac_enc/stream_driver.rs:113:14
+    |
+113 |     for g in 0..groups as usize {
+    |              ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+113 -     for g in 0..groups as usize {
+113 +     for <item> in group_len.iter().take(groups as usize) {
+    |
+
+warning: the loop variable `line` is only used to index `spec`
+   --> src/aac_enc/stream_driver.rs:135:25
+    |
+135 |             for line in s..e {
+    |                         ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+135 -             for line in s..e {
+135 +             for <item> in spec.iter_mut().take(e).skip(s) {
+    |
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+   --> src/aac_enc/stream_driver.rs:963:66
+    |
+963 |               let (offsets, e_stored, t_stored, spread, spec_f64): (
+    |  __________________________________________________________________^
+964 | |                 Vec<i32>,
+965 | |                 Vec<i32>,
+966 | |                 Vec<i32>,
+967 | |                 Vec<i32>,
+968 | |                 Vec<f64>,
+969 | |             ) = if short {
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+warning: manual `RangeInclusive::contains` implementation
+   --> src/aac_enc/tns.rs:473:19
+    |
+473 |     debug_assert!(max_lag >= 1 && max_lag <= 12);
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(1..=12).contains(&max_lag)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_range_contains
+    = note: `#[warn(clippy::manual_range_contains)]` on by default
+
+warning: it looks like you're manually copying between slices
+   --> src/aac_enc/tns.rs:485:5
+    |
+485 | /     for lag in 1..=max_lag {
+486 | |         out[lag] = acc[lag];
+487 | |     }
+    | |_____^ help: try replacing the loop by: `out[1..(max_lag + 1)].copy_from_slice(&acc[1..(max_lag + 1)]);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_memcpy
+    = note: `#[warn(clippy::manual_memcpy)]` on by default
+
+warning: the loop variable `i` is only used to index `index`
+   --> src/aac_enc/tns.rs:678:14
+    |
+678 |     for i in 0..order {
+    |              ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+678 -     for i in 0..order {
+678 +     for <item> in index.iter().take(order) {
+    |
+
+warning: the loop variable `f` is used to index `ranges`
+   --> src/aac_enc/tns.rs:880:14
+    |
+880 |     for f in 0..nf {
+    |              ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+880 -     for f in 0..nf {
+880 +     for (f, <item>) in ranges.iter().enumerate().take(nf) {
+    |
+
+warning: the loop variable `i` is used to index `parcor`
+   --> src/aac_enc/tns.rs:890:18
+    |
+890 |         for i in 0..order {
+    |                  ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+890 -         for i in 0..order {
+890 +         for (i, <item>) in parcor.iter_mut().enumerate().take(order) {
+    |
+
+warning: called `unwrap` on `self.channel_map` after checking its variant with `is_some`
+   --> src/common/channel_map_descr.rs:249:31
+    |
+248 |         if self.channel_map.is_some() {
+    |         ----------------------------- help: try: `if let Some(<item>) = self.channel_map`
+249 |             let channel_map = self.channel_map.unwrap();
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_unwrap
+    = note: `#[warn(clippy::unnecessary_unwrap)]` on by default
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/common/checked_cast.rs:129:19
+    |
+129 |     debug_assert!(std::mem::size_of_val(data) % std::mem::size_of::<Complex<f32>>() == 0);
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `std::mem::size_of_val(data).is_multiple_of(std::mem::size_of::<Complex<f32>>())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/dct.rs:143:32
+    |
+143 |         let im_chunk = im_part.chunks_exact_mut(2);
+    |                                ^^^^^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks_mut::<2>()` instead
+   --> src/common/dct.rs:143:32
+    |
+143 |         let im_chunk = im_part.chunks_exact_mut(2);
+    |                                ^^^^^^^^^^^^^^^^^^^
+    = note: you can access the chunks using `im_chunk.0.iter_mut()`, and the remainder using `im_chunk.1`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/common/dct.rs:145:33
+    |
+145 |         let twi_chunk = twiddle.chunks_exact(2);
+    |                                 ^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks::<2>()` instead
+   --> src/common/dct.rs:145:33
+    |
+145 |         let twi_chunk = twiddle.chunks_exact(2);
+    |                                 ^^^^^^^^^^^^^^^
+    = note: you can access the chunks using `twi_chunk.0.iter()`, and the remainder using `twi_chunk.1`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/dct.rs:200:29
+    |
+200 |         let le_chunk = left.chunks_exact_mut(2).skip(1);
+    |                             ^^^^^^^^^^^^^^^^^^^ help: consider using `as_chunks_mut` instead: `as_chunks_mut::<2>().0.iter_mut()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/dct.rs:263:32
+    |
+263 |         let im_chunk = im_part.chunks_exact_mut(2);
+    |                                ^^^^^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks_mut::<2>()` instead
+   --> src/common/dct.rs:263:32
+    |
+263 |         let im_chunk = im_part.chunks_exact_mut(2);
+    |                                ^^^^^^^^^^^^^^^^^^^
+    = note: you can access the chunks using `im_chunk.0.iter_mut()`, and the remainder using `im_chunk.1`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/common/dct.rs:265:33
+    |
+265 |         let twi_chunk = twiddle.chunks_exact(2);
+    |                                 ^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks::<2>()` instead
+   --> src/common/dct.rs:265:33
+    |
+265 |         let twi_chunk = twiddle.chunks_exact(2);
+    |                                 ^^^^^^^^^^^^^^^
+    = note: you can access the chunks using `twi_chunk.0.iter()`, and the remainder using `twi_chunk.1`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/dct.rs:320:29
+    |
+320 |         let le_chunk = left.chunks_exact_mut(2).skip(1);
+    |                             ^^^^^^^^^^^^^^^^^^^ help: consider using `as_chunks_mut` instead: `as_chunks_mut::<2>().0.iter_mut()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/common/dct.rs:379:13
+    |
+379 |     assert!(dct_len % 4 == 0);
+    |             ^^^^^^^^^^^^^^^^ help: replace with: `dct_len.is_multiple_of(4)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: the variable `i` is used as a loop counter
+   --> src/common/dct.rs:426:5
+    |
+426 |     for (a, b) in izip!(cplx_l0_a.iter().skip(1), cplx_l0_b.iter().rev()).take(loop_split - 1) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (i, (a, b)) in (1..).zip(izip!(cplx_l0_a.iter().skip(1), cplx_l0_b.iter().rev()).take(loop_split - 1))`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#explicit_counter_loop
+    = note: `#[warn(clippy::explicit_counter_loop)]` on by default
+
+warning: the variable `j` is used as a loop counter
+   --> src/common/dct.rs:460:5
+    |
+460 |     for (a, b) in izip!(cplx_l1_a.iter(), cplx_l1_b.iter().rev()).take(fft_len_half - loop_split) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (j, (a, b)) in (loop_split..).zip(izip!(cplx_l1_a.iter(), cplx_l1_b.iter().rev()).take(fft_len_half - loop_split))`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#explicit_counter_loop
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/fft/dit_fft.rs:303:25
+    |
+303 |     for data_in in data.chunks_exact_mut(4).take(n >> 2) {
+    |                         ^^^^^^^^^^^^^^^^^^^ help: consider using `as_chunks_mut` instead: `as_chunks_mut::<4>().0.iter_mut()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/fft.rs:599:30
+    |
+599 |         for wb in work_buff1.chunks_exact_mut(N3).take(N5) {
+    |                              ^^^^^^^^^^^^^^^^^^^^ help: consider using `as_chunks_mut` instead: `as_chunks_mut::<N3>().0.iter_mut()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/qmf/qmf_fb.rs:978:49
+    |
+978 |                 for (re, im) in izip!(r_subband.chunks_exact_mut(2), i_subband.chunks_exact_mut(2))
+    |                                                 ^^^^^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks_mut::<2>()` instead
+   --> src/common/qmf/qmf_fb.rs:978:49
+    |
+978 |                 for (re, im) in izip!(r_subband.chunks_exact_mut(2), i_subband.chunks_exact_mut(2))
+    |                                                 ^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+   --> src/common/qmf/qmf_fb.rs:978:80
+    |
+978 |                 for (re, im) in izip!(r_subband.chunks_exact_mut(2), i_subband.chunks_exact_mut(2))
+    |                                                                                ^^^^^^^^^^^^^^^^^^^
+    |
+help: consider using `as_chunks_mut::<2>()` instead
+   --> src/common/qmf/qmf_fb.rs:978:80
+    |
+978 |                 for (re, im) in izip!(r_subband.chunks_exact_mut(2), i_subband.chunks_exact_mut(2))
+    |                                                                                ^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+    --> src/common/qmf/qmf_fb.rs:1354:32
+     |
+1354 |             self.filter_states.chunks_exact_mut(NUM_SYNTH_FILTER_STATES),
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: consider using `as_chunks_mut::<NUM_SYNTH_FILTER_STATES>()` instead
+    --> src/common/qmf/qmf_fb.rs:1354:32
+     |
+1354 |             self.filter_states.chunks_exact_mut(NUM_SYNTH_FILTER_STATES),
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact_mut` with a constant chunk size
+    --> src/common/qmf/qmf_fb.rs:1428:32
+     |
+1428 |             self.filter_states.chunks_exact_mut(NUM_SYNTH_FILTER_STATES),
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: consider using `as_chunks_mut::<NUM_SYNTH_FILTER_STATES>()` instead
+    --> src/common/qmf/qmf_fb.rs:1428:32
+     |
+1428 |             self.filter_states.chunks_exact_mut(NUM_SYNTH_FILTER_STATES),
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: `ferrite-aac` (lib) generated 83 warnings (run `cargo clippy --fix --lib -p ferrite-aac -- ` to apply 22 suggestions)
+warning: value assigned to `l` is never read
+  --> examples/m7_audit_sweep.rs:48:21
+   |
+48 |           let mut l = 0.0f64;
+   |                       ^^^^^^ this value is reassigned later and never used
+...
+56 | /                 l = a
+57 | |                     * (0.5 * (2.0 * std::f64::consts::PI * 140.0 * t).sin()
+58 | |                         + 0.3 * (2.0 * std::f64::consts::PI * 1100.0 * t).sin()
+59 | |                         + 0.2 * (2.0 * std::f64::consts::PI * 2600.0 * t).sin());
+   | |________________________________________________________________________________- `l` is overwritten here before the previous value is read
+   |
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `r` is never read
+  --> examples/m7_audit_sweep.rs:49:21
+   |
+49 |         let mut r = 0.0f64;
+   |                     ^^^^^^ this value is reassigned later and never used
+...
+60 |                 r = 0.9 * l;
+   |                 ----------- `r` is overwritten here before the previous value is read
+
+warning: manual implementation of `.is_multiple_of()`
+   --> examples/aac_bench_wav.rs:107:8
+    |
+107 |     if data_len % (channels * 2) != 0 {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!data_len.is_multiple_of(channels * 2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+    = note: `#[warn(clippy::manual_is_multiple_of)]` on by default
+
+warning: using `chunks_exact` with a constant chunk size
+   --> examples/aac_bench_wav.rs:111:10
+    |
+111 |         .chunks_exact(2)
+    |          ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<2>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+    = note: `#[warn(clippy::chunks_exact_to_as_chunks)]` on by default
+
+warning: using `chunks_exact` with a constant chunk size
+   --> examples/m7_audit_sweep.rs:357:14
+    |
+357 |             .chunks_exact(2)
+    |              ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<2>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+    = note: `#[warn(clippy::chunks_exact_to_as_chunks)]` on by default
+
+warning: `ferrite-aac` (example "aac_bench_wav") generated 2 warnings (run `cargo clippy --fix --example "aac_bench_wav" -p ferrite-aac -- ` to apply 2 suggestions)
+warning: `ferrite-aac` (example "m7_audit_sweep") generated 3 warnings (run `cargo clippy --fix --example "m7_audit_sweep" -p ferrite-aac -- ` to apply 1 suggestion)
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: the loop variable `b` is used to index `zero`
+    --> src/aac_enc/bitcount.rs:1383:18
+     |
+1383 |         for b in 1..12 {
+     |                  ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+     = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator and enumerate()
+     |
+1383 -         for b in 1..12 {
+1383 +         for (b, <item>) in zero.iter().enumerate().skip(1) {
+     |
+
+warning: the loop variable `b` is used to index `big`
+    --> src/aac_enc/bitcount.rs:1396:18
+     |
+1396 |         for b in 0..11 {
+     |                  ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1396 -         for b in 0..11 {
+1396 +         for (b, <item>) in big.iter().enumerate().take(11) {
+     |
+
+warning: the loop variable `book` is used to index `bc`
+    --> src/aac_enc/bitcount.rs:1426:25
+     |
+1426 |             for book in 0..12 {
+     |                         ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1426 -             for book in 0..12 {
+1426 +             for (book, <item>) in bc.iter().enumerate() {
+     |
+
+warning: the loop variable `j` is only used to index `spectrum_q31`
+   --> src/aac_enc/energy.rs:140:18
+    |
+140 |         for j in offsets[b] as usize..offsets[b + 1] as usize {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+140 -         for j in offsets[b] as usize..offsets[b + 1] as usize {
+140 +         for <item> in spectrum_q31.iter().take(offsets[b + 1] as usize).skip(offsets[b] as usize) {
+    |
+
+warning: the loop variable `i` is used to index `base`
+    --> src/aac_enc/frame.rs:1248:18
+     |
+1248 |         for i in 0..28 {
+     |                  ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1248 -         for i in 0..28 {
+1248 +         for (i, <item>) in base.iter_mut().enumerate().take(28) {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+  --> src/aac_enc/m5b_measure.rs:42:18
+   |
+42 |         for i in 0..n {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+   |
+42 -         for i in 0..n {
+42 +         for <item> in pcm.iter().take(n) {
+   |
+
+warning: the loop variable `c` is only used to index `pcm`
+  --> src/aac_enc/m5b_measure.rs:43:22
+   |
+43 |             for c in 0..ch {
+   |                      ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+   |
+43 -             for c in 0..ch {
+43 +             for <item> in pcm.iter().take(ch) {
+   |
+
+warning: the loop variable `line` is only used to index `v`
+  --> src/aac_enc/phase1b.rs:66:25
+   |
+66 |             for line in start..end {
+   |                         ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+   |
+66 -             for line in start..end {
+66 +             for <item> in v.iter_mut().take(end).skip(start) {
+   |
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+    --> src/aac_enc/psy.rs:1692:14
+     |
+1692 |           ) -> (
+     |  ______________^
+1693 | |             Vec<WindowSequence>,
+1694 | |             Vec<(u8, [u8; 4])>,
+1695 | |             (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>),
+1696 | |         ) {
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+warning: the loop variable `grp` is used to index `lens`
+    --> src/aac_enc/psy.rs:1883:24
+     |
+1883 |             for grp in 0..no_groups as usize {
+     |                        ^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1883 -             for grp in 0..no_groups as usize {
+1883 +             for (grp, <item>) in lens.iter().enumerate().take(no_groups as usize) {
+     |
+
+warning: this expression creates a reference which is immediately dereferenced by the compiler
+    --> src/aac_enc/psy.rs:1909:17
+     |
+1909 |                 &want.threshold_ld.as_ref().expect("TLD"),
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `want.threshold_ld.as_ref().expect("TLD")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_borrow
+     = note: `#[warn(clippy::needless_borrow)]` on by default
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+    --> src/aac_enc/psy.rs:3351:42
+     |
+3351 |             .map(|w| (0..active).map(|b| w as i32 * 1000 + b as i32).collect())
+     |                                          ^^^^^^^^ help: try: `w`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast
+     = note: `#[warn(clippy::unnecessary_cast)]` on by default
+
+warning: used `assert_eq!` with a literal bool
+    --> src/aac_enc/psy.rs:3383:9
+     |
+3383 |         assert_eq!(calc_ld_data(i32::MAX) as f64 / 2_147_483_648.0 > -1.0, true);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#bool_assert_comparison
+     = note: `#[warn(clippy::bool_assert_comparison)]` on by default
+help: replace it with `assert!(..)`
+     |
+3383 -         assert_eq!(calc_ld_data(i32::MAX) as f64 / 2_147_483_648.0 > -1.0, true);
+3383 +         assert!(calc_ld_data(i32::MAX) as f64 / 2_147_483_648.0 > -1.0);
+     |
+
+warning: the loop variable `line` is only used to index `v`
+    --> src/aac_enc/quant.rs:1441:29
+     |
+1441 |                 for line in start..end {
+     |                             ^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1441 -                 for line in start..end {
+1441 +                 for <item> in v.iter_mut().take(end).skip(start) {
+     |
+
+warning: the loop variable `ch` is only used to index `sections`
+    --> src/aac_enc/rate.rs:2859:19
+     |
+2859 |         for ch in 0..2 {
+     |                   ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+2859 -         for ch in 0..2 {
+2859 +         for <item> in sections.iter().take(2) {
+     |
+
+warning: the loop variable `line` is only used to index `v`
+    --> src/aac_enc/scf.rs:1537:29
+     |
+1537 |                 for line in start..end {
+     |                             ^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1537 -                 for line in start..end {
+1537 +                 for <item> in v.iter_mut().take(end).skip(start) {
+     |
+
+warning: used `assert_eq!` with a literal bool
+   --> src/aac_enc/sfb.rs:549:9
+    |
+549 |         assert_eq!(long_tns.active, true);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+549 -         assert_eq!(long_tns.active, true);
+549 +         assert!(long_tns.active);
+    |
+
+warning: the loop variable `g` is only used to index `lens`
+   --> src/aac_enc/stream_driver.rs:235:14
+    |
+235 |     for g in 0..groups as usize {
+    |              ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+235 -     for g in 0..groups as usize {
+235 +     for <item> in lens.iter().take(groups as usize) {
+    |
+
+warning: stripping a prefix manually
+    --> src/aac_enc/stream_driver.rs:1988:28
+     |
+1988 |                 let rest = t[tag.len()..].trim();
+     |                            ^^^^^^^^^^^^^^
+     |
+note: the prefix was tested here
+    --> src/aac_enc/stream_driver.rs:1987:13
+     |
+1987 |             if t.starts_with(tag) {
+     |             ^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_strip
+     = note: `#[warn(clippy::manual_strip)]` on by default
+help: try using the `strip_prefix` method
+     |
+1987 ~             if let Some(<stripped>) = t.strip_prefix(tag) {
+1988 ~                 let rest = <stripped>.trim();
+     |
+
+warning: stripping a prefix manually
+    --> src/aac_enc/stream_driver.rs:2339:38
+     |
+2339 |                 let nums: Vec<i32> = t["MSD ".len()..]
+     |                                      ^^^^^^^^^^^^^^^^^
+     |
+note: the prefix was tested here
+    --> src/aac_enc/stream_driver.rs:2338:13
+     |
+2338 |             if t.starts_with("MSD ") {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_strip
+help: try using the `strip_prefix` method
+     |
+2338 ~             if let Some(<stripped>) = t.strip_prefix("MSD ") {
+2339 ~                 let nums: Vec<i32> = <stripped>
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:2362:18
+     |
+2362 |         for i in 0..s {
+     |                  ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+2362 -         for i in 0..s {
+2362 +         for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:2363:22
+     |
+2363 |             for c in 0..ch {
+     |                      ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+2363 -             for c in 0..ch {
+2363 +             for <item> in pcm.iter().take(ch) {
+     |
+
+warning: the loop variable `f` is used to index `frames`
+    --> src/aac_enc/stream_driver.rs:2371:18
+     |
+2371 |         for f in 0..=frame as usize {
+     |                  ^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+2371 -         for f in 0..=frame as usize {
+2371 +         for (f, <item>) in frames.iter().enumerate().take(frame as usize + 1) {
+     |
+
+warning: this function has too many arguments (8/7)
+    --> src/aac_enc/stream_driver.rs:2397:9
+     |
+2397 | /         fn pe_ats(
+2398 | |             lin: &[Vec<i32>],
+2399 | |             ld: &[Vec<i32>],
+2400 | |             thr: &[Vec<i32>],
+...    |
+2405 | |             ats_pre: [i32; 4],
+2406 | |         ) -> [i32; 4] {
+     | |_____________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#too_many_arguments
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+    --> src/aac_enc/stream_driver.rs:2438:14
+     |
+2438 |           ) -> (
+     |  ______________^
+2439 | |             Vec<Vec<u8>>,
+2440 | |             Vec<FrameSnapshot>,
+2441 | |             Vec<FrameState>,
+2442 | |             Vec<Vec<(i32, Vec<i32>, bool)>>,
+2443 | |         ) {
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:2453:22
+     |
+2453 |             for i in 0..s {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+2453 -             for i in 0..s {
+2453 +             for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:2454:26
+     |
+2454 |                 for c in 0..nch {
+     |                          ^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+2454 -                 for c in 0..nch {
+2454 +                 for <item> in pcm.iter().take(nch) {
+     |
+
+warning: the loop variable `f` is used to index `frames`
+    --> src/aac_enc/stream_driver.rs:2465:22
+     |
+2465 |             for f in 0..=28usize {
+     |                      ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+2465 -             for f in 0..=28usize {
+2465 +             for (f, <item>) in frames.iter().enumerate().take(28usize + 1) {
+     |
+
+warning: the loop variable `ch` is used to index `preecho`
+    --> src/aac_enc/stream_driver.rs:2538:23
+     |
+2538 |             for ch in 0..2usize {
+     |                       ^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+2538 -             for ch in 0..2usize {
+2538 +             for (ch, <item>) in preecho.iter().enumerate().take(2usize) {
+     |
+
+warning: this function has too many arguments (16/7)
+    --> src/aac_enc/stream_driver.rs:2894:5
+     |
+2894 | /     fn ms_first_pass(
+2895 | |         _e_l: &[i32],
+2896 | |         _e_r: &[i32],
+2897 | |         _t_l: &[i32],
+...    |
+2910 | |         allow_ms: bool,
+2911 | |     ) -> (Vec<i64>, Vec<i32>) {
+     | |_____________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#too_many_arguments
+
+warning: stripping a prefix manually
+    --> src/aac_enc/stream_driver.rs:3320:21
+     |
+3320 |                     t["ISB ".len()..]
+     |                     ^^^^^^^^^^^^^^^^^
+     |
+note: the prefix was tested here
+    --> src/aac_enc/stream_driver.rs:3318:13
+     |
+3318 |             if t.starts_with("ISB ") {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_strip
+help: try using the `strip_prefix` method
+     |
+3318 ~             if let Some(<stripped>) = t.strip_prefix("ISB ") {
+3319 |                 out.push(
+3320 ~                     <stripped>
+     |
+
+warning: using `contains()` instead of `iter().any()` is more efficient
+    --> src/aac_enc/stream_driver.rs:3361:30
+     |
+3361 |         let true_somewhere = mask.iter().any(|&v| v == 1);
+     |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `mask.contains(&1)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_contains
+     = note: `#[warn(clippy::manual_contains)]` on by default
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+    --> src/aac_enc/stream_driver.rs:3764:20
+     |
+3764 |         let cases: [(&str, u32, u32, usize, usize, i32, i32, i32, [i32; 2], i32); 4] = [
+     |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:3822:22
+     |
+3822 |             for i in 0..s {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+3822 -             for i in 0..s {
+3822 +             for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:3823:26
+     |
+3823 |                 for c in 0..ch {
+     |                          ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+3823 -                 for c in 0..ch {
+3823 +                 for <item> in pcm.iter().take(ch) {
+     |
+
+warning: the loop variable `f` is used to index `frames`
+    --> src/aac_enc/stream_driver.rs:3836:22
+     |
+3836 |             for f in 0..=frame as usize {
+     |                      ^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+3836 -             for f in 0..=frame as usize {
+3836 +             for (f, <item>) in frames.iter().enumerate().take(frame as usize + 1) {
+     |
+
+warning: found call to `str::trim` before `str::split_whitespace`
+    --> src/aac_enc/stream_driver.rs:4096:22
+     |
+4096 |                       .trim()
+     |  ______________________^
+4097 | |                     .split_whitespace()
+     | |_____________________^ help: remove `trim()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#trim_split_whitespace
+     = note: `#[warn(clippy::trim_split_whitespace)]` on by default
+
+warning: redundant closure
+    --> src/aac_enc/stream_driver.rs:4275:31
+     |
+4275 |             cap.ch.iter().map(|c| f(c)).collect()
+     |                               ^^^^^^^^ help: replace the closure with the function itself: `&f`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_closure
+     = note: `#[warn(clippy::redundant_closure)]` on by default
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4367:13
+     |
+4367 |             &[c.penld.clone()],
+     |             ^^^^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.penld)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+     = note: `#[warn(clippy::cloned_ref_to_slice_refs)]` on by default
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4368:13
+     |
+4368 |             &[c.pthld.clone()],
+     |             ^^^^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.pthld)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4369:13
+     |
+4369 |             &[c.senl.clone()],
+     |             ^^^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.senl)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4370:13
+     |
+4370 |             &[c.ff.clone()],
+     |             ^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.ff)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4371:13
+     |
+4371 |             &[c.spec.clone()],
+     |             ^^^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.spec)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+warning: unnecessary use of `clone` to create a slice from a reference
+    --> src/aac_enc/stream_driver.rs:4377:13
+     |
+4377 |             &[c.spech.clone()],
+     |             ^^^^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&c.spech)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cloned_ref_to_slice_refs
+
+warning: redundant closure
+    --> src/aac_enc/stream_driver.rs:4423:30
+     |
+4423 |             s1.ch.iter().map(|c| f(c)).collect()
+     |                              ^^^^^^^^ help: replace the closure with the function itself: `&f`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#redundant_closure
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4568:18
+     |
+4568 |         for i in 0..24000 {
+     |                  ^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4568 -         for i in 0..24000 {
+4568 +         for <item> in pcm.iter().take(24000) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4569:22
+     |
+4569 |             for c in 0..2 {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4569 -             for c in 0..2 {
+4569 +             for <item> in pcm.iter().take(2) {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4659:22
+     |
+4659 |             for i in 0..s {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4659 -             for i in 0..s {
+4659 +             for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4660:26
+     |
+4660 |                 for c in 0..ch {
+     |                          ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4660 -                 for c in 0..ch {
+4660 +                 for <item> in pcm.iter().take(ch) {
+     |
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/stream_driver.rs:4667:28
+     |
+4667 |             let n_frames = (s + 1600 + 1023) / 1024;
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(s + 1600).div_ceil(1024)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+     = note: `#[warn(clippy::manual_div_ceil)]` on by default
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4673:22
+     |
+4673 |             for i in 0..s {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4673 -             for i in 0..s {
+4673 +             for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:4674:26
+     |
+4674 |                 for c in 0..ch {
+     |                          ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+4674 -                 for c in 0..ch {
+4674 +                 for <item> in pcm.iter().take(ch) {
+     |
+
+warning: this `map_or` can be simplified
+    --> src/aac_enc/stream_driver.rs:4905:17
+     |
+4905 |                 stopped_at.map_or(false, |f| f + 1 == n_stepped),
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_map_or
+     = note: `#[warn(clippy::unnecessary_map_or)]` on by default
+help: use `is_some_and` instead
+     |
+4905 -                 stopped_at.map_or(false, |f| f + 1 == n_stepped),
+4905 +                 stopped_at.is_some_and(|f| f + 1 == n_stepped),
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:5183:14
+     |
+5183 |     for i in 0..s {
+     |              ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5183 -     for i in 0..s {
+5183 +     for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:5184:18
+     |
+5184 |         for c in 0..channels {
+     |                  ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5184 -         for c in 0..channels {
+5184 +         for <item> in pcm.iter().take(channels) {
+     |
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+    --> src/aac_enc/stream_driver.rs:5267:17
+     |
+5267 |       const ROWS: [(
+     |  _________________^
+5268 | |         u32,
+5269 | |         u32,
+5270 | |         u32,
+...    |
+5297 | |         usize,
+5298 | |     ); 20] = [
+     | |__________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+    --> src/aac_enc/stream_driver.rs:5523:52
+     |
+5523 |         let mut spec: Vec<i32> = (0..1024).map(|i| (i + 1) as i32).collect();
+     |                                                    ^^^^^^^^^^^^^^ help: try: `(i + 1)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast
+
+warning: the loop variable `j` is used to index `spec`
+    --> src/aac_enc/stream_driver.rs:5527:26
+     |
+5527 |                 for j in offsets[grp * per + b] as usize..offsets[grp * per + b + 1] as usize {
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+5527 -                 for j in offsets[grp * per + b] as usize..offsets[grp * per + b + 1] as usize {
+5527 +                 for (j, <item>) in spec.iter().enumerate().take(offsets[grp * per + b + 1] as usize).skip(offsets[grp * per + b] as usize) {
+     |
+
+warning: the loop variable `j` is only used to index `spec`
+    --> src/aac_enc/stream_driver.rs:5533:26
+     |
+5533 |                 for j in offsets[grp * per + b] as usize..offsets[grp * per + b + 1] as usize {
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5533 -                 for j in offsets[grp * per + b] as usize..offsets[grp * per + b + 1] as usize {
+5533 +                 for <item> in spec.iter().take(offsets[grp * per + b + 1] as usize).skip(offsets[grp * per + b] as usize) {
+     |
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+    --> src/aac_enc/stream_driver.rs:5548:48
+     |
+5548 |         let mut a: Vec<i32> = (0..360).map(|i| (i + 1) as i32).collect();
+     |                                                ^^^^^^^^^^^^^^ help: try: `(i + 1)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_cast
+
+warning: the loop variable `j` is only used to index `b`
+    --> src/aac_enc/stream_driver.rs:5552:22
+     |
+5552 |             for j in loff[band] as usize..loff[band + 1] as usize {
+     |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5552 -             for j in loff[band] as usize..loff[band + 1] as usize {
+5552 +             for <item> in b.iter_mut().take(loff[band + 1] as usize).skip(loff[band] as usize) {
+     |
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/stream_driver.rs:5690:36
+     |
+5690 |             assert_eq!(rep.frames, (s + 1600 + 1023) / 1024, "{stem}: frame count");
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(s + 1600).div_ceil(1024)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:5752:18
+     |
+5752 |         for i in 0..samples {
+     |                  ^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5752 -         for i in 0..samples {
+5752 +         for <item> in pcm.iter().take(samples) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:5753:22
+     |
+5753 |             for c in 0..channels {
+     |                      ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+5753 -             for c in 0..channels {
+5753 +             for <item> in pcm.iter().take(channels) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6082:18
+     |
+6082 |         for c in 0..pcm.len() {
+     |                  ^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6082 -         for c in 0..pcm.len() {
+6082 +         for <item> in &pcm {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6157:14
+     |
+6157 |     for i in 0..s {
+     |              ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6157 -     for i in 0..s {
+6157 +     for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6158:18
+     |
+6158 |         for c in 0..channels {
+     |                  ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6158 -         for c in 0..channels {
+6158 +         for <item> in pcm.iter().take(channels) {
+     |
+
+warning: this `match` expression can be replaced with `?`
+    --> src/aac_enc/stream_driver.rs:6185:9
+     |
+6185 | /         match m52_emit_or_fail(bytes, &snap.notes, stem, f) {
+6186 | |             Ok(b) => out_bytes.extend_from_slice(&b),
+6187 | |             Err(e) => return Err(e),
+6188 | |         }
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#question_mark
+     = note: `#[warn(clippy::question_mark)]` on by default
+help: try instead
+     |
+6185 ~         {
+6186 +             let b = m52_emit_or_fail(bytes, &snap.notes, stem, f)?;
+6187 +             out_bytes.extend_from_slice(&b)
+6188 +         }
+     |
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/stream_driver.rs:6498:21
+     |
+6498 |                     (testdata::fixture_samples(short)[0].len() + 1600 + 1023) / 1024;
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(testdata::fixture_samples(short)[0].len() + 1600).div_ceil(1024)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/stream_driver.rs:6531:17
+     |
+6531 |                 (s.input_samples + 1600 + 1023) / 1024,
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(s.input_samples + 1600).div_ceil(1024)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: the loop variable `t` is used to index `base`
+    --> src/aac_enc/stream_driver.rs:6572:22
+     |
+6572 |             for t in 0..n {
+     |                      ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+6572 -             for t in 0..n {
+6572 +             for (t, <item>) in base.iter_mut().enumerate().take(n) {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6624:18
+     |
+6624 |         for i in 0..pcm[0].len() {
+     |                  ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6624 -         for i in 0..pcm[0].len() {
+6624 +         for <item> in pcm.iter().take(pcm[0].len()) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6625:22
+     |
+6625 |             for c in 0..channels {
+     |                      ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6625 -             for c in 0..channels {
+6625 +             for <item> in pcm.iter().take(channels) {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6648:18
+     |
+6648 |         for i in 0..pcm[0].len() {
+     |                  ^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6648 -         for i in 0..pcm[0].len() {
+6648 +         for <item> in pcm.iter().take(pcm[0].len()) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:6649:22
+     |
+6649 |             for c in 0..channels {
+     |                      ^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+6649 -             for c in 0..channels {
+6649 +             for <item> in pcm.iter().take(channels) {
+     |
+
+warning: manual implementation of `.is_multiple_of()`
+    --> src/aac_enc/stream_driver.rs:6798:56
+     |
+6798 |                 } else if (8..=89).contains(&frame) && (frame - 8) % 3 == 0 {
+     |                                                        ^^^^^^^^^^^^^^^^^^^^ help: replace with: `(frame - 8).is_multiple_of(3)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: manual implementation of `.is_multiple_of()`
+    --> src/aac_enc/stream_driver.rs:6828:62
+     |
+6828 |                 frame == 95 || ((7..=88).contains(&frame) && (frame - 7) % 3 == 0)
+     |                                                              ^^^^^^^^^^^^^^^^^^^^ help: replace with: `(frame - 7).is_multiple_of(3)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `contains()` instead of `iter().any()` is more efficient
+    --> src/aac_enc/stream_driver.rs:7241:30
+     |
+7241 |                     .any(|s| s.section_books[0].iter().any(|&b| b == 15)));
+     |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `s.section_books[0].contains(&15)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_contains
+
+warning: the loop variable `i` is only used to index `fixtures`
+    --> src/aac_enc/stream_driver.rs:7908:18
+     |
+7908 |         for i in 0..fixtures.len() {
+     |                  ^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+7908 -         for i in 0..fixtures.len() {
+7908 +         for <item> in &mut fixtures {
+     |
+
+warning: the loop variable `i` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:8128:18
+     |
+8128 |         for i in 0..s {
+     |                  ^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+8128 -         for i in 0..s {
+8128 +         for <item> in pcm.iter().take(s) {
+     |
+
+warning: the loop variable `c` is only used to index `pcm`
+    --> src/aac_enc/stream_driver.rs:8129:22
+     |
+8129 |             for c in 0..ch {
+     |                      ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+8129 -             for c in 0..ch {
+8129 +             for <item> in pcm.iter().take(ch) {
+     |
+
+warning: manual implementation of `.is_multiple_of()`
+   --> src/aac_enc/testdata.rs:142:13
+    |
+142 |     assert!(nums.len() % 9 == 0, "seq file has 9 columns per row");
+    |             ^^^^^^^^^^^^^^^^^^^ help: replace with: `nums.len().is_multiple_of(9)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_is_multiple_of
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/testdata.rs:143:10
+    |
+143 |     nums.chunks_exact(9)
+    |          ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<9>().0.iter()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: using `chunks_exact` with a constant chunk size
+   --> src/aac_enc/testdata.rs:286:45
+    |
+286 |     for fr in bytes[dstart..dstart + dsize].chunks_exact(4) {
+    |                                             ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<4>().0`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: explicit call to `.into_iter()` in function argument accepting `IntoIterator`
+    --> src/aac_enc/testdata.rs:1857:14
+     |
+1857 |         .zip(levels.into_iter())
+     |              ^^^^^^^^^^^^^^^^^^
+     |
+note: this parameter accepts any `IntoIterator`, so you don't need to call `.into_iter()`
+    --> /Users/jeroen/.rustup/toolchains/1.99.1-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:632:12
+     |
+ 632 |         U: IntoIterator,
+     |            ^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_conversion
+     = note: `#[warn(clippy::useless_conversion)]` on by default
+help: consider removing the `.into_iter()`
+     |
+1857 -         .zip(levels.into_iter())
+1857 +         .zip(levels)
+     |
+
+warning: the loop variable `ch` is used to index `geo`
+    --> src/aac_enc/testdata.rs:1954:15
+     |
+1954 |     for ch in 0..nch {
+     |               ^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1954 -     for ch in 0..nch {
+1954 +     for (ch, <item>) in geo.iter().enumerate().take(nch) {
+     |
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/testdata.rs:2344:39
+     |
+2344 |                 assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "CV hex length");
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(bits as usize).div_ceil(8)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/testdata.rs:2358:39
+     |
+2358 |                 assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "CS hex length");
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(bits as usize).div_ceil(8)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/testdata.rs:2422:31
+     |
+2422 |         assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "S7 hex length");
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(bits as usize).div_ceil(8)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: using `chunks_exact` with a constant chunk size
+    --> src/aac_enc/testdata.rs:2425:33
+     |
+2425 |     for (c, triplet) in pending.chunks_exact(3).enumerate() {
+     |                                 ^^^^^^^^^^^^^^^ help: consider using `as_chunks` instead: `as_chunks::<3>().0.iter()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#chunks_exact_to_as_chunks
+
+warning: manually reimplementing `div_ceil`
+    --> src/aac_enc/testdata.rs:2520:31
+     |
+2520 |         assert_eq!(hex.len(), ((bits as usize + 7) / 8) * 2, "S8 hex length");
+     |                               ^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `(bits as usize).div_ceil(8)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#manual_div_ceil
+
+warning: the loop variable `i` is only used to index `spec`
+    --> src/aac_enc/tns.rs:1005:26
+     |
+1005 |                 for i in w * wl + lp..(w + 1) * wl {
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator
+     |
+1005 -                 for i in w * wl + lp..(w + 1) * wl {
+1005 +                 for <item> in spec.iter_mut().take((w + 1) * wl).skip(w * wl + lp) {
+     |
+
+warning: the loop variable `i` is used to index `rxx2`
+    --> src/aac_enc/tns.rs:1105:22
+     |
+1105 |             for i in 0..13 {
+     |                      ^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1105 -             for i in 0..13 {
+1105 +             for (i, <item>) in rxx2.iter_mut().enumerate() {
+     |
+
+warning: useless use of `vec!`
+    --> src/aac_enc/stream_driver.rs:4021:28
+     |
+4021 |                   let e_ld = vec![
+     |  ____________________________^
+4022 | |                     sub(cap.eld_l[b], p0.nrg_ld[0][b]),
+4023 | |                     sub(cap.eld_r[b], p1.nrg_ld[0][b]),
+4024 | |                 ];
+     | |_________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+     = note: `#[warn(clippy::useless_vec)]` on by default
+help: you can use an array directly
+     |
+4021 ~                 let e_ld = [sub(cap.eld_l[b], p0.nrg_ld[0][b]),
+4022 ~                     sub(cap.eld_r[b], p1.nrg_ld[0][b])];
+     |
+
+warning: useless use of `vec!`
+    --> src/aac_enc/stream_driver.rs:4025:28
+     |
+4025 |                   let t_ld = vec![
+     |  ____________________________^
+4026 | |                     sub(cap.tld_l[b], p0.threshold_ld.as_ref().unwrap()[b]),
+4027 | |                     sub(cap.tld_r[b], p1.threshold_ld.as_ref().unwrap()[b]),
+4028 | |                 ];
+     | |_________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+help: you can use an array directly
+     |
+4025 ~                 let t_ld = [sub(cap.tld_l[b], p0.threshold_ld.as_ref().unwrap()[b]),
+4026 ~                     sub(cap.tld_r[b], p1.threshold_ld.as_ref().unwrap()[b])];
+     |
+
+warning: useless use of `vec!`
+    --> src/aac_enc/stream_driver.rs:4029:28
+     |
+4029 |                   let m_ld = vec![
+     |  ____________________________^
+4030 | |                     sub(cap.em_ld[b], ms[0].mid_ld[b]),
+4031 | |                     sub(cap.es_ld[b], ms[0].side_ld[b]),
+4032 | |                 ];
+     | |_________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+help: you can use an array directly
+     |
+4029 ~                 let m_ld = [sub(cap.em_ld[b], ms[0].mid_ld[b]),
+4030 ~                     sub(cap.es_ld[b], ms[0].side_ld[b])];
+     |
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1427:18
+     |
+1427 |         let ev = vec![vec![0x20000000, 0x20000000, 0x20000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x20000000, 0x20000000, 0x20000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1429:18
+     |
+1429 |         let el = vec![vec![0x10000000, 0x10000000, 0x10000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000, 0x10000000, 0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1431:18
+     |
+1431 |         let ff = vec![vec![0x10000000, 0x10000000, 0x10000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000, 0x10000000, 0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1488:18
+     |
+1488 |         let ev = vec![vec![0x70000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x70000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1490:18
+     |
+1490 |         let el = vec![vec![0x10000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1492:18
+     |
+1492 |         let ff = vec![vec![0x10000000]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1544:18
+     |
+1544 |         let ev = vec![vec![0x1000]];
+     |                  ^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x1000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1546:18
+     |
+1546 |         let el = vec![vec![MIN_LDTHRESH + 1]];
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![MIN_LDTHRESH + 1]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1548:18
+     |
+1548 |         let ff = vec![vec![i32::MIN]];
+     |                  ^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![i32::MIN]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1606:22
+     |
+1606 |             let ev = vec![vec![0x20000000]];
+     |                      ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x20000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1608:22
+     |
+1608 |             let el = vec![vec![0x10000000]];
+     |                      ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: useless use of `vec!`
+    --> src/aac_enc/threshold_vbr.rs:1610:22
+     |
+1610 |             let ff = vec![vec![0x10000000]];
+     |                      ^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0x10000000]]`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#useless_vec
+
+warning: `ferrite-aac` (lib test) generated 183 warnings (61 duplicates) (run `cargo clippy --fix --lib -p ferrite-aac --tests -- ` to apply 49 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.19s
+[exit=0]
+FRESH_VERIFICATION_DONE

@@ -1,0 +1,35 @@
+diff --git a/rust/src/aac_enc/fpe/thresholds.rs b/rust/src/aac_enc/fpe/thresholds.rs
+new file mode 100644
+index 0000000..f0c9a06
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/thresholds.rs
+@@ -0,0 +1,29 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE float threshold chain — skeleton (no float kernel in M1).
++//!
++//! Planned content (roadmap `09`, one kernel group per milestone, each
++//! gated by the Q31↔FPE differential harness):
++//!
++//! - **M4 (FPE-4.1/4.2):** float threshold init (`T_f = E_f·C_RATIO_f`)
++//!   and clip cap with the identical shift/headroom branch logic
++//!   (`docs/fpe/05` §6.3); float two-pass max-envelope spreading for
++//!   thresholds and spread energy, consuming the **tabulated** f64
++//!   factors (`SfbConfig::mask_factors()`/`mask_factors_spr()`, never
++//!   recomputed in float — `docs/fpe/03` §4.3). Tonality is not
++//!   implemented (PNS-gated upstream, absent in Ferrite; FPE-4.3 asserts
++//!   the absence).
++//! - **M5 (FPE-5.1):** float PCM quantization floor with the accumulating
++//!   per-window `energyShift` (start 2m, +16/window, cap 31, sign
++//!   branches), `max(T_f/16, pcm_f·2^(∓shift))` (`docs/fpe/05` §6.4).
++//!   The PCM floor is FDK's absolute floor; no ATH table is invented
++//!   (`docs/fpe/03` §4.5).
++//!
++//! Upstream: `psy_main.cpp:702-703/926-939/955-971/1009-1017`,
++//! `spreading.cpp:105-125`. Q31 mirrors (read-only):
++//! `thresholds.rs:130/137/149/167`.
++//!
++//! **M1:** the value lane delegates to those Q31 kernels via
++//! [`super::orchestrate`]; this module intentionally contains no code.

@@ -1,0 +1,61 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/psy.rs (lines 150-204)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: PsyChannel state type, init, existing + new #[cfg(test)] state accessors
+# Extracted: 2026-11-16T23:26:22Z
+
+/// Persistent per-channel psychoacoustic state.
+pub struct PsyChannel {
+    preecho: PreEchoState,
+    tns_state: TnsChannel,
+    tns_info: TnsChannel,
+    /// M/S log-energy history (this channel's half: mid on ch0, side on
+    /// ch1). Mirrors C's `sfbEnergyMSLdData`, which `CalcBandNrgMSOpt`
+    /// leaves STALE when the element is short (`calcLdData=0`): short
+    /// frames therefore read previous frames' values (or init zeros),
+    /// verified on onset f24 w1..7 (all int 0).
+    ms_ld: [[f64; 64]; 8],
+}
+
+impl PsyChannel {
+    /// Fresh state; `pcm_q31_long` is the long PCM floor vector for the
+    /// pre-echo initializer.
+    pub fn new(pcm_q31_long: &[i32]) -> Self {
+        Self {
+            preecho: PreEchoState::new(pcm_q31_long),
+            tns_state: TnsChannel::new(),
+            tns_info: TnsChannel::new(),
+            ms_ld: [[0.0; 64]; 8],
+        }
+    }
+
+    /// TNS output info (test inspection).
+    pub fn tns_info(&self) -> &TnsChannel {
+        &self.tns_info
+    }
+
+    /// Pre-echo previous thresholds (test inspection).
+    pub fn preecho_prev(&self) -> &[i32] {
+        self.preecho.prev()
+    }
+
+    /// Pre-echo previous scale and enabled flag (test inspection).
+    #[cfg(test)]
+    pub fn preecho_state(&self) -> (i32, bool) {
+        (self.preecho.prev_scale(), self.preecho.is_enabled())
+    }
+
+    /// TNS runtime state (test inspection only: FPE differential harness
+    /// persistent-state comparison, `docs/fpe/07` §3.1 / `09` FPE-2.5).
+    #[cfg(test)]
+    pub fn tns_state(&self) -> &TnsChannel {
+        &self.tns_state
+    }
+
+    /// M/S log-energy history, including stale-on-short contents (test
+    /// inspection only: FPE differential harness, `docs/fpe/07` §3.1).
+    #[cfg(test)]
+    pub fn ms_ld(&self) -> &[[f64; 64]; 8] {
+        &self.ms_ld
+    }
+}

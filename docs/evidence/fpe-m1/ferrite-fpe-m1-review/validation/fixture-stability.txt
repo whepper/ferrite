@@ -1,0 +1,23 @@
+FPE M1 edge-case fixtures — 3-run byte-stability validation (FPE-1.4)
+Generator: tools/enc-oracle/make_fpe_fixtures.py (deterministic, no randomness)
+Method: run the generator 3x into separate dirs; SHA-256 each WAV; require identical hashes.
+Date: 2026-11-16T23:29:47Z
+
+STABLE  c8cc59b36af8d7360eda593b020040e51aed8165f0af41a70c16b4a947b7b18b  fpe-allzero-stereo-48k.wav
+STABLE  bb342085923a4f4e2460d8b30ce01a00a8bb6ad92ca75df85128b28652914297  fpe-fullscale-square-stereo-48k.wav
+STABLE  fb0979fc7a3c9c239ebf82be526e2353d903bd89113324730b0d0eba63616939  fpe-max-headroom-stereo-48k.wav
+STABLE  9018355446af79e1d003955a506916df1b5becf8ad1ac1939d0046c81ff66626  fpe-mixed-pair-stereo-48k.wav
+STABLE  6611c5cda59bd9fe291be70f1bbd257baff6f778645950c830b766a0a3f9d0ba  fpe-near-silence-ramp-stereo-48k.wav
+STABLE  0fb9ed32ac8d4cb5157de811cc165a48970dc2e239f39cce8827e9f841c8503b  fpe-pow2-boundary-stereo-48k.wav
+
+Commands:
+  python3 tools/enc-oracle/make_fpe_fixtures.py <dir-run1>
+  python3 tools/enc-oracle/make_fpe_fixtures.py <dir-run2>
+  python3 tools/enc-oracle/make_fpe_fixtures.py <dir-run3>
+  shasum -a 256 <dir-runN>/*.wav   # compare across N=1,2,3
+
+Note: oracle ring/psy/seq vector anchoring for these fixtures requires the C
+reference (blocked on re-provisioning, risk R-12; A-3 not resolved). The
+in-binary Q31-vs-FPE harness consumes the Rust resynthesis directly and
+needs no C artifacts. Python<->Rust sample-exact cross-check: see
+fixture-crosscheck.md.

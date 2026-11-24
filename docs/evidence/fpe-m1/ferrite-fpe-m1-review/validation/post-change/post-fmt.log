@@ -1,0 +1,213 @@
+=== FMT ===
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/constants.rs:107:
+         // FPE-1.1 gate: each float constant equals its Q31 literal / 2^31
+         // exactly (docs/fpe/05 §3; risk R-05 tuning-drift gate).
+         assert_bits(C_RATIO_F, 0x0294_0a10u32 as f64 / Q31_DENOM, "C_RATIO_F");
+[31m-        assert_bits(CLIP_F_LONG, 0x7735_93ffu32 as f64 / Q31_DENOM, "CLIP_F_LONG");
+(B[m         assert_bits(
+[32m+            CLIP_F_LONG,
+(B[m[32m+            0x7735_93ffu32 as f64 / Q31_DENOM,
+(B[m[32m+            "CLIP_F_LONG",
+(B[m[32m+        );
+(B[m[32m+        assert_bits(
+(B[m             CLIP_F_SHORT,
+             (0x7735_93ffu32 >> 6) as f64 / Q31_DENOM,
+             "CLIP_F_SHORT",
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/constants.rs:115:
+         );
+[31m-        assert_bits(PCM_NOISE_F, 0x0054_7062u32 as f64 / Q31_DENOM, "PCM_NOISE_F");
+(B[m[32m+        assert_bits(
+(B[m[32m+            PCM_NOISE_F,
+(B[m[32m+            0x0054_7062u32 as f64 / Q31_DENOM,
+(B[m[32m+            "PCM_NOISE_F",
+(B[m[32m+        );
+(B[m         assert_bits(MIN_REMAINING_F, 328.0 / 32768.0, "MIN_REMAINING_F");
+         assert_bits(MAX_INCREASE_F, 2.0, "MAX_INCREASE_F");
+         assert_bits(MAXVAL_F, i32::MAX as f64 / Q31_DENOM, "MAXVAL_F");
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/constants.rs:134:
+         let long = cfg_48k(BlockKind::Long);
+         let short = cfg_48k(BlockKind::Short);
+         assert_bits(CLIP_F_LONG, long.clip_energy(), "CLIP_F_LONG vs long cfg");
+[31m-        assert_bits(CLIP_F_SHORT, short.clip_energy(), "CLIP_F_SHORT vs short cfg");
+(B[m[32m+        assert_bits(
+(B[m[32m+            CLIP_F_SHORT,
+(B[m[32m+            short.clip_energy(),
+(B[m[32m+            "CLIP_F_SHORT vs short cfg",
+(B[m[32m+        );
+(B[m     }
+ 
+     #[test]
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/constants.rs:192:
+         }
+     }
+ }
+[32m+
+(B[mDiff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/mod.rs:133:
+ ) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
+     orchestrate::process_pair(left, right, lin, rin, tables, ws)
+ }
+[32m+
+(B[mDiff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/orchestrate.rs:60:
+         &mut ws.q31,
+     )
+ }
+[32m+
+(B[mDiff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/differential.rs:226:
+         assert_eq!(s.frames_compared, 1, "{name} f{frame}: frame accounting");
+     }
+ }
+[32m+
+(B[mDiff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:84:
+ /// Every field of [`GroupedOutput`] (`docs/fpe/09` M2 complete-output
+ /// gate), bit-identical.
+ fn assert_grouped_output_eq(got: &GroupedOutput, want: &GroupedOutput, tag: &str) {
+[31m-    assert_i32_vec_eq(&got.energies, &want.energies, &format!("{tag} grouped.energies"));
+(B[m[31m-    assert_i32_vec_eq(&got.thresholds, &want.thresholds, &format!("{tag} grouped.thresholds"));
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        &got.energies,
+(B[m[32m+        &want.energies,
+(B[m[32m+        &format!("{tag} grouped.energies"),
+(B[m[32m+    );
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        &got.thresholds,
+(B[m[32m+        &want.thresholds,
+(B[m[32m+        &format!("{tag} grouped.thresholds"),
+(B[m[32m+    );
+(B[m     assert_i32_vec_eq(&got.spread, &want.spread, &format!("{tag} grouped.spread"));
+[31m-    assert_f64_bits_eq(&got.energy_ld, &want.energy_ld, &format!("{tag} grouped.energy_ld"));
+(B[m     assert_f64_bits_eq(
+[32m+        &got.energy_ld,
+(B[m[32m+        &want.energy_ld,
+(B[m[32m+        &format!("{tag} grouped.energy_ld"),
+(B[m[32m+    );
+(B[m[32m+    assert_f64_bits_eq(
+(B[m         &got.threshold_ld,
+         &want.threshold_ld,
+         &format!("{tag} grouped.threshold_ld"),
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:95:
+     );
+[31m-    assert_i32_vec_eq(&got.offsets, &want.offsets, &format!("{tag} grouped.offsets"));
+(B[m[31m-    assert_i32_vec_eq(&got.min_snr, &want.min_snr, &format!("{tag} grouped.min_snr"));
+(B[m[31m-    assert_f64_bits_eq(&got.spectrum, &want.spectrum, &format!("{tag} grouped.spectrum"));
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        &got.offsets,
+(B[m[32m+        &want.offsets,
+(B[m[32m+        &format!("{tag} grouped.offsets"),
+(B[m[32m+    );
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        &got.min_snr,
+(B[m[32m+        &want.min_snr,
+(B[m[32m+        &format!("{tag} grouped.min_snr"),
+(B[m[32m+    );
+(B[m[32m+    assert_f64_bits_eq(
+(B[m[32m+        &got.spectrum,
+(B[m[32m+        &want.spectrum,
+(B[m[32m+        &format!("{tag} grouped.spectrum"),
+(B[m[32m+    );
+(B[m     assert_eq!(
+         got.max_sfb_per_group, want.max_sfb_per_group,
+         "{tag} grouped.max_sfb_per_group"
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:102:
+     );
+[31m-    assert_i32_vec_eq(&got.ms_energies, &want.ms_energies, &format!("{tag} grouped.ms_energies"));
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        &got.ms_energies,
+(B[m[32m+        &want.ms_energies,
+(B[m[32m+        &format!("{tag} grouped.ms_energies"),
+(B[m[32m+    );
+(B[m     assert_i32_vec_eq(&got.ms_ld, &want.ms_ld, &format!("{tag} grouped.ms_ld"));
+ }
+ 
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:113:
+     assert_i32_windows_eq(&got.maxscale, &want.maxscale, &format!("{tag} maxscale"));
+     assert_i32_windows_eq(&got.energies, &want.energies, &format!("{tag} energies"));
+     assert_f64_windows_eq(&got.energy_ld, &want.energy_ld, &format!("{tag} energy_ld"));
+[31m-    assert_i32_windows_eq(&got.thresholds, &want.thresholds, &format!("{tag} thresholds"));
+(B[m[32m+    assert_i32_windows_eq(
+(B[m[32m+        &got.thresholds,
+(B[m[32m+        &want.thresholds,
+(B[m[32m+        &format!("{tag} thresholds"),
+(B[m[32m+    );
+(B[m     assert_i32_windows_eq(&got.spread, &want.spread, &format!("{tag} spread"));
+     assert_i32_vec_eq(&got.nm1, &want.nm1, &format!("{tag} nm1"));
+     assert_eq!(got.m_nm1, want.m_nm1, "{tag} m_nm1");
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:164:
+ /// accessors). Bit-identical at M1/M2.
+ fn assert_psy_state_eq(q31: &PsyChannel, fpe: &FpeChannel, tag: &str) {
+     let f = fpe.q31_state();
+[31m-    assert_i32_vec_eq(q31.preecho_prev(), f.preecho_prev(), &format!("{tag} preecho.prev"));
+(B[m[32m+    assert_i32_vec_eq(
+(B[m[32m+        q31.preecho_prev(),
+(B[m[32m+        f.preecho_prev(),
+(B[m[32m+        &format!("{tag} preecho.prev"),
+(B[m[32m+    );
+(B[m     assert_eq!(
+         q31.preecho_state(),
+         f.preecho_state(),
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:173:
+     assert_tns_channel_eq(q31.tns_state(), f.tns_state(), &format!("{tag} tns_state"));
+     assert_tns_channel_eq(q31.tns_info(), f.tns_info(), &format!("{tag} tns_info"));
+     for w in 0..8 {
+[31m-        assert_f64_bits_eq(
+(B[m[31m-            &q31.ms_ld()[w],
+(B[m[31m-            &f.ms_ld()[w],
+(B[m[31m-            &format!("{tag} ms_ld w{w}"),
+(B[m[31m-        );
+(B[m[32m+        assert_f64_bits_eq(&q31.ms_ld()[w], &f.ms_ld()[w], &format!("{tag} ms_ld w{w}"));
+(B[m     }
+ }
+ 
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/fpe/tests/mod.rs:461:
+         s
+     }
+ }
+[32m+
+(B[mDiff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/stream_driver.rs:8078:
+             assert_eq!(enc.psy_ch.len(), ch);
+             assert!(enc.fpe_ch.is_empty());
+             let enc = StreamEncoder::with_config(
+[31m-                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
+(B[m[31m-                    .expect("cfg"),
+(B[m[32m+                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg"),
+(B[m             );
+[31m-            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31, "with_config {sr}/{ch}");
+(B[m[32m+            assert_eq!(
+(B[m[32m+                enc.psy_engine(),
+(B[m[32m+                PsyEngineKind::Q31,
+(B[m[32m+                "with_config {sr}/{ch}"
+(B[m[32m+            );
+(B[m             assert_eq!(enc.psy_ch.len(), ch);
+             assert!(enc.fpe_ch.is_empty());
+         }
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/stream_driver.rs:8090:
+     #[test]
+     fn fpe_selection_allocates_fpe_state_only() {
+         for (sr, ch) in [(48000u32, 2usize), (48000, 1), (44100, 2)] {
+[31m-            let enc = StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Fpe));
+(B[m[32m+            let enc =
+(B[m[32m+                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Fpe));
+(B[m             assert_eq!(enc.psy_engine(), PsyEngineKind::Fpe, "{sr}/{ch}");
+             assert_eq!(enc.fpe_ch.len(), ch);
+             assert!(
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/stream_driver.rs:8098:
+                 "allocate-selected-only (docs/fpe/06 §3)"
+             );
+             // Explicit Q31 selection round-trips to the default layout.
+[31m-            let enc = StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Q31));
+(B[m[32m+            let enc =
+(B[m[32m+                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Q31));
+(B[m             assert_eq!(enc.psy_engine(), PsyEngineKind::Q31);
+             assert_eq!(enc.psy_ch.len(), ch);
+             assert!(enc.fpe_ch.is_empty());
+Diff in /Users/jeroen/Documents/VSCode/fdk-aac/fdk-aac/rust/src/aac_enc/testdata.rs:519:
+                         } else {
+                             0.0
+                         };
+[31m-                        (click
+(B[m[31m-                            + 30000.0
+(B[m[31m-                                * (2.0 * core::f64::consts::PI * 16000.0 * time).sin())
+(B[m[32m+                        (click + 30000.0 * (2.0 * core::f64::consts::PI * 16000.0 * time).sin())
+(B[m                             as i16
+                     })
+                     .collect()
+fmt exit=1

@@ -1,0 +1,133 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/config.rs (lines 451-577)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: PsyEngineKind enum, EncoderConfig field, constructors, with_psy_engine/psy_engine builders
+# Extracted: 2026-11-16T23:26:22Z
+
+/// Psychoacoustic engine selection (FPE planning ADR-0001,
+/// `docs/fpe/06-encoder-integration.md` §1–§2).
+///
+/// [`PsyEngineKind::Q31`] is the validated bit-faithful fixed-point engine
+/// and the **default**; [`PsyEngineKind::Fpe`] selects the floating-point
+/// psychoacoustic engine under `aac_enc::fpe` (M1 scaffolding: delegates
+/// to the Q31 kernels, bit-identical pass-through). Runtime enum, not a
+/// Cargo feature, so both engines live in one binary for the in-binary
+/// Q31↔FPE differential harness.
+///
+/// **Unstable:** this knob is test-selectable from M1/M2; documented,
+/// stable public exposure happens at M8 after Stage-1 validation
+/// (`docs/fpe/06` §2). Making FPE the default is out of Stage 1.
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PsyEngineKind {
+    /// Validated Q31 fixed-point psychoacoustic engine (default).
+    #[default]
+    Q31,
+    /// Floating-point psychoacoustic engine (FPE), independently
+    /// selectable for differential testing; never default in Stage 1.
+    Fpe,
+}
+
+/// Validated encoder configuration for the AAC-LC VBR path.
+///
+/// Afterburner is not a field: it is unconditionally on
+/// (`aacenc_lib.cpp:564-565,574`, `aacenc.cpp:716` with `invQuant=2`).
+/// PNS is effectively off for every VBR profile by FDK's post-configuration
+/// logic (`aacenc_lib.cpp:1173-1176`: VBR without PNS; also disabled when
+/// TNS is off), even though the AAC-LC defaults initially enable it.
+/// TNS, M/S and conditional intensity stereo follow the shared AAC-LC path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EncoderConfig {
+    sample_rate: u32,
+    channels: u32,
+    frame_length: usize,
+    transport: TransportType,
+    vbr_mode: VbrMode,
+    /// Psychoacoustic engine selection (additive, default Q31; FPE
+    /// planning `docs/fpe/06` §2). Existing constructors are unchanged.
+    psy_engine: PsyEngineKind,
+}
+
+impl EncoderConfig {
+    /// Validate and build a configuration with the default profile (VBR-6).
+    /// Fails exactly where the C++ paths return `AACENC_INVALID_CONFIG` /
+    /// `AAC_ENC_UNSUPPORTED_*`.
+    pub fn new(
+        sample_rate: u32,
+        channels: u32,
+        frame_length: usize,
+        transport: TransportType,
+    ) -> Result<Self, ConfigError> {
+        Self::new_with_mode(
+            sample_rate,
+            channels,
+            frame_length,
+            transport,
+            VbrMode::Vbr6,
+        )
+    }
+
+    /// Validate and build a configuration with an explicit VBR profile.
+    pub fn new_with_mode(
+        sample_rate: u32,
+        channels: u32,
+        frame_length: usize,
+        transport: TransportType,
+        vbr_mode: VbrMode,
+    ) -> Result<Self, ConfigError> {
+        if !SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
+            return Err(ConfigError::UnsupportedSampleRate(sample_rate));
+        }
+        if ChannelMode::from_channel_count(channels).is_none() {
+            return Err(ConfigError::UnsupportedChannelCount(channels));
+        }
+        if frame_length != FRAME_LENGTH {
+            return Err(ConfigError::UnsupportedFrameLength(frame_length));
+        }
+        Ok(Self {
+            sample_rate,
+            channels,
+            frame_length,
+            transport,
+            vbr_mode,
+            psy_engine: PsyEngineKind::default(),
+        })
+    }
+
+    /// Primary quality target: stereo music at 48 kHz over ADTS (VBR-6).
+    pub fn stereo_48k_adts() -> Self {
+        Self {
+            sample_rate: 48000,
+            channels: 2,
+            frame_length: FRAME_LENGTH,
+            transport: TransportType::Adts,
+            vbr_mode: VbrMode::Vbr6,
+            psy_engine: PsyEngineKind::default(),
+        }
+    }
+
+    /// Builder: return a copy with an explicit VBR profile.
+    pub fn with_vbr_mode(self, vbr_mode: VbrMode) -> Self {
+        Self { vbr_mode, ..self }
+    }
+
+    /// Builder: return a copy with an explicit psychoacoustic engine
+    /// (additive, mirrors [`EncoderConfig::with_vbr_mode`]; FPE planning
+    /// `docs/fpe/06` §2). Default remains Q31; FPE is independently
+    /// selectable for differential testing.
+    ///
+    /// **Unstable:** test-selectable from M1/M2; documented, stable public
+    /// exposure happens at M8 after Stage-1 validation.
+    #[doc(hidden)]
+    pub fn with_psy_engine(self, psy_engine: PsyEngineKind) -> Self {
+        Self { psy_engine, ..self }
+    }
+
+    /// Selected psychoacoustic engine (default Q31).
+    ///
+    /// **Unstable:** see [`EncoderConfig::with_psy_engine`].
+    #[doc(hidden)]
+    pub fn psy_engine(self) -> PsyEngineKind {
+        self.psy_engine
+    }
+

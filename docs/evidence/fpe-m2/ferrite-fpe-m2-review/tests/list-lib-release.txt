@@ -1,0 +1,588 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running unittests src/lib.rs (target/release/deps/ferrite_aac-3f06558cb1c0c1f7)
+aac_enc::adts::tests::header_fields_round_trip: test
+aac_enc::adts::tests::malformed_frame_error_is_descriptive: test
+aac_enc::adts::tests::mono_48k_header_matches_reference_encoder: test
+aac_enc::adts::tests::rejects_bad_modes_and_oversize_frames: test
+aac_enc::adts::tests::sample_rate_index_covers_encoder_whitelist: test
+aac_enc::adts::tests::stereo_48k_header_matches_reference_encoder: test
+aac_enc::bitcount::tests::s5_all_zero_band_sections: test
+aac_enc::bitcount::tests::s5_bit_count_dispatch_and_kernels: test
+aac_enc::bitcount::tests::s5_constants_match_reference: test
+aac_enc::bitcount::tests::s5_corpus_exact: test
+aac_enc::bitcount::tests::s5_count_values_matches_bit_count: test
+aac_enc::bitcount::tests::s5_expected_values_are_checked_non_vacuously: test
+aac_enc::bitcount::tests::s5_quantizer_envelope_holds: test
+aac_enc::bitcount::tests::s5_scf_skip_forward_saves_bits: test
+aac_enc::bitcount::tests::s5_scratch_reuse_is_bit_exact: test
+aac_enc::bitcount::tests::s5_synthetic_is_section: test
+aac_enc::bitcount::tests::s5_synthetic_pns_section: test
+aac_enc::bitcount::tests::stage2_candidate_scan_tie_break: test
+aac_enc::bitcount::tests::stage2_compacted_candidates_match_reference: test
+aac_enc::bitenc::tests::s7_code_values_rejects_invalid_books_widths_values: test
+aac_enc::bitenc::tests::s7_constants_match_reference: test
+aac_enc::bitenc::tests::s7_corpus_payloads_match_c_and_s5: test
+aac_enc::bitenc::tests::s7_emitted_bits_match_s5_counters_on_probe_grid: test
+aac_enc::bitenc::tests::s7_pns_and_is_walks_use_primitives_exactly: test
+aac_enc::bitenc::tests::s7_probe_transcript_matches_c_bit_exact: test
+aac_enc::bitenc::tests::s7_section_headers_match_side_info_rule: test
+aac_enc::bitenc::tests::s7_writer_packs_msb_first: test
+aac_enc::bitenc::tests::s7_writer_rejects_bad_inputs_and_overflow: test
+aac_enc::block_switch::tests::initial_state_matches_init_block_switching: test
+aac_enc::block_switch::tests::lfe_path_freezes_history: test
+aac_enc::block_switch::tests::oracle_window_decisions_match_exactly: test
+aac_enc::block_switch::tests::silence_never_triggers: test
+aac_enc::block_switch::tests::speech_clean_f107_attack_boundary_is_float_limited: test
+aac_enc::block_switch::tests::sub_threshold_signal_never_triggers: test
+aac_enc::block_switch::tests::sync_merge_table_spot_checks: test
+aac_enc::block_switch::tests::sync_short_tie_goes_right: test
+aac_enc::channel_map::tests::channel_config_matches_get_channel_config: test
+aac_enc::channel_map::tests::discriminants_match_fdk_audio_h: test
+aac_enc::channel_map::tests::from_channel_count_picks_first_matching_row: test
+aac_enc::channel_map::tests::mode_table_matches_channel_map_cpp: test
+aac_enc::channel_map::tests::only_mono_mode_is_mono: test
+aac_enc::config::tests::accepts_full_sample_rate_whitelist: test
+aac_enc::config::tests::audio_specific_config_covers_channel_configs: test
+aac_enc::config::tests::audio_specific_config_covers_rate_table: test
+aac_enc::config::tests::audio_specific_config_matches_m75_cases: test
+aac_enc::config::tests::effective_bandwidth_respects_sample_rate: test
+aac_enc::config::tests::error_display_is_informative: test
+aac_enc::config::tests::explicit_profile_selection_and_defaults: test
+aac_enc::config::tests::nominal_bitrate_uses_effective_channels: test
+aac_enc::config::tests::primary_target_derivations: test
+aac_enc::config::tests::psy_engine_defaults_to_q31_in_every_constructor: test
+aac_enc::config::tests::rejects_out_of_plane_parameters: test
+aac_enc::config::tests::vbr6_inherits_vbr5_except_bandwidth: test
+aac_enc::config::tests::vbr_mode_numbers_and_parsing: test
+aac_enc::config::tests::vbr_profiles_match_upstream_table: test
+aac_enc::config::tests::with_psy_engine_builder_selects_fpe_and_preserves_other_fields: test
+aac_enc::encoder::tests::all_profiles_encode_mono_and_stereo: test
+aac_enc::encoder::tests::config_scope_gates: test
+aac_enc::encoder::tests::default_profile_is_vbr6: test
+aac_enc::encoder::tests::double_flush_and_post_finish_push_fail: test
+aac_enc::encoder::tests::empty_and_partial_flush_behaves: test
+aac_enc::encoder::tests::empty_input_flush_emits_valid_stream: test
+aac_enc::encoder::tests::flush_failure_poisons_and_emits_nothing: test
+aac_enc::encoder::tests::frame_failure_display_and_source_preserve_cause: test
+aac_enc::encoder::tests::frame_indices_are_sequential: test
+aac_enc::encoder::tests::outcome_mapping_table: test
+aac_enc::encoder::tests::poisoned_encoder_rejects_all_operations: test
+aac_enc::encoder::tests::push_failure_poisons_and_discards_in_call_frames: test
+aac_enc::encoder::tests::raw_payload_borrows_bytes_after_adts_header: test
+aac_enc::encoder::tests::raw_payload_rejects_malformed_frames: test
+aac_enc::encoder::tests::split_input_matches_single_push: test
+aac_enc::encoder::tests::unaligned_input_rejected_and_recoverable: test
+aac_enc::encoder::tests::vbr5_baseline_unchanged_and_vbr6_differs_only_in_bandwidth: test
+aac_enc::encoder::tests::vbr6_bandwidth_propagates_to_psy_and_qc: test
+aac_enc::energy::tests::ld_data_conventions: test
+aac_enc::energy::tests::max_scale_spec_matches_clz_rule: test
+aac_enc::energy::tests::rescale_shifts_mirror_psy_main: test
+aac_enc::fpe::constants::tests::clip_constants_match_sfb_config_accessors: test
+aac_enc::fpe::constants::tests::float_constants_equal_q31_over_2_31_exactly: test
+aac_enc::fpe::constants::tests::pcm_noise_constant_reproduces_per_band_floors_exactly: test
+aac_enc::fpe::constants::tests::tabulated_mask_factors_are_fractions_and_match_stored: test
+aac_enc::fpe::tests::differential::committed_mdct_vectors_single_frame: test
+aac_enc::fpe::tests::differential::fresh_fpe_state_init_matches_q31: test
+aac_enc::fpe::tests::differential::mixed_silent_active_pair: test
+aac_enc::fpe::tests::differential::mono_transients_click_impulse_edge: test
+aac_enc::fpe::tests::differential::onset_stereo_long_short_transitions_and_stale_ms_ld: test
+aac_enc::fpe::tests::differential::pow2_boundary_energies: test
+aac_enc::fpe::tests::differential::rate_44100_sine_and_onset: test
+aac_enc::fpe::tests::differential::real_music_and_speech: test
+aac_enc::fpe::tests::differential::silence_and_near_silence: test
+aac_enc::fpe::tests::differential::stepdown_stereo_offset_transition: test
+aac_enc::fpe::tests::differential::stress_and_full_scale_edges: test
+aac_enc::fpe::tests::differential::sustained_tonal_and_noise: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_lfe_short_partner_rejected: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_mismatched_cpe_sequences_rejected: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_right_lfe_short_rejected: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_valid_long_lfe_ok: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_valid_matching_long_cpe_ok: test
+aac_enc::fpe::tests::m2_stages::fpe_d022_valid_matching_short_cpe_ok: test
+aac_enc::fpe::tests::m2_stages::fpe_lfe_path_skips_tns_and_preecho: test
+aac_enc::fpe::tests::m2_stages::representation_lane_exact_and_observable_across_transitions: test
+aac_enc::frame::tests::s8_constants_match_reference: test
+aac_enc::frame::tests::s8_corpus_elements_match_c_bit_exact: test
+aac_enc::frame::tests::s8_fill_sizing_matches_s6_counter: test
+aac_enc::frame::tests::s8_global_gain_formula: test
+aac_enc::frame::tests::s8_ics_info_widths_and_values: test
+aac_enc::frame::tests::s8_ms_some_costs_mask_bits: test
+aac_enc::frame::tests::s8_rejects_unsupported_syntax_and_elements: test
+aac_enc::frame::tests::s8_static_agreement_accepts_post_crash_static: test
+aac_enc::frame::tests::s8_tns_round_trip_matches_static_count: test
+aac_enc::intensity::tests::inv_int_matches_reference_table_edges: test
+aac_enc::intensity::tests::max_scale_matches_clz_rule: test
+aac_enc::m5a_decode::m5a_tests::m5a_decode_check: test
+aac_enc::m5b_measure::m5b_tests::m5b_dump_inputs: test
+aac_enc::m5g_census::m5g_tests::m5g_branch_census: test
+aac_enc::m6_migration::m6_tests::m6_api_matches_driver_bytes: test
+aac_enc::pcm::tests::emitted_counts_match_observed_reference_runs: test
+aac_enc::pcm::tests::empty_stream_emits_delay_frames: test
+aac_enc::pcm::tests::exact_frame_input_still_flushes_delay: test
+aac_enc::pcm::tests::frame_count_matches_reference_formula: test
+aac_enc::pcm::tests::invalid_usage_is_rejected: test
+aac_enc::pcm::tests::irregular_chunks_preserve_samples_and_order: test
+aac_enc::pcm::tests::large_single_push_matches_chunked_and_compacts_once: test
+aac_enc::pe::tests::s1_calc_sfb_pe_covers_both_ld_ratio_branches: test
+aac_enc::pe::tests::s1_expected_values_are_checked_non_vacuously: test
+aac_enc::pe::tests::s1_form_factor_matches_oracle: test
+aac_enc::pe::tests::s1_form_factor_zero_band_and_tail_sentinel: test
+aac_enc::pe::tests::s1_geo_and_inputs_are_self_consistent: test
+aac_enc::pe::tests::s1_intensity_branch_contributes_nothing: test
+aac_enc::pe::tests::s1_ms_steering_drives_ch1_patch: test
+aac_enc::pe::tests::s1_pe_constants_match_reference_literals: test
+aac_enc::pe::tests::s1_pe_matches_oracle_with_injected_state: test
+aac_enc::pe::tests::s1_pe_offset_is_added_verbatim: test
+aac_enc::pe::tests::s1_prepare_clamps_estimate_to_band_width: test
+aac_enc::pe::tests::s1_scf_dpcm_cost_table: test
+aac_enc::pe::tests::s1_weighting_patch_gate_needs_prior_frame: test
+aac_enc::pe::tests::s1_weighting_short_element_arms_patch_state: test
+aac_enc::pe::tests::s1_weighting_silence_stays_unpatched: test
+aac_enc::pe::tests::vbr_pe_offset_matches_c_reference: test
+aac_enc::phase1b::phase1b_isolated_differential: test
+aac_enc::production_baseline::production_default_profile_vbr6_music_baseline_is_unchanged: test
+aac_enc::production_baseline::production_f32_corpus_baseline_is_unchanged: test
+aac_enc::psy::tests::d022_lfe_short_partner_rejected: test
+aac_enc::psy::tests::d022_mismatched_cpe_sequences_rejected: test
+aac_enc::psy::tests::d022_right_lfe_short_rejected: test
+aac_enc::psy::tests::d022_valid_long_lfe_ok: test
+aac_enc::psy::tests::d022_valid_matching_long_cpe_ok: test
+aac_enc::psy::tests::d022_valid_matching_short_cpe_ok: test
+aac_enc::psy::tests::lfe_path_skips_tns_and_preecho: test
+aac_enc::psy::tests::long_block_ms_path_unchanged: test
+aac_enc::psy::tests::psy_end_to_end_matches_oracle: test
+aac_enc::psy::tests::short_grouped_ms_equivalence_multiple_patterns: test
+aac_enc::psy::tests::short_grouped_ms_ignores_stale_history: test
+aac_enc::psy::tests::short_grouped_ms_saturating_mapping: test
+aac_enc::psy::tests::short_stereo_grouped_ms_integration: test
+aac_enc::psy_config::tests::all_validated_snapshots_parse: test
+aac_enc::psy_config::tests::every_profile_resolves_to_exact_snapshot: test
+aac_enc::psy_config::tests::unsupported_combination_panics: test
+aac_enc::q31::tests::primitives_match_c_semantics: test
+aac_enc::q31::tests::s1_kernels_match_c_anchors: test
+aac_enc::quant::tests::dispatch_backend_matches_arch_and_features: test
+aac_enc::quant::tests::dist_census_early_out_ignores_stale_output_suffix: test
+aac_enc::quant::tests::dist_max_quant_gate_exact: test
+aac_enc::quant::tests::dist_min_quant_takes_early_out: test
+aac_enc::quant::tests::dist_zero_band_reads_sentinel: test
+aac_enc::quant::tests::fixmuldiv_widths_match_reference: test
+aac_enc::quant::tests::inv_quantize_out_of_envelope_panics_loudly: test
+aac_enc::quant::tests::probe_table_anchors_hold: test
+aac_enc::quant::tests::qprobe_transcript_exact: test
+aac_enc::quant::tests::quantize_sign_symmetry: test
+aac_enc::quant::tests::quantize_zero_fast_path: test
+aac_enc::quant::tests::s3_corpus_exact: test
+aac_enc::quant_bench::tests::timing_guard_allows_normal_build: test
+aac_enc::quant_neon::tests::neon_boundary_lengths: test
+aac_enc::quant_neon::tests::neon_calc_sfb_dist_early_out_prefix_matches: test
+aac_enc::quant_neon::tests::neon_calc_sfb_dist_matches_scalar: test
+aac_enc::quant_neon::tests::neon_dist_violation_positions: test
+aac_enc::quant_neon::tests::neon_energy_dist_matches_scalar: test
+aac_enc::quant_neon::tests::neon_energy_max_quant_positions: test
+aac_enc::quant_neon::tests::neon_kernel_microbench: test
+aac_enc::quant_neon::tests::neon_quantize_lines_matches_scalar: test
+aac_enc::quant_neon::tests::neon_residue_sweep_all_quantizers_and_rows: test
+aac_enc::rate::tests::crash_recovery_recounts_ms_mask_under_surviving_sfb: test
+aac_enc::rate::tests::r1b_seeded_fallback_matches_fresh_on_early_out: test
+aac_enc::rate::tests::r1b_seeded_pass0_matches_fresh_on_s6_corpus: test
+aac_enc::rate::tests::s6_adjust_bitrate_padding_chain: test
+aac_enc::rate::tests::s6_bits2pe_eld_path_panics: test
+aac_enc::rate::tests::s6_bits2pe_factor_paths: test
+aac_enc::rate::tests::s6_calc_bits_per_frame: test
+aac_enc::rate::tests::s6_calc_max_cross_checks_s5_qmax: test
+aac_enc::rate::tests::s6_calc_max_envelope_and_short_min: test
+aac_enc::rate::tests::s6_corpus_exact: test
+aac_enc::rate::tests::s6_crash_forced_by_starvation_budget: test
+aac_enc::rate::tests::s6_crash_stereo_ms_some_recounts_static_consistently: test
+aac_enc::rate::tests::s6_distribute_bits_reduced_and_disabled: test
+aac_enc::rate::tests::s6_exit_matrix_cases: test
+aac_enc::rate::tests::s6_expected_values_are_checked_non_vacuously: test
+aac_enc::rate::tests::s6_fill_and_finalize_vectors: test
+aac_enc::rate::tests::s6_grant_state_evolution_onset_chain: test
+aac_enc::rate::tests::s6_init_vectors_match_oracle: test
+aac_enc::rate::tests::s6_padding_chain_matches_oracle: test
+aac_enc::rate::tests::s6_pe_correction_low_bit_res_taken: test
+aac_enc::rate::tests::s6_pe_correction_opposite_side_reset: test
+aac_enc::rate::tests::s6_q31_literals_match_probe: test
+aac_enc::rate::tests::s6_reduce_and_bitres_errors: test
+aac_enc::rate::tests::s6_retry_forced_by_tiny_budget: test
+aac_enc::scf::tests::r1b_s4_winners_match_fresh_quantize: test
+aac_enc::scf::tests::r1b_step3_requant_line_changing_differential: test
+aac_enc::scf::tests::s4_constants_match_c_probe: test
+aac_enc::scf::tests::s4_corpus_exact: test
+aac_enc::scf::tests::s4_expected_values_are_checked_non_vacuously: test
+aac_enc::scf::tests::s4_quantizer_envelope_holds: test
+aac_enc::scf::tests::s4_silence_all_dead: test
+aac_enc::scf::tests::s4_unit_probe_exact: test
+aac_enc::sfb::tests::active_band_semantics: test
+aac_enc::sfb::tests::all_rates_config_parity: test
+aac_enc::sfb::tests::lowbr_spreading_matches_c_reference_for_vbr1_stereo: test
+aac_enc::sfb::tests::oracle_config_parity_441k_and_mono: test
+aac_enc::sfb::tests::oracle_config_parity_48k: test
+aac_enc::sfb::tests::table_selection_and_offsets_match_init_sfb_table: test
+aac_enc::static_bits::tests::s1_hand_counted_element_bases: test
+aac_enc::static_bits::tests::s1_ms_some_costs_exactly_the_mask_bits: test
+aac_enc::static_bits::tests::s1_static_bits_match_oracle: test
+aac_enc::static_bits::tests::s1_static_tamper_changes_count: test
+aac_enc::static_bits::tests::s1_tns_data_bits_hand_counted: test
+aac_enc::stream_driver::fpe_seam_tests::default_selection_is_q31_and_allocates_q31_state_only: test
+aac_enc::stream_driver::fpe_seam_tests::fpe_selected_streams_are_byte_identical_to_q31: test
+aac_enc::stream_driver::fpe_seam_tests::fpe_selection_allocates_fpe_state_only: test
+aac_enc::stream_driver::is_integration_tests::intensity_probe_44100_stereo: test
+aac_enc::stream_driver::is_integration_tests::intensity_probe_adts_decodes: test
+aac_enc::stream_driver::is_integration_tests::intensity_probe_c_oracle_parity: test
+aac_enc::stream_driver::is_integration_tests::intensity_probe_decisions: test
+aac_enc::stream_driver::is_integration_tests::intensity_probe_wav_parity: test
+aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_accepts_empty_records: test
+aac_enc::stream_driver::is_integration_tests::zero_c_record_guard_rejects_synthetic_entry: test
+aac_enc::stream_driver::m511_tests::m511_profile_loop: test
+aac_enc::stream_driver::m52_tests::crash_recovered_frame_emits_valid_adts: test
+aac_enc::stream_driver::m52_tests::crash_recovered_stream_decodes: test
+aac_enc::stream_driver::m52_tests::m52_all_fixtures_write_complete: test
+aac_enc::stream_driver::m52_tests::m52_emit_or_fail_is_loud: test
+aac_enc::stream_driver::m52_tests::m53b_transient_groups_survive: test
+aac_enc::stream_driver::m52_tests::m53b_zeroing_uses_group_stride: test
+aac_enc::stream_driver::m52_tests::m55_streams_match_c_reference: test
+aac_enc::stream_driver::m52_tests::multi_pass_retry_and_crash_frames_are_emitted_not_skipped: test
+aac_enc::stream_driver::m58_tests::m58_corpus_validation: test
+aac_enc::stream_driver::m58_tests::m58_smoke_untimed: test
+aac_enc::stream_driver::m58_tests::simd_quant_census_corpus: test
+aac_enc::stream_driver::perf_tests::aac_perf_bench: test
+aac_enc::stream_driver::perf_tests::perf_vbr_selection_accepts_only_5_and_6: test
+aac_enc::stream_driver::phase1_tests::cross_frame_state_onset_f25_is_upstream_and_output_neutral: test
+aac_enc::stream_driver::phase1_tests::minsnr1_divergence_is_upstream_of_s2: test
+aac_enc::stream_driver::phase1_tests::phase1_frontend_agreement_sine_f5: test
+aac_enc::stream_driver::phase1_tests::phase1_full_stream_parity: test
+aac_enc::stream_driver::phase1_tests::phase1_reproducibility: test
+aac_enc::stream_driver::phase1_tests::phase1c_ms_grouping_saturates_like_c: test
+aac_enc::stream_driver::phase1_tests::phase1c_short_ms_grouped_vectors_match_regroup_oracle: test
+aac_enc::stream_driver::phase1_tests::phase1c_short_ms_ld_grouped_refresh: test
+aac_enc::stream_driver::phase1_tests::phase1c_threshold_ld_floor_matches_c: test
+aac_enc::stream_driver::phase1_tests::phase1e_onset_f24_bands_causality: test
+aac_enc::stream_driver::phase1_tests::phase1e_sine_f5_band16_residue: test
+aac_enc::stream_driver::phase1_tests::phase1f_multitone_f1_no_live_divergence: test
+aac_enc::stream_driver::phase1_tests::phase1f_onset441_f22_live_matches_real_c: test
+aac_enc::stream_driver::phase1_tests::phase1f_sine_f1_live_matches_real_c: test
+aac_enc::stream_driver::phase1_tests::phase1f_stepdown_f1_no_live_divergence: test
+aac_enc::stream_driver::phase1_tests::phase1g_long_flips_residue: test
+aac_enc::stream_driver::phase1_tests::phase1h_d021_live_frame_reconciliation: test
+aac_enc::stream_driver::phase1_tests::phase1i_click_f11_tier_b: test
+aac_enc::stream_driver::phase1_tests::phase1i_multitone_f5_tier_b: test
+aac_enc::stream_driver::phase1_tests::phase1i_sine44_f5_tier_b: test
+aac_enc::stream_driver::phase1_tests::stress_resynthesis_matches_wav: test
+aac_enc::stream_driver::vbr_parity_tests::vbr_profiles_match_c_reference_init: test
+aac_enc::threshold_vbr::tests::s2_adapt_min_snr_silence_is_identity: test
+aac_enc::threshold_vbr::tests::s2_adapt_min_snr_updates_quiet_band_under_loud_avg: test
+aac_enc::threshold_vbr::tests::s2_avoid_hole_ms_section_raises_masked_min_snr: test
+aac_enc::threshold_vbr::tests::s2_avoid_hole_skip_and_clamp_are_exact: test
+aac_enc::threshold_vbr::tests::s2_avoid_hole_spread_scaling_is_block_dependent: test
+aac_enc::threshold_vbr::tests::s2_chaos_measure_empty_is_one: test
+aac_enc::threshold_vbr::tests::s2_chaos_measure_matches_c_probe_anchors: test
+aac_enc::threshold_vbr::tests::s2_chaos_trajectory_is_continuous_across_onset_run: test
+aac_enc::threshold_vbr::tests::s2_constants_match_reference_literals: test
+aac_enc::threshold_vbr::tests::s2_enfac_add_touches_active_bands_only: test
+aac_enc::threshold_vbr::tests::s2_expected_values_are_checked_non_vacuously: test
+aac_enc::threshold_vbr::tests::s2_full_matches_oracle_with_injected_chaos: test
+aac_enc::threshold_vbr::tests::s2_pre_enfac_plus_enfac_is_thrv_on_active_bands: test
+aac_enc::threshold_vbr::tests::s2_reduce_long_zero_guard_fires_on_condition: test
+aac_enc::threshold_vbr::tests::s2_reduce_short_minus_one_guard_fires_on_condition: test
+aac_enc::threshold_vbr::tests::s2_reduce_skips_gated_bands_exactly: test
+aac_enc::threshold_vbr::tests::s2_short_group_number_quirk_is_real: test
+aac_enc::threshold_vbr::tests::s2_thresh_exp_matches_oracle: test
+aac_enc::threshold_vbr::tests::s2_thresh_exp_zero_threshold_and_inactive_bands: test
+aac_enc::thresholds::tests::clip_cap_mirrors_shift_branches: test
+aac_enc::thresholds::tests::pcm_floor_shift_accumulates_per_window: test
+aac_enc::thresholds::tests::pre_echo_bypass_clamp_floor_memorize: test
+aac_enc::thresholds::tests::pre_echo_reset_disables_next_frame: test
+aac_enc::thresholds::tests::spreading_max_envelope_is_exact: test
+aac_enc::thresholds::tests::threshold_init_is_exact_mult: test
+aac_enc::tns::tests15::c_exact_rxx_reproduces_c_tns_analysis: test
+aac_enc::tns::tests15::fixed_merge_matches_rxx_bit_exact: test
+aac_enc::tns::tests_gain_gate::d013_activation_margin_census: test
+aac_enc::tns::tests_gain_gate::gain_gate_policy: test
+aac_enc::tns::tests_gain_gate::schur_gains_match_committed_within_gate: test
+aac_enc::transform::tests::mdct_parity_with_reference: test
+aac_enc::transform::tests::naive_mdct_pins_absolute_scale: test
+aac_enc::transform::tests::rejects_low_overlap_shape: test
+aac_enc::transform::tests::ring_schedule_matches_oracle: test
+aac_enc::transform::tests::silence_in_silence_out: test
+aac_enc::transform::tests::staging_constants_match_psy_main: test
+aac_enc::transform::tests::synthesis_matches_oracle_input: test
+aac_enc::transform::tests::window_tables_have_encoder_lengths: test
+common::autocorr2nd::test::alternating_cplx: test
+common::autocorr2nd::test::constant_ones: test
+common::autocorr2nd::test::constant_zeros: test
+common::bitbuffer::tests::bit_states: test
+common::bitbuffer::tests::buffer: test
+common::bitbuffer::tests::default: test
+common::bitbuffer::tests::feed: test
+common::bitbuffer::tests::get: test
+common::bitbuffer::tests::init: test
+common::bitbuffer::tests::init_check_buffer_size: test
+common::bitbuffer::tests::init_check_buffer_size_power_of_two: test
+common::bitbuffer::tests::init_check_valid_bits: test
+common::bitbuffer::tests::new: test
+common::bitbuffer::tests::push: test
+common::bitbuffer::tests::put: test
+common::bitbuffer::tests::reset: test
+common::bitstream::tests::align_read: test
+common::bitstream::tests::align_write: test
+common::bitstream::tests::bit_states: test
+common::bitstream::tests::buffer: test
+common::bitstream::tests::default: test
+common::bitstream::tests::feed: test
+common::bitstream::tests::init: test
+common::bitstream::tests::mode: test
+common::bitstream::tests::new: test
+common::bitstream::tests::push_back_cache: test
+common::bitstream::tests::push_back_cache_too_many_bits: test
+common::bitstream::tests::push_reader: test
+common::bitstream::tests::push_writer: test
+common::bitstream::tests::read: test
+common::bitstream::tests::read_too_many_bits: test
+common::bitstream::tests::reset: test
+common::bitstream::tests::sync_reader: test
+common::bitstream::tests::sync_writer: test
+common::bitstream::tests::write: test
+common::channel_map_descr::tests::test_ch_map_descr_init_none: test
+common::channel_map_descr::tests::test_ch_map_descr_init_not_none: test
+common::channel_map_descr::tests::test_ch_map_descr_init_not_valid_map: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_invalid_map: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_map: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_idx_exceeded: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_none: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_map_repetitions: test
+common::channel_map_descr::tests::test_ch_map_descr_is_valid_none_map: test
+common::channel_map_descr::tests::test_ch_map_descr_new: test
+common::channel_map_descr::tests::test_channel_map_info_default: test
+common::channel_map_descr::tests::test_channel_map_info_new_none: test
+common::channel_map_descr::tests::test_channel_map_info_not_none: test
+common::channel_map_descr::tests::test_check_ch_map_descr_order_cicp: test
+common::channel_map_descr::tests::test_check_ch_map_descr_order_mpeg: test
+common::channel_map_descr::tests::test_check_ch_map_descr_order_wav: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_channel_idx_exceeded: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_map_idx_exceeded: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_map_info_is_none: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_mpeg: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_none_table: test
+common::channel_map_descr::tests::test_get_ch_map_descr_value_wav_with_valid_map: test
+common::crc::tests::crc_value: test
+common::crc::tests::decode: test
+common::crc::tests::decode_overlapping_region: test
+common::crc::tests::encode: test
+common::crc::tests::init: test
+common::crc::tests::new: test
+common::crc::tests::reset: test
+common::crc::tests::start_region: test
+common::dct::tests::cmp_to_ref: test
+common::fft::fft_n2::tests::t_complex_mult: test
+common::fft::fft_n2::tests::t_fft_apply_rot_vec: test
+common::fft::fft_n2::tests::t_window_overlap: test
+common::fft::tests::t_pi_fourth: test
+common::hybrid::test_initializing_analysis: test
+common::hybrid::test_initializing_synthesis: test
+common::pow::tests::test_scale_factor_2_exp: test
+common::qmf::qmf_fb::tests::init_analysis_fb_clear_state: test
+common::qmf::qmf_fb::tests::init_analysis_fb_keep_state: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_16: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_16_synmode: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_32: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_32_synmode: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_64: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_8: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_8_synmode: test
+common::qmf::qmf_fb::tests::init_cldfb_num_channels_invalid: test
+common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_32: test
+common::qmf::qmf_fb::tests::init_mpsldfb_num_channels_invalid: test
+common::qmf::qmf_fb::tests::init_mpsldfb_num_subbands_64: test
+common::qmf::qmf_fb::tests::init_num_channels_12: test
+common::qmf::qmf_fb::tests::init_num_channels_16: test
+common::qmf::qmf_fb::tests::init_num_channels_20: test
+common::qmf::qmf_fb::tests::init_num_channels_24: test
+common::qmf::qmf_fb::tests::init_num_channels_32: test
+common::qmf::qmf_fb::tests::init_num_channels_32_downsampled: test
+common::qmf::qmf_fb::tests::init_num_channels_40: test
+common::qmf::qmf_fb::tests::init_num_channels_64: test
+common::qmf::qmf_fb::tests::init_num_channels_8: test
+common::qmf::qmf_fb::tests::init_num_channels_invalid: test
+common::qmf::qmf_fb::tests::new_qmf_instance: test
+common::quantize::tests::test_inverse_quantize_band: test
+common::samplerate_index::test_get_sample_rate_idx: test
+
+409 tests, 0 benchmarks

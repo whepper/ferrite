@@ -1,0 +1,34 @@
+diff --git a/rust/src/aac_enc/fpe/preecho.rs b/rust/src/aac_enc/fpe/preecho.rs
+new file mode 100644
+index 0000000..15c49ad
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/preecho.rs
+@@ -0,0 +1,28 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE pre-echo temporal masking — skeleton (no float kernel in M1).
++//!
++//! Planned content (roadmap `09`):
++//!
++//! - **M1/M2 (pass-through):** pre-echo control delegates to the Q31
++//!   [`crate::aac_enc::thresholds::PreEchoState`] held inside
++//!   [`super::FpeChannel`]'s delegated state (stored-int history), so the
++//!   history is bit-identical to Q31 — no fraction conversion, no
++//!   independent state calculation.
++//! - **M6 (FPE-6.1/6.2/6.3):** the fraction `FpePreEchoState`
++//!   (`prev_f: Vec<f64>` = `prev_st/2^31`, `prev_scale`, `enabled`)
++//!   replaces the delegated Q31 state (`docs/fpe/05` §6.5): init
++//!   `prev_f = pcm_quant()` long, `prev_scale = 8`, enabled; identical
++//!   scale-aligned clamp/floor/memorize order (memorize **pre-clamp**),
++//!   STOP-reset-before / START-reset-after transitions, and the
++//!   nm1/m_nm1/calc_pre_echo readout. Attack detection (block switching)
++//!   is reused unchanged (`docs/fpe/03` §4.8).
++//!
++//! Upstream: `pre_echo_control.cpp:106-176` (`FDKaacEnc_InitPreEchoControl`,
++//! `FDKaacEnc_PreEchoControl`), resets `psy_main.cpp:975-985/996-1006`.
++//! Q31 mirror (read-only): `thresholds.rs:184-267`.
++//!
++//! **M1:** delegation happens inside the Q31 engine via
++//! [`super::orchestrate`]; this module intentionally contains no code.

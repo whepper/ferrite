@@ -1,0 +1,206 @@
+warning: Cargo.toml: only one of `license` or `license-file` is necessary
+`license` should be used if the package license can be expressed with a standard SPDX expression.
+`license-file` should be used if the package uses a non-standard license.
+See https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields for more information.
+warning: `ferrite-aac` (manifest) generated 1 warning
+warning: fields `sample_rate`, `kind`, and `bark` are never read
+   --> src/aac_enc/sfb.rs:195:5
+    |
+194 | pub struct SfbConfig {
+    |            --------- fields in this struct
+195 |     sample_rate: u32,
+    |     ^^^^^^^^^^^
+196 |     kind: BlockKind,
+    |     ^^^^
+...
+215 |     bark: Vec<f64>,
+    |     ^^^^
+    |
+    = note: `SfbConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `sample_rate`, `kind`, and `bark` are never used
+   --> src/aac_enc/sfb.rs:377:12
+    |
+232 | impl SfbConfig {
+    | -------------- methods in this implementation
+...
+377 |     pub fn sample_rate(&self) -> u32 {
+    |            ^^^^^^^^^^^
+...
+382 |     pub fn kind(&self) -> BlockKind {
+    |            ^^^^
+...
+442 |     pub fn bark(&self) -> &[f64] {
+    |            ^^^^
+
+warning: fields `stem` and `seqs` are never read
+    --> src/aac_enc/stream_driver.rs:5095:9
+     |
+5094 | pub(crate) struct M52WriteReport {
+     |                   -------------- fields in this struct
+5095 |     pub stem: String,
+     |         ^^^^
+...
+5100 |     pub seqs: Vec<i32>,
+     |         ^^^^
+     |
+     = note: `M52WriteReport` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `short` and `channels` are never read
+    --> src/aac_enc/stream_driver.rs:6062:9
+     |
+6061 | pub(crate) struct M58Sample {
+     |                   --------- fields in this struct
+6062 |     pub short: String,
+     |         ^^^^^
+...
+6065 |     pub channels: usize,
+     |         ^^^^^^^^
+     |
+     = note: `M58Sample` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `short` is never read
+   --> src/aac_enc/testdata.rs:600:16
+    |
+579 | pub(crate) struct PsyFrame {
+    |                   -------- field in this struct
+...
+600 |     pub(crate) short: bool,
+    |                ^^^^^
+    |
+    = note: `PsyFrame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1024:16
+     |
+1023 | pub(crate) struct S1Frame {
+     |                   ------- field in this struct
+1024 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S1Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:1271:16
+     |
+1270 | pub(crate) struct S2Frame {
+     |                   ------- field in this struct
+1271 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S2Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1529:16
+     |
+1525 | pub(crate) struct S3Channel {
+     |                   --------- field in this struct
+...
+1529 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S3Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `geo_seq` is never read
+    --> src/aac_enc/testdata.rs:1724:16
+     |
+1720 | pub(crate) struct S4Channel {
+     |                   --------- field in this struct
+...
+1724 |     pub(crate) geo_seq: u8,
+     |                ^^^^^^^
+     |
+     = note: `S4Channel` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2389:16
+     |
+2388 | pub(crate) struct S7Frame {
+     |                   ------- field in this struct
+2389 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S7Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `frame` is never read
+    --> src/aac_enc/testdata.rs:2453:16
+     |
+2452 | pub(crate) struct S8Frame {
+     |                   ------- field in this struct
+2453 |     pub(crate) frame: u32,
+     |                ^^^^^
+     |
+     = note: `S8Frame` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `chaos_measure` is never read
+   --> src/aac_enc/threshold_vbr.rs:538:9
+    |
+534 | pub struct ReduceResult {
+    |            ------------ field in this struct
+...
+538 |     pub chaos_measure: i32,
+    |         ^^^^^^^^^^^^^
+
+warning: fields `thr_exp`, `ah_flag`, and `reduce` are never read
+   --> src/aac_enc/threshold_vbr.rs:599:9
+    |
+593 | pub struct AdaptResult {
+    |            ----------- fields in this struct
+...
+599 |     pub thr_exp: Vec<Vec<i32>>,
+    |         ^^^^^^^
+...
+605 |     pub ah_flag: Vec<Vec<u8>>,
+    |         ^^^^^^^
+606 |     /// Reduction values + post-curve chaos.
+607 |     pub reduce: ReduceResult,
+    |         ^^^^^^
+
+warning: constant `GAIN_TOL_PER_MILLE` is never used
+   --> src/aac_enc/tns.rs:693:18
+    |
+693 | pub(crate) const GAIN_TOL_PER_MILLE: i64 = 1;
+    |                  ^^^^^^^^^^^^^^^^^^
+
+warning: method `last_shape` is never used
+   --> src/aac_enc/transform.rs:199:12
+    |
+181 | impl ChannelTransform {
+    | --------------------- method in this implementation
+...
+199 |     pub fn last_shape(&self) -> WindowShape {
+    |            ^^^^^^^^^^
+
+warning: `ferrite-aac` (lib test) generated 15 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (target/debug/deps/ferrite_aac-074ceb3734cb5b4c)
+
+running 24 tests
+test aac_enc::fpe::constants::tests::float_constants_equal_q31_over_2_31_exactly ... ok
+test aac_enc::fpe::constants::tests::clip_constants_match_sfb_config_accessors ... ok
+test aac_enc::fpe::constants::tests::pcm_noise_constant_reproduces_per_band_floors_exactly ... ok
+test aac_enc::fpe::constants::tests::tabulated_mask_factors_are_fractions_and_match_stored ... ok
+test aac_enc::fpe::tests::differential::fresh_fpe_state_init_matches_q31 ... ok
+test aac_enc::fpe::tests::differential::committed_mdct_vectors_single_frame ... ok
+test aac_enc::fpe::tests::differential::mono_transients_click_impulse_edge ... ok
+test aac_enc::fpe::tests::differential::mixed_silent_active_pair ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_lfe_short_partner_rejected - should panic ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_mismatched_cpe_sequences_rejected - should panic ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_right_lfe_short_rejected - should panic ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_valid_long_lfe_ok ... ok
+test aac_enc::fpe::tests::differential::onset_stereo_long_short_transitions_and_stale_ms_ld ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_valid_matching_short_cpe_ok ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_d022_valid_matching_long_cpe_ok ... ok
+test aac_enc::fpe::tests::m2_stages::fpe_lfe_path_skips_tns_and_preecho ... ok
+test aac_enc::fpe::tests::differential::stepdown_stereo_offset_transition ... ok
+test aac_enc::fpe::tests::differential::pow2_boundary_energies ... ok
+test aac_enc::fpe::tests::m2_stages::representation_lane_exact_and_observable_across_transitions ... ok
+test aac_enc::fpe::tests::differential::rate_44100_sine_and_onset ... ok
+test aac_enc::fpe::tests::differential::stress_and_full_scale_edges ... ok
+test aac_enc::fpe::tests::differential::silence_and_near_silence ... ok
+test aac_enc::fpe::tests::differential::sustained_tonal_and_noise ... ok
+test aac_enc::fpe::tests::differential::real_music_and_speech ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 385 filtered out; finished in 1.65s
+

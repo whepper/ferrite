@@ -1,0 +1,34 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/stream_driver.rs (lines 760-787)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: vbr_mode/psy_engine accessors and the engine-aware psy_tns_info helper used by LiveChannel
+# Extracted: 2026-11-16T23:26:22Z
+
+    /// Selected VBR profile (diagnostic accessor for the production `Encoder`).
+    pub(crate) fn vbr_mode(&self) -> VbrMode {
+        self.vbr_mode
+    }
+
+    /// Selected psychoacoustic engine (test inspection only: FPE selection
+    /// seam tests, roadmap M1 FPE-1.2; no production API added).
+    #[cfg(test)]
+    pub(crate) fn psy_engine(&self) -> PsyEngineKind {
+        self.psy_engine
+    }
+
+    /// TNS output info of the selected engine's channel state, for the
+    /// `LiveChannel` construction below. Additive FPE seam: with Q31
+    /// selected this is exactly the former `self.psy_ch[ch].tns_info()`
+    /// read; with FPE selected the TNS info comes from the FPE-owned
+    /// state (the delegated TNS writes there, not into `psy_ch`).
+    fn psy_tns_info(&self, ch: usize) -> &TnsChannel {
+        match self.psy_engine {
+            PsyEngineKind::Q31 => self.psy_ch[ch].tns_info(),
+            PsyEngineKind::Fpe => self.fpe_ch[ch].tns_info(),
+        }
+    }
+
+    fn seq_of(&self, ch: usize) -> WindowSequence {
+        self.switches[ch].sequence()
+    }
+}

@@ -1,0 +1,52 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/tns.rs (lines 245-290)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: TnsChannel — persistent TNS state type (unchanged, pub fields)
+# Extracted: 2026-11-16T23:26:22Z
+
+/// Per-channel TNS output state (mirrors `TNS_INFO` for bitstream use
+/// later, plus runtime `TNS_DATA` decisions).
+#[derive(Debug, Clone)]
+pub struct TnsChannel {
+    /// Filters per window (8 entries; long uses index 0).
+    pub num_filters: [usize; 8],
+    /// Coefficient resolution per window.
+    pub coef_res: [usize; 8],
+    /// Filter lengths in SFBs [window][HI/LO].
+    pub length: [[usize; 2]; 8],
+    /// Truncated orders [window][HI/LO].
+    pub order: [[usize; 2]; 8],
+    /// Directions [window][HI/LO] (always 0 = up on this path).
+    pub direction: [[usize; 2]; 8],
+    /// Quantized coefficient indices [window][HI/LO][12].
+    pub coef: [[[i32; 12]; 2]; 8],
+    /// Runtime: filter active [window][HI/LO].
+    pub active: [[bool; 2]; 8],
+    /// Runtime: prediction gain x1000 [window][HI/LO].
+    pub gain: [[i32; 2]; 8],
+    /// Runtime: filters merged (long only).
+    pub merged: bool,
+}
+
+impl TnsChannel {
+    /// Cleared state (mirrors zeroed `TNS_DATA`/`TNS_INFO` at stream start).
+    pub fn new() -> Self {
+        Self {
+            num_filters: [0; 8],
+            coef_res: [0; 8],
+            length: [[0; 2]; 8],
+            order: [[0; 2]; 8],
+            direction: [[0; 2]; 8],
+            coef: [[[0; 12]; 2]; 8],
+            active: [[false; 2]; 8],
+            gain: [[0; 2]; 8],
+            merged: false,
+        }
+    }
+
+    /// Clear runtime decisions (mirrors the TNS-disabled `memclear`).
+    pub fn clear_runtime(&mut self) {
+        self.active = [[false; 2]; 8];
+        self.gain = [[0; 2]; 8];
+        self.merged = false;
+    }

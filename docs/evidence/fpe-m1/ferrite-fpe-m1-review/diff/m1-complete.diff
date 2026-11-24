@@ -1,0 +1,2054 @@
+diff --git a/rust/src/aac_enc.rs b/rust/src/aac_enc.rs
+index 5618711..d349bac 100644
+--- a/rust/src/aac_enc.rs
++++ b/rust/src/aac_enc.rs
+@@ -1,7 +1,7 @@
+ /* Ferrite: this file is part of a Third-Party Modified Version of the
+ Fraunhofer FDK AAC Codec Library for Android. Modifications and Rust
+ implementation copyright © 2025–2026 Jeroen Steenvoorde. Modification
+-notice date: 2026-10-26. See rust/NOTICE for the full license text. */
++notice date: 2026-11-16. See rust/NOTICE for the full license text. */
+ /* -----------------------------------------------------------------------------
+ Software License for The Fraunhofer FDK AAC Codec Library for Android
+ 
+@@ -118,6 +118,9 @@ pub mod channel_map;
+ pub mod config;
+ pub mod encoder;
+ pub(crate) mod energy;
++// FPE: self-contained floating-point psychoacoustic engine module tree
++// (docs/fpe/ roadmap M1 scaffolding; Q31 remains authoritative/default).
++pub(crate) mod fpe;
+ pub(crate) mod frame;
+ pub(crate) mod intensity;
+ #[cfg(test)]
+diff --git a/rust/src/aac_enc/config.rs b/rust/src/aac_enc/config.rs
+index 147a8ad..b5285ed 100644
+--- a/rust/src/aac_enc/config.rs
++++ b/rust/src/aac_enc/config.rs
+@@ -1,7 +1,7 @@
+ /* Ferrite: this file is part of a Third-Party Modified Version of the
+ Fraunhofer FDK AAC Codec Library for Android. Modifications and Rust
+ implementation copyright © 2025–2026 Jeroen Steenvoorde. Modification
+-notice date: 2026-10-26. See rust/NOTICE for the full license text. */
++notice date: 2026-11-16. See rust/NOTICE for the full license text. */
+ /* -----------------------------------------------------------------------------
+ Software License for The Fraunhofer FDK AAC Codec Library for Android
+ 
+@@ -448,6 +448,30 @@ impl VbrProfile {
+     }
+ }
+ 
++/// Psychoacoustic engine selection (FPE planning ADR-0001,
++/// `docs/fpe/06-encoder-integration.md` §1–§2).
++///
++/// [`PsyEngineKind::Q31`] is the validated bit-faithful fixed-point engine
++/// and the **default**; [`PsyEngineKind::Fpe`] selects the floating-point
++/// psychoacoustic engine under `aac_enc::fpe` (M1 scaffolding: delegates
++/// to the Q31 kernels, bit-identical pass-through). Runtime enum, not a
++/// Cargo feature, so both engines live in one binary for the in-binary
++/// Q31↔FPE differential harness.
++///
++/// **Unstable:** this knob is test-selectable from M1/M2; documented,
++/// stable public exposure happens at M8 after Stage-1 validation
++/// (`docs/fpe/06` §2). Making FPE the default is out of Stage 1.
++#[doc(hidden)]
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
++pub enum PsyEngineKind {
++    /// Validated Q31 fixed-point psychoacoustic engine (default).
++    #[default]
++    Q31,
++    /// Floating-point psychoacoustic engine (FPE), independently
++    /// selectable for differential testing; never default in Stage 1.
++    Fpe,
++}
++
+ /// Validated encoder configuration for the AAC-LC VBR path.
+ ///
+ /// Afterburner is not a field: it is unconditionally on
+@@ -463,6 +487,9 @@ pub struct EncoderConfig {
+     frame_length: usize,
+     transport: TransportType,
+     vbr_mode: VbrMode,
++    /// Psychoacoustic engine selection (additive, default Q31; FPE
++    /// planning `docs/fpe/06` §2). Existing constructors are unchanged.
++    psy_engine: PsyEngineKind,
+ }
+ 
+ impl EncoderConfig {
+@@ -507,6 +534,7 @@ impl EncoderConfig {
+             frame_length,
+             transport,
+             vbr_mode,
++            psy_engine: PsyEngineKind::default(),
+         })
+     }
+ 
+@@ -518,6 +546,7 @@ impl EncoderConfig {
+             frame_length: FRAME_LENGTH,
+             transport: TransportType::Adts,
+             vbr_mode: VbrMode::Vbr6,
++            psy_engine: PsyEngineKind::default(),
+         }
+     }
+ 
+@@ -526,6 +555,26 @@ impl EncoderConfig {
+         Self { vbr_mode, ..self }
+     }
+ 
++    /// Builder: return a copy with an explicit psychoacoustic engine
++    /// (additive, mirrors [`EncoderConfig::with_vbr_mode`]; FPE planning
++    /// `docs/fpe/06` §2). Default remains Q31; FPE is independently
++    /// selectable for differential testing.
++    ///
++    /// **Unstable:** test-selectable from M1/M2; documented, stable public
++    /// exposure happens at M8 after Stage-1 validation.
++    #[doc(hidden)]
++    pub fn with_psy_engine(self, psy_engine: PsyEngineKind) -> Self {
++        Self { psy_engine, ..self }
++    }
++
++    /// Selected psychoacoustic engine (default Q31).
++    ///
++    /// **Unstable:** see [`EncoderConfig::with_psy_engine`].
++    #[doc(hidden)]
++    pub fn psy_engine(self) -> PsyEngineKind {
++        self.psy_engine
++    }
++
+     /// Selected VBR profile identifier.
+     pub fn vbr_mode(self) -> VbrMode {
+         self.vbr_mode
+@@ -989,4 +1038,43 @@ mod tests {
+             assert_eq!(mono.nominal_bitrate(), mode.profile().mono_bitrate());
+         }
+     }
++
++    #[test]
++    fn psy_engine_defaults_to_q31_in_every_constructor() {
++        // FPE selection seam (docs/fpe/06 §2, roadmap M1 FPE-1.2): the
++        // additive knob defaults to Q31 everywhere; existing constructors
++        // are behaviourally unchanged.
++        assert_eq!(PsyEngineKind::default(), PsyEngineKind::Q31);
++        let new = EncoderConfig::new(48000, 2, FRAME_LENGTH, TransportType::Adts).unwrap();
++        assert_eq!(new.psy_engine(), PsyEngineKind::Q31);
++        for mode in VbrMode::ALL {
++            let cfg =
++                EncoderConfig::new_with_mode(48000, 2, FRAME_LENGTH, TransportType::Adts, mode)
++                    .unwrap();
++            assert_eq!(cfg.psy_engine(), PsyEngineKind::Q31, "{mode}");
++        }
++        assert_eq!(
++            EncoderConfig::stereo_48k_adts().psy_engine(),
++            PsyEngineKind::Q31
++        );
++    }
++
++    #[test]
++    fn with_psy_engine_builder_selects_fpe_and_preserves_other_fields() {
++        let base = EncoderConfig::stereo_48k_adts().with_vbr_mode(VbrMode::Vbr5);
++        let fpe = base.with_psy_engine(PsyEngineKind::Fpe);
++        assert_eq!(fpe.psy_engine(), PsyEngineKind::Fpe);
++        // Every other field is preserved (additive builder).
++        assert_eq!(fpe.sample_rate(), base.sample_rate());
++        assert_eq!(fpe.channels(), base.channels());
++        assert_eq!(fpe.frame_length(), base.frame_length());
++        assert_eq!(fpe.transport(), base.transport());
++        assert_eq!(fpe.vbr_mode(), base.vbr_mode());
++        assert_eq!(fpe.nominal_bitrate(), base.nominal_bitrate());
++        assert_eq!(fpe.effective_bandwidth_hz(), base.effective_bandwidth_hz());
++        // The base copy is untouched (Copy builder semantics).
++        assert_eq!(base.psy_engine(), PsyEngineKind::Q31);
++        // Selecting Q31 explicitly round-trips to the base config.
++        assert_eq!(fpe.with_psy_engine(PsyEngineKind::Q31), base);
++    }
+ }
+diff --git a/rust/src/aac_enc/psy.rs b/rust/src/aac_enc/psy.rs
+index a4d02ba..2117bea 100644
+--- a/rust/src/aac_enc/psy.rs
++++ b/rust/src/aac_enc/psy.rs
+@@ -1,7 +1,7 @@
+ /* Ferrite: this file is part of a Third-Party Modified Version of the
+ Fraunhofer FDK AAC Codec Library for Android. Modifications and Rust
+ implementation copyright © 2025–2026 Jeroen Steenvoorde. Modification
+-notice date: 2026-10-26. See rust/NOTICE for the full license text. */
++notice date: 2026-11-16. See rust/NOTICE for the full license text. */
+ /* -----------------------------------------------------------------------------
+ Software License for The Fraunhofer FDK AAC Codec Library for Android
+ 
+@@ -187,6 +187,20 @@ impl PsyChannel {
+     pub fn preecho_state(&self) -> (i32, bool) {
+         (self.preecho.prev_scale(), self.preecho.is_enabled())
+     }
++
++    /// TNS runtime state (test inspection only: FPE differential harness
++    /// persistent-state comparison, `docs/fpe/07` §3.1 / `09` FPE-2.5).
++    #[cfg(test)]
++    pub fn tns_state(&self) -> &TnsChannel {
++        &self.tns_state
++    }
++
++    /// M/S log-energy history, including stale-on-short contents (test
++    /// inspection only: FPE differential harness, `docs/fpe/07` §3.1).
++    #[cfg(test)]
++    pub fn ms_ld(&self) -> &[[f64; 64]; 8] {
++        &self.ms_ld
++    }
+ }
+ 
+ /// Grouped short-block output.
+diff --git a/rust/src/aac_enc/stream_driver.rs b/rust/src/aac_enc/stream_driver.rs
+index 75bdc69..10303a0 100644
+--- a/rust/src/aac_enc/stream_driver.rs
++++ b/rust/src/aac_enc/stream_driver.rs
+@@ -1,6 +1,6 @@
+ //! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+ //! Codec Library for Android. Modifications and Rust implementation copyright
+-//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-10-26.
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
+ //! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
+ //! Phase 1 test-only PCM-to-ADTS streaming driver.
+ //!
+@@ -68,8 +68,9 @@ use super::bitcount::NO_NOISE_PNS;
+ use super::bitenc::BitWriter;
+ use super::block_switch::{BlockSwitch, WindowSequence};
+ use super::channel_map::ChannelMode;
+-use super::config::{EncoderConfig, TransportType, VbrMode, FRAME_LENGTH};
++use super::config::{EncoderConfig, PsyEngineKind, TransportType, VbrMode, FRAME_LENGTH};
+ use super::energy;
++use super::fpe::{self, FpeChannel, FpeScratch};
+ use super::frame::{
+     build_adts_frame, build_raw_block, channel_element_write, check_static_agreement,
+     ChannelFrameInput, ElementFrameInput, FrameError, RawBlockInput, ID_CPE, ID_SCE,
+@@ -596,12 +597,20 @@ pub(crate) struct StreamEncoder {
+     min_snr_short: Vec<i32>,
+     switches: Vec<BlockSwitch>,
+     transforms: Vec<ChannelTransform>,
++    /// Selected psychoacoustic engine (FPE seam, ADR-0001; default Q31).
++    psy_engine: PsyEngineKind,
+     psy_ch: Vec<PsyChannel>,
++    /// FPE per-channel state; allocated only when FPE is selected
++    /// (`docs/fpe/06` §3 allocate-selected-only). Empty for Q31.
++    fpe_ch: Vec<FpeChannel>,
+     ats: AtsElement,
+     dist: DistributeState,
+     qc: QcState,
+     s4_ws: ScfWorkspace,
+     psy_ws: PsyScratch,
++    /// FPE working buffers (encoder-owned, mirrors `psy_ws`; unused for
++    /// Q31, default-empty so carries no allocation).
++    fpe_ws: FpeScratch,
+     init: QcInitParams,
+     // Init constants kept for gated phase-1 diagnostics (`init_summary`);
+     // unread in production builds by design.
+@@ -669,9 +678,26 @@ impl StreamEncoder {
+         let short_sp = tables.short_cfg.sfb_count();
+         let switches = (0..channels).map(|_| BlockSwitch::new()).collect();
+         let transforms = (0..channels).map(|_| ChannelTransform::new()).collect();
+-        let psy_ch = (0..channels)
+-            .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
+-            .collect();
++        // FPE selection seam (ADR-0001, docs/fpe/06 §1/§3): the engine is
++        // chosen here from the additive config knob (default Q31) and only
++        // the selected engine's per-channel state is allocated. Both state
++        // types are initialized identically (FpeChannel mirrors
++        // PsyChannel::new), so selection is a config choice, not a rebuild.
++        let psy_engine = cfg.psy_engine();
++        let psy_ch = if psy_engine == PsyEngineKind::Q31 {
++            (0..channels)
++                .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
++                .collect()
++        } else {
++            Vec::new()
++        };
++        let fpe_ch = if psy_engine == PsyEngineKind::Fpe {
++            (0..channels)
++                .map(|_| FpeChannel::new(tables.long_cfg.pcm_quant_q31()))
++                .collect()
++        } else {
++            Vec::new()
++        };
+         let avg0 = calc_bits_per_frame(total_br as i32, FRAME_LENGTH as i32, sample_rate as i32);
+         let init = derive_qc_init(
+             total_br as i32,
+@@ -699,12 +725,15 @@ impl StreamEncoder {
+             min_snr_short: scfg.min_snr_ld,
+             switches,
+             transforms,
++            psy_engine,
+             psy_ch,
++            fpe_ch,
+             ats: AtsElement::for_vbr_mode(cfg.vbr_mode(), super::pe::vbr_pe_offset(ch_br)),
+             dist,
+             qc,
+             s4_ws: ScfWorkspace::default(),
+             psy_ws: PsyScratch::default(),
++            fpe_ws: FpeScratch::default(),
+             init,
+             b2m,
+             b2e,
+@@ -733,6 +762,25 @@ impl StreamEncoder {
+         self.vbr_mode
+     }
+ 
++    /// Selected psychoacoustic engine (test inspection only: FPE selection
++    /// seam tests, roadmap M1 FPE-1.2; no production API added).
++    #[cfg(test)]
++    pub(crate) fn psy_engine(&self) -> PsyEngineKind {
++        self.psy_engine
++    }
++
++    /// TNS output info of the selected engine's channel state, for the
++    /// `LiveChannel` construction below. Additive FPE seam: with Q31
++    /// selected this is exactly the former `self.psy_ch[ch].tns_info()`
++    /// read; with FPE selected the TNS info comes from the FPE-owned
++    /// state (the delegated TNS writes there, not into `psy_ch`).
++    fn psy_tns_info(&self, ch: usize) -> &TnsChannel {
++        match self.psy_engine {
++            PsyEngineKind::Q31 => self.psy_ch[ch].tns_info(),
++            PsyEngineKind::Fpe => self.fpe_ch[ch].tns_info(),
++        }
++    }
++
+     fn seq_of(&self, ch: usize) -> WindowSequence {
+         self.switches[ch].sequence()
+     }
+@@ -841,28 +889,62 @@ impl StreamEncoder {
+                 grouping: groupings[1],
+                 is_lfe: false,
+             };
+-            let (pl, pr) = self.psy_ch.split_at_mut(1);
+-            // M5.20: encoder-owned psy scratch removes the per-frame
+-            // internal working-buffer allocations; semantics unchanged.
+-            let (ol, or_, m) = process_pair_reuse(
+-                &mut pl[0],
+-                Some(&mut pr[0]),
+-                lin,
+-                Some(rin),
+-                &self.tables,
+-                &mut self.psy_ws,
+-            );
+-            (ol, or_, m)
++            // Single FPE dispatch point (ADR-0001, docs/fpe/06 §1): both
++            // arms return the identical output tuple; everything after
++            // (LiveChannel, IS/MS, PE, S2, S4, S6, S8) is untouched.
++            match self.psy_engine {
++                PsyEngineKind::Q31 => {
++                    let (pl, pr) = self.psy_ch.split_at_mut(1);
++                    // M5.20: encoder-owned psy scratch removes the per-frame
++                    // internal working-buffer allocations; semantics unchanged.
++                    let (ol, or_, m) = process_pair_reuse(
++                        &mut pl[0],
++                        Some(&mut pr[0]),
++                        lin,
++                        Some(rin),
++                        &self.tables,
++                        &mut self.psy_ws,
++                    );
++                    (ol, or_, m)
++                }
++                PsyEngineKind::Fpe => {
++                    let (pl, pr) = self.fpe_ch.split_at_mut(1);
++                    let (ol, or_, m) = fpe::process_pair_reuse(
++                        &mut pl[0],
++                        Some(&mut pr[0]),
++                        lin,
++                        Some(rin),
++                        &self.tables,
++                        &mut self.fpe_ws,
++                    );
++                    (ol, or_, m)
++                }
++            }
+         } else {
+-            let (ol, _, _) = process_pair_reuse(
+-                &mut self.psy_ch[0],
+-                None,
+-                lin,
+-                None,
+-                &self.tables,
+-                &mut self.psy_ws,
+-            );
+-            (ol, None, None)
++            match self.psy_engine {
++                PsyEngineKind::Q31 => {
++                    let (ol, _, _) = process_pair_reuse(
++                        &mut self.psy_ch[0],
++                        None,
++                        lin,
++                        None,
++                        &self.tables,
++                        &mut self.psy_ws,
++                    );
++                    (ol, None, None)
++                }
++                PsyEngineKind::Fpe => {
++                    let (ol, _, _) = fpe::process_pair_reuse(
++                        &mut self.fpe_ch[0],
++                        None,
++                        lin,
++                        None,
++                        &self.tables,
++                        &mut self.fpe_ws,
++                    );
++                    (ol, None, None)
++                }
++            }
+         };
+         let mut outs: Vec<&ChannelOutput> = vec![&out_l];
+         if let Some(r) = out_r.as_ref() {
+@@ -961,7 +1043,7 @@ impl StreamEncoder {
+                 per,
+                 short,
+                 mdct_scale: out.mdct_scale,
+-                tns: self.psy_ch[ch].tns_info().clone(),
++                tns: self.psy_tns_info(ch).clone(),
+             });
+         }
+         // Common maxSfbPerGroup from psy outputs (exact C rule,
+@@ -7966,3 +8048,131 @@ mod perf_tests {
+         println!("AACPERF_DONE fixtures={} reps={reps}", fixtures.len());
+     }
+ }
++
++/// FPE selection-seam tests (roadmap M1 FPE-1.2, `docs/fpe/06` §1–§3/§9).
++///
++/// Additive seam only: Q31 remains the default, existing constructors are
++/// unchanged, and the FPE-selected path (M1 Q31-delegating skeleton) must
++/// produce byte-identical streams end-to-end — including the TNS-info flow
++/// into `LiveChannel` and every downstream stage.
++#[cfg(test)]
++mod fpe_seam_tests {
++    use super::*;
++
++    fn cfg_with_engine(sr: u32, ch: u32, engine: PsyEngineKind) -> EncoderConfig {
++        EncoderConfig::new(sr, ch, FRAME_LENGTH, TransportType::Adts)
++            .expect("cfg")
++            .with_psy_engine(engine)
++    }
++
++    #[test]
++    fn default_selection_is_q31_and_allocates_q31_state_only() {
++        for (sr, ch) in [(48000u32, 2usize), (48000, 1), (44100, 2)] {
++            // Every existing constructor path defaults to Q31.
++            let enc = StreamEncoder::new(sr, ch);
++            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31, "new {sr}/{ch}");
++            assert_eq!(enc.psy_ch.len(), ch);
++            assert!(enc.fpe_ch.is_empty());
++            let enc = StreamEncoder::with_mode(sr, ch, VbrMode::Vbr5);
++            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31, "with_mode {sr}/{ch}");
++            assert_eq!(enc.psy_ch.len(), ch);
++            assert!(enc.fpe_ch.is_empty());
++            let enc = StreamEncoder::with_config(
++                EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts).expect("cfg"),
++            );
++            assert_eq!(
++                enc.psy_engine(),
++                PsyEngineKind::Q31,
++                "with_config {sr}/{ch}"
++            );
++            assert_eq!(enc.psy_ch.len(), ch);
++            assert!(enc.fpe_ch.is_empty());
++        }
++    }
++
++    #[test]
++    fn fpe_selection_allocates_fpe_state_only() {
++        for (sr, ch) in [(48000u32, 2usize), (48000, 1), (44100, 2)] {
++            let enc =
++                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Fpe));
++            assert_eq!(enc.psy_engine(), PsyEngineKind::Fpe, "{sr}/{ch}");
++            assert_eq!(enc.fpe_ch.len(), ch);
++            assert!(
++                enc.psy_ch.is_empty(),
++                "allocate-selected-only (docs/fpe/06 §3)"
++            );
++            // Explicit Q31 selection round-trips to the default layout.
++            let enc =
++                StreamEncoder::with_config(cfg_with_engine(sr, ch as u32, PsyEngineKind::Q31));
++            assert_eq!(enc.psy_engine(), PsyEngineKind::Q31);
++            assert_eq!(enc.psy_ch.len(), ch);
++            assert!(enc.fpe_ch.is_empty());
++        }
++    }
++
++    /// Encode a fixture through `step_frame` with the given engine and
++    /// return the per-frame ADTS bytes (full production path: frontend,
++    /// LiveChannel, IS/MS, PE, S2, S4, S6, S8). Frame accounting is exact:
++    /// every feeder frame must produce bytes with no skip notes.
++    fn encode_fixture(name: &str, vbr: VbrMode, engine: PsyEngineKind) -> Vec<Vec<u8>> {
++        let pcm = testdata::fixture_samples(name);
++        let sr = testdata::fixture_sample_rate(name);
++        let ch = pcm.len();
++        let cfg = EncoderConfig::new(sr, ch as u32, FRAME_LENGTH, TransportType::Adts)
++            .expect("cfg")
++            .with_vbr_mode(vbr)
++            .with_psy_engine(engine);
++        let mut feeder = PcmFeeder::new(cfg);
++        let s = pcm[0].len();
++        let mut interleaved = Vec::with_capacity(s * ch);
++        for i in 0..s {
++            for c in 0..ch {
++                interleaved.push(pcm[c][i]);
++            }
++        }
++        let mut frames = feeder.push_interleaved(&interleaved).expect("push");
++        frames.extend(feeder.finish().expect("finish"));
++        let want_frames = (s + 1600).div_ceil(FRAME_LENGTH);
++        assert_eq!(frames.len(), want_frames, "{name}: feeder frame law");
++        let mut enc = StreamEncoder::with_config(cfg);
++        let mut out = Vec::with_capacity(frames.len());
++        for (i, fr) in frames.iter().enumerate() {
++            let fresh: Vec<Vec<i16>> = fr.channels().iter().map(|b| b.to_vec()).collect();
++            let (bytes, snap) = enc.step_frame(i as u32, &fresh);
++            assert!(snap.notes.is_empty(), "{name} f{i}: notes {:?}", snap.notes);
++            assert_eq!(snap.crash, -1, "{name} f{i}: crash marker");
++            out.push(bytes.unwrap_or_else(|| panic!("{name} f{i}: no bytes")));
++        }
++        assert_eq!(out.len(), want_frames, "{name}: frame accounting");
++        out
++    }
++
++    #[test]
++    fn fpe_selected_streams_are_byte_identical_to_q31() {
++        // M1 pass-through end-to-end gate: the FPE dispatch arm (Q31-
++        // delegating skeleton, FPE-owned state) must emit exactly the Q31
++        // bytes on every frame — this exercises the dispatch match, the
++        // engine-aware TNS-info source in LiveChannel, and all downstream
++        // stages. Stereo long/short transitions, mono transients, both
++        // profiles, and both validated rates are covered; the exhaustive
++        // psy-boundary output+state comparison lives in the fpe/tests
++        // differential harness.
++        let cases = [
++            ("onset-stereo", VbrMode::Vbr5),
++            ("stepdown-stereo", VbrMode::Vbr5),
++            ("sine-stereo", VbrMode::Vbr6),
++            ("click-mono", VbrMode::Vbr5),
++            ("impulse-mono", VbrMode::Vbr6),
++            ("sine-stereo-44100", VbrMode::Vbr5),
++            ("silence-stereo", VbrMode::Vbr6),
++        ];
++        for (name, vbr) in cases {
++            let q31 = encode_fixture(name, vbr, PsyEngineKind::Q31);
++            let fpe = encode_fixture(name, vbr, PsyEngineKind::Fpe);
++            assert_eq!(q31.len(), fpe.len(), "{name}: frame count");
++            for (i, (a, b)) in q31.iter().zip(fpe.iter()).enumerate() {
++                assert_eq!(a, b, "{name} f{i}: ADTS bytes differ (FPE pass-through)");
++            }
++        }
++    }
++}
+diff --git a/rust/src/aac_enc/testdata.rs b/rust/src/aac_enc/testdata.rs
+index 46f6a9a..20b7d85 100644
+--- a/rust/src/aac_enc/testdata.rs
++++ b/rust/src/aac_enc/testdata.rs
+@@ -1,7 +1,7 @@
+ /* Ferrite: this file is part of a Third-Party Modified Version of the
+ Fraunhofer FDK AAC Codec Library for Android. Modifications and Rust
+ implementation copyright © 2025–2026 Jeroen Steenvoorde. Modification
+-notice date: 2026-10-26. See rust/NOTICE for the full license text. */
++notice date: 2026-11-16. See rust/NOTICE for the full license text. */
+ /* -----------------------------------------------------------------------------
+ Software License for The Fraunhofer FDK AAC Codec Library for Android
+ 
+@@ -457,6 +457,90 @@ pub(crate) fn fixture_samples(name: &str) -> Vec<Vec<i16>> {
+         "music-eroica-stereo" => {
+             wav_stereo_s16(include_bytes!("testdata/m8-music-eroica-stereo-48k.wav"))
+         }
++        // FPE M1 edge-case fixtures (FPE-1.4, docs/fpe/07 §6). Formulae
++        // are identical to tools/enc-oracle/make_fpe_fixtures.py (same
++        // evaluation order, truncation toward zero, saturating i16 clamp).
++        // Oracle ring/psy vector anchoring for these fixtures requires the
++        // C reference (blocked on re-provisioning, R-12); the in-binary
++        // Q31↔FPE harness consumes this resynthesis directly.
++        "fpe-near-silence-ramp-stereo" => (0..2)
++            .map(|_| {
++                (0..48000)
++                    .map(|t| {
++                        let time = t as f64 / 48000.0;
++                        // Amplitude ramps linearly 0 -> 64 LSB over 1 s.
++                        ((64.0 * t as f64 / 47999.0)
++                            * (2.0 * core::f64::consts::PI * 1000.0 * time).sin())
++                            as i16
++                    })
++                    .collect()
++            })
++            .collect(),
++        "fpe-fullscale-square-stereo" => (0..2)
++            .map(|c| {
++                (0..24000)
++                    .map(|t| {
++                        let time = t as f64 / 48000.0;
++                        let v = if (2.0 * core::f64::consts::PI * 500.0 * time).sin() >= 0.0 {
++                            32767.0
++                        } else {
++                            -32768.0
++                        };
++                        // Channel 1 is the polarity inverse (zero mid,
++                        // full-scale side).
++                        (if c == 0 { v } else { -v }) as i16
++                    })
++                    .collect()
++            })
++            .collect(),
++        "fpe-pow2-boundary-stereo" => (0..2)
++            .map(|_| {
++                (0..48000)
++                    .map(|t| {
++                        let time = t as f64 / 48000.0;
++                        // 15 segments of 3200 samples, amplitudes 2^0..2^14.
++                        let amp = (1u32 << (t / 3200)) as f64;
++                        (amp * (2.0 * core::f64::consts::PI * 1000.0 * time).sin()) as i16
++                    })
++                    .collect()
++            })
++            .collect(),
++        "fpe-max-headroom-stereo" => (0..2)
++            .map(|c| {
++                (0..24000)
++                    .map(|t| {
++                        let time = t as f64 / 48000.0;
++                        // Full-scale impulse train every 512 samples;
++                        // ch1 offsets the train by 256 samples. Python %
++                        // semantics (non-negative remainder) mirrored.
++                        let off = if c == 1 { 256i64 } else { 0i64 };
++                        let click = if (t as i64 - off).rem_euclid(512) == 0 {
++                            30000.0
++                        } else {
++                            0.0
++                        };
++                        (click + 30000.0 * (2.0 * core::f64::consts::PI * 16000.0 * time).sin())
++                            as i16
++                    })
++                    .collect()
++            })
++            .collect(),
++        "fpe-allzero-stereo" => vec![vec![0i16; 12000], vec![0i16; 12000]],
++        "fpe-mixed-pair-stereo" => (0..2)
++            .map(|c| {
++                (0..48000)
++                    .map(|t| {
++                        // ch0: silence then 1 kHz sine at 0.5 s; ch1:
++                        // exactly silent throughout.
++                        if c == 1 || t < 24000 {
++                            0
++                        } else {
++                            sine_at(t, 10_000.0)
++                        }
++                    })
++                    .collect()
++            })
++            .collect(),
+         _ => panic!("unknown fixture {name}"),
+     }
+ }
+diff --git a/rust/src/aac_enc/fpe/constants.rs b/rust/src/aac_enc/fpe/constants.rs
+new file mode 100644
+index 0000000..0910832
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/constants.rs
+@@ -0,0 +1,206 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE float tuning constants — Q31-fraction domain (`docs/fpe/05` §3).
++//!
++//! Every constant is derived **exactly** from the Q31 tuning literal
++//! (`/2^31` is exact for 32-bit patterns in f64); the literals themselves
++//! are consumed from the existing licensed Q31 modules, never re-typed
++//! (provenance: `docs/fpe/12` §4, risk R-05). These are psychoacoustic
++//! tuning, not numerical scaffolding (`docs/fpe/03` §5). Per-band tables
++//! (PCM floors, clip, spreading factors) come from the `SfbConfig` f64
++//! accessors, which are already fraction-domain; FPE consumes the
++//! committed tabulated values and never recomputes spreading factors or
++//! minSnr in float (Stage 2 only).
++//!
++//! **M1 status (FPE-1.1):** scaffolding — no float kernel consumes these
++//! yet (the value lane delegates to Q31). The unit tests below gate the
++//! exact derivation now; the float kernels consume them from M3 onward.
++//! Reference anchors verified at M0 (`docs/fpe/m0-verification.md` M0.2,
++//! A-2 resolved): `psy_configuration.h:113/114/117-118`,
++//! `psy_configuration.cpp:329/591-596`.
++
++// M1 scaffolding: consumed by the float kernels from M3 onward (roadmap
++// `09` FPE-1.1); exactness is gated by the unit tests in this module now.
++#![allow(dead_code)]
++
++use crate::aac_enc::sfb::{CLIP_ENERGY_Q31, PCM_QUANT_NOISE_Q31};
++use crate::aac_enc::thresholds::{C_RATIO_Q31, MAX_INCREASE, MAX_Q31, MIN_REMAINING_Q15};
++
++/// Q31 fraction denominator: `v_f = v_st / 2^31` (`docs/fpe/05` §1.3).
++const Q31_DENOM: f64 = 2_147_483_648.0;
++
++/// `C_RATIO_f` (`05` §3): threshold-init ratio `E_f · C_RATIO_f`.
++/// `0x02940a10/2^31 ≈ 0.020143 = 16·10^(−29/10)` (the ×16 is the
++/// `THR_SHIFTBITS` headroom removed by the PCM-floor stage).
++/// Upstream: `psy_configuration.h:117-118`; Q31: `thresholds::C_RATIO_Q31`.
++pub(crate) const C_RATIO_F: f64 = C_RATIO_Q31 as f64 / Q31_DENOM;
++
++/// `CLIP_f_long` (`05` §3): long-block clip energy fraction
++/// (`SfbConfig::clip_energy()` long). Upstream: `psy_configuration.cpp:595`;
++/// Q31: `sfb::CLIP_ENERGY_Q31`.
++pub(crate) const CLIP_F_LONG: f64 = CLIP_ENERGY_Q31 as f64 / Q31_DENOM;
++
++/// `CLIP_f_short` (`05` §3): short-block clip energy fraction — C shifts
++/// the stored integer (`clipEnergy >>= 6`, `psy_configuration.cpp:607`)
++/// before the fraction conversion, mirrored exactly.
++pub(crate) const CLIP_F_SHORT: f64 = (CLIP_ENERGY_Q31 >> 6) as f64 / Q31_DENOM;
++
++/// `PCM_NOISE_f` (`05` §3): per-band PCM quantization floor factor,
++/// `pcm_f[b] = width_b · PCM_NOISE_f` (the −96 dB / 1-bit absolute floor;
++/// FDK's LC model has no ATH table, `docs/fpe/03` §4.5). Upstream:
++/// `psy_configuration.cpp:329`; Q31: `sfb::PCM_QUANT_NOISE_Q31`.
++pub(crate) const PCM_NOISE_F: f64 = PCM_QUANT_NOISE_Q31 as f64 / Q31_DENOM;
++
++/// `MIN_REMAINING` (`05` §3): pre-echo remaining-threshold factor,
++/// dimensionless `0x0148` Q15 = 328/32768 ≈ 0.01001. Upstream:
++/// `psy_configuration.cpp:592`; Q31: `thresholds::MIN_REMAINING_Q15`.
++pub(crate) const MIN_REMAINING_F: f64 = MIN_REMAINING_Q15 as f64 / 32768.0;
++
++/// `MAX_INCREASE` (`05` §3): pre-echo maximum increase factor,
++/// dimensionless integer 2. Upstream: `psy_configuration.cpp:591`;
++/// Q31: `thresholds::MAX_INCREASE`.
++pub(crate) const MAX_INCREASE_F: f64 = MAX_INCREASE as f64;
++
++/// `MAXVAL_f` (`05` §3): fraction-domain saturation level
++/// `(2^31−1)/2^31 ≈ 1.0` — the float image of stored `MAXVAL_DBL`. Clamps
++/// fraction values where C saturates; distinct from the boundary i32
++/// clamp (`05` §1.4). Q31: `thresholds::MAX_Q31`.
++pub(crate) const MAXVAL_F: f64 = MAX_Q31 as f64 / Q31_DENOM;
++
++/// `LD_ZERO` (`05` §3): Ld-domain sentinel for non-positive energy
++/// (the float image of the `i32::MIN` stored sentinel).
++pub(crate) const LD_ZERO: f64 = -1.0;
++
++/// `THR_LD_FLOOR` (`05` §3): threshold-Ld floor −33/64 = −0.515625
++/// (`psy_main.cpp:1071-1075/1124-1128`, `fixMax(LdDataVector, -0.515625)`).
++pub(crate) const THR_LD_FLOOR: f64 = -33.0 / 64.0;
++
++/// Integer shift counts (`05` §3), re-exported from the Q31 module (not
++/// float constants): `THR_SHIFTBITS = 4` (⇒ /16 in the fraction domain)
++/// and `PCM_THR_SCALE = 16` (per-window `energyShift` increment).
++/// Upstream anchors: `psy_configuration.h:113/114` (A-2, verified M0).
++// M1 scaffolding: consumed by the float kernels from M3 onward.
++#[allow(unused_imports)]
++pub(crate) use crate::aac_enc::thresholds::{
++    PCM_QUANT_THR_SCALE as PCM_THR_SCALE, THR_SHIFTBITS as THR_SHIFTBITS_I32,
++};
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::aac_enc::sfb::{BlockKind, SfbConfig};
++
++    /// Exact bit equality (the derivations are exact power-of-two scalings
++    /// of 32-bit patterns, so `==` on the bit patterns is the gate).
++    fn assert_bits(got: f64, want: f64, what: &str) {
++        assert_eq!(got.to_bits(), want.to_bits(), "{what}: {got} vs {want}");
++    }
++
++    fn cfg_48k(kind: BlockKind) -> SfbConfig {
++        SfbConfig::new(48000, kind, 96000, 19293, true, true).expect("sfb config")
++    }
++
++    #[test]
++    fn float_constants_equal_q31_over_2_31_exactly() {
++        // FPE-1.1 gate: each float constant equals its Q31 literal / 2^31
++        // exactly (docs/fpe/05 §3; risk R-05 tuning-drift gate).
++        assert_bits(C_RATIO_F, 0x0294_0a10u32 as f64 / Q31_DENOM, "C_RATIO_F");
++        assert_bits(
++            CLIP_F_LONG,
++            0x7735_93ffu32 as f64 / Q31_DENOM,
++            "CLIP_F_LONG",
++        );
++        assert_bits(
++            CLIP_F_SHORT,
++            (0x7735_93ffu32 >> 6) as f64 / Q31_DENOM,
++            "CLIP_F_SHORT",
++        );
++        assert_bits(
++            PCM_NOISE_F,
++            0x0054_7062u32 as f64 / Q31_DENOM,
++            "PCM_NOISE_F",
++        );
++        assert_bits(MIN_REMAINING_F, 328.0 / 32768.0, "MIN_REMAINING_F");
++        assert_bits(MAX_INCREASE_F, 2.0, "MAX_INCREASE_F");
++        assert_bits(MAXVAL_F, i32::MAX as f64 / Q31_DENOM, "MAXVAL_F");
++        assert_bits(LD_ZERO, -1.0, "LD_ZERO");
++        assert_bits(THR_LD_FLOOR, -0.515625, "THR_LD_FLOOR");
++        assert_eq!(THR_SHIFTBITS_I32, 4, "THR_SHIFTBITS (A-2 anchor)");
++        assert_eq!(PCM_THR_SCALE, 16, "PCM_THR_SCALE (A-2 anchor)");
++        // Sanity against the reference derivation comment
++        // (psy_configuration.h:118: 16·10^(−29/10)); the stored literal is
++        // the authority, the physical value is a loose cross-check.
++        assert!((C_RATIO_F - 16.0 * 10f64.powf(-29.0 / 10.0)).abs() < 1e-6);
++    }
++
++    #[test]
++    fn clip_constants_match_sfb_config_accessors() {
++        // The SfbConfig f64 accessors are already fraction-domain
++        // (docs/fpe/05 §1.3); FPE's constants must agree exactly.
++        let long = cfg_48k(BlockKind::Long);
++        let short = cfg_48k(BlockKind::Short);
++        assert_bits(CLIP_F_LONG, long.clip_energy(), "CLIP_F_LONG vs long cfg");
++        assert_bits(
++            CLIP_F_SHORT,
++            short.clip_energy(),
++            "CLIP_F_SHORT vs short cfg",
++        );
++    }
++
++    #[test]
++    fn pcm_noise_constant_reproduces_per_band_floors_exactly() {
++        // pcm_f[b] = width_b · PCM_NOISE_f, exact in f64 (the integer
++        // product width·PCM_QUANT_NOISE is < 2^31, both scalings exact).
++        for kind in [BlockKind::Long, BlockKind::Short] {
++            let cfg = cfg_48k(kind);
++            let offsets = cfg.offsets();
++            let pcm_f = cfg.pcm_quant();
++            let pcm_st = cfg.pcm_quant_q31();
++            assert_eq!(pcm_f.len(), cfg.sfb_count());
++            for b in 0..cfg.sfb_count() {
++                let width = (offsets[b + 1] - offsets[b]) as f64;
++                assert_bits(
++                    pcm_f[b],
++                    width * PCM_NOISE_F,
++                    &format!("{kind:?} pcm_f band {b}"),
++                );
++                assert_bits(
++                    pcm_f[b],
++                    pcm_st[b] as f64 / Q31_DENOM,
++                    &format!("{kind:?} pcm_f vs stored band {b}"),
++                );
++            }
++        }
++    }
++
++    #[test]
++    fn tabulated_mask_factors_are_fractions_and_match_stored() {
++        // FPE consumes the committed tabulated factors (never recomputes
++        // them in float; docs/fpe/03 §4.3, Stage-2 boundary). The f64
++        // accessors must be the exact /2^31 image of the stored ints.
++        for kind in [BlockKind::Long, BlockKind::Short] {
++            let cfg = cfg_48k(kind);
++            let (hi, lo) = cfg.mask_factors();
++            let (hi_spr, lo_spr) = cfg.mask_factors_spr();
++            let (hi_st, lo_st) = cfg.mask_factors_q31();
++            let (hi_spr_st, lo_spr_st) = cfg.mask_factors_spr_q31();
++            for (name, f, st) in [
++                ("mask_hi", hi, hi_st),
++                ("mask_lo", lo, lo_st),
++                ("mask_hi_spr", hi_spr, hi_spr_st),
++                ("mask_lo_spr", lo_spr, lo_spr_st),
++            ] {
++                assert_eq!(f.len(), st.len(), "{name} len");
++                for (i, (&v, &q)) in f.iter().zip(st.iter()).enumerate() {
++                    assert_bits(v, q as f64 / Q31_DENOM, &format!("{name}[{i}]"));
++                    assert!(
++                        (0.0..1.0).contains(&v),
++                        "{name}[{i}] = {v} outside [0,1) (contractive envelope)"
++                    );
++                }
++            }
++        }
++    }
++}
+diff --git a/rust/src/aac_enc/fpe/energy.rs b/rust/src/aac_enc/fpe/energy.rs
+new file mode 100644
+index 0000000..8225750
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/energy.rs
+@@ -0,0 +1,25 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE float band-energy kernels — skeleton (no float kernel in M1).
++//!
++//! Planned content (roadmap `09`, one kernel group per milestone, each
++//! gated by the Q31↔FPE differential harness):
++//!
++//! - **M3 (FPE-3.1/3.2):** float rescale band energy (long + short) and
++//!   float TNS energy recompute in the Q31-fraction domain
++//!   (`docs/fpe/05` §6.1/§6.2): `E_real[b] = Σ spec_f64[j]²` (physical),
++//!   `E_f[b] = E_real[b]·2^(−2m')`, boundary `E_st = round(E_f·2^31)`
++//!   (boundary active only from M3). The integer raw sums and the
++//!   `shiftBits` decision stay in the representation lane (ADR-0005).
++//! - **M7 (FPE-7.1):** float MS energies with the net /4 convention
++//!   (`docs/fpe/05` §6.6), `calc_ld = (seq != Short)`, stale-on-short
++//!   MS-Ld history preserved.
++//!
++//! Upstream: `band_nrg.cpp:140-184/192-256/264-288/296-361`
++//! (`FDKaacEnc_CheckBandEnergyOptim`, `CalcBandEnergyOptimLong/Short`,
++//! `CalcBandNrgMSOpt`). Q31 mirrors (read-only): `energy.rs:161/249/215/321`.
++//!
++//! **M1:** the value lane delegates to those Q31 kernels via
++//! [`super::orchestrate`]; this module intentionally contains no code.
+diff --git a/rust/src/aac_enc/fpe/mod.rs b/rust/src/aac_enc/fpe/mod.rs
+new file mode 100644
+index 0000000..163c5f9
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/mod.rs
+@@ -0,0 +1,135 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! Floating-point psychoacoustic engine (FPE) — self-contained module tree.
++//!
++//! FPE is a numerical modernization of the existing Q31 psychoacoustic
++//! engine (`super::psy` and its flat kernel modules), not a new
++//! psychoacoustic model: it will replace the Q31 **value arithmetic** with
++//! f64 arithmetic in the Q31-fraction domain (`v_f = v_st/2^31`) while
++//! preserving every FDK algorithm, state transition, tuning constant, and
++//! the integer representation lane (`mdctScale`/`finalShift`/`tnsShift`/
++//! `maxScale`) bit-exactly. Planning authority: `docs/fpe/` (charter `00`,
++//! architecture `04`, translation spec `05`, integration `06`, validation
++//! `07`, roadmap `09`; ADR-0001/0002/0003/0004/0005).
++//!
++//! **M1 status (roadmap `09` M1, scaffolding only):** no floating-point
++//! psychoacoustic kernel exists yet. The value lane delegates to the
++//! existing Q31 kernels and passes their stored-int / f64-Ld results
++//! through **unchanged** (no fraction conversion, no rounding, no
++//! rescaling), so the FPE path is bit-identical to Q31 on the complete
++//! observable output and all frame-surviving persistent state. The Q31
++//! engine remains authoritative and the default; FPE is independently
++//! selectable via [`super::config::PsyEngineKind`] for the in-binary
++//! Q31↔FPE differential harness (`tests/`). Float kernels arrive one group
++//! at a time in M3–M7, each gated by that harness.
++//!
++//! Upstream counterpart: `FDKaacEnc_psyMain` (`psy_main.cpp:407-1298`,
++//! FDK-AAC 3.0.0), factored exactly as the Q31 engine factors it
++//! (`docs/fpe/03` §2). FPE adds no tonality/PNS/ATH (absent upstream in the
++//! LC path, stay absent; `docs/fpe/03` §4.2/§4.5).
++
++mod constants;
++mod energy;
++mod orchestrate;
++mod output;
++mod preecho;
++mod thresholds;
++
++#[cfg(test)]
++mod tests;
++
++use super::psy::{ChannelInput, ChannelOutput, MsOutput, PsyChannel, PsyScratch, PsyTables};
++use super::tns::TnsChannel;
++
++/// FPE init-time tables: the Q31 engine's [`PsyTables`] reused unchanged
++/// (`docs/fpe/04` §3, `02` #33). FPE reads the same `SfbConfig` f64
++/// accessors, `TnsConfig`, and minSnr data; no second table set exists.
++pub(crate) type FpeTables = PsyTables;
++
++/// Persistent per-channel FPE state (`docs/fpe/04` §4, `06` §4).
++///
++/// **M1/M2 pass-through container:** holds the Q31 state types — pre-echo
++/// history (`thresholds::PreEchoState`, stored-int), TNS runtime/output
++/// (`tns::TnsChannel` pair), and the MS-Ld history (`[[f64; 64]; 8]`,
++/// stale-on-short) — inside a [`PsyChannel`], and delegates control to
++/// them, so the history is bit-identical to Q31 by construction. No
++/// fraction conversion and no independent state calculation (roadmap `09`
++/// M2 pass-through contract; risk R-19).
++///
++/// M2 (FPE-2.1/2.2) exposes the individual state fields and mirrors the
++/// `psy.rs` orchestration order with per-stage Q31 kernel calls; M6
++/// (FPE-6.1) replaces the delegated pre-echo control with the fraction
++/// `FpePreEchoState`. TNS state stays the reused `TnsChannel` throughout.
++pub(crate) struct FpeChannel {
++    /// Delegated Q31 state (M1/M2). Private to the `fpe` tree; the
++    /// differential harness inspects it through `#[cfg(test)]` accessors
++    /// only — no production API is added for testing.
++    q31: PsyChannel,
++}
++
++impl FpeChannel {
++    /// Fresh state; mirrors [`PsyChannel::new`] exactly (pre-echo seeded
++    /// with the long PCM floors, `prev_scale = 8`, enabled; TNS zeroed;
++    /// MS-Ld history zeros). `pcm_q31_long` is the long PCM floor vector.
++    pub(crate) fn new(pcm_q31_long: &[i32]) -> Self {
++        Self {
++            q31: PsyChannel::new(pcm_q31_long),
++        }
++    }
++
++    /// TNS output info for the frontend `LiveChannel` seam (same contract
++    /// as [`PsyChannel::tns_info`]).
++    pub(crate) fn tns_info(&self) -> &TnsChannel {
++        self.q31.tns_info()
++    }
++
++    /// Delegated Q31 state (test inspection only: FPE differential harness
++    /// persistent-state comparison, `docs/fpe/07` §3.1).
++    #[cfg(test)]
++    pub(crate) fn q31_state(&self) -> &PsyChannel {
++        &self.q31
++    }
++}
++
++/// Encoder-owned reusable FPE working buffers (`docs/fpe/04` §5).
++///
++/// Mirrors the [`PsyScratch`] discipline: one instance per `StreamEncoder`,
++/// passed `&mut` into [`process_pair_reuse`], every field reset to its
++/// exact pre-first-read contents by the delegated kernels; buffers that
++/// escape into outputs are not reused. **M1/M2:** wraps the Q31 scratch
++/// (the representation lane and the delegated value lane both use Q31 int
++/// buffers); the float value-lane buffers are added when the first float
++/// kernel lands (M3, decision finalized at M2 task FPE-2.2). No per-frame
++/// heap allocation beyond the existing output-`Vec` pattern, no globals.
++#[derive(Default)]
++pub(crate) struct FpeScratch {
++    /// Delegated Q31 working buffers (M1/M2).
++    q31: PsyScratch,
++}
++
++/// Process a mono element or one stereo pair through the FPE path.
++///
++/// Signature and output contract mirror [`super::psy::process_pair_reuse`]
++/// exactly: both dispatch arms in `StreamEncoder::frontend` return the
++/// identical `(ChannelOutput, Option<ChannelOutput>, Option<MsOutput>)`
++/// tuple, and everything downstream (`LiveChannel`, IS/MS, PE, S2, S4, S6,
++/// S8) is untouched (ADR-0001/0003).
++///
++/// **M1 pass-through:** delegates the psychoacoustic value processing to
++/// the existing Q31 kernels operating on FPE-owned Q31-typed state; the
++/// stored-int / f64-Ld results and the mutated f64 spectrum pass through
++/// unchanged (bit-identical; no float round-trip, no boundary rounding —
++/// the `docs/fpe/05` §7 boundary quantization activates per-kernel only in
++/// M3+). D-022 preconditions are inherited from the delegated engine.
++pub(crate) fn process_pair_reuse(
++    left: &mut FpeChannel,
++    right: Option<&mut FpeChannel>,
++    lin: ChannelInput<'_>,
++    rin: Option<ChannelInput<'_>>,
++    tables: &FpeTables,
++    ws: &mut FpeScratch,
++) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
++    orchestrate::process_pair(left, right, lin, rin, tables, ws)
++}
+diff --git a/rust/src/aac_enc/fpe/orchestrate.rs b/rust/src/aac_enc/fpe/orchestrate.rs
+new file mode 100644
+index 0000000..66fc08c
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/orchestrate.rs
+@@ -0,0 +1,62 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE per-pair frame orchestration (mirrors the `psy.rs` order).
++//!
++//! Target structure (`docs/fpe/04` §6): lowpass/zeroSpec → representation
++//! lane (integer-exact, reused Q31 helpers) → value lane (f64 fraction
++//! domain, M3+) → TNS (reused detect/sync/encode) → threshold advance →
++//! MS energies → grouping → output assembly. The value lane never feeds
++//! back into representation decisions (one-way dependency, ADR-0005).
++//!
++//! **M1 (scaffolding):** the whole per-pair computation delegates to the
++//! Q31 engine ([`crate::aac_enc::psy::process_pair_reuse`]) operating on
++//! the FPE-owned Q31-typed state and scratch. This is the bit-identical
++//! pass-through baseline that proves the wiring before any float kernel
++//! (roadmap `09` incremental strategy; ADR-0004 G0 precursor). No float
++//! conversion, rounding, normalization, or rescaling is applied, and no
++//! independent psychoacoustic state is computed.
++//!
++//! **M2 (FPE-2.2):** this module becomes a stage-by-stage mirror of
++//! `psy.rs:495-1116` (lowpass/zeroSpec, representation lane via the reused
++//! `energy.rs` helpers, TNS call sites, threshold-advance call sites, MS
++//! call sites, grouping, output assembly), with each value kernel still
++//! calling its Q31 helper. M3–M7 then replace one kernel group at a time
++//! with the float implementations in `energy`/`thresholds`/`preecho`,
++//! gated by the Q31↔FPE differential harness.
++//!
++//! Upstream counterpart: `FDKaacEnc_psyMain` (`psy_main.cpp:407-1298`);
++//! Q31 mirror: `psy.rs:495-1116` (`docs/fpe/03` §2/§3).
++
++use super::{FpeChannel, FpeScratch, FpeTables};
++use crate::aac_enc::psy::{self, ChannelInput, ChannelOutput, MsOutput};
++
++/// Per-pair orchestration entry (called by [`super::process_pair_reuse`]).
++///
++/// M1 delegates the complete value lane and representation lane to the Q31
++/// engine; the returned outputs and the mutated spectra are the Q31
++/// results, passed through unchanged.
++pub(super) fn process_pair(
++    left: &mut FpeChannel,
++    right: Option<&mut FpeChannel>,
++    lin: ChannelInput<'_>,
++    rin: Option<ChannelInput<'_>>,
++    tables: &FpeTables,
++    ws: &mut FpeScratch,
++) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
++    // Bit-identical pass-through (roadmap `09` M2 contract, applied to the
++    // M1 skeleton): same kernels, same order, same state semantics — the
++    // only difference from the Q31 dispatch arm is which encoder-owned
++    // state/scratch instance is used. D-022 preconditions, the element-
++    // global shift decisions, TNS sync, and the stale-on-short MS-Ld
++    // semantics are inherited exactly from the delegated engine.
++    psy::process_pair_reuse(
++        &mut left.q31,
++        right.map(|r| &mut r.q31),
++        lin,
++        rin,
++        tables,
++        &mut ws.q31,
++    )
++}
+diff --git a/rust/src/aac_enc/fpe/output.rs b/rust/src/aac_enc/fpe/output.rs
+new file mode 100644
+index 0000000..14b11bd
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/output.rs
+@@ -0,0 +1,36 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE output boundary and shared-output assembly — skeleton (M1).
++//!
++//! Planned content (roadmap `09`):
++//!
++//! - **M2 (FPE-2.3):** shared-output assembly as **pass-through** of the
++//!   Q31 results into the existing [`crate::aac_enc::psy::ChannelOutput`] /
++//!   [`crate::aac_enc::psy::GroupedOutput`] /
++//!   [`crate::aac_enc::psy::MsOutput`] types — no boundary quantization.
++//!   In the M1 skeleton the delegated Q31 engine already constructs these
++//!   shared types, so assembly is the identity pass-through performed by
++//!   [`super::orchestrate`].
++//! - **M3+ (`docs/fpe/05` §7, active per-kernel only when a float kernel
++//!   lands):** boundary quantization `stored_i32 =
++//!   clamp(round(v_f·2^31), i32::MIN, i32::MAX)` (round-to-nearest, the
++//!   same convention as `energy::map_spectrum_to_q31_into`), Ld vectors
++//!   per the `05` §6.8 guard/floor conventions, integer representation
++//!   fields passed through exactly (ADR-0005), grouped vectors via
++//!   integer regroup of quantized per-window values (`05` §6.7), and the
++//!   f64 spectrum (mutated by the reused TNS) passed through unchanged.
++//!   Invariant guards (`05` §8): finite values, non-negative energies /
++//!   thresholds, saturating clamps, Ld sentinel/floor, grouped stride
++//!   layout; a non-finite value is a loud frame-level finding via the
++//!   existing skip-with-note path, never silent.
++//!
++//! Upstream: `psy_main.cpp:1058-1076/1089-1101/1120-1128/1251-1295`
++//! (`LdDataVector`, output build). Q31 mirrors (read-only):
++//! `psy.rs:1285-1537` (`group_short_channel`, `finish_channel`,
++//! `grouped_ld`, `grouped_ld_clamped`).
++//!
++//! **M1:** no boundary code exists yet — introducing rounding or
++//! rescaling now would violate the pass-through contract (risk R-19);
++//! this module intentionally contains no code.
+diff --git a/rust/src/aac_enc/fpe/preecho.rs b/rust/src/aac_enc/fpe/preecho.rs
+new file mode 100644
+index 0000000..15c49ad
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/preecho.rs
+@@ -0,0 +1,28 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE pre-echo temporal masking — skeleton (no float kernel in M1).
++//!
++//! Planned content (roadmap `09`):
++//!
++//! - **M1/M2 (pass-through):** pre-echo control delegates to the Q31
++//!   [`crate::aac_enc::thresholds::PreEchoState`] held inside
++//!   [`super::FpeChannel`]'s delegated state (stored-int history), so the
++//!   history is bit-identical to Q31 — no fraction conversion, no
++//!   independent state calculation.
++//! - **M6 (FPE-6.1/6.2/6.3):** the fraction `FpePreEchoState`
++//!   (`prev_f: Vec<f64>` = `prev_st/2^31`, `prev_scale`, `enabled`)
++//!   replaces the delegated Q31 state (`docs/fpe/05` §6.5): init
++//!   `prev_f = pcm_quant()` long, `prev_scale = 8`, enabled; identical
++//!   scale-aligned clamp/floor/memorize order (memorize **pre-clamp**),
++//!   STOP-reset-before / START-reset-after transitions, and the
++//!   nm1/m_nm1/calc_pre_echo readout. Attack detection (block switching)
++//!   is reused unchanged (`docs/fpe/03` §4.8).
++//!
++//! Upstream: `pre_echo_control.cpp:106-176` (`FDKaacEnc_InitPreEchoControl`,
++//! `FDKaacEnc_PreEchoControl`), resets `psy_main.cpp:975-985/996-1006`.
++//! Q31 mirror (read-only): `thresholds.rs:184-267`.
++//!
++//! **M1:** delegation happens inside the Q31 engine via
++//! [`super::orchestrate`]; this module intentionally contains no code.
+diff --git a/rust/src/aac_enc/fpe/tests/differential.rs b/rust/src/aac_enc/fpe/tests/differential.rs
+new file mode 100644
+index 0000000..5106451
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/tests/differential.rs
+@@ -0,0 +1,228 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! Q31↔FPE differential scenarios (roadmap M1 FPE-1.3, `docs/fpe/07`
++//! §3.1/§5/§6): multi-frame sequences with per-frame complete-output and
++//! persistent-state bit-identity, covering long/short transitions,
++//! START/STOP, pre-echo enable/reset, and stale-on-short MS-Ld history,
++//! plus the M1 edge-case fixtures and committed-vector single frames.
++//!
++//! Every scenario asserts exact frame accounting and that its intended
++//! coverage paths actually executed (`docs/fpe/07` §7.1 — no silent
++//! success). At M1/M2 all comparisons are bit-identical (pass-through).
++
++use super::*;
++
++#[test]
++fn fresh_fpe_state_init_matches_q31() {
++    // R-08 init gate: FpeChannel::new mirrors PsyChannel::new exactly
++    // (pre-echo seed/scale/enabled, TNS zeroed, MS-Ld zeros) before any
++    // frame, at both validated rates.
++    for sr in [48000u32, 44100] {
++        let ((lcfg, _), _) = testdata::load_cfg(sr, 96000);
++        let pcm = lcfg.pcm_quant.clone();
++        let q31 = PsyChannel::new(&pcm);
++        let fpe = FpeChannel::new(&pcm);
++        assert_psy_state_eq(&q31, &fpe, &format!("init {sr}"));
++        // Explicit init values (thresholds.rs PreEchoState::new).
++        assert_eq!(q31.preecho_state(), (8, true), "{sr} prev_scale/enabled");
++        assert_eq!(q31.preecho_prev()[..pcm.len()], pcm[..], "{sr} pcm seed");
++    }
++}
++
++#[test]
++fn onset_stereo_long_short_transitions_and_stale_ms_ld() {
++    // Onset: silence -> full sine at 0.5 s. Exercises START (f23),
++    // EIGHT_SHORT (f24, grouping [3,1,3,1]), STOP (f25), the pre-echo
++    // STOP-before/START-after resets (disabled/memorize-only frames), and
++    // the stale-on-short MS-Ld readout on f24.
++    let s = DiffStream::run("onset-stereo");
++    assert!(s.seen(WindowSequence::Long), "onset: long frames");
++    assert!(s.seen(WindowSequence::Start), "onset: START transition");
++    assert!(s.seen(WindowSequence::Short), "onset: short frames");
++    assert!(s.seen(WindowSequence::Stop), "onset: STOP transition");
++    assert!(s.short_frames >= 1, "onset: short coverage");
++    assert!(
++        s.preecho_disabled_frames >= 1,
++        "onset: pre-echo disable/reset coverage"
++    );
++    assert!(
++        s.stale_ms_reads >= 1,
++        "onset: stale-on-short MS-Ld coverage"
++    );
++}
++
++#[test]
++fn stepdown_stereo_offset_transition() {
++    // Stepdown: full sine -> silence at 0.5 s. START f0, SHORT f1
++    // (grouping [1,3,3,1]), STOP f2, then long decay into silence.
++    let s = DiffStream::run("stepdown-stereo");
++    assert!(s.seen(WindowSequence::Start), "stepdown: START");
++    assert!(s.seen(WindowSequence::Short), "stepdown: SHORT");
++    assert!(s.seen(WindowSequence::Stop), "stepdown: STOP");
++    assert!(s.stale_ms_reads >= 1, "stepdown: stale-on-short MS-Ld");
++}
++
++#[test]
++fn mono_transients_click_impulse_edge() {
++    // Click (full-scale click on sine), impulse (isolated full-scale
++    // impulse), edge (late-frame impulse exercising the cross-border
++    // attack repeat). Mono element path: no right channel, no MS output.
++    for name in ["click-mono", "impulse-mono", "edge-mono"] {
++        let s = DiffStream::run(name);
++        assert!(s.seen(WindowSequence::Long), "{name}: long frames");
++    }
++    // The click and edge fixtures are transient-rich: short frames must
++    // occur (committed seq vectors: click f1, edge f3/f4).
++    for name in ["click-mono", "edge-mono"] {
++        let s = DiffStream::run(name);
++        assert!(s.short_frames >= 1, "{name}: short coverage");
++    }
++}
++
++#[test]
++fn sustained_tonal_and_noise() {
++    // Long-window dominated corpus: sine, multitone, sweep, noise,
++    // tonal-noise. (Initial-frame SHORT blips are shared front-end
++    // decisions, identical for both engines by construction.)
++    for name in [
++        "sine-stereo",
++        "multitone-stereo",
++        "sweep-stereo",
++        "noise-mono",
++        "tonal-noise-stereo",
++    ] {
++        let s = DiffStream::run(name);
++        assert!(s.seen(WindowSequence::Long), "{name}: long coverage");
++    }
++}
++
++#[test]
++fn silence_and_near_silence() {
++    // All-zero elements (zeroSpec shortcut, -1.0 Ld placeholders) and
++    // PCM-floor-dominated low-level content.
++    for name in ["silence-stereo", "fpe-allzero-stereo"] {
++        let s = DiffStream::run(name);
++        assert!(s.seen(WindowSequence::Long), "{name}: long");
++        assert!(!s.seen(WindowSequence::Short), "{name}: no attacks");
++        assert_eq!(s.short_frames, 0, "{name}: all-long");
++    }
++    for name in ["quiet-sine-stereo", "fpe-near-silence-ramp-stereo"] {
++        let s = DiffStream::run(name);
++        assert!(s.seen(WindowSequence::Long), "{name}: long coverage");
++    }
++}
++
++#[test]
++fn stress_and_full_scale_edges() {
++    // High-level / max-headroom content: PRNG+tone stress, full-scale
++    // square (polarity-inverted pair: zero mid, full side), and the
++    // impulse-train + HF-tone max-headroom fixture. Pressures clip caps,
++    // saturation, overflow rescale, and joint pair shift decisions.
++    for name in [
++        "stress-stereo",
++        "fpe-fullscale-square-stereo",
++        "fpe-max-headroom-stereo",
++    ] {
++        let s = DiffStream::run(name);
++        assert!(s.short_frames >= 1, "{name}: transient/short coverage");
++    }
++}
++
++#[test]
++fn pow2_boundary_energies() {
++    // Power-of-two amplitude segments (2^0..2^14): band energies on/near
++    // power-of-two boundaries pressure the integer clz headroom analysis
++    // and rescale shift knife edges (representation lane must stay exact).
++    let s = DiffStream::run("fpe-pow2-boundary-stereo");
++    assert!(s.seen(WindowSequence::Long), "pow2: long coverage");
++}
++
++#[test]
++fn mixed_silent_active_pair() {
++    // Channel 0 onset at 0.5 s, channel 1 exactly silent throughout:
++    // joint minSpecShift/finalShift/tnsSpecShift with an asymmetric pair,
++    // one-sided MS energies, and transitions against a zero partner.
++    let s = DiffStream::run("fpe-mixed-pair-stereo");
++    assert!(s.seen(WindowSequence::Start), "mixed pair: START");
++    assert!(s.seen(WindowSequence::Short), "mixed pair: SHORT");
++    assert!(s.seen(WindowSequence::Stop), "mixed pair: STOP");
++    assert!(s.stale_ms_reads >= 1, "mixed pair: stale-on-short MS-Ld");
++}
++
++#[test]
++fn rate_44100_sine_and_onset() {
++    // The second validated sample rate (different SFB widths).
++    let s = DiffStream::run("sine-stereo-44100");
++    assert!(s.seen(WindowSequence::Long), "sine-44100: long");
++    let s = DiffStream::run("onset-stereo-44100");
++    assert!(s.seen(WindowSequence::Start), "onset-44100: START");
++    assert!(s.seen(WindowSequence::Short), "onset-44100: SHORT");
++    assert!(s.seen(WindowSequence::Stop), "onset-44100: STOP");
++    assert!(s.stale_ms_reads >= 1, "onset-44100: stale-on-short MS-Ld");
++}
++
++#[test]
++fn real_music_and_speech() {
++    // Licensed real recordings (10 s each, ~471 frames): long multi-frame
++    // runs with live decaying histories, including the pinned
++    // speech-clean f107 float-native block-switch knife edge (shared
++    // front-end decision — identical for both engines by construction).
++    for name in [
++        "music-stereo",
++        "speech-clean-stereo",
++        "speech-pauses-stereo",
++        "music-eroica-stereo",
++    ] {
++        let s = DiffStream::run(name);
++        assert!(s.seen(WindowSequence::Long), "{name}: long coverage");
++    }
++}
++
++#[test]
++fn committed_mdct_vectors_single_frame() {
++    // Feed the committed oracle MDCT vectors (exact C transform outputs,
++    // read as int·2^(E−31)) directly to both engines with fresh state:
++    // long stereo (sweep f10, both channels committed), short stereo
++    // (onset f24, grouping [3,1,3,1]), and mono (click f11). Complements
++    // the live multi-frame runs with the exact committed-frame spectra
++    // (`docs/fpe/07` §3).
++    let cases: [(&str, u32, usize); 3] = [
++        ("sweep-stereo", 10, 2),
++        ("onset-stereo", 24, 2),
++        ("click-mono", 11, 1),
++    ];
++    for (name, frame, channels) in cases {
++        let rows = testdata::load_seq(name);
++        let row_of = |ch: u32| {
++            rows.iter()
++                .find(|r| r.frame == frame && r.channel == ch)
++                .unwrap_or_else(|| panic!("{name} f{frame} ch{ch}: seq row"))
++        };
++        let seq_of = |v: u8| match v {
++            0 => WindowSequence::Long,
++            1 => WindowSequence::Start,
++            2 => WindowSequence::Short,
++            3 => WindowSequence::Stop,
++            _ => panic!("unknown seq discriminant {v}"),
++        };
++        let mut specs = Vec::with_capacity(channels);
++        let mut seqs = Vec::with_capacity(channels);
++        let mut groupings = Vec::with_capacity(channels);
++        for ch in 0..channels as u32 {
++            let row = row_of(ch);
++            let (e, coeffs) = testdata::load_mdct(name, frame, ch);
++            let mut spec = [0.0f64; 1024];
++            for (d, &q) in spec.iter_mut().zip(coeffs.iter()) {
++                *d = testdata::q31_to_f64(q, e);
++            }
++            specs.push(spec);
++            seqs.push(seq_of(row.seq));
++            groupings.push((row.groups, row.group_len));
++        }
++        let mut s = DiffStream::new(name);
++        s.step_inputs(specs, seqs, groupings);
++        assert_eq!(s.frames_compared, 1, "{name} f{frame}: frame accounting");
++    }
++}
+diff --git a/rust/src/aac_enc/fpe/tests/mod.rs b/rust/src/aac_enc/fpe/tests/mod.rs
+new file mode 100644
+index 0000000..fb5a7ac
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/tests/mod.rs
+@@ -0,0 +1,495 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! In-binary Q31↔FPE differential harness (Tier-A, `docs/fpe/07` §3/§3.1).
++//!
++//! Self-contained: identical inputs are fed to both engines
++//! ([`crate::aac_enc::psy::process_pair_reuse`] and
++//! [`crate::aac_enc::fpe::process_pair_reuse`]) with independently
++//! initialized but equivalent state, and the results are compared
++//! field-by-field. Runs **multi-frame sequences** and compares the
++//! complete observable output **and all frame-surviving persistent state
++//! after every frame** (`PreEchoState`, TNS `tns_state`/`tns_info`, MS-Ld
++//! history including stale-on-short contents), so a divergence is
++//! localized to the frame that introduced it (risk R-21). No C artifacts
++//! are needed; this is the primary development gate and runs in default
++//! CI. Private state is inspected through `#[cfg(test)]` helpers only —
++//! no production API is added for testing.
++//!
++//! **Comparison strictness:** at M1/M2 the FPE value lane delegates to the
++//! Q31 kernels with no float conversion or rounding, so every comparison
++//! here is **bit-identical** (`==` on integers, `to_bits()` on f64) —
++//! outputs, mutated spectra, and state (`docs/fpe/07` §5 M2 gate, G0).
++//! From M3 onward, replaced float kernels are compared within the
++//! inherited envelopes (`q31_tol` = `32 + |w|/500` stored-domain,
++//! energy-domain Ld inversion) while pure-integer/decision fields and
++//! reused state stay exact; the envelope comparators will be added with
++//! the first float kernel (M3), not pre-built here.
++//!
++//! Execution integrity (`docs/fpe/07` §7.1): every run asserts its exact
++//! expected frame count (`frames_compared`); a skipped or missing frame
++//! is a loud failure, never a silent omission. Scenario tests also assert
++//! that the intended paths (long/short transitions, START/STOP, pre-echo
++//! disable/reset, stale-on-short MS-Ld) were actually exercised.
++
++mod differential;
++
++use crate::aac_enc::block_switch::{BlockSwitch, WindowSequence};
++use crate::aac_enc::fpe::{FpeChannel, FpeScratch};
++use crate::aac_enc::psy::{
++    self, ChannelInput, ChannelOutput, GroupedOutput, MsOutput, PsyChannel, PsyScratch, PsyTables,
++};
++use crate::aac_enc::testdata;
++use crate::aac_enc::tns::TnsChannel;
++use crate::aac_enc::transform::ChannelTransform;
++
++// ---------------------------------------------------------------------------
++// Bit-identical comparators (M1/M2 pass-through gate)
++// ---------------------------------------------------------------------------
++
++/// f64 bit-identity (distinguishes ±0.0 and catches NaN drift; the
++/// pass-through contract guarantees identical bits, not merely values).
++fn assert_f64_bits_eq(got: &[f64], want: &[f64], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: length");
++    for (i, (g, w)) in got.iter().zip(want.iter()).enumerate() {
++        assert_eq!(
++            g.to_bits(),
++            w.to_bits(),
++            "{tag}[{i}]: got {g} want {w} (bits {:#x} vs {:#x})",
++            g.to_bits(),
++            w.to_bits()
++        );
++    }
++}
++
++fn assert_i32_vec_eq(got: &[i32], want: &[i32], tag: &str) {
++    assert_eq!(got, want, "{tag}");
++}
++
++fn assert_i32_windows_eq(got: &[Vec<i32>], want: &[Vec<i32>], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: window count");
++    for (w, (g, v)) in got.iter().zip(want.iter()).enumerate() {
++        assert_i32_vec_eq(g, v, &format!("{tag} w{w}"));
++    }
++}
++
++fn assert_f64_windows_eq(got: &[Vec<f64>], want: &[Vec<f64>], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: window count");
++    for (w, (g, v)) in got.iter().zip(want.iter()).enumerate() {
++        assert_f64_bits_eq(g, v, &format!("{tag} w{w}"));
++    }
++}
++
++/// Every field of [`GroupedOutput`] (`docs/fpe/09` M2 complete-output
++/// gate), bit-identical.
++fn assert_grouped_output_eq(got: &GroupedOutput, want: &GroupedOutput, tag: &str) {
++    assert_i32_vec_eq(
++        &got.energies,
++        &want.energies,
++        &format!("{tag} grouped.energies"),
++    );
++    assert_i32_vec_eq(
++        &got.thresholds,
++        &want.thresholds,
++        &format!("{tag} grouped.thresholds"),
++    );
++    assert_i32_vec_eq(&got.spread, &want.spread, &format!("{tag} grouped.spread"));
++    assert_f64_bits_eq(
++        &got.energy_ld,
++        &want.energy_ld,
++        &format!("{tag} grouped.energy_ld"),
++    );
++    assert_f64_bits_eq(
++        &got.threshold_ld,
++        &want.threshold_ld,
++        &format!("{tag} grouped.threshold_ld"),
++    );
++    assert_i32_vec_eq(
++        &got.offsets,
++        &want.offsets,
++        &format!("{tag} grouped.offsets"),
++    );
++    assert_i32_vec_eq(
++        &got.min_snr,
++        &want.min_snr,
++        &format!("{tag} grouped.min_snr"),
++    );
++    assert_f64_bits_eq(
++        &got.spectrum,
++        &want.spectrum,
++        &format!("{tag} grouped.spectrum"),
++    );
++    assert_eq!(
++        got.max_sfb_per_group, want.max_sfb_per_group,
++        "{tag} grouped.max_sfb_per_group"
++    );
++    assert_i32_vec_eq(
++        &got.ms_energies,
++        &want.ms_energies,
++        &format!("{tag} grouped.ms_energies"),
++    );
++    assert_i32_vec_eq(&got.ms_ld, &want.ms_ld, &format!("{tag} grouped.ms_ld"));
++}
++
++/// Every field of [`ChannelOutput`], bit-identical.
++fn assert_channel_output_eq(got: &ChannelOutput, want: &ChannelOutput, tag: &str) {
++    assert_eq!(got.mdct_scale, want.mdct_scale, "{tag} mdct_scale");
++    assert_eq!(got.final_shift, want.final_shift, "{tag} final_shift");
++    assert_eq!(got.tns_shift, want.tns_shift, "{tag} tns_shift");
++    assert_eq!(got.nrg_scaling, want.nrg_scaling, "{tag} nrg_scaling");
++    assert_i32_windows_eq(&got.maxscale, &want.maxscale, &format!("{tag} maxscale"));
++    assert_i32_windows_eq(&got.energies, &want.energies, &format!("{tag} energies"));
++    assert_f64_windows_eq(&got.energy_ld, &want.energy_ld, &format!("{tag} energy_ld"));
++    assert_i32_windows_eq(
++        &got.thresholds,
++        &want.thresholds,
++        &format!("{tag} thresholds"),
++    );
++    assert_i32_windows_eq(&got.spread, &want.spread, &format!("{tag} spread"));
++    assert_i32_vec_eq(&got.nm1, &want.nm1, &format!("{tag} nm1"));
++    assert_eq!(got.m_nm1, want.m_nm1, "{tag} m_nm1");
++    assert_eq!(got.calc_pre_echo, want.calc_pre_echo, "{tag} calc_pre_echo");
++    match (&got.grouped, &want.grouped) {
++        (Some(g), Some(w)) => assert_grouped_output_eq(g, w, tag),
++        (None, None) => {}
++        _ => panic!("{tag}: grouped presence differs"),
++    }
++    match (&got.threshold_ld, &want.threshold_ld) {
++        (Some(g), Some(w)) => assert_f64_bits_eq(g, w, &format!("{tag} threshold_ld")),
++        (None, None) => {}
++        _ => panic!("{tag}: threshold_ld presence differs"),
++    }
++    assert_eq!(
++        got.max_sfb_per_group, want.max_sfb_per_group,
++        "{tag} max_sfb_per_group"
++    );
++}
++
++/// Every field of [`MsOutput`], bit-identical (includes the stale-on-short
++/// pre-grouping Ld readout).
++fn assert_ms_output_eq(got: &MsOutput, want: &MsOutput, tag: &str) {
++    assert_i32_windows_eq(&got.mid, &want.mid, &format!("{tag} ms.mid"));
++    assert_i32_windows_eq(&got.side, &want.side, &format!("{tag} ms.side"));
++    assert_f64_windows_eq(&got.mid_ld, &want.mid_ld, &format!("{tag} ms.mid_ld"));
++    assert_f64_windows_eq(&got.side_ld, &want.side_ld, &format!("{tag} ms.side_ld"));
++}
++
++/// Field-by-field [`TnsChannel`] comparison (all fields are `pub`;
++/// `docs/fpe/07` §3.1 test-only compare, no production API).
++fn assert_tns_channel_eq(got: &TnsChannel, want: &TnsChannel, tag: &str) {
++    assert_eq!(got.num_filters, want.num_filters, "{tag} num_filters");
++    assert_eq!(got.coef_res, want.coef_res, "{tag} coef_res");
++    assert_eq!(got.length, want.length, "{tag} length");
++    assert_eq!(got.order, want.order, "{tag} order");
++    assert_eq!(got.direction, want.direction, "{tag} direction");
++    assert_eq!(got.coef, want.coef, "{tag} coef");
++    assert_eq!(got.active, want.active, "{tag} active");
++    assert_eq!(got.gain, want.gain, "{tag} gain");
++    assert_eq!(got.merged, want.merged, "{tag} merged");
++}
++
++/// All frame-surviving persistent psy state after a frame
++/// (`docs/fpe/07` §3.1): `PreEchoState` (prev/prev_scale/enabled via the
++/// existing pub accessors), TNS `tns_state` + `tns_info`, and the MS-Ld
++/// history `[[f64; 64]; 8]` including stale-on-short contents (test-only
++/// accessors). Bit-identical at M1/M2.
++fn assert_psy_state_eq(q31: &PsyChannel, fpe: &FpeChannel, tag: &str) {
++    let f = fpe.q31_state();
++    assert_i32_vec_eq(
++        q31.preecho_prev(),
++        f.preecho_prev(),
++        &format!("{tag} preecho.prev"),
++    );
++    assert_eq!(
++        q31.preecho_state(),
++        f.preecho_state(),
++        "{tag} preecho.prev_scale/enabled"
++    );
++    assert_tns_channel_eq(q31.tns_state(), f.tns_state(), &format!("{tag} tns_state"));
++    assert_tns_channel_eq(q31.tns_info(), f.tns_info(), &format!("{tag} tns_info"));
++    for w in 0..8 {
++        assert_f64_bits_eq(&q31.ms_ld()[w], &f.ms_ld()[w], &format!("{tag} ms_ld w{w}"));
++    }
++}
++
++// ---------------------------------------------------------------------------
++// Dual-engine multi-frame sequence runner
++// ---------------------------------------------------------------------------
++
++/// Drives the shared upstream front-end (block switch + MDCT, identical by
++/// construction) and feeds **identical** spectra to both psy engines with
++/// independently initialized, equivalent state; compares the complete
++/// output, the mutated spectra, and all persistent state after **every**
++/// frame. Mirrors the `psy.rs` test `Stream` helper, doubled for the
++/// differential. Scratch is encoder-owned-style and reused across frames
++/// on both sides (also gates the reset discipline).
++struct DiffStream {
++    name: String,
++    switches: Vec<BlockSwitch>,
++    transforms: Vec<ChannelTransform>,
++    q31: Vec<PsyChannel>,
++    fpe: Vec<FpeChannel>,
++    q31_ws: PsyScratch,
++    fpe_ws: FpeScratch,
++    fixture: Vec<Vec<i16>>,
++    tables: PsyTables,
++    channels: usize,
++    /// Execution integrity: exact count of frames processed AND compared.
++    frames_compared: usize,
++    /// Per-frame ch0 window sequence (CPE pairs agree post-sync).
++    seqs_seen: Vec<WindowSequence>,
++    /// Frames where any channel's pre-echo control was disabled
++    /// (STOP-reset / memorize-only path exercised).
++    preecho_disabled_frames: usize,
++    short_frames: usize,
++    /// Short frames whose MS-Ld history was left stale (unchanged from
++    /// the pre-frame snapshot) — the C stale-on-short parity path.
++    stale_ms_reads: usize,
++}
++
++impl DiffStream {
++    fn new(name: &str) -> Self {
++        let fixture = testdata::fixture_samples(name);
++        let channels = fixture.len();
++        let sr = testdata::fixture_sample_rate(name);
++        // Same operating point as the psy.rs vector harness and the
++        // committed vectors (VBR-5 per-channel bitrates, 19293 bandwidth).
++        let (ch_br, tns_br) = if channels == 1 {
++            (112000, 112000)
++        } else {
++            (96000, 192000)
++        };
++        let ((lcfg, _), (scfg, _)) = testdata::load_cfg(sr, ch_br);
++        let tables =
++            PsyTables::for_rate(sr, ch_br, tns_br, 19293, lcfg.min_snr_ld, scfg.min_snr_ld)
++                .expect("tables build");
++        let switches = (0..channels).map(|_| BlockSwitch::new()).collect();
++        let transforms = (0..channels).map(|_| ChannelTransform::new()).collect();
++        let q31 = (0..channels)
++            .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
++            .collect();
++        let fpe = (0..channels)
++            .map(|_| FpeChannel::new(tables.long_cfg.pcm_quant_q31()))
++            .collect();
++        Self {
++            name: name.to_string(),
++            switches,
++            transforms,
++            q31,
++            fpe,
++            q31_ws: PsyScratch::default(),
++            fpe_ws: FpeScratch::default(),
++            fixture,
++            tables,
++            channels,
++            frames_compared: 0,
++            seqs_seen: Vec::new(),
++            preecho_disabled_frames: 0,
++            short_frames: 0,
++            stale_ms_reads: 0,
++        }
++    }
++
++    fn fresh_at(&self, frame: u32) -> Vec<[i16; 1024]> {
++        (0..self.channels)
++            .map(|c| {
++                let mut block = [0i16; 1024];
++                for (i, v) in block.iter_mut().enumerate() {
++                    let t = frame as usize * 1024 + i;
++                    *v = if t < self.fixture[c].len() {
++                        self.fixture[c][t]
++                    } else {
++                        0
++                    };
++                }
++                block
++            })
++            .collect()
++    }
++
++    /// Run the shared front-end for one frame and compare both engines.
++    fn step(&mut self, frame: u32) {
++        let fresh = self.fresh_at(frame);
++        for (sw, fr) in self.switches.iter_mut().zip(fresh.iter()) {
++            sw.process(fr, false);
++        }
++        if self.channels == 2 {
++            let (l, r) = self.switches.split_at_mut(1);
++            BlockSwitch::synchronize_pair(&mut l[0], &mut r[0]);
++        } else {
++            self.switches[0].synchronize_mono();
++        }
++        let mut specs: Vec<[f64; 1024]> = Vec::with_capacity(self.channels);
++        let mut seqs = Vec::with_capacity(self.channels);
++        let mut groupings = Vec::with_capacity(self.channels);
++        for (ch, (tr, sw)) in self
++            .transforms
++            .iter_mut()
++            .zip(self.switches.iter())
++            .enumerate()
++        {
++            let out = tr
++                .process(&fresh[ch], sw.sequence(), sw.shape())
++                .expect("mdct");
++            let mut spec = [0.0f64; 1024];
++            for (d, s) in spec.iter_mut().zip(out.iter()) {
++                *d = *s as f64;
++            }
++            specs.push(spec);
++            seqs.push(sw.sequence());
++            groupings.push(sw.grouping());
++        }
++        self.step_inputs(specs, seqs, groupings);
++    }
++
++    /// Feed identical prepared inputs to both engines and compare output,
++    /// mutated spectra, and persistent state. Also used by the
++    /// committed-vector single-frame tests.
++    fn step_inputs(
++        &mut self,
++        mut specs: Vec<[f64; 1024]>,
++        seqs: Vec<WindowSequence>,
++        groupings: Vec<(u8, [u8; 4])>,
++    ) {
++        let tag = format!("{} f{}", self.name, self.frames_compared);
++        assert_eq!(specs.len(), self.channels, "{tag}: input channels");
++        // Pre-frame MS-Ld snapshot for stale-on-short coverage accounting.
++        let ms_before: Vec<[[f64; 64]; 8]> = self.q31.iter().map(|c| *c.ms_ld()).collect();
++        // Each engine mutates its own copy of the identical input spectrum.
++        let mut specs_fpe = specs.clone();
++
++        // Q31 arm (authoritative baseline).
++        let (head, tail) = specs.split_at_mut(1);
++        let lin = ChannelInput {
++            spectrum: &mut head[0],
++            seq: seqs[0],
++            grouping: groupings[0],
++            is_lfe: false,
++        };
++        let (ol_q, or_q, ms_q) = if self.channels == 2 {
++            let rin = ChannelInput {
++                spectrum: &mut tail[0],
++                seq: seqs[1],
++                grouping: groupings[1],
++                is_lfe: false,
++            };
++            let (pl, pr) = self.q31.split_at_mut(1);
++            psy::process_pair_reuse(
++                &mut pl[0],
++                Some(&mut pr[0]),
++                lin,
++                Some(rin),
++                &self.tables,
++                &mut self.q31_ws,
++            )
++        } else {
++            let (ol, _, _) = psy::process_pair_reuse(
++                &mut self.q31[0],
++                None,
++                lin,
++                None,
++                &self.tables,
++                &mut self.q31_ws,
++            );
++            (ol, None, None)
++        };
++
++        // FPE arm (implementation under test), identical inputs.
++        let (head, tail) = specs_fpe.split_at_mut(1);
++        let lin = ChannelInput {
++            spectrum: &mut head[0],
++            seq: seqs[0],
++            grouping: groupings[0],
++            is_lfe: false,
++        };
++        let (ol_f, or_f, ms_f) = if self.channels == 2 {
++            let rin = ChannelInput {
++                spectrum: &mut tail[0],
++                seq: seqs[1],
++                grouping: groupings[1],
++                is_lfe: false,
++            };
++            let (pl, pr) = self.fpe.split_at_mut(1);
++            crate::aac_enc::fpe::process_pair_reuse(
++                &mut pl[0],
++                Some(&mut pr[0]),
++                lin,
++                Some(rin),
++                &self.tables,
++                &mut self.fpe_ws,
++            )
++        } else {
++            let (ol, _, _) = crate::aac_enc::fpe::process_pair_reuse(
++                &mut self.fpe[0],
++                None,
++                lin,
++                None,
++                &self.tables,
++                &mut self.fpe_ws,
++            );
++            (ol, None, None)
++        };
++
++        // Complete observable output, bit-identical.
++        assert_channel_output_eq(&ol_f, &ol_q, &format!("{tag} ch0"));
++        match (&or_f, &or_q) {
++            (Some(g), Some(w)) => assert_channel_output_eq(g, w, &format!("{tag} ch1")),
++            (None, None) => {}
++            _ => panic!("{tag}: right-output presence differs"),
++        }
++        match (&ms_f, &ms_q) {
++            (Some(g), Some(w)) => assert_ms_output_eq(g, w, &format!("{tag} ms")),
++            (None, None) => {}
++            _ => panic!("{tag}: MS-output presence differs"),
++        }
++        // Mutated spectra (TNS filtering + exact scalings), bit-identical.
++        for ch in 0..self.channels {
++            assert_f64_bits_eq(
++                &specs_fpe[ch],
++                &specs[ch],
++                &format!("{tag} ch{ch} mutated spectrum"),
++            );
++        }
++        // All frame-surviving persistent state, after this frame.
++        for ch in 0..self.channels {
++            assert_psy_state_eq(&self.q31[ch], &self.fpe[ch], &format!("{tag} ch{ch} state"));
++        }
++
++        // Coverage accounting (docs/fpe/07 §7.1: no silent omissions).
++        self.frames_compared += 1;
++        self.seqs_seen.push(seqs[0]);
++        let short = seqs[0] == WindowSequence::Short;
++        if short {
++            self.short_frames += 1;
++        }
++        if self.q31.iter().any(|c| !c.preecho_state().1) {
++            self.preecho_disabled_frames += 1;
++        }
++        if short
++            && self
++                .q31
++                .iter()
++                .enumerate()
++                .all(|(ch, c)| c.ms_ld() == &ms_before[ch])
++        {
++            self.stale_ms_reads += 1;
++        }
++    }
++
++    fn seen(&self, seq: WindowSequence) -> bool {
++        self.seqs_seen.contains(&seq)
++    }
++
++    /// Run the full fixture plus two zero-padded tail frames (decaying
++    /// histories / all-zero path), asserting exact frame accounting.
++    fn run(name: &str) -> Self {
++        let mut s = Self::new(name);
++        let n = s.fixture[0].len().div_ceil(1024) + 2;
++        for f in 0..n {
++            s.step(f as u32);
++        }
++        assert_eq!(s.frames_compared, n, "{name}: frame accounting");
++        s
++    }
++}
+diff --git a/rust/src/aac_enc/fpe/thresholds.rs b/rust/src/aac_enc/fpe/thresholds.rs
+new file mode 100644
+index 0000000..f0c9a06
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/thresholds.rs
+@@ -0,0 +1,29 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! FPE float threshold chain — skeleton (no float kernel in M1).
++//!
++//! Planned content (roadmap `09`, one kernel group per milestone, each
++//! gated by the Q31↔FPE differential harness):
++//!
++//! - **M4 (FPE-4.1/4.2):** float threshold init (`T_f = E_f·C_RATIO_f`)
++//!   and clip cap with the identical shift/headroom branch logic
++//!   (`docs/fpe/05` §6.3); float two-pass max-envelope spreading for
++//!   thresholds and spread energy, consuming the **tabulated** f64
++//!   factors (`SfbConfig::mask_factors()`/`mask_factors_spr()`, never
++//!   recomputed in float — `docs/fpe/03` §4.3). Tonality is not
++//!   implemented (PNS-gated upstream, absent in Ferrite; FPE-4.3 asserts
++//!   the absence).
++//! - **M5 (FPE-5.1):** float PCM quantization floor with the accumulating
++//!   per-window `energyShift` (start 2m, +16/window, cap 31, sign
++//!   branches), `max(T_f/16, pcm_f·2^(∓shift))` (`docs/fpe/05` §6.4).
++//!   The PCM floor is FDK's absolute floor; no ATH table is invented
++//!   (`docs/fpe/03` §4.5).
++//!
++//! Upstream: `psy_main.cpp:702-703/926-939/955-971/1009-1017`,
++//! `spreading.cpp:105-125`. Q31 mirrors (read-only):
++//! `thresholds.rs:130/137/149/167`.
++//!
++//! **M1:** the value lane delegates to those Q31 kernels via
++//! [`super::orchestrate`]; this module intentionally contains no code.
+diff --git a/tools/enc-oracle/make_fpe_fixtures.py b/tools/enc-oracle/make_fpe_fixtures.py
+new file mode 100644
+index 0000000..4de2090
+--- /dev/null
++++ b/tools/enc-oracle/make_fpe_fixtures.py
+@@ -0,0 +1,106 @@
++#!/usr/bin/env python3
++"""Deterministic FPE edge-case PCM fixtures (FPE M1, task FPE-1.4).
++
++Additive to make_fixtures.py (which is unchanged). Covers the numerical
++edge-case corpus gaps named in docs/fpe/07-validation-strategy.md §6:
++
++  * near-silence ramp        (near-silence / low-level, quiet scaled bands)
++  * full-scale square        (high-level, clip cap, polarity-inverted pair)
++  * power-of-two amplitudes  (power-of-two-boundary energies, clz knife edges)
++  * max-headroom bands       (full-scale impulse train + HF tone)
++  * all-zero element         (zeroSpec shortcut, silent-element path)
++  * mixed silent+active pair (joint shift decisions with a silent partner)
++
++All files: 16-bit PCM WAV, 48 kHz. No randomness. Regenerating this script
++must produce byte-identical output (fixed amplitudes/phases, no dither);
++M1 validates this with a 3-run byte-stability check. The Rust test-time
++resynthesis lives in rust/src/aac_enc/testdata.rs (fixture_samples, same
++evaluation order, truncation toward zero). Oracle ring/psy vector anchoring
++for these fixtures requires the C reference (blocked on re-provisioning,
++risk R-12); the in-binary Q31-vs-FPE harness consumes the resynthesized PCM
++directly and needs no C artifacts.
++"""
++import wave
++import struct
++import math
++import os
++import sys
++
++SR = 48000
++
++OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
++
++
++def write_wav(name, channels, seconds, fn):
++    n = int(SR * seconds)
++    path = os.path.join(OUT, name)
++    with wave.open(path, "wb") as w:
++        w.setnchannels(channels)
++        w.setsampwidth(2)
++        w.setframerate(SR)
++        frames = bytearray()
++        for i in range(n):
++            t = i / SR
++            for c in range(channels):
++                v = max(-32768, min(32767, int(fn(t, c, i))))
++                frames += struct.pack("<h", v)
++        w.writeframes(bytes(frames))
++    print(f"wrote {path} ({n} samples/ch)")
++
++
++def sine(t, f=1000.0, amp=10000.0):
++    return amp * math.sin(2.0 * math.pi * f * t)
++
++
++# Near-silence ramp: 1 kHz sine whose amplitude ramps linearly 0 -> 64 LSB
++# over 1 s. The first sample is exactly zero; early frames are PCM-floor
++# dominated (quiet scaled bands), later frames stay far below full scale.
++RAMP_N = SR  # 1.0 s
++write_wav(
++    "fpe-near-silence-ramp-stereo-48k.wav", 2, 1.0,
++    lambda t, c, i: (64.0 * i / (RAMP_N - 1)) * math.sin(2.0 * math.pi * 1000.0 * t),
++)
++
++# Full-scale square: 500 Hz square wave hitting both rails (+32767/-32768).
++# Channel 1 is the polarity inverse of channel 0: mid energy is zero while
++# side energy is full-scale (MS sentinel / saturation edge).
++write_wav(
++    "fpe-fullscale-square-stereo-48k.wav", 2, 0.5,
++    lambda t, c, i: (32767.0 if math.sin(2.0 * math.pi * 500.0 * t) >= 0.0 else -32768.0)
++    * (1.0 if c == 0 else -1.0),
++)
++
++# Power-of-two boundary energies: 15 segments of 3200 samples, 1 kHz sine
++# at amplitudes 2^0 .. 2^14. Band energies land on/near power-of-two
++# boundaries, pressuring the integer clz headroom analysis (maxScale) and
++# the rescale shift decisions at their knife edges.
++POW2_SEG = 3200
++write_wav(
++    "fpe-pow2-boundary-stereo-48k.wav", 2, 1.0,
++    lambda t, c, i: sine(t, amp=float(2 ** (i // POW2_SEG))),
++)
++
++# Max-headroom bands: full-scale impulse train (every 512 samples) plus a
++# full-scale 16 kHz tone. Channel 1 offsets the impulses by 256 samples so
++# the pair's joint minSpecShift/finalShift/tnsSpecShift decisions see
++# different transient alignments at maximum band headroom.
++def max_headroom(t, c, i):
++    click = 30000.0 if (i - (256 if c == 1 else 0)) % 512 == 0 else 0.0
++    return click + 30000.0 * math.sin(2.0 * math.pi * 16000.0 * t)
++
++
++write_wav("fpe-max-headroom-stereo-48k.wav", 2, 0.5, max_headroom)
++
++# All-zero element: both channels exactly zero (zeroSpec shortcut, the
++# silent-element path with its -1.0 Ld placeholders and zero energies).
++write_wav("fpe-allzero-stereo-48k.wav", 2, 0.25, lambda t, c, i: 0.0)
++
++# Mixed silent+active pair: channel 0 is silent for 0.5 s then a 1 kHz sine
++# at amp 10000 (onset); channel 1 stays exactly silent throughout. Exercises
++# joint representation-lane decisions and MS energies with a silent partner,
++# plus long/short transitions against a zero channel.
++MIX_HALF = 24000
++write_wav(
++    "fpe-mixed-pair-stereo-48k.wav", 2, 1.0,
++    lambda t, c, i: 0.0 if c == 1 or i < MIX_HALF else sine(t),
++)
+\ No newline at end of file

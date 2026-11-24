@@ -1,0 +1,245 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/stream_driver.rs (lines 839-1077)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: StreamEncoder::frontend — single FPE dispatch point (match) and unchanged LiveChannel/downstream seam
+# Extracted: 2026-11-16T23:26:22Z
+
+impl StreamEncoder {
+    /// M2 frontend + sync, M3 transform + psy, and live Q31 working-set
+    /// construction (pre-MS). Returns `Err(note)` on structural mismatch
+    /// (never silent); the caller records the note and skips the frame.
+    pub(crate) fn frontend(
+        &mut self,
+        _frame: u32,
+        fresh1024: Vec<[i16; 1024]>,
+    ) -> Result<FrontendOut, String> {
+        // --- M2 frontend + sync ---
+        for (sw, fr) in self.switches.iter_mut().zip(fresh1024.iter()) {
+            sw.process(fr, false);
+        }
+        if self.channels == 2 {
+            let (l, r) = self.switches.split_at_mut(1);
+            BlockSwitch::synchronize_pair(&mut l[0], &mut r[0]);
+        } else {
+            self.switches[0].synchronize_mono();
+        }
+        let seqs: Vec<WindowSequence> = (0..self.channels).map(|c| self.seq_of(c)).collect();
+        let groupings: Vec<(u8, [u8; 4])> = self.switches.iter().map(|s| s.grouping()).collect();
+
+        // --- M3 transform + psy ---
+        let mut specs: Vec<[f64; 1024]> = Vec::with_capacity(self.channels);
+        for (ch, (tr, sw)) in self
+            .transforms
+            .iter_mut()
+            .zip(self.switches.iter())
+            .enumerate()
+        {
+            let out = tr
+                .process(&fresh1024[ch], sw.sequence(), sw.shape())
+                .expect("mdct process");
+            let mut spec = [0.0f64; 1024];
+            for (d, s) in spec.iter_mut().zip(out.iter()) {
+                *d = *s as f64;
+            }
+            specs.push(spec);
+        }
+        let (head, tail) = specs.split_at_mut(1);
+        let lin = ChannelInput {
+            spectrum: &mut head[0],
+            seq: seqs[0],
+            grouping: groupings[0],
+            is_lfe: false,
+        };
+        let (mut out_l, mut out_r, ms) = if self.channels == 2 {
+            let rin = ChannelInput {
+                spectrum: &mut tail[0],
+                seq: seqs[1],
+                grouping: groupings[1],
+                is_lfe: false,
+            };
+            // Single FPE dispatch point (ADR-0001, docs/fpe/06 §1): both
+            // arms return the identical output tuple; everything after
+            // (LiveChannel, IS/MS, PE, S2, S4, S6, S8) is untouched.
+            match self.psy_engine {
+                PsyEngineKind::Q31 => {
+                    let (pl, pr) = self.psy_ch.split_at_mut(1);
+                    // M5.20: encoder-owned psy scratch removes the per-frame
+                    // internal working-buffer allocations; semantics unchanged.
+                    let (ol, or_, m) = process_pair_reuse(
+                        &mut pl[0],
+                        Some(&mut pr[0]),
+                        lin,
+                        Some(rin),
+                        &self.tables,
+                        &mut self.psy_ws,
+                    );
+                    (ol, or_, m)
+                }
+                PsyEngineKind::Fpe => {
+                    let (pl, pr) = self.fpe_ch.split_at_mut(1);
+                    let (ol, or_, m) = fpe::process_pair_reuse(
+                        &mut pl[0],
+                        Some(&mut pr[0]),
+                        lin,
+                        Some(rin),
+                        &self.tables,
+                        &mut self.fpe_ws,
+                    );
+                    (ol, or_, m)
+                }
+            }
+        } else {
+            match self.psy_engine {
+                PsyEngineKind::Q31 => {
+                    let (ol, _, _) = process_pair_reuse(
+                        &mut self.psy_ch[0],
+                        None,
+                        lin,
+                        None,
+                        &self.tables,
+                        &mut self.psy_ws,
+                    );
+                    (ol, None, None)
+                }
+                PsyEngineKind::Fpe => {
+                    let (ol, _, _) = fpe::process_pair_reuse(
+                        &mut self.fpe_ch[0],
+                        None,
+                        lin,
+                        None,
+                        &self.tables,
+                        &mut self.fpe_ws,
+                    );
+                    (ol, None, None)
+                }
+            }
+        };
+        let mut outs: Vec<&ChannelOutput> = vec![&out_l];
+        if let Some(r) = out_r.as_ref() {
+            outs.push(r);
+        }
+
+        // --- Live Q31 working sets ---
+        let mut live: Vec<LiveChannel> = Vec::with_capacity(self.channels);
+        for (ch, out) in outs.iter().enumerate() {
+            let short = seqs[ch] == WindowSequence::Short;
+            let (cnt, per) = if short {
+                (groupings[ch].0 as usize * self.short_sp, self.short_sp)
+            } else {
+                (self.long_ac, self.long_ac)
+            };
+            let (offsets, e_stored, t_stored, spread, spec_f64): (
+                Vec<i32>,
+                Vec<i32>,
+                Vec<i32>,
+                Vec<i32>,
+                Vec<f64>,
+            ) = if short {
+                let g = out.grouped.as_ref().expect("short grouped output");
+                let stride = g.energies.len() / groupings[ch].0 as usize;
+                let mut e = Vec::with_capacity(cnt);
+                let mut t = Vec::with_capacity(cnt);
+                let mut s = Vec::with_capacity(cnt);
+                for grp in 0..groupings[ch].0 as usize {
+                    for b in 0..per {
+                        e.push(g.energies[grp * stride + b]);
+                        t.push(g.thresholds[grp * stride + b]);
+                        s.push(g.spread[grp * stride + b]);
+                    }
+                }
+                let ostride = (g.offsets.len() - 1) / groupings[ch].0 as usize;
+                let mut off = Vec::with_capacity(cnt + 1);
+                for grp in 0..groupings[ch].0 as usize {
+                    for b in 0..per {
+                        off.push(g.offsets[grp * ostride + b]);
+                    }
+                }
+                off.push(g.offsets[(groupings[ch].0 as usize - 1) * ostride + per]);
+                (off, e, t, s, g.spectrum.clone())
+            } else {
+                let off: Vec<i32> = self.tables.long_cfg.offsets()[..cnt + 1]
+                    .iter()
+                    .map(|&v| v as i32)
+                    .collect();
+                (
+                    off,
+                    out.energies[0][..cnt].to_vec(),
+                    out.thresholds[0][..cnt].to_vec(),
+                    out.spread[0][..cnt].to_vec(),
+                    specs[ch].to_vec(),
+                )
+            };
+            if offsets.len() != cnt + 1 || e_stored.len() != cnt {
+                return Err(format!(
+                    "ch{ch} geometry len mismatch off={} e={} cnt={cnt}",
+                    offsets.len(),
+                    e_stored.len()
+                ));
+            }
+            let spec_q31 = energy::map_spectrum_to_q31(&spec_f64, out.mdct_scale);
+            if spec_q31.len() != 1024 {
+                return Err(format!("ch{ch} spec len {}", spec_q31.len()));
+            }
+            // Energy Ld source differs by block type (C rescale mechanics):
+            // long frames carry the unshifted-accumulation Ld (float lane,
+            // Q31-converted); short frames take Ld of the grouped shifted
+            // sums (exact fLog2, mirrors `groupedELd`).
+            let e_ld = if short {
+                ld_of(&e_stored)
+            } else {
+                if out.energy_ld[0].len() != cnt {
+                    return Err(format!(
+                        "ch{ch} energy_ld len {} != cnt {cnt}",
+                        out.energy_ld[0].len()
+                    ));
+                }
+                q31_of_ld_vec(&out.energy_ld[0])
+            };
+            // Threshold Ld carries the C floor (`psy_main.cpp:1071-1075`
+            // short, `:1124-1128` long): `fixMax(LdDataVector, -0.515625)`.
+            let t_ld = threshold_ld_of(&t_stored);
+            live.push(LiveChannel {
+                spec_q31,
+                e_stored,
+                t_stored,
+                spread,
+                e_ld,
+                t_ld,
+                ff: Vec::new(),
+                offsets,
+                cnt,
+                per,
+                short,
+                mdct_scale: out.mdct_scale,
+                tns: self.psy_tns_info(ch).clone(),
+            });
+        }
+        // Common maxSfbPerGroup from psy outputs (exact C rule,
+        // common-window max for stereo).
+        let max_common = if self.channels == 2 {
+            out_l
+                .max_sfb_per_group
+                .max(out_r.as_ref().expect("stereo right").max_sfb_per_group)
+        } else {
+            out_l.max_sfb_per_group
+        };
+        // --- Canonical grouped MS vectors (short blocks) ---
+        // The pre-grouping `MsOutput` Ld lane is stale by C design on short
+        // frames; the fresh values are the model's `GroupedOutput` vectors.
+        // Move them out here so the MS decision borrows exactly what the
+        // psychoacoustic model produced (no re-regroup, no `CalcLdData`).
+        let ms_grouped_l = take_grouped_ms(out_l.grouped.take(), 0, live[0].cnt)?;
+        let ms_grouped_r = match out_r.as_mut() {
+            Some(o) => take_grouped_ms(o.grouped.take(), 1, live[1].cnt)?,
+            None => None,
+        };
+        Ok(FrontendOut {
+            seqs,
+            groupings,
+            ms,
+            live,
+            max_common,
+            ms_grouped_l,
+            ms_grouped_r,
+        })
+    }

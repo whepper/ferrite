@@ -1,0 +1,49 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/psy.rs (lines 434-476)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: PsyScratch reusable working buffers (wrapped by FpeScratch)
+# Extracted: 2026-11-16T23:26:22Z
+
+/// Reusable psychoacoustic working buffers (M5.20).
+///
+/// Owned by the encoder (one instance per `StreamEncoder`) and passed to
+/// [`process_pair_reuse`]. Every field is reset to exactly the contents
+/// the former per-call allocation had *before its first read*:
+/// `clear` + helper write for buffers the energy helpers fully overwrite,
+/// `resize` + `fill` for buffers whose initial contents are observable
+/// (all-zero/`-1.0` placeholders read on the silent-element path). Inner
+/// `Vec` lengths are always exactly `active*`, because consumers iterate
+/// the full inner vector (`advance_thresholds` → `spreading_max` bound
+/// `n`, `PreEchoState::control` uses `thr.len()`, and the `min_spec_shift`
+/// loop iterates all entries). Nothing is read before that reset, so no
+/// state leaks between frames, channels, or elements; the buffers are
+/// plain owned `Vec`s (no unsafe, no globals, no caches).
+///
+/// Buffers that escape into the returned outputs (`ChannelOutput`,
+/// `GroupedOutput`, `MsOutput`) are deliberately *not* reused.
+#[derive(Default)]
+pub struct PsyScratch {
+    /// Q31-mapped spectra of the integer lane (1024 ints).
+    q_l: Vec<i32>,
+    q_r: Vec<i32>,
+    /// Post-threshold MS remap spectra (1024 ints, stereo only).
+    ql_full: Vec<i32>,
+    qr_full: Vec<i32>,
+    /// Per-window TNS remap scratch (`tns_encode_channel`).
+    qwin: Vec<i32>,
+    /// `band_energy_long` pre-shift accumulations (per window).
+    tns_pre: Vec<i32>,
+    maxsc_l: Vec<Vec<i32>>,
+    maxsc_r: Vec<Vec<i32>>,
+    e_l: Vec<Vec<i32>>,
+    e_r: Vec<Vec<i32>>,
+    eld_l: Vec<Vec<f64>>,
+    eld_r: Vec<Vec<f64>>,
+    t_l: Vec<Vec<i32>>,
+    t_r: Vec<Vec<i32>>,
+    spread_l: Vec<Vec<i32>>,
+    spread_r: Vec<Vec<i32>>,
+    /// Zero MS vectors for mono elements (never written, mirroring C).
+    ms_zeros_l: Vec<Vec<i32>>,
+    ms_zeros_r: Vec<Vec<i32>>,
+}

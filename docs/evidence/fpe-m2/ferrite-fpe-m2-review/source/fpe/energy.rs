@@ -1,0 +1,25 @@
+//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
+//! Codec Library for Android. Modifications and Rust implementation copyright
+//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
+//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
+//! FPE float band-energy kernels — skeleton (no float kernel in M1).
+//!
+//! Planned content (roadmap `09`, one kernel group per milestone, each
+//! gated by the Q31↔FPE differential harness):
+//!
+//! - **M3 (FPE-3.1/3.2):** float rescale band energy (long + short) and
+//!   float TNS energy recompute in the Q31-fraction domain
+//!   (`docs/fpe/05` §6.1/§6.2): `E_real[b] = Σ spec_f64[j]²` (physical),
+//!   `E_f[b] = E_real[b]·2^(−2m')`, boundary `E_st = round(E_f·2^31)`
+//!   (boundary active only from M3). The integer raw sums and the
+//!   `shiftBits` decision stay in the representation lane (ADR-0005).
+//! - **M7 (FPE-7.1):** float MS energies with the net /4 convention
+//!   (`docs/fpe/05` §6.6), `calc_ld = (seq != Short)`, stale-on-short
+//!   MS-Ld history preserved.
+//!
+//! Upstream: `band_nrg.cpp:140-184/192-256/264-288/296-361`
+//! (`FDKaacEnc_CheckBandEnergyOptim`, `CalcBandEnergyOptimLong/Short`,
+//! `CalcBandNrgMSOpt`). Q31 mirrors (read-only): `energy.rs:161/249/215/321`.
+//!
+//! **M1:** the value lane delegates to those Q31 kernels via
+//! [`super::orchestrate`]; this module intentionally contains no code.

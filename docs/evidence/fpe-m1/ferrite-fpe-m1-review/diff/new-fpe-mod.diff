@@ -1,0 +1,141 @@
+diff --git a/rust/src/aac_enc/fpe/mod.rs b/rust/src/aac_enc/fpe/mod.rs
+new file mode 100644
+index 0000000..163c5f9
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/mod.rs
+@@ -0,0 +1,135 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! Floating-point psychoacoustic engine (FPE) — self-contained module tree.
++//!
++//! FPE is a numerical modernization of the existing Q31 psychoacoustic
++//! engine (`super::psy` and its flat kernel modules), not a new
++//! psychoacoustic model: it will replace the Q31 **value arithmetic** with
++//! f64 arithmetic in the Q31-fraction domain (`v_f = v_st/2^31`) while
++//! preserving every FDK algorithm, state transition, tuning constant, and
++//! the integer representation lane (`mdctScale`/`finalShift`/`tnsShift`/
++//! `maxScale`) bit-exactly. Planning authority: `docs/fpe/` (charter `00`,
++//! architecture `04`, translation spec `05`, integration `06`, validation
++//! `07`, roadmap `09`; ADR-0001/0002/0003/0004/0005).
++//!
++//! **M1 status (roadmap `09` M1, scaffolding only):** no floating-point
++//! psychoacoustic kernel exists yet. The value lane delegates to the
++//! existing Q31 kernels and passes their stored-int / f64-Ld results
++//! through **unchanged** (no fraction conversion, no rounding, no
++//! rescaling), so the FPE path is bit-identical to Q31 on the complete
++//! observable output and all frame-surviving persistent state. The Q31
++//! engine remains authoritative and the default; FPE is independently
++//! selectable via [`super::config::PsyEngineKind`] for the in-binary
++//! Q31↔FPE differential harness (`tests/`). Float kernels arrive one group
++//! at a time in M3–M7, each gated by that harness.
++//!
++//! Upstream counterpart: `FDKaacEnc_psyMain` (`psy_main.cpp:407-1298`,
++//! FDK-AAC 3.0.0), factored exactly as the Q31 engine factors it
++//! (`docs/fpe/03` §2). FPE adds no tonality/PNS/ATH (absent upstream in the
++//! LC path, stay absent; `docs/fpe/03` §4.2/§4.5).
++
++mod constants;
++mod energy;
++mod orchestrate;
++mod output;
++mod preecho;
++mod thresholds;
++
++#[cfg(test)]
++mod tests;
++
++use super::psy::{ChannelInput, ChannelOutput, MsOutput, PsyChannel, PsyScratch, PsyTables};
++use super::tns::TnsChannel;
++
++/// FPE init-time tables: the Q31 engine's [`PsyTables`] reused unchanged
++/// (`docs/fpe/04` §3, `02` #33). FPE reads the same `SfbConfig` f64
++/// accessors, `TnsConfig`, and minSnr data; no second table set exists.
++pub(crate) type FpeTables = PsyTables;
++
++/// Persistent per-channel FPE state (`docs/fpe/04` §4, `06` §4).
++///
++/// **M1/M2 pass-through container:** holds the Q31 state types — pre-echo
++/// history (`thresholds::PreEchoState`, stored-int), TNS runtime/output
++/// (`tns::TnsChannel` pair), and the MS-Ld history (`[[f64; 64]; 8]`,
++/// stale-on-short) — inside a [`PsyChannel`], and delegates control to
++/// them, so the history is bit-identical to Q31 by construction. No
++/// fraction conversion and no independent state calculation (roadmap `09`
++/// M2 pass-through contract; risk R-19).
++///
++/// M2 (FPE-2.1/2.2) exposes the individual state fields and mirrors the
++/// `psy.rs` orchestration order with per-stage Q31 kernel calls; M6
++/// (FPE-6.1) replaces the delegated pre-echo control with the fraction
++/// `FpePreEchoState`. TNS state stays the reused `TnsChannel` throughout.
++pub(crate) struct FpeChannel {
++    /// Delegated Q31 state (M1/M2). Private to the `fpe` tree; the
++    /// differential harness inspects it through `#[cfg(test)]` accessors
++    /// only — no production API is added for testing.
++    q31: PsyChannel,
++}
++
++impl FpeChannel {
++    /// Fresh state; mirrors [`PsyChannel::new`] exactly (pre-echo seeded
++    /// with the long PCM floors, `prev_scale = 8`, enabled; TNS zeroed;
++    /// MS-Ld history zeros). `pcm_q31_long` is the long PCM floor vector.
++    pub(crate) fn new(pcm_q31_long: &[i32]) -> Self {
++        Self {
++            q31: PsyChannel::new(pcm_q31_long),
++        }
++    }
++
++    /// TNS output info for the frontend `LiveChannel` seam (same contract
++    /// as [`PsyChannel::tns_info`]).
++    pub(crate) fn tns_info(&self) -> &TnsChannel {
++        self.q31.tns_info()
++    }
++
++    /// Delegated Q31 state (test inspection only: FPE differential harness
++    /// persistent-state comparison, `docs/fpe/07` §3.1).
++    #[cfg(test)]
++    pub(crate) fn q31_state(&self) -> &PsyChannel {
++        &self.q31
++    }
++}
++
++/// Encoder-owned reusable FPE working buffers (`docs/fpe/04` §5).
++///
++/// Mirrors the [`PsyScratch`] discipline: one instance per `StreamEncoder`,
++/// passed `&mut` into [`process_pair_reuse`], every field reset to its
++/// exact pre-first-read contents by the delegated kernels; buffers that
++/// escape into outputs are not reused. **M1/M2:** wraps the Q31 scratch
++/// (the representation lane and the delegated value lane both use Q31 int
++/// buffers); the float value-lane buffers are added when the first float
++/// kernel lands (M3, decision finalized at M2 task FPE-2.2). No per-frame
++/// heap allocation beyond the existing output-`Vec` pattern, no globals.
++#[derive(Default)]
++pub(crate) struct FpeScratch {
++    /// Delegated Q31 working buffers (M1/M2).
++    q31: PsyScratch,
++}
++
++/// Process a mono element or one stereo pair through the FPE path.
++///
++/// Signature and output contract mirror [`super::psy::process_pair_reuse`]
++/// exactly: both dispatch arms in `StreamEncoder::frontend` return the
++/// identical `(ChannelOutput, Option<ChannelOutput>, Option<MsOutput>)`
++/// tuple, and everything downstream (`LiveChannel`, IS/MS, PE, S2, S4, S6,
++/// S8) is untouched (ADR-0001/0003).
++///
++/// **M1 pass-through:** delegates the psychoacoustic value processing to
++/// the existing Q31 kernels operating on FPE-owned Q31-typed state; the
++/// stored-int / f64-Ld results and the mutated f64 spectrum pass through
++/// unchanged (bit-identical; no float round-trip, no boundary rounding —
++/// the `docs/fpe/05` §7 boundary quantization activates per-kernel only in
++/// M3+). D-022 preconditions are inherited from the delegated engine.
++pub(crate) fn process_pair_reuse(
++    left: &mut FpeChannel,
++    right: Option<&mut FpeChannel>,
++    lin: ChannelInput<'_>,
++    rin: Option<ChannelInput<'_>>,
++    tables: &FpeTables,
++    ws: &mut FpeScratch,
++) -> (ChannelOutput, Option<ChannelOutput>, Option<MsOutput>) {
++    orchestrate::process_pair(left, right, lin, rin, tables, ws)
++}

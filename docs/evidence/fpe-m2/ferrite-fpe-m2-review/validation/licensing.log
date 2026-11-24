@@ -1,0 +1,3 @@
+licensing hygiene OK: NOTICE + LICENSE-FDK-AAC present, manifest declares FDK-AAC, 80 rust/src file(s) carry the modified-version notice
+converter licensing OK: MIT OR Apache-2.0 declared, both texts present, no FDK-derived notices under rust/convert/src
+licensing exit=0

@@ -1,0 +1,108 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/stream_driver.rs (lines 645-746)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: StreamEncoder::with_config — engine selection and FPE/Q31 state allocation (allocate-selected-only)
+# Extracted: 2026-11-16T23:26:22Z
+
+
+    /// Build from a validated [`EncoderConfig`], threading the selected
+    /// profile through every init-time derivation:
+    /// per-channel/total nominal bitrates, effective bandwidth (Nyquist
+    /// clamped), VBR quality factor, `PsyTables::for_rate` (SFB/active bands,
+    /// `allowIS`/`allowMS`, TNS), `derive_qc_init` (average/max/min bits,
+    /// bit-reservoir mode, `meanPe`), `AtsElement` quality factor and
+    /// `peOffset` (50 for VBR-1 stereo, 0 otherwise, per `AdjThrInit`).
+    /// PNS stays off (FDK effective VBR behaviour), afterburner stays on
+    /// (`invQuant = 2`), TNS stays enabled.
+    pub(crate) fn with_config(cfg: EncoderConfig) -> Self {
+        let sample_rate = cfg.sample_rate();
+        let channels = cfg.channels() as usize;
+        assert!(
+            channels == 1 || channels == 2,
+            "single-element mono/stereo only"
+        );
+        let profile = cfg.profile();
+        let is_mono = channels == 1;
+        let ch_br = profile.channel_bitrate(is_mono);
+        let total_br = cfg.nominal_bitrate();
+        let bandwidth = cfg.effective_bandwidth_hz();
+        let ((lcfg, _), (scfg, _)) = load_cfg_for_profile(sample_rate, profile, is_mono);
+        let tables = PsyTables::for_rate(
+            sample_rate,
+            ch_br,
+            total_br,
+            bandwidth,
+            lcfg.min_snr_ld.clone(),
+            scfg.min_snr_ld.clone(),
+        )
+        .expect("tables build");
+        let long_ac = tables.long_cfg.sfb_active();
+        let short_sp = tables.short_cfg.sfb_count();
+        let switches = (0..channels).map(|_| BlockSwitch::new()).collect();
+        let transforms = (0..channels).map(|_| ChannelTransform::new()).collect();
+        // FPE selection seam (ADR-0001, docs/fpe/06 §1/§3): the engine is
+        // chosen here from the additive config knob (default Q31) and only
+        // the selected engine's per-channel state is allocated. Both state
+        // types are initialized identically (FpeChannel mirrors
+        // PsyChannel::new), so selection is a config choice, not a rebuild.
+        let psy_engine = cfg.psy_engine();
+        let psy_ch = if psy_engine == PsyEngineKind::Q31 {
+            (0..channels)
+                .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let fpe_ch = if psy_engine == PsyEngineKind::Fpe {
+            (0..channels)
+                .map(|_| FpeChannel::new(tables.long_cfg.pcm_quant_q31()))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let avg0 = calc_bits_per_frame(total_br as i32, FRAME_LENGTH as i32, sample_rate as i32);
+        let init = derive_qc_init(
+            total_br as i32,
+            avg0,
+            channels as i32,
+            channels as i32,
+            sample_rate as i32,
+            bandwidth as i32,
+            FRAME_LENGTH as i32,
+        );
+        let (b2m, b2e) = init_bits2pe_factor(false, false, init.ch_bitrate_el, channels as i32);
+        let dist = distribute_state_init(init.mean_pe);
+        let qc = QcState::new(init.max_bits);
+        Self {
+            sample_rate,
+            channels,
+            vbr_mode: cfg.vbr_mode(),
+            mode: if channels == 1 {
+                ChannelMode::Mono
+            } else {
+                ChannelMode::Stereo
+            },
+            tables,
+            min_snr_long: lcfg.min_snr_ld,
+            min_snr_short: scfg.min_snr_ld,
+            switches,
+            transforms,
+            psy_engine,
+            psy_ch,
+            fpe_ch,
+            ats: AtsElement::for_vbr_mode(cfg.vbr_mode(), super::pe::vbr_pe_offset(ch_br)),
+            dist,
+            qc,
+            s4_ws: ScfWorkspace::default(),
+            psy_ws: PsyScratch::default(),
+            fpe_ws: FpeScratch::default(),
+            init,
+            b2m,
+            b2e,
+            total_br,
+            padding_rest: sample_rate as i32,
+            short_sp,
+            long_ac,
+        }
+    }
+

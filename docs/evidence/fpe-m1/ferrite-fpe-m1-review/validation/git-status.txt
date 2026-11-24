@@ -1,0 +1,24 @@
+Git state at bundle creation: 2026-11-16T23:29:48Z
+
+$ git rev-parse HEAD
+b188415e3c16dbf00706984858c6a568c9b705ff
+
+$ git branch --show-current
+main
+
+$ git status --porcelain=v1
+ M rust/src/aac_enc.rs
+ M rust/src/aac_enc/config.rs
+ M rust/src/aac_enc/psy.rs
+ M rust/src/aac_enc/stream_driver.rs
+ M rust/src/aac_enc/testdata.rs
+?? .DS_Store
+?? docs/.DS_Store
+?? docs/fpe/
+?? rust/src/aac_enc/fpe/
+?? tools/enc-oracle/make_fpe_fixtures.py
+
+M1 tracked modifications: rust/src/aac_enc.rs, config.rs, psy.rs, stream_driver.rs, testdata.rs
+M1 new untracked: rust/src/aac_enc/fpe/ (9 files), tools/enc-oracle/make_fpe_fixtures.py
+Pre-existing untracked (EXCLUDED from bundle): docs/fpe/, .DS_Store, docs/.DS_Store
+No commits/amend/rebase/reset/cherry-pick/push/stash performed; HEAD unchanged.

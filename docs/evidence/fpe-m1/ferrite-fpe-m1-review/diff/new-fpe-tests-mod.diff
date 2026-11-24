@@ -1,0 +1,501 @@
+diff --git a/rust/src/aac_enc/fpe/tests/mod.rs b/rust/src/aac_enc/fpe/tests/mod.rs
+new file mode 100644
+index 0000000..fb5a7ac
+--- /dev/null
++++ b/rust/src/aac_enc/fpe/tests/mod.rs
+@@ -0,0 +1,495 @@
++//! Ferrite: part of a Third-Party Modified Version of the Fraunhofer FDK AAC
++//! Codec Library for Android. Modifications and Rust implementation copyright
++//! © 2025–2026 Jeroen Steenvoorde. Modification notice date: 2026-11-16.
++//! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
++//! In-binary Q31↔FPE differential harness (Tier-A, `docs/fpe/07` §3/§3.1).
++//!
++//! Self-contained: identical inputs are fed to both engines
++//! ([`crate::aac_enc::psy::process_pair_reuse`] and
++//! [`crate::aac_enc::fpe::process_pair_reuse`]) with independently
++//! initialized but equivalent state, and the results are compared
++//! field-by-field. Runs **multi-frame sequences** and compares the
++//! complete observable output **and all frame-surviving persistent state
++//! after every frame** (`PreEchoState`, TNS `tns_state`/`tns_info`, MS-Ld
++//! history including stale-on-short contents), so a divergence is
++//! localized to the frame that introduced it (risk R-21). No C artifacts
++//! are needed; this is the primary development gate and runs in default
++//! CI. Private state is inspected through `#[cfg(test)]` helpers only —
++//! no production API is added for testing.
++//!
++//! **Comparison strictness:** at M1/M2 the FPE value lane delegates to the
++//! Q31 kernels with no float conversion or rounding, so every comparison
++//! here is **bit-identical** (`==` on integers, `to_bits()` on f64) —
++//! outputs, mutated spectra, and state (`docs/fpe/07` §5 M2 gate, G0).
++//! From M3 onward, replaced float kernels are compared within the
++//! inherited envelopes (`q31_tol` = `32 + |w|/500` stored-domain,
++//! energy-domain Ld inversion) while pure-integer/decision fields and
++//! reused state stay exact; the envelope comparators will be added with
++//! the first float kernel (M3), not pre-built here.
++//!
++//! Execution integrity (`docs/fpe/07` §7.1): every run asserts its exact
++//! expected frame count (`frames_compared`); a skipped or missing frame
++//! is a loud failure, never a silent omission. Scenario tests also assert
++//! that the intended paths (long/short transitions, START/STOP, pre-echo
++//! disable/reset, stale-on-short MS-Ld) were actually exercised.
++
++mod differential;
++
++use crate::aac_enc::block_switch::{BlockSwitch, WindowSequence};
++use crate::aac_enc::fpe::{FpeChannel, FpeScratch};
++use crate::aac_enc::psy::{
++    self, ChannelInput, ChannelOutput, GroupedOutput, MsOutput, PsyChannel, PsyScratch, PsyTables,
++};
++use crate::aac_enc::testdata;
++use crate::aac_enc::tns::TnsChannel;
++use crate::aac_enc::transform::ChannelTransform;
++
++// ---------------------------------------------------------------------------
++// Bit-identical comparators (M1/M2 pass-through gate)
++// ---------------------------------------------------------------------------
++
++/// f64 bit-identity (distinguishes ±0.0 and catches NaN drift; the
++/// pass-through contract guarantees identical bits, not merely values).
++fn assert_f64_bits_eq(got: &[f64], want: &[f64], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: length");
++    for (i, (g, w)) in got.iter().zip(want.iter()).enumerate() {
++        assert_eq!(
++            g.to_bits(),
++            w.to_bits(),
++            "{tag}[{i}]: got {g} want {w} (bits {:#x} vs {:#x})",
++            g.to_bits(),
++            w.to_bits()
++        );
++    }
++}
++
++fn assert_i32_vec_eq(got: &[i32], want: &[i32], tag: &str) {
++    assert_eq!(got, want, "{tag}");
++}
++
++fn assert_i32_windows_eq(got: &[Vec<i32>], want: &[Vec<i32>], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: window count");
++    for (w, (g, v)) in got.iter().zip(want.iter()).enumerate() {
++        assert_i32_vec_eq(g, v, &format!("{tag} w{w}"));
++    }
++}
++
++fn assert_f64_windows_eq(got: &[Vec<f64>], want: &[Vec<f64>], tag: &str) {
++    assert_eq!(got.len(), want.len(), "{tag}: window count");
++    for (w, (g, v)) in got.iter().zip(want.iter()).enumerate() {
++        assert_f64_bits_eq(g, v, &format!("{tag} w{w}"));
++    }
++}
++
++/// Every field of [`GroupedOutput`] (`docs/fpe/09` M2 complete-output
++/// gate), bit-identical.
++fn assert_grouped_output_eq(got: &GroupedOutput, want: &GroupedOutput, tag: &str) {
++    assert_i32_vec_eq(
++        &got.energies,
++        &want.energies,
++        &format!("{tag} grouped.energies"),
++    );
++    assert_i32_vec_eq(
++        &got.thresholds,
++        &want.thresholds,
++        &format!("{tag} grouped.thresholds"),
++    );
++    assert_i32_vec_eq(&got.spread, &want.spread, &format!("{tag} grouped.spread"));
++    assert_f64_bits_eq(
++        &got.energy_ld,
++        &want.energy_ld,
++        &format!("{tag} grouped.energy_ld"),
++    );
++    assert_f64_bits_eq(
++        &got.threshold_ld,
++        &want.threshold_ld,
++        &format!("{tag} grouped.threshold_ld"),
++    );
++    assert_i32_vec_eq(
++        &got.offsets,
++        &want.offsets,
++        &format!("{tag} grouped.offsets"),
++    );
++    assert_i32_vec_eq(
++        &got.min_snr,
++        &want.min_snr,
++        &format!("{tag} grouped.min_snr"),
++    );
++    assert_f64_bits_eq(
++        &got.spectrum,
++        &want.spectrum,
++        &format!("{tag} grouped.spectrum"),
++    );
++    assert_eq!(
++        got.max_sfb_per_group, want.max_sfb_per_group,
++        "{tag} grouped.max_sfb_per_group"
++    );
++    assert_i32_vec_eq(
++        &got.ms_energies,
++        &want.ms_energies,
++        &format!("{tag} grouped.ms_energies"),
++    );
++    assert_i32_vec_eq(&got.ms_ld, &want.ms_ld, &format!("{tag} grouped.ms_ld"));
++}
++
++/// Every field of [`ChannelOutput`], bit-identical.
++fn assert_channel_output_eq(got: &ChannelOutput, want: &ChannelOutput, tag: &str) {
++    assert_eq!(got.mdct_scale, want.mdct_scale, "{tag} mdct_scale");
++    assert_eq!(got.final_shift, want.final_shift, "{tag} final_shift");
++    assert_eq!(got.tns_shift, want.tns_shift, "{tag} tns_shift");
++    assert_eq!(got.nrg_scaling, want.nrg_scaling, "{tag} nrg_scaling");
++    assert_i32_windows_eq(&got.maxscale, &want.maxscale, &format!("{tag} maxscale"));
++    assert_i32_windows_eq(&got.energies, &want.energies, &format!("{tag} energies"));
++    assert_f64_windows_eq(&got.energy_ld, &want.energy_ld, &format!("{tag} energy_ld"));
++    assert_i32_windows_eq(
++        &got.thresholds,
++        &want.thresholds,
++        &format!("{tag} thresholds"),
++    );
++    assert_i32_windows_eq(&got.spread, &want.spread, &format!("{tag} spread"));
++    assert_i32_vec_eq(&got.nm1, &want.nm1, &format!("{tag} nm1"));
++    assert_eq!(got.m_nm1, want.m_nm1, "{tag} m_nm1");
++    assert_eq!(got.calc_pre_echo, want.calc_pre_echo, "{tag} calc_pre_echo");
++    match (&got.grouped, &want.grouped) {
++        (Some(g), Some(w)) => assert_grouped_output_eq(g, w, tag),
++        (None, None) => {}
++        _ => panic!("{tag}: grouped presence differs"),
++    }
++    match (&got.threshold_ld, &want.threshold_ld) {
++        (Some(g), Some(w)) => assert_f64_bits_eq(g, w, &format!("{tag} threshold_ld")),
++        (None, None) => {}
++        _ => panic!("{tag}: threshold_ld presence differs"),
++    }
++    assert_eq!(
++        got.max_sfb_per_group, want.max_sfb_per_group,
++        "{tag} max_sfb_per_group"
++    );
++}
++
++/// Every field of [`MsOutput`], bit-identical (includes the stale-on-short
++/// pre-grouping Ld readout).
++fn assert_ms_output_eq(got: &MsOutput, want: &MsOutput, tag: &str) {
++    assert_i32_windows_eq(&got.mid, &want.mid, &format!("{tag} ms.mid"));
++    assert_i32_windows_eq(&got.side, &want.side, &format!("{tag} ms.side"));
++    assert_f64_windows_eq(&got.mid_ld, &want.mid_ld, &format!("{tag} ms.mid_ld"));
++    assert_f64_windows_eq(&got.side_ld, &want.side_ld, &format!("{tag} ms.side_ld"));
++}
++
++/// Field-by-field [`TnsChannel`] comparison (all fields are `pub`;
++/// `docs/fpe/07` §3.1 test-only compare, no production API).
++fn assert_tns_channel_eq(got: &TnsChannel, want: &TnsChannel, tag: &str) {
++    assert_eq!(got.num_filters, want.num_filters, "{tag} num_filters");
++    assert_eq!(got.coef_res, want.coef_res, "{tag} coef_res");
++    assert_eq!(got.length, want.length, "{tag} length");
++    assert_eq!(got.order, want.order, "{tag} order");
++    assert_eq!(got.direction, want.direction, "{tag} direction");
++    assert_eq!(got.coef, want.coef, "{tag} coef");
++    assert_eq!(got.active, want.active, "{tag} active");
++    assert_eq!(got.gain, want.gain, "{tag} gain");
++    assert_eq!(got.merged, want.merged, "{tag} merged");
++}
++
++/// All frame-surviving persistent psy state after a frame
++/// (`docs/fpe/07` §3.1): `PreEchoState` (prev/prev_scale/enabled via the
++/// existing pub accessors), TNS `tns_state` + `tns_info`, and the MS-Ld
++/// history `[[f64; 64]; 8]` including stale-on-short contents (test-only
++/// accessors). Bit-identical at M1/M2.
++fn assert_psy_state_eq(q31: &PsyChannel, fpe: &FpeChannel, tag: &str) {
++    let f = fpe.q31_state();
++    assert_i32_vec_eq(
++        q31.preecho_prev(),
++        f.preecho_prev(),
++        &format!("{tag} preecho.prev"),
++    );
++    assert_eq!(
++        q31.preecho_state(),
++        f.preecho_state(),
++        "{tag} preecho.prev_scale/enabled"
++    );
++    assert_tns_channel_eq(q31.tns_state(), f.tns_state(), &format!("{tag} tns_state"));
++    assert_tns_channel_eq(q31.tns_info(), f.tns_info(), &format!("{tag} tns_info"));
++    for w in 0..8 {
++        assert_f64_bits_eq(&q31.ms_ld()[w], &f.ms_ld()[w], &format!("{tag} ms_ld w{w}"));
++    }
++}
++
++// ---------------------------------------------------------------------------
++// Dual-engine multi-frame sequence runner
++// ---------------------------------------------------------------------------
++
++/// Drives the shared upstream front-end (block switch + MDCT, identical by
++/// construction) and feeds **identical** spectra to both psy engines with
++/// independently initialized, equivalent state; compares the complete
++/// output, the mutated spectra, and all persistent state after **every**
++/// frame. Mirrors the `psy.rs` test `Stream` helper, doubled for the
++/// differential. Scratch is encoder-owned-style and reused across frames
++/// on both sides (also gates the reset discipline).
++struct DiffStream {
++    name: String,
++    switches: Vec<BlockSwitch>,
++    transforms: Vec<ChannelTransform>,
++    q31: Vec<PsyChannel>,
++    fpe: Vec<FpeChannel>,
++    q31_ws: PsyScratch,
++    fpe_ws: FpeScratch,
++    fixture: Vec<Vec<i16>>,
++    tables: PsyTables,
++    channels: usize,
++    /// Execution integrity: exact count of frames processed AND compared.
++    frames_compared: usize,
++    /// Per-frame ch0 window sequence (CPE pairs agree post-sync).
++    seqs_seen: Vec<WindowSequence>,
++    /// Frames where any channel's pre-echo control was disabled
++    /// (STOP-reset / memorize-only path exercised).
++    preecho_disabled_frames: usize,
++    short_frames: usize,
++    /// Short frames whose MS-Ld history was left stale (unchanged from
++    /// the pre-frame snapshot) — the C stale-on-short parity path.
++    stale_ms_reads: usize,
++}
++
++impl DiffStream {
++    fn new(name: &str) -> Self {
++        let fixture = testdata::fixture_samples(name);
++        let channels = fixture.len();
++        let sr = testdata::fixture_sample_rate(name);
++        // Same operating point as the psy.rs vector harness and the
++        // committed vectors (VBR-5 per-channel bitrates, 19293 bandwidth).
++        let (ch_br, tns_br) = if channels == 1 {
++            (112000, 112000)
++        } else {
++            (96000, 192000)
++        };
++        let ((lcfg, _), (scfg, _)) = testdata::load_cfg(sr, ch_br);
++        let tables =
++            PsyTables::for_rate(sr, ch_br, tns_br, 19293, lcfg.min_snr_ld, scfg.min_snr_ld)
++                .expect("tables build");
++        let switches = (0..channels).map(|_| BlockSwitch::new()).collect();
++        let transforms = (0..channels).map(|_| ChannelTransform::new()).collect();
++        let q31 = (0..channels)
++            .map(|_| PsyChannel::new(tables.long_cfg.pcm_quant_q31()))
++            .collect();
++        let fpe = (0..channels)
++            .map(|_| FpeChannel::new(tables.long_cfg.pcm_quant_q31()))
++            .collect();
++        Self {
++            name: name.to_string(),
++            switches,
++            transforms,
++            q31,
++            fpe,
++            q31_ws: PsyScratch::default(),
++            fpe_ws: FpeScratch::default(),
++            fixture,
++            tables,
++            channels,
++            frames_compared: 0,
++            seqs_seen: Vec::new(),
++            preecho_disabled_frames: 0,
++            short_frames: 0,
++            stale_ms_reads: 0,
++        }
++    }
++
++    fn fresh_at(&self, frame: u32) -> Vec<[i16; 1024]> {
++        (0..self.channels)
++            .map(|c| {
++                let mut block = [0i16; 1024];
++                for (i, v) in block.iter_mut().enumerate() {
++                    let t = frame as usize * 1024 + i;
++                    *v = if t < self.fixture[c].len() {
++                        self.fixture[c][t]
++                    } else {
++                        0
++                    };
++                }
++                block
++            })
++            .collect()
++    }
++
++    /// Run the shared front-end for one frame and compare both engines.
++    fn step(&mut self, frame: u32) {
++        let fresh = self.fresh_at(frame);
++        for (sw, fr) in self.switches.iter_mut().zip(fresh.iter()) {
++            sw.process(fr, false);
++        }
++        if self.channels == 2 {
++            let (l, r) = self.switches.split_at_mut(1);
++            BlockSwitch::synchronize_pair(&mut l[0], &mut r[0]);
++        } else {
++            self.switches[0].synchronize_mono();
++        }
++        let mut specs: Vec<[f64; 1024]> = Vec::with_capacity(self.channels);
++        let mut seqs = Vec::with_capacity(self.channels);
++        let mut groupings = Vec::with_capacity(self.channels);
++        for (ch, (tr, sw)) in self
++            .transforms
++            .iter_mut()
++            .zip(self.switches.iter())
++            .enumerate()
++        {
++            let out = tr
++                .process(&fresh[ch], sw.sequence(), sw.shape())
++                .expect("mdct");
++            let mut spec = [0.0f64; 1024];
++            for (d, s) in spec.iter_mut().zip(out.iter()) {
++                *d = *s as f64;
++            }
++            specs.push(spec);
++            seqs.push(sw.sequence());
++            groupings.push(sw.grouping());
++        }
++        self.step_inputs(specs, seqs, groupings);
++    }
++
++    /// Feed identical prepared inputs to both engines and compare output,
++    /// mutated spectra, and persistent state. Also used by the
++    /// committed-vector single-frame tests.
++    fn step_inputs(
++        &mut self,
++        mut specs: Vec<[f64; 1024]>,
++        seqs: Vec<WindowSequence>,
++        groupings: Vec<(u8, [u8; 4])>,
++    ) {
++        let tag = format!("{} f{}", self.name, self.frames_compared);
++        assert_eq!(specs.len(), self.channels, "{tag}: input channels");
++        // Pre-frame MS-Ld snapshot for stale-on-short coverage accounting.
++        let ms_before: Vec<[[f64; 64]; 8]> = self.q31.iter().map(|c| *c.ms_ld()).collect();
++        // Each engine mutates its own copy of the identical input spectrum.
++        let mut specs_fpe = specs.clone();
++
++        // Q31 arm (authoritative baseline).
++        let (head, tail) = specs.split_at_mut(1);
++        let lin = ChannelInput {
++            spectrum: &mut head[0],
++            seq: seqs[0],
++            grouping: groupings[0],
++            is_lfe: false,
++        };
++        let (ol_q, or_q, ms_q) = if self.channels == 2 {
++            let rin = ChannelInput {
++                spectrum: &mut tail[0],
++                seq: seqs[1],
++                grouping: groupings[1],
++                is_lfe: false,
++            };
++            let (pl, pr) = self.q31.split_at_mut(1);
++            psy::process_pair_reuse(
++                &mut pl[0],
++                Some(&mut pr[0]),
++                lin,
++                Some(rin),
++                &self.tables,
++                &mut self.q31_ws,
++            )
++        } else {
++            let (ol, _, _) = psy::process_pair_reuse(
++                &mut self.q31[0],
++                None,
++                lin,
++                None,
++                &self.tables,
++                &mut self.q31_ws,
++            );
++            (ol, None, None)
++        };
++
++        // FPE arm (implementation under test), identical inputs.
++        let (head, tail) = specs_fpe.split_at_mut(1);
++        let lin = ChannelInput {
++            spectrum: &mut head[0],
++            seq: seqs[0],
++            grouping: groupings[0],
++            is_lfe: false,
++        };
++        let (ol_f, or_f, ms_f) = if self.channels == 2 {
++            let rin = ChannelInput {
++                spectrum: &mut tail[0],
++                seq: seqs[1],
++                grouping: groupings[1],
++                is_lfe: false,
++            };
++            let (pl, pr) = self.fpe.split_at_mut(1);
++            crate::aac_enc::fpe::process_pair_reuse(
++                &mut pl[0],
++                Some(&mut pr[0]),
++                lin,
++                Some(rin),
++                &self.tables,
++                &mut self.fpe_ws,
++            )
++        } else {
++            let (ol, _, _) = crate::aac_enc::fpe::process_pair_reuse(
++                &mut self.fpe[0],
++                None,
++                lin,
++                None,
++                &self.tables,
++                &mut self.fpe_ws,
++            );
++            (ol, None, None)
++        };
++
++        // Complete observable output, bit-identical.
++        assert_channel_output_eq(&ol_f, &ol_q, &format!("{tag} ch0"));
++        match (&or_f, &or_q) {
++            (Some(g), Some(w)) => assert_channel_output_eq(g, w, &format!("{tag} ch1")),
++            (None, None) => {}
++            _ => panic!("{tag}: right-output presence differs"),
++        }
++        match (&ms_f, &ms_q) {
++            (Some(g), Some(w)) => assert_ms_output_eq(g, w, &format!("{tag} ms")),
++            (None, None) => {}
++            _ => panic!("{tag}: MS-output presence differs"),
++        }
++        // Mutated spectra (TNS filtering + exact scalings), bit-identical.
++        for ch in 0..self.channels {
++            assert_f64_bits_eq(
++                &specs_fpe[ch],
++                &specs[ch],
++                &format!("{tag} ch{ch} mutated spectrum"),
++            );
++        }
++        // All frame-surviving persistent state, after this frame.
++        for ch in 0..self.channels {
++            assert_psy_state_eq(&self.q31[ch], &self.fpe[ch], &format!("{tag} ch{ch} state"));
++        }
++
++        // Coverage accounting (docs/fpe/07 §7.1: no silent omissions).
++        self.frames_compared += 1;
++        self.seqs_seen.push(seqs[0]);
++        let short = seqs[0] == WindowSequence::Short;
++        if short {
++            self.short_frames += 1;
++        }
++        if self.q31.iter().any(|c| !c.preecho_state().1) {
++            self.preecho_disabled_frames += 1;
++        }
++        if short
++            && self
++                .q31
++                .iter()
++                .enumerate()
++                .all(|(ch, c)| c.ms_ld() == &ms_before[ch])
++        {
++            self.stale_ms_reads += 1;
++        }
++    }
++
++    fn seen(&self, seq: WindowSequence) -> bool {
++        self.seqs_seen.contains(&seq)
++    }
++
++    /// Run the full fixture plus two zero-padded tail frames (decaying
++    /// histories / all-zero path), asserting exact frame accounting.
++    fn run(name: &str) -> Self {
++        let mut s = Self::new(name);
++        let n = s.fixture[0].len().div_ceil(1024) + 2;
++        for f in 0..n {
++            s.step(f as u32);
++        }
++        assert_eq!(s.frames_compared, n, "{name}: frame accounting");
++        s
++    }
++}

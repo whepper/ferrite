@@ -1,0 +1,45 @@
+# Verbatim excerpt for independent review (FPE M1)
+# Source: rust/src/aac_enc/config.rs (lines 1042-1080)
+# Base HEAD: b188415e3c16dbf00706984858c6a568c9b705ff + M1 working-tree changes
+# Context: New config selection-seam tests
+# Extracted: 2026-11-16T23:26:22Z
+
+    #[test]
+    fn psy_engine_defaults_to_q31_in_every_constructor() {
+        // FPE selection seam (docs/fpe/06 §2, roadmap M1 FPE-1.2): the
+        // additive knob defaults to Q31 everywhere; existing constructors
+        // are behaviourally unchanged.
+        assert_eq!(PsyEngineKind::default(), PsyEngineKind::Q31);
+        let new = EncoderConfig::new(48000, 2, FRAME_LENGTH, TransportType::Adts).unwrap();
+        assert_eq!(new.psy_engine(), PsyEngineKind::Q31);
+        for mode in VbrMode::ALL {
+            let cfg =
+                EncoderConfig::new_with_mode(48000, 2, FRAME_LENGTH, TransportType::Adts, mode)
+                    .unwrap();
+            assert_eq!(cfg.psy_engine(), PsyEngineKind::Q31, "{mode}");
+        }
+        assert_eq!(
+            EncoderConfig::stereo_48k_adts().psy_engine(),
+            PsyEngineKind::Q31
+        );
+    }
+
+    #[test]
+    fn with_psy_engine_builder_selects_fpe_and_preserves_other_fields() {
+        let base = EncoderConfig::stereo_48k_adts().with_vbr_mode(VbrMode::Vbr5);
+        let fpe = base.with_psy_engine(PsyEngineKind::Fpe);
+        assert_eq!(fpe.psy_engine(), PsyEngineKind::Fpe);
+        // Every other field is preserved (additive builder).
+        assert_eq!(fpe.sample_rate(), base.sample_rate());
+        assert_eq!(fpe.channels(), base.channels());
+        assert_eq!(fpe.frame_length(), base.frame_length());
+        assert_eq!(fpe.transport(), base.transport());
+        assert_eq!(fpe.vbr_mode(), base.vbr_mode());
+        assert_eq!(fpe.nominal_bitrate(), base.nominal_bitrate());
+        assert_eq!(fpe.effective_bandwidth_hz(), base.effective_bandwidth_hz());
+        // The base copy is untouched (Copy builder semantics).
+        assert_eq!(base.psy_engine(), PsyEngineKind::Q31);
+        // Selecting Q31 explicitly round-trips to the base config.
+        assert_eq!(fpe.with_psy_engine(PsyEngineKind::Q31), base);
+    }
+}

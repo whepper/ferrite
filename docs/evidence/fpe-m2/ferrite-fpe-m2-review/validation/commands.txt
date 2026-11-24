@@ -1,0 +1,45 @@
+# Exact commands producing the bundled logs
+
+All run from the repository working tree at HEAD
+`b188415e3c16dbf00706984858c6a568c9b705ff` (branch `main`, uncommitted M1+M2).
+Rust/cargo 1.99.1, host `aarch64-apple-darwin` (Apple Silicon — the
+`production_baseline` exact-hash reference platform). `--locked` throughout.
+Logs capture stdout+stderr verbatim (compile warnings included); an `exit=N`
+trailer line is appended by the bundling script where noted.
+
+## tests/ (cargo test -- --list)
+- list-lib-release.txt        `cargo test --release --locked --lib -- --list`
+- list-fpe-release.txt        `cargo test --release --locked --lib fpe:: -- --list`
+- list-ignored-debug.txt      `cargo test --locked --lib -- --ignored --list`
+- list-ignored-release.txt    `cargo test --release --locked --lib -- --ignored --list`
+
+## validation/
+- fpe-debug.log               `cargo test --locked --lib fpe::`
+- fpe-release.log             `cargo test --release --locked --lib fpe::`
+- fpe-seam-debug.log          `cargo test --locked --lib fpe_seam_tests`
+- fpe-seam-release.log        `cargo test --release --locked --lib fpe_seam_tests`
+- tier-a-release.log          `cargo test --release --locked --lib -- <15 CI skips>`
+- tier-a-debug.log            `cargo test --locked --lib -- <15 CI skips>`
+- full-lib-release-no-skip.log`cargo test --release --locked --lib`   (Tier-B fail loudly = BLOCKED)
+- production-baseline.log     `cargo test --release --locked --lib production_baseline -- --nocapture`
+- production-api.log          `cargo test --release --locked --test production_api`
+- doctests.log                `cargo test --release --locked --doc`
+- fmt-check.log               `cargo fmt --all -- --check`                 (+exit trailer)
+- clippy.log                  `cargo clippy --locked --all-targets`        (+exit trailer)
+- build-no-default-features.log `cargo build --locked --no-default-features` (+exit trailer)
+- build-default.log           `cargo build --locked`                       (+exit trailer)
+- licensing.log               `bash tools/check-licensing.sh`  (from rust/) (+exit trailer)
+- git-diff-check.log          `git diff --check`               (from repo root) (+exit trailer)
+- package-list.log            `cargo package --locked -p ferrite-aac --allow-dirty --list` (+exit trailer)
+
+The 15 CI skips (Tier-B / decoder / opt-in), identical to `.github/workflows/ci.yml`:
+  m5a_decode_check m55_streams_match_c_reference phase1_frontend_agreement_sine_f5
+  phase1e_sine_f5_band16_residue phase1e_onset_f24_bands_causality
+  phase1f_multitone_f1_no_live_divergence phase1f_stepdown_f1_no_live_divergence
+  phase1g_long_flips_residue phase1i_sine44_f5_tier_b phase1i_multitone_f5_tier_b
+  phase1_full_stream_parity intensity_probe_c_oracle_parity intensity_probe_wav_parity
+  intensity_probe_adts_decodes m511_profile_loop
+
+Note: `cargo package` requires `--allow-dirty` because the M1/M2 work is
+intentionally uncommitted (no commit was made). `--list` only enumerates package
+contents; it does not publish or alter the repository.
