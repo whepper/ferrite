@@ -43,6 +43,7 @@ mod f6_tns;
 mod is_ms;
 mod m2_stages;
 mod probe_envelope;
+mod r22_capture;
 
 use audit::{ChannelEnergyCtx, EnergyAudit};
 
