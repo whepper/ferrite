@@ -237,3 +237,46 @@ pushes without separate owner authorization.
   been started by this recording action**; execution belongs to Muse Spark
   1.3 under a separately scoped instruction, followed by P0-C independent
   audit.
+
+---
+
+## Amendment M2 acceptance — 24 November 2026 (formal M2 owner acceptance)
+
+*Appended by explicit owner instruction. The historical recording above
+(D1–D4) is preserved unchanged; this amendment records the owner's formal
+M2 decision **as of this date only**. It does not rewrite any historical
+review-occurrence statement, finding disposition or status.*
+
+**Decision (owner):** The project owner formally **accepts M2: Explicit
+Orchestration Mirror**.
+
+1. The owner accepts M2.
+2. The acceptance relies on GLM 5.3 Flash's **fresh independent review**
+   dated **24 November 2026** (`docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md`,
+   verdict **PASS WITH FINDINGS**), covering the M2 evidence bundle
+   (77/77 checksum), M2-era tree reconstruction, byte-for-byte
+   reconstruction of 15 source files, independent reproduction of 24/24
+   FPE tests in debug and release, architecture/output/state
+   equivalence, twelve multi-frame scenarios and all ten M2 acceptance
+   criteria.
+3. The independent review is newly performed and does **not** recover or
+   backdate historical M2 sign-off. The original M2 review occurrence
+   remains **unconfirmed as history** (provenance record §4); the GLM
+   review is a **separate event**.
+4. All ten M2 acceptance criteria (AC-01…AC-10 in the review §7) are
+   accepted.
+5. Findings M2 F-1 through M2 F-4 remain **non-blocking and retained**
+   with the limitations stated in the review §8 (F-1 Tier-B blocked;
+   F-2 provenance/reconstruction; F-3 LFE M3+ coverage gap; F-4
+   informational Clippy).
+6. The acceptance is limited to the **Q31-equivalent explicit
+   orchestration foundation** (review §10). It is not a float-native
+   engine, not perceptual evidence, not C-reference Tier-B parity, not
+   authorization to switch FPE to default, and not authorization to begin
+   R2.2.
+
+**Standing limitations unchanged by this amendment:** G0 remains
+historical and non-rerunnable (A-01 open); the nine conditional R2.1-B
+acceptances remain conditional; Tier-B C parity remains blocked, not
+waived; G0/A-01 and all other assessment limitations are unchanged.
+D5 remains not issued.

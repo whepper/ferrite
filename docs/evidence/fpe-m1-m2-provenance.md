@@ -143,3 +143,24 @@ licensing/package); `tests/list-*.txt`.
   (recovery), §6.4 (integrity verification).
 - `docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md` (D3).
 - `docs/fpe/assessment/findings-register.md` A-01/A-02 (status context).
+
+---
+
+## 8. Dated clarification — fresh M2 review and formal M2 acceptance (24 November 2026)
+
+*Appended without altering §§1–7 (history preserved). The preserved bundle
+bytes, checksums and review-occurrence distinctions above are unchanged.*
+
+- A **fresh independent M2 review** was performed by **GLM 5.3 Flash** on
+  24 November 2026 and durably recorded in
+  `docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md` (verdict
+  **PASS WITH FINDINGS**; M2 F-1…F-4 non-blocking; all ten M2 acceptance
+  criteria satisfied).
+- The project owner **formally accepted M2** on 24 November 2026
+  (`docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md`,
+  Amendment M2 acceptance).
+- The original M2 review occurrence remains **unconfirmed as history**
+  (§4); the GLM review is a **separate event** and does not backdate or
+  manufacture historical sign-off.
+- G0 remains historical and non-rerunnable (A-01 open). This clarification
+  makes no production, test, manifest or evidence-byte change.

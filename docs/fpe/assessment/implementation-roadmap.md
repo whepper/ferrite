@@ -270,3 +270,20 @@ self-approval; M8 validation review by a non-implementer; focused diffs; Q31
 read-only; default unchanged; no commits without owner instruction.
 
 *Assessment-only recommendation; no phase is authorized by this document.*
+
+---
+
+## Dated clarification — M2 acceptance (24 November 2026)
+
+*Appended without rewriting §§1–4 (history preserved; this document is a
+21 November 2026 assessment proposal).*
+
+- The Phase 0 scope item “recover M2 green-run + M1/M2 review records or
+  re-review (A-01/A-02)” is satisfied **for M2** by a separate event: the
+  fresh independent M2 review by **GLM 5.3 Flash** on 24 November 2026
+  (`docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md`, PASS WITH
+  FINDINGS) and formal owner acceptance of M2
+  (`docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md`, Amendment M2
+  acceptance). A-02 is closed for M2; the original M2 review occurrence
+  remains unconfirmed as history. A-01 (G0 non-rerunnable) is unchanged.
+  No phase is authorized by this clarification.

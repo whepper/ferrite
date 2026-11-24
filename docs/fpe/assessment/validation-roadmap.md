@@ -216,3 +216,22 @@ To prevent recurrence of A-01/A-04/A-05/OD-4/OD-7/OD-8:
 
 *Assessment-only; no envelope, tolerance, test or acceptance criterion was
 changed. All gates above are recommendations for owner approval.*
+
+---
+
+## Dated clarification — M2 acceptance (24 November 2026)
+
+*Appended without rewriting §§0–6 (history preserved; this document is a
+21 November 2026 assessment).*
+
+- The §5 gate-map row “G8 independent review … M1/M2 records absent
+  (A-02)” is supplemented for M2 by a separate event: the fresh
+  independent M2 review by **GLM 5.3 Flash** on 24 November 2026
+  (`docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md`, PASS WITH
+  FINDINGS) and formal owner acceptance of M2
+  (`docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md`, Amendment M2
+  acceptance). G8 is satisfied for M2 only; M1 sign-off remains
+  unretained. G0 remains historical/non-rerunnable (A-01 open); Tier-B
+  (G1/G5) remains blocked; the nine conditional R2.1-B acceptances remain
+  conditional. No gate, envelope, tolerance or criterion is changed by
+  this clarification.

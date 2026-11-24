@@ -175,10 +175,20 @@ resolution / blocks.
 - **Description:** Roadmap requires architecture review (M1) and
   architecture+numerical review (M2); no retained sign-off record exists in the
   package (only M0 verification and the R2.1-B/G-1 reviews).
-- **Status:** Open. **Evidence:** `docs/fpe/` file inventory. **Uncertainty:**
+- **Status:** **Closed 2026-11-24** — completed, independently reviewed and owner-accepted (see dated update §8). **Evidence:** `docs/fpe/` file inventory. **Uncertainty:**
   reviews may exist externally. **Risk:** Medium (governance). **Resolution:**
   bundle/link the M1/M2 reviews or record their absence and re-review.
   **Blocks:** G8 review completeness.
+- **Update 2026-11-24 (M2 acceptance; history preserved):** the original
+  statement above remains accurate as history (at assessment time no retained
+  M1/M2 sign-off existed). As a separate event, a **fresh independent M2
+  review** was performed by **GLM 5.3 Flash on 24 November 2026**
+  (`docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md`, verdict
+  **PASS WITH FINDINGS**, M2 F-1…F-4 non-blocking) and the owner formally
+  accepted M2 (`docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md`, Amendment M2 acceptance,
+  24 November 2026). The original M2 review occurrence remains unconfirmed;
+  the new review does not backdate it. M1 sign-off remains unretained
+  (no fresh M1 review authorized). G8 is satisfied for M2 only.
 
 ### A-03 — R2.1-B aggregate counts printed, not asserted
 - **Source:** this assessment; `is_ms.rs:2364-2380` (`summarize`), gate tests.
@@ -468,3 +478,32 @@ A-20 FpeError ─► FPE-default readiness (post Stage-1)
 
 *No conditional acceptance is promoted by this register. F-07/09/10/15/17/18 and
 F-20/22/26 remain conditional until their stated conditions are satisfied.*
+
+---
+
+## 9. Dated update — M2 acceptance (24 November 2026)
+
+*Appended without rewriting §§1–8 (history preserved).*
+
+- **M2 is formally accepted** by the owner on 24 November 2026
+  (`docs/fpe/assessment/phase-0/P0-A-owner-disposition-record.md`, Amendment M2
+  acceptance), relying on the fresh independent M2 review by **GLM 5.3
+  Flash** dated 24 November 2026
+  (`docs/fpe/assessment/m2-independent-review-glm-2026-11-24.md`, verdict **PASS
+  WITH FINDINGS**; all ten M2 acceptance criteria AC-01…AC-10 accepted).
+- **A-02 is closed** as completed, independently reviewed and
+  owner-accepted for M2 (see the dated update under A-02 above). The
+  historical statement that the original M2 review occurrence was
+  unconfirmed is preserved; the new review is recorded as a separate
+  event and does not backdate historical sign-off. M1 sign-off remains
+  unretained.
+- **M2 review findings M2 F-1…F-4** (distinct namespace from R2.1-B
+  `F-01…F-30`) remain **non-blocking and retained**: F-1 Tier-B
+  C-reference parity blocked; F-2 provenance/reconstruction; F-3 LFE
+  M3+ coverage gap; F-4 informational Clippy. No finding is resolved or
+  reclassified by this update.
+- **Unchanged:** the nine conditional R2.1-B acceptances remain
+  conditional; Tier-B C parity remains blocked, not waived; G0 remains
+  historical/non-rerunnable (A-01 open); G0/A-01 and all other standing
+  limitations are unchanged. No production source, test code, manifest,
+  dependency or evidence-byte change is made by this update.
