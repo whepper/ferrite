@@ -386,7 +386,11 @@ pub fn init_avoid_hole_flag_mono(
                 let avg_ld = calc_ld_data(avg_en);
                 let en = energy_lin[s];
                 let en_ld = energy_ld[s];
-                if en > avg_en {
+                #[cfg(test)]
+                let before = min_snr[s];
+                let peak = en > avg_en;
+                let mut peak_floor = 0i32;
+                if peak {
                     // Local peak: raise the minSnr floor (tighter for
                     // LONG than for START/SHORT/STOP).
                     let floor = if geo.seq == SEQ_LONG {
@@ -395,16 +399,41 @@ pub fn init_avoid_hole_flag_mono(
                         SNR_LD_FAC + (avg_ld - en_ld).max(SNR_LD_MIN3 - SNR_LD_FAC)
                     };
                     min_snr[s] = min_snr[s].min(floor);
+                    peak_floor = floor;
                 }
-                if en_ld.wrapping_add(SNR_LD_MIN4) < avg_ld && en > 0 {
+                #[cfg(test)]
+                let after_peak = min_snr[s];
+                let valley = en_ld.wrapping_add(SNR_LD_MIN4) < avg_ld && en > 0;
+                let mut valley_tmp = 0i32;
+                if valley {
                     // Valley: relax minSnr, bounded above and by drift.
                     let tmp = avg_ld
                         .wrapping_sub(en_ld)
                         .wrapping_sub(SNR_LD_MIN4)
                         .wrapping_add(min_snr[s]);
+                    valley_tmp = tmp;
                     let tmp = tmp.min(SNR_LD_FAC);
                     min_snr[s] = tmp.min(min_snr[s].wrapping_add(SNR_LD_MIN2));
                 }
+                #[cfg(test)]
+                ah_probe::record_peak_valley(ah_probe::PeakValleyRec {
+                    channel: ah_probe::current_channel(),
+                    band: s,
+                    seq_long: geo.seq == SEQ_LONG,
+                    en,
+                    en_m1,
+                    en_p1,
+                    avg_en,
+                    avg_ld,
+                    en_ld,
+                    min_snr_before: before,
+                    peak,
+                    peak_floor,
+                    after_peak,
+                    valley,
+                    valley_tmp,
+                    after_valley: min_snr[s],
+                });
             }
             grp += geo.sfb_per_group;
         }
@@ -443,6 +472,18 @@ pub fn init_avoid_hole_flag_ms(st: &mut StereoWork<'_>) {
             if st.ms_mask[s] == 0 {
                 continue;
             }
+            #[cfg(test)]
+            let (
+                min_snr_m_before,
+                min_snr_s_before,
+                spread_m_before,
+                spread_s_before,
+            ) = (
+                st.min_snr_m[s],
+                st.min_snr_s[s],
+                st.spread_m[s],
+                st.spread_s[s],
+            );
             let max_en_ld = st.energy_ld_m[s].max(st.energy_ld_s[s]);
             let max_thr_ld =
                 if (SNR_LD_MIN5 >> 1) + (max_en_ld >> 1) + (st.min_snr_m[s] >> 1) <= NEG_HALF_Q31 {
@@ -473,11 +514,113 @@ pub fn init_avoid_hole_flag_ms(st: &mut StereoWork<'_>) {
             if st.energy_lin_m[s] > st.spread_m[s] {
                 st.spread_s[s] = fmult(st.energy_lin_s[s], SPREAD_MS_FAC);
             }
+            #[cfg(test)]
+            let spread_s_mid = st.spread_s[s];
             if st.energy_lin_s[s] > st.spread_s[s] {
                 st.spread_m[s] = fmult(st.energy_lin_m[s], SPREAD_MS_FAC);
             }
+            #[cfg(test)]
+            ah_probe::record_ms(ah_probe::MsTweakRec {
+                band: s,
+                ms_mask: st.ms_mask[s],
+                max_en_ld,
+                max_thr_ld,
+                min_snr_m_before,
+                min_snr_m_after: st.min_snr_m[s],
+                min_snr_s_before,
+                min_snr_s_after: st.min_snr_s[s],
+                spread_m_before,
+                spread_m_after: st.spread_m[s],
+                spread_s_before,
+                spread_s_mid,
+                spread_s_after: st.spread_s[s],
+                energy_lin_m: st.energy_lin_m[s],
+                energy_lin_s: st.energy_lin_s[s],
+            });
         }
         grp += per;
+    }
+}
+
+/// Test-only observation of the avoid-hole peak/valley and MS cross-tweak
+/// decisions (`threshold_vbr.rs:370-481`). Values are cloned at the actual
+/// production decision points; nothing is written back.
+#[cfg(test)]
+pub(crate) mod ah_probe {
+    use std::cell::{Cell, RefCell};
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct PeakValleyRec {
+        pub(crate) channel: usize,
+        pub(crate) band: usize,
+        pub(crate) seq_long: bool,
+        pub(crate) en: i32,
+        pub(crate) en_m1: i32,
+        pub(crate) en_p1: i32,
+        pub(crate) avg_en: i32,
+        pub(crate) avg_ld: i32,
+        pub(crate) en_ld: i32,
+        pub(crate) min_snr_before: i32,
+        pub(crate) peak: bool,
+        pub(crate) peak_floor: i32,
+        pub(crate) after_peak: i32,
+        pub(crate) valley: bool,
+        pub(crate) valley_tmp: i32,
+        pub(crate) after_valley: i32,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct MsTweakRec {
+        pub(crate) band: usize,
+        pub(crate) ms_mask: i32,
+        pub(crate) max_en_ld: i32,
+        pub(crate) max_thr_ld: i32,
+        pub(crate) min_snr_m_before: i32,
+        pub(crate) min_snr_m_after: i32,
+        pub(crate) min_snr_s_before: i32,
+        pub(crate) min_snr_s_after: i32,
+        pub(crate) spread_m_before: i32,
+        pub(crate) spread_m_after: i32,
+        pub(crate) spread_s_before: i32,
+        pub(crate) spread_s_mid: i32,
+        pub(crate) spread_s_after: i32,
+        pub(crate) energy_lin_m: i32,
+        pub(crate) energy_lin_s: i32,
+    }
+
+    thread_local! {
+        static CURRENT_CHANNEL: Cell<usize> = const { Cell::new(0) };
+        static PEAK_VALLEY: RefCell<Vec<PeakValleyRec>> = const { RefCell::new(Vec::new()) };
+        static MS: RefCell<Vec<MsTweakRec>> = const { RefCell::new(Vec::new()) };
+    }
+
+    pub(crate) fn set_channel(ch: usize) {
+        CURRENT_CHANNEL.with(|c| c.set(ch));
+    }
+
+    pub(crate) fn clear() {
+        PEAK_VALLEY.with(|v| v.borrow_mut().clear());
+        MS.with(|v| v.borrow_mut().clear());
+        CURRENT_CHANNEL.with(|c| c.set(0));
+    }
+
+    pub(crate) fn take() -> (Vec<PeakValleyRec>, Vec<MsTweakRec>) {
+        (
+            PEAK_VALLEY.with(|v| std::mem::take(&mut *v.borrow_mut())),
+            MS.with(|v| std::mem::take(&mut *v.borrow_mut())),
+        )
+    }
+
+    pub(crate) fn record_peak_valley(rec: PeakValleyRec) {
+        PEAK_VALLEY.with(|v| v.borrow_mut().push(rec));
+    }
+
+    pub(crate) fn record_ms(rec: MsTweakRec) {
+        MS.with(|v| v.borrow_mut().push(rec));
+    }
+
+    pub(crate) fn current_channel() -> usize {
+        CURRENT_CHANNEL.with(|c| c.get())
     }
 }
 
@@ -631,6 +774,8 @@ pub fn adapt_thresholds_vbr(
     let mut spread: Vec<Vec<i32>> = channels.iter().map(|ch| ch.spread.to_vec()).collect();
     let mut ah_flag: Vec<Vec<u8>> = Vec::with_capacity(nch);
     for (i, ch) in channels.iter().enumerate() {
+        #[cfg(test)]
+        ah_probe::set_channel(i);
         ah_flag.push(init_avoid_hole_flag_mono(
             ch.energy_lin,
             ch.energy_ld,

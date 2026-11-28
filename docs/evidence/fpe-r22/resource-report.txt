@@ -1,0 +1,9 @@
+SG-1 resource report (actual E2/E3 generation run, reference platform)
+generation_runtime_secs: 23.14
+rows: 184781
+tsv_bytes: 10844537
+json_bytes: 35480048
+json_partition_bytes: 35480708
+total_bundle_bytes: 81805293
+peak_rss_kb: 1158224 (best-effort `ps` sample after generation; method noted, not a peak-hold counter)
+ci_impact: bundle files total 81805293 bytes; generation runtime 23.14s in debug (release expected faster); verification is read-only parsing + hashing (no encoder runs). No rows, materials, OPs, or determinism gates omitted for size/time pressure.

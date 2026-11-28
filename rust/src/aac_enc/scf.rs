@@ -214,7 +214,7 @@ pub const NO_SCF: i32 = i32::MIN;
 /// single-threaded per call.
 #[cfg(test)]
 pub(crate) mod step3_probe {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
 
     #[derive(Clone, Copy, Debug)]
     pub(crate) struct Move {
@@ -226,20 +226,366 @@ pub(crate) mod step3_probe {
         pub(crate) first_change: Option<(usize, i16, i16)>,
     }
 
+    /// One evaluated band inside a step-3 iteration, captured at the actual
+    /// acceptance point (`scf.rs` step 3). All values are production operands
+    /// cloned in execution order; predicates use the exact production
+    /// expressions and wrapping semantics.
+    #[derive(Clone, Debug)]
+    pub(crate) struct BandEval {
+        pub(crate) band: usize,
+        pub(crate) nw: i32,
+        pub(crate) en_q: i32,
+        pub(crate) dn: i32,
+        pub(crate) dist_prev: i32,
+        pub(crate) energy_ld: i32,
+        pub(crate) dist_limit: i32,
+        pub(crate) dist_margin: i64,
+        pub(crate) energy_limit: i32,
+        pub(crate) energy_margin: i64,
+        pub(crate) dist_reject: bool,
+        pub(crate) energy_reject: bool,
+        pub(crate) old_contrib: i32,
+        pub(crate) new_contrib: i32,
+        pub(crate) old_sum_after: i32,
+        pub(crate) new_sum_after: i32,
+    }
+
+    /// One `k` iteration of the up-to-three `-1` loop.
+    #[derive(Clone, Debug)]
+    pub(crate) struct IterationRec {
+        pub(crate) k: usize,
+        pub(crate) nw: i32,
+        pub(crate) trial_after: Vec<i32>,
+        pub(crate) d_scf: i32,
+        pub(crate) delta_new: i32,
+        pub(crate) pe_margin: i64,
+        pub(crate) pe_pass: bool,
+        pub(crate) bands: Vec<BandEval>,
+        pub(crate) ok: bool,
+        pub(crate) old_sum: i32,
+        pub(crate) new_sum: i32,
+        pub(crate) sum_accept: bool,
+        pub(crate) accepted: bool,
+        pub(crate) delta_pe_before: i32,
+        pub(crate) delta_pe_after: i32,
+    }
+
+    /// One evaluated band inside a step-1 coarser trial. `dmax_*` are the
+    /// three production terms of `dmax`; `dn` is the trial quantized
+    /// distance. `terminal` is the `dn == energy_ld` early-stop that ends
+    /// the remaining `nw` trials for the region.
+    #[derive(Clone, Debug)]
+    pub(crate) struct Step1BandEval {
+        pub(crate) band: usize,
+        pub(crate) dmax: i32,
+        pub(crate) dmax_threshold_term: i32,
+        pub(crate) dmax_dist_terms: i32,
+        pub(crate) dmax_dist_base: i32,
+        pub(crate) dmax_energy_floor: i32,
+        pub(crate) threshold_ld: i32,
+        pub(crate) energy_ld: i32,
+        pub(crate) dist_before: i32,
+        pub(crate) dn: i32,
+        pub(crate) reject: bool,
+        pub(crate) terminal: bool,
+    }
+
+    /// One `nw` trial of S4 step 1 (`scf+1..=hi`).
+    #[derive(Clone, Debug)]
+    pub(crate) struct Step1Rec {
+        pub(crate) start: usize,
+        pub(crate) stop: usize,
+        pub(crate) act: i32,
+        pub(crate) prev: i32,
+        pub(crate) next: i32,
+        pub(crate) hi: i32,
+        pub(crate) lo: i32,
+        pub(crate) scf_start: i32,
+        pub(crate) nw: i32,
+        pub(crate) d_scf: i32,
+        pub(crate) d_spec: i32,
+        pub(crate) delta_new: i32,
+        pub(crate) pe_pass: bool,
+        pub(crate) bands: Vec<Step1BandEval>,
+        pub(crate) accepted: bool,
+        pub(crate) delta_pe_before: i32,
+        pub(crate) delta_pe_after: i32,
+    }
+
+    /// One evaluated band inside S4 step 2.
+    #[derive(Clone, Debug)]
+    pub(crate) struct Step2BandEval {
+        pub(crate) band: usize,
+        pub(crate) min_scf: i32,
+        pub(crate) violation: bool,
+        pub(crate) threshold_ld: i32,
+        pub(crate) dist_before: i32,
+        pub(crate) dn: i32,
+        pub(crate) threshold_reject: bool,
+        pub(crate) old_contrib: i32,
+        pub(crate) new_contrib: i32,
+        pub(crate) evaluated: bool,
+    }
+
+    /// One region's S4 step-2 (single finer `lo`) evaluation, including the
+    /// three gate terms so an unattempted step 2 is distinguishable from an
+    /// attempted one.
+    #[derive(Clone, Debug)]
+    pub(crate) struct Step2Rec {
+        pub(crate) start: usize,
+        pub(crate) stop: usize,
+        pub(crate) act: i32,
+        pub(crate) scf_start: i32,
+        pub(crate) lo: i32,
+        pub(crate) hi: i32,
+        pub(crate) gate_act_eq: bool,
+        pub(crate) gate_lo_lt_act: bool,
+        pub(crate) spread_margin: i32,
+        pub(crate) attempted: bool,
+        pub(crate) nw: i32,
+        pub(crate) min_scf_violation: bool,
+        pub(crate) d_scf: i32,
+        pub(crate) d_spec: i32,
+        pub(crate) delta_new: Option<i32>,
+        pub(crate) pe_pass: bool,
+        pub(crate) bands: Vec<Step2BandEval>,
+        pub(crate) old_sum: i32,
+        pub(crate) new_sum: i32,
+        pub(crate) sum_limit: i32,
+        pub(crate) sum_accept: bool,
+        pub(crate) accepted: bool,
+        pub(crate) delta_pe_before: i32,
+        pub(crate) delta_pe_after: i32,
+    }
+
+    /// One band at the final `gmin + MAX_SCF_DELTA` clamp.
+    #[derive(Clone, Debug)]
+    pub(crate) struct ClampBandRec {
+        pub(crate) band: usize,
+        pub(crate) scf_before: i32,
+        pub(crate) limit: i32,
+        pub(crate) live: bool,
+        pub(crate) clamped: bool,
+    }
+
+    /// One channel's final-clamp evaluation.
+    #[derive(Clone, Debug)]
+    pub(crate) struct ClampRec {
+        pub(crate) gmin: i32,
+        pub(crate) bands: Vec<ClampBandRec>,
+    }
+
+    /// One band at the final global-gain inversion / dead-band zeroing.
+    #[derive(Clone, Debug)]
+    pub(crate) struct FinalGainBandRec {
+        pub(crate) band: usize,
+        pub(crate) scf_before: i32,
+        pub(crate) dead: bool,
+        pub(crate) scf_after: i32,
+    }
+
+    /// One channel's final gain-selection branch (`gmax > NO_SCF`) and
+    /// inversion. The all-dead arm is recorded explicitly, never as a zero
+    /// gain inversion of a live frame.
+    #[derive(Clone, Debug)]
+    pub(crate) struct FinalGainRec {
+        pub(crate) gmax: i32,
+        pub(crate) all_dead: bool,
+        pub(crate) gain: i32,
+        pub(crate) bands: Vec<FinalGainBandRec>,
+    }
+
+    /// One equal-scf region's step-3 execution.
+    #[derive(Clone, Debug)]
+    pub(crate) struct RegionRec {
+        pub(crate) start: usize,
+        pub(crate) stop: usize,
+        pub(crate) smin3: i32,
+        pub(crate) smax3: i32,
+        pub(crate) gate_pass: bool,
+        pub(crate) entry_scf: Vec<i32>,
+        pub(crate) entry_dist: Vec<i32>,
+        /// Quantizer lines for the region slice
+        /// (`quant[offsets[start]..offsets[stop]]`); band `b` maps to
+        /// `[(offsets[b]-base)..(offsets[b+1]-base)]` with `base =
+        /// quant_base`.
+        pub(crate) entry_quant_region: Vec<i16>,
+        pub(crate) quant_base: usize,
+        pub(crate) delta_pe_before: i32,
+        pub(crate) iterations: Vec<IterationRec>,
+        pub(crate) delta_pe_after: i32,
+        pub(crate) scf_after: Vec<i32>,
+        pub(crate) dist_after: Vec<i32>,
+    }
+
+    /// One channel invocation of the S4 estimator.
+    #[derive(Clone, Debug)]
+    pub(crate) struct CallRec {
+        pub(crate) inv_quant: i32,
+        pub(crate) cnt: usize,
+        pub(crate) regions: Vec<RegionRec>,
+        pub(crate) step1: Vec<Step1Rec>,
+        pub(crate) step2: Vec<Step2Rec>,
+        pub(crate) clamp: Option<ClampRec>,
+        pub(crate) final_gain: Option<FinalGainRec>,
+    }
+
     thread_local! {
         static MOVES: RefCell<Vec<Move>> = const { RefCell::new(Vec::new()) };
+        static CALLS: RefCell<Vec<CallRec>> = const { RefCell::new(Vec::new()) };
+        static ENABLED: Cell<bool> = const { Cell::new(true) };
+        static DETAILED: Cell<bool> = const { Cell::new(false) };
     }
 
     pub(crate) fn clear() {
         MOVES.with(|m| m.borrow_mut().clear());
+        CALLS.with(|c| c.borrow_mut().clear());
     }
 
     pub(crate) fn record(m: Move) {
+        if !ENABLED.with(|e| e.get()) {
+            return;
+        }
         MOVES.with(|v| v.borrow_mut().push(m));
     }
 
     pub(crate) fn take() -> Vec<Move> {
         MOVES.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_calls() -> Vec<CallRec> {
+        CALLS.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn set_enabled(on: bool) {
+        ENABLED.with(|e| e.set(on));
+    }
+
+    pub(crate) fn is_enabled() -> bool {
+        ENABLED.with(|e| e.get())
+    }
+
+    /// Opt-in detailed step-3 decision recording. Default off so the
+    /// full-corpus harnesses (Group C OP matrix) pay no detailed-capture
+    /// cost; the S4 probe tests enable it explicitly around the frames they
+    /// attribute. The net-move witness (`Move`) is unaffected.
+    pub(crate) fn set_detailed(on: bool) {
+        DETAILED.with(|e| e.set(on));
+    }
+
+    pub(crate) fn is_detailed() -> bool {
+        DETAILED.with(|e| e.get())
+    }
+
+    fn detailed_on() -> bool {
+        ENABLED.with(|e| e.get()) && DETAILED.with(|d| d.get())
+    }
+
+    pub(crate) fn begin_call(inv_quant: i32, cnt: usize) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            v.borrow_mut().push(CallRec {
+                inv_quant,
+                cnt,
+                regions: Vec::new(),
+                step1: Vec::new(),
+                step2: Vec::new(),
+                clamp: None,
+                final_gain: None,
+            })
+        });
+    }
+
+    pub(crate) fn record_region(rec: RegionRec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                call.regions.push(rec);
+            }
+        });
+    }
+
+    pub(crate) fn record_step1(rec: Step1Rec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                call.step1.push(rec);
+            }
+        });
+    }
+
+    pub(crate) fn record_step2(rec: Step2Rec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                call.step2.push(rec);
+            }
+        });
+    }
+
+    pub(crate) fn record_clamp(rec: ClampRec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                call.clamp = Some(rec);
+            }
+        });
+    }
+
+    pub(crate) fn record_final_gain(rec: FinalGainRec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                call.final_gain = Some(rec);
+            }
+        });
+    }
+
+    pub(crate) fn record_iteration(iter: IterationRec) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                if let Some(region) = call.regions.last_mut() {
+                    region.iterations.push(iter);
+                }
+            }
+        });
+    }
+
+    pub(crate) fn finish_region(delta_pe_after: i32, scf_after: Vec<i32>, dist_after: Vec<i32>) {
+        if !detailed_on() {
+            return;
+        }
+        CALLS.with(|v| {
+            let mut calls = v.borrow_mut();
+            if let Some(call) = calls.last_mut() {
+                if let Some(region) = call.regions.last_mut() {
+                    region.delta_pe_after = delta_pe_after;
+                    region.scf_after = scf_after;
+                    region.dist_after = dist_after;
+                }
+            }
+        });
     }
 }
 
@@ -873,8 +1219,12 @@ fn assimilate_multiple_scf2(
             }
             if hi.wrapping_sub(lo) <= MAX_SCF_DELTA {
                 // -- Step 1: coarser `scf+1..=hi` under PE < 0.0.
+                #[cfg(test)]
+                let step1_scf_start = scf[start];
                 if hi > scf[start] {
                     let mut dmax = [0i32; 60];
+                    #[cfg(test)]
+                    let mut step1_dmax_terms = [(0i32, 0i32, 0i32, 0i32); 60];
                     for b in start..stop {
                         if scf[b] != NO_SCF {
                             let mut m = fmult(THIRD, threshold_ld[b])
@@ -883,6 +1233,17 @@ fn assimilate_multiple_scf2(
                             m = m.max(energy_ld[b].wrapping_sub(E_1EM3));
                             m = m.min(threshold_ld[b]);
                             dmax[b] = m;
+                            #[cfg(test)]
+                            {
+                                let threshold_term = fmult(THIRD, threshold_ld[b]);
+                                let dist_term = fmult(THIRD, dist[b]);
+                                step1_dmax_terms[b] = (
+                                    threshold_term,
+                                    dist_term.wrapping_add(dist_term),
+                                    energy_ld[b].wrapping_sub(E_1EM3),
+                                    dist[b],
+                                );
+                            }
                         }
                     }
                     let mut check = true;
@@ -913,9 +1274,13 @@ fn assimilate_multiple_scf2(
                             stop,
                         );
                         let delta_new = (*delta_pe).wrapping_add(d_scf).wrapping_add(d_spec);
+                        #[cfg(test)]
+                        let step1_delta_before = *delta_pe;
                         if delta_new < 0 {
                             let mut ok = true;
                             let mut new_d = [0i32; 60];
+                            #[cfg(test)]
+                            let mut step1_bands = Vec::new();
                             for b in start..stop {
                                 if trial[b] != NO_SCF {
                                     let w = (offsets[b + 1] - offsets[b]) as usize;
@@ -931,6 +1296,25 @@ fn assimilate_multiple_scf2(
                                     t.fill(0);
                                     let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
                                     new_d[b] = dn;
+                                    #[cfg(test)]
+                                    {
+                                        let reject = dn > dmax[b];
+                                        let terminal = reject && dn == energy_ld[b];
+                                        step1_bands.push(step3_probe::Step1BandEval {
+                                            band: b,
+                                            dmax: dmax[b],
+                                            dmax_threshold_term: step1_dmax_terms[b].0,
+                                            dmax_dist_terms: step1_dmax_terms[b].1,
+                                            dmax_dist_base: step1_dmax_terms[b].3,
+                                            dmax_energy_floor: step1_dmax_terms[b].2,
+                                            threshold_ld: threshold_ld[b],
+                                            energy_ld: energy_ld[b],
+                                            dist_before: dist[b],
+                                            dn,
+                                            reject,
+                                            terminal,
+                                        });
+                                    }
                                     if dn > dmax[b] {
                                         ok = false;
                                         if dn == energy_ld[b] {
@@ -941,6 +1325,26 @@ fn assimilate_multiple_scf2(
                                 }
                             }
                             if !check {
+                                #[cfg(test)]
+                                step3_probe::record_step1(step3_probe::Step1Rec {
+                                    start,
+                                    stop,
+                                    act,
+                                    prev: p,
+                                    next,
+                                    hi,
+                                    lo,
+                                    scf_start: step1_scf_start,
+                                    nw,
+                                    d_scf,
+                                    d_spec,
+                                    delta_new,
+                                    pe_pass: true,
+                                    bands: step1_bands,
+                                    accepted: false,
+                                    delta_pe_before: step1_delta_before,
+                                    delta_pe_after: *delta_pe,
+                                });
                                 break;
                             }
                             if ok {
@@ -955,6 +1359,47 @@ fn assimilate_multiple_scf2(
                                     }
                                 }
                             }
+                            #[cfg(test)]
+                            step3_probe::record_step1(step3_probe::Step1Rec {
+                                start,
+                                stop,
+                                act,
+                                prev: p,
+                                next,
+                                hi,
+                                lo,
+                                scf_start: step1_scf_start,
+                                nw,
+                                d_scf,
+                                d_spec,
+                                delta_new,
+                                pe_pass: true,
+                                bands: step1_bands,
+                                accepted: ok,
+                                delta_pe_before: step1_delta_before,
+                                delta_pe_after: *delta_pe,
+                            });
+                        } else {
+                            #[cfg(test)]
+                            step3_probe::record_step1(step3_probe::Step1Rec {
+                                start,
+                                stop,
+                                act,
+                                prev: p,
+                                next,
+                                hi,
+                                lo,
+                                scf_start: step1_scf_start,
+                                nw,
+                                d_scf,
+                                d_spec,
+                                delta_new,
+                                pe_pass: false,
+                                bands: Vec::new(),
+                                accepted: false,
+                                delta_pe_before: step1_delta_before,
+                                delta_pe_after: *delta_pe,
+                            });
                         }
                     }
                     let _ = check;
@@ -969,22 +1414,56 @@ fn assimilate_multiple_scf2(
                         smax = smax.max(scf[b]);
                     }
                 }
+                #[cfg(test)]
+                let step2_gate_act_eq = act == scf[start];
+                #[cfg(test)]
+                let step2_gate_lo_lt_act = lo < act;
+                #[cfg(test)]
+                let step2_spread_margin =
+                    MAX_SCF_DELTA.wrapping_sub(smax.wrapping_sub(smin));
+                #[cfg(test)]
+                let step2_delta_before = *delta_pe;
+                #[cfg(test)]
+                let mut step2_attempted = false;
                 if act == scf[start] && lo < act && smax.wrapping_sub(smin) <= MAX_SCF_DELTA {
+                    #[cfg(test)]
+                    {
+                        step2_attempted = true;
+                    }
                     let mut trial = [0i32; 60];
                     for i in 0..60 {
                         trial[i] = if i < cnt { scf[i] } else { 0 };
                     }
                     let nw = lo;
                     let mut viol = false;
+                    #[cfg(test)]
+                    let mut step2_bands = Vec::new();
                     for b in start..stop {
                         if trial[b] != NO_SCF {
                             trial[b] = nw;
                             if nw < min_scf[b] {
                                 viol = true;
                             }
+                            #[cfg(test)]
+                            step2_bands.push(step3_probe::Step2BandEval {
+                                band: b,
+                                min_scf: min_scf[b],
+                                violation: nw < min_scf[b],
+                                threshold_ld: threshold_ld[b],
+                                dist_before: dist[b],
+                                dn: 0,
+                                threshold_reject: false,
+                                old_contrib: 0,
+                                new_contrib: 0,
+                                evaluated: false,
+                            });
                         }
                     }
                     let mut delta_new = 0i32;
+                    #[cfg(test)]
+                    let mut step2_d_scf = 0i32;
+                    #[cfg(test)]
+                    let mut step2_d_spec = 0i32;
                     if !viol {
                         let d_scf = count_scf_bits_diff(scf, &trial, cnt, start, stop);
                         let d_spec = calc_spec_pe_diff(
@@ -997,17 +1476,32 @@ fn assimilate_multiple_scf2(
                             start,
                             stop,
                         );
+                        #[cfg(test)]
+                        {
+                            step2_d_scf = d_scf;
+                            step2_d_spec = d_spec;
+                        }
                         delta_new = (*delta_pe).wrapping_add(d_scf).wrapping_add(d_spec);
                     }
+                    #[cfg(test)]
+                    let mut step2_sum_limit = 0i32;
+                    #[cfg(test)]
+                    let mut step2_sum_accept = false;
+                    #[cfg(test)]
+                    let mut step2_old_sum = 0i32;
+                    #[cfg(test)]
+                    let mut step2_new_sum = 0i32;
                     if !viol && delta_new < 0 {
                         let mut old_sum = 0i32;
                         let mut new_sum = 0i32;
                         let mut new_d = [0i32; 60];
                         let mut broke = false;
+                        #[cfg(test)]
+                        let mut step2_band_cursor = 0usize;
                         for b in start..stop {
                             if trial[b] != NO_SCF {
-                                old_sum =
-                                    old_sum.wrapping_add(calc_inv_ld_data(dist[b]) >> DIST_SHIFT);
+                                let old_c = calc_inv_ld_data(dist[b]) >> DIST_SHIFT;
+                                old_sum = old_sum.wrapping_add(old_c);
                                 let w = (offsets[b + 1] - offsets[b]) as usize;
                                 let o = offsets[b] as usize;
                                 // M5.17: trial writes directly into the
@@ -1021,13 +1515,36 @@ fn assimilate_multiple_scf2(
                                 t.fill(0);
                                 let dn = calc_sfb_dist(&spectrum[o..o + w], nw, dz, t);
                                 new_d[b] = dn;
-                                if dn > threshold_ld[b] {
+                                let threshold_reject = dn > threshold_ld[b];
+                                #[cfg(test)]
+                                {
+                                    let band_eval = &mut step2_bands[step2_band_cursor];
+                                    debug_assert_eq!(band_eval.band, b);
+                                    band_eval.dn = dn;
+                                    band_eval.threshold_reject = threshold_reject;
+                                    band_eval.old_contrib = old_c;
+                                    band_eval.new_contrib = if threshold_reject {
+                                        0
+                                    } else {
+                                        calc_inv_ld_data(dn) >> DIST_SHIFT
+                                    };
+                                    band_eval.evaluated = true;
+                                    step2_band_cursor += 1;
+                                }
+                                if threshold_reject {
                                     new_sum = old_sum.wrapping_shl(1);
                                     broke = true;
                                     break;
                                 }
                                 new_sum = new_sum.wrapping_add(calc_inv_ld_data(dn) >> DIST_SHIFT);
                             }
+                        }
+                        #[cfg(test)]
+                        {
+                            step2_sum_limit = fmult(F_08, old_sum);
+                            step2_sum_accept = new_sum < step2_sum_limit;
+                            step2_old_sum = old_sum;
+                            step2_new_sum = new_sum;
                         }
                         if !broke && new_sum < fmult(F_08, old_sum) {
                             *delta_pe = delta_new;
@@ -1042,7 +1559,63 @@ fn assimilate_multiple_scf2(
                             }
                         }
                     }
+                    #[cfg(test)]
+                    step3_probe::record_step2(step3_probe::Step2Rec {
+                        start,
+                        stop,
+                        act,
+                        scf_start: scf[start],
+                        lo,
+                        hi,
+                        gate_act_eq: step2_gate_act_eq,
+                        gate_lo_lt_act: step2_gate_lo_lt_act,
+                        spread_margin: step2_spread_margin,
+                        attempted: true,
+                        nw,
+                        min_scf_violation: viol,
+                        d_scf: step2_d_scf,
+                        d_spec: step2_d_spec,
+                        delta_new: if viol { None } else { Some(delta_new) },
+                        pe_pass: !viol && delta_new < 0,
+                        bands: step2_bands,
+                        old_sum: step2_old_sum,
+                        new_sum: step2_new_sum,
+                        sum_limit: step2_sum_limit,
+                        sum_accept: step2_sum_accept,
+                        accepted: !viol && delta_new < 0 && step2_sum_accept,
+                        delta_pe_before: step2_delta_before,
+                        delta_pe_after: *delta_pe,
+                    });
                     let _ = p;
+                }
+                #[cfg(test)]
+                if !step2_attempted {
+                    step3_probe::record_step2(step3_probe::Step2Rec {
+                        start,
+                        stop,
+                        act,
+                        scf_start: scf[start],
+                        lo,
+                        hi,
+                        gate_act_eq: step2_gate_act_eq,
+                        gate_lo_lt_act: step2_gate_lo_lt_act,
+                        spread_margin: step2_spread_margin,
+                        attempted: false,
+                        nw: lo,
+                        min_scf_violation: false,
+                        d_scf: 0,
+                        d_spec: 0,
+                        delta_new: None,
+                        pe_pass: false,
+                        bands: Vec::new(),
+                        old_sum: 0,
+                        new_sum: 0,
+                        sum_limit: 0,
+                        sum_accept: false,
+                        accepted: false,
+                        delta_pe_before: step2_delta_before,
+                        delta_pe_after: *delta_pe,
+                    });
                 }
                 // -- Step 3: up to three `-1` bit-saves without requant.
                 let mut smin3 = i32::MAX;
@@ -1053,13 +1626,44 @@ fn assimilate_multiple_scf2(
                         smax3 = smax3.max(scf[b]);
                     }
                 }
+                #[cfg(test)]
+                let step3_entry_scf = scf[..cnt].to_vec();
+                #[cfg(test)]
+                let step3_entry_dist = dist[..cnt].to_vec();
+                #[cfg(test)]
+                let (step3_entry_quant_region, step3_quant_base) = {
+                    let qb = offsets[start] as usize;
+                    let qe = offsets[stop] as usize;
+                    (quant[qb..qe].to_vec(), qb)
+                };
+                #[cfg(test)]
+                let step3_region_delta_before = *delta_pe;
                 if smax3.wrapping_sub(smin3) <= MAX_SCF_DELTA - 3 {
+                    #[cfg(test)]
+                    {
+                        step3_probe::record_region(step3_probe::RegionRec {
+                            start,
+                            stop,
+                            smin3,
+                            smax3,
+                            gate_pass: true,
+                            entry_scf: step3_entry_scf.clone(),
+                            entry_dist: step3_entry_dist.clone(),
+                            entry_quant_region: step3_entry_quant_region.clone(),
+                            quant_base: step3_quant_base,
+                            delta_pe_before: step3_region_delta_before,
+                            iterations: Vec::new(),
+                            delta_pe_after: step3_region_delta_before,
+                            scf_after: Vec::new(),
+                            dist_after: Vec::new(),
+                        });
+                    }
                     let mut trial = [0i32; 60];
                     trial[..cnt].copy_from_slice(&scf[..cnt]);
                     // R1b: snapshot for the deferred re-quantize below.
                     let mut scf_before = [0i32; 60];
                     scf_before[..cnt].copy_from_slice(&scf[..cnt]);
-                    for _ in 0..3 {
+                    for _k in 0..3 {
                         let nw = trial[start].wrapping_sub(1);
                         for b in start..stop {
                             if trial[b] != NO_SCF {
@@ -1068,11 +1672,19 @@ fn assimilate_multiple_scf2(
                         }
                         let d_scf = count_scf_bits_diff(scf, &trial, cnt, start, stop);
                         let delta_new = (*delta_pe).wrapping_add(d_scf);
+                        #[cfg(test)]
+                        let step3_iter_delta_before = *delta_pe;
+                        #[cfg(test)]
+                        let step3_trial_after = trial[..cnt].to_vec();
                         if delta_new <= 0 {
                             let mut old_sum = 0i32;
                             let mut new_sum = 0i32;
                             let mut new_d = [0i32; 60];
                             let mut ok = true;
+                            #[cfg(test)]
+                            let mut step3_band_evals: Vec<
+                                step3_probe::BandEval,
+                            > = Vec::new();
                             for b in start..stop {
                                 if trial[b] != NO_SCF {
                                     let w = (offsets[b + 1] - offsets[b]) as usize;
@@ -1087,6 +1699,31 @@ fn assimilate_multiple_scf2(
                                         .wrapping_add(calc_inv_ld_data(dist[b]) >> DIST_SHIFT);
                                     new_sum =
                                         new_sum.wrapping_add(calc_inv_ld_data(dn) >> DIST_SHIFT);
+                                    #[cfg(test)]
+                                    {
+                                        let dist_limit = dist[b].wrapping_add(D_1122);
+                                        let energy_limit = energy_ld[b].wrapping_sub(D_07079);
+                                        let old_c = calc_inv_ld_data(dist[b]) >> DIST_SHIFT;
+                                        let new_c = calc_inv_ld_data(dn) >> DIST_SHIFT;
+                                        step3_band_evals.push(step3_probe::BandEval {
+                                            band: b,
+                                            nw,
+                                            en_q,
+                                            dn,
+                                            dist_prev: dist[b],
+                                            energy_ld: energy_ld[b],
+                                            dist_limit,
+                                            dist_margin: dist_limit as i64 - dn as i64,
+                                            energy_limit,
+                                            energy_margin: en_q as i64 - energy_limit as i64,
+                                            dist_reject: dn > dist_limit,
+                                            energy_reject: en_q < energy_limit,
+                                            old_contrib: old_c,
+                                            new_contrib: new_c,
+                                            old_sum_after: old_sum,
+                                            new_sum_after: new_sum,
+                                        });
+                                    }
                                     if dn > dist[b].wrapping_add(D_1122)
                                         || en_q < energy_ld[b].wrapping_sub(D_07079)
                                     {
@@ -1104,7 +1741,57 @@ fn assimilate_multiple_scf2(
                                     }
                                 }
                             }
+                            #[cfg(test)]
+                            {
+                                let sum_accept = new_sum < old_sum;
+                                step3_probe::record_iteration(step3_probe::IterationRec {
+                                    k: _k,
+                                    nw,
+                                    trial_after: step3_trial_after,
+                                    d_scf,
+                                    delta_new,
+                                    pe_margin: -(delta_new as i64),
+                                    pe_pass: true,
+                                    bands: step3_band_evals,
+                                    ok,
+                                    old_sum,
+                                    new_sum,
+                                    sum_accept,
+                                    accepted: ok && sum_accept,
+                                    delta_pe_before: step3_iter_delta_before,
+                                    delta_pe_after: *delta_pe,
+                                });
+                            }
+                        } else {
+                            #[cfg(test)]
+                            {
+                                step3_probe::record_iteration(step3_probe::IterationRec {
+                                    k: _k,
+                                    nw,
+                                    trial_after: step3_trial_after,
+                                    d_scf,
+                                    delta_new,
+                                    pe_margin: -(delta_new as i64),
+                                    pe_pass: false,
+                                    bands: Vec::new(),
+                                    ok: true,
+                                    old_sum: 0,
+                                    new_sum: 0,
+                                    sum_accept: false,
+                                    accepted: false,
+                                    delta_pe_before: step3_iter_delta_before,
+                                    delta_pe_after: step3_iter_delta_before,
+                                });
+                            }
                         }
+                    }
+                    #[cfg(test)]
+                    {
+                        step3_probe::finish_region(
+                            *delta_pe,
+                            scf[..cnt].to_vec(),
+                            dist[..cnt].to_vec(),
+                        );
                     }
                     // R1b: step 3 moves `scf` without re-quantizing, so the
                     // stored band lines would no longer match the stored
@@ -1144,6 +1831,31 @@ fn assimilate_multiple_scf2(
                             }
                             quant[o..o + w].copy_from_slice(t);
                         }
+                    }
+                } else {
+                    #[cfg(test)]
+                    {
+                        step3_probe::record_region(step3_probe::RegionRec {
+                            start,
+                            stop,
+                            smin3,
+                            smax3,
+                            gate_pass: false,
+                            entry_scf: step3_entry_scf.clone(),
+                            entry_dist: step3_entry_dist.clone(),
+                            entry_quant_region: step3_entry_quant_region.clone(),
+                            quant_base: step3_quant_base,
+                            delta_pe_before: step3_region_delta_before,
+                            iterations: Vec::new(),
+                            delta_pe_after: step3_region_delta_before,
+                            scf_after: Vec::new(),
+                            dist_after: Vec::new(),
+                        });
+                        step3_probe::finish_region(
+                            step3_region_delta_before,
+                            step3_entry_scf.clone(),
+                            step3_entry_dist.clone(),
+                        );
                     }
                 }
             }
@@ -1228,6 +1940,10 @@ fn estimate_channel_with_inv_ws(
     let cnt = input.geo.sfb_cnt;
     let per = input.geo.sfb_per_group;
     let max = input.geo.max_sfb_per_group;
+    #[cfg(test)]
+    {
+        step3_probe::begin_call(inv_quant, cnt);
+    }
     // M5.19: workspace buffers replace the former per-call `to_vec()` /
     // `vec![...]` allocations. `clear` + `extend_from_slice` fully
     // overwrites the read-only copies; `resize` + `fill` restores the
@@ -1417,9 +2133,15 @@ fn estimate_channel_with_inv_ws(
         o += per;
     }
     let mut o2 = 0;
+    #[cfg(test)]
+    let mut clamp_bands = Vec::new();
     while o2 < cnt {
         for b in 0..max {
             let s = o2 + b;
+            #[cfg(test)]
+            let live = scf[s] != NO_SCF;
+            #[cfg(test)]
+            let clamp_before = scf[s];
             if scf[s] != NO_SCF && gmin.wrapping_add(MAX_SCF_DELTA) < scf[s] {
                 scf[s] = gmin.wrapping_add(MAX_SCF_DELTA);
                 // Changed bands are re-quantized only when the search ran
@@ -1437,9 +2159,22 @@ fn estimate_channel_with_inv_ws(
                     quant[start..end].copy_from_slice(q);
                 }
             }
+            #[cfg(test)]
+            clamp_bands.push(step3_probe::ClampBandRec {
+                band: s,
+                scf_before: clamp_before,
+                limit: gmin.wrapping_add(MAX_SCF_DELTA),
+                live,
+                clamped: live && gmin.wrapping_add(MAX_SCF_DELTA) < clamp_before,
+            });
         }
         o2 += per;
     }
+    #[cfg(test)]
+    step3_probe::record_clamp(step3_probe::ClampRec {
+        gmin,
+        bands: clamp_bands,
+    });
     // Global-gain inversion + dead-band zeroing.
     let mut gmax = NO_SCF;
     let mut o3 = 0;
@@ -1450,12 +2185,18 @@ fn estimate_channel_with_inv_ws(
         o3 += per;
     }
     let gain;
+    #[cfg(test)]
+    let mut gain_bands = Vec::new();
+    #[cfg(test)]
+    let all_dead = gmax == NO_SCF;
     if gmax > NO_SCF {
         gain = gmax;
         let mut o4 = 0;
         while o4 < cnt {
             for b in 0..max {
                 let s = o4 + b;
+                #[cfg(test)]
+                let scf_before = scf[s];
                 if scf[s] == NO_SCF {
                     scf[s] = 0;
                     let start = offsets[o4 + b] as usize;
@@ -1464,6 +2205,13 @@ fn estimate_channel_with_inv_ws(
                 } else {
                     scf[s] = gmax.wrapping_sub(scf[s]);
                 }
+                #[cfg(test)]
+                gain_bands.push(step3_probe::FinalGainBandRec {
+                    band: s,
+                    scf_before,
+                    dead: scf_before == NO_SCF,
+                    scf_after: scf[s],
+                });
             }
             o4 += per;
         }
@@ -1477,10 +2225,24 @@ fn estimate_channel_with_inv_ws(
                 let start = offsets[o4 + b] as usize;
                 let end = offsets[o4 + b + 1] as usize;
                 spec[start..end].fill(0);
+                #[cfg(test)]
+                gain_bands.push(step3_probe::FinalGainBandRec {
+                    band: s,
+                    scf_before: NO_SCF,
+                    dead: true,
+                    scf_after: 0,
+                });
             }
             o4 += per;
         }
     }
+    #[cfg(test)]
+    step3_probe::record_final_gain(step3_probe::FinalGainRec {
+        gmax,
+        all_dead,
+        gain,
+        bands: gain_bands,
+    });
     // Write back the mutated spectrum for the caller.
     input.spectrum.copy_from_slice(&spec);
     ScfChannelOutput {

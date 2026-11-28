@@ -287,3 +287,166 @@ read-only; default unchanged; no commits without owner instruction.
   acceptance). A-02 is closed for M2; the original M2 review occurrence
   remains unconfirmed as history. A-01 (G0 non-rerunnable) is unchanged.
   No phase is authorized by this clarification.
+
+---
+
+## Dated clarification — A-5 / N-2 allocation (26 November 2026)
+
+*Appended without rewriting §§1–4 or the M2-acceptance clarification above
+(history preserved; this document is a 21 November 2026 assessment
+proposal). Authority: [owner decision](a5-n2-owner-decision.md)
+(26 November 2026). No phase is authorized by this clarification; no
+envelope, tolerance, gate, or unrelated finding is changed.*
+
+- **Phase 2 scope note:** the Phase 2 (M3 completion) item "A-5 cross-arch
+  Ld measurement (N-2)" with acceptance "A-4/A-5 recorded" is clarified —
+  the retained macOS ARM64 versus macOS x86-64-under-Rosetta evidence
+  (Layer A 352/352, Layer B 658/658, Layer C 49/49; max observed absolute
+  Ld difference zero) is accepted within its documented scope, the Linux
+  x86-64 CI measurement remains open, and **N-2 is not an M3 completion
+  blocker**.
+- **N-2 is carried as an additional M8 cross-platform milestone
+  requirement**, established explicitly by the owner decision (not
+  pre-existing in the original normative M8 roadmap). N-2 remains open
+  until the Linux x86-64 comparison is executed, reviewed, and retained per
+  the owner-decision completion protocol.
+- **A-5 split:** the numerical `log2`/Ld comparison is covered by N-2 as
+  above; the original A-5 performance/denormal-behaviour investigation
+  remains allocated to M9 (Phase 9 scope unchanged).
+
+---
+
+## Dated clarification — A-4 / FPE-3.3 owner acceptance (26 November 2026)
+
+*Appended without rewriting §§1–4 or the M2-acceptance and A-5/N-2
+clarifications above (history preserved; this document is a 21 November
+2026 assessment proposal). Authority:
+[owner decision](a4-owner-decision.md) (26 November 2026). No phase is
+authorized by this clarification; no envelope, tolerance, gate, or
+unrelated finding is changed.*
+
+- **Phase 2 scope note:** the Phase 2 (M3 completion) item "FPE-3.3 A-4
+  experiment (N-1)" with acceptance "A-4/A-5 recorded" is clarified — the
+  A-4 leg is now recorded and accepted with documented limitations (the
+  corrected corpus run; f64 retained; f32 diagnostic only). A-4 is no
+  longer awaiting independent review or owner acceptance.
+- **M3 completion is not declared.** F-6 closure, the N-2 Linux leg, the
+  `FpeError` decision, R2.2 decision safety, and the perceptual conditions
+  remain as currently recorded; no phase is authorized by this
+  clarification.
+
+---
+
+## Dated clarification — FPE-3.2 owner acceptance (27 November 2026)
+
+*Appended without rewriting §§1–4 or the M2-acceptance, A-5/N-2, and A-4
+clarifications above (history preserved; this document is a 21 November
+2026 assessment proposal). Authority:
+[owner decision](fpe-3.2-owner-decision.md) (27 November 2026). No phase
+is authorized by this clarification; no envelope, tolerance, gate, or
+unrelated finding is changed.*
+
+- **Phase 2 scope note:** the Phase 2 (M3 completion) item "FPE-3.2 float
+  TNS energy recompute (long integer shiftBits from repr lane; short no-Ld
+  quirk; overflow rescale value lane)" with acceptance "G2 for energy
+  recompute within derived envelope; shifts exact; … FPE-3.1 + R2 accepted
+  by owner + independent review" is clarified — the FPE-3.2 leg is now
+  recorded and accepted with documented limitations (Mistral 4 review,
+  26 November 2026, PASS WITH FINDINGS, no correctness defect; findings
+  F1–F6 preserved in the owner decision). FPE-3.2 is no longer awaiting
+  independent review or owner acceptance.
+- **M3 completion is not declared.** F-6 closure, the N-2 Linux leg, the
+  `FpeError` decision, R2.2 decision safety, and the perceptual conditions
+  remain as currently recorded; M4 and subsequent phases are not
+  authorized; no phase is authorized by this clarification.
+
+---
+
+## Dated clarification — F-6 closure (27 November 2026)
+
+*Appended without rewriting §§1–4 or the M2-acceptance, A-5/N-2, A-4, and
+FPE-3.2 clarifications above (history preserved; this document is a
+21 November 2026 assessment proposal). Authority:
+[owner decision](f6-owner-decision.md) (27 November 2026). No phase is
+authorized by this clarification; no envelope, tolerance, gate, or
+unrelated finding is changed.*
+
+- **Phase 2 scope note:** the Phase 2 (M3 completion) item "F-6 closure
+  (N-3/A-14)" with acceptance "F-6 closed" is clarified — F-6 is now
+  closed (Mistral 4 independent adversarial review, 27 November 2026, PASS WITH
+  FINDINGS; closure basis structural unreachability plus retained
+  watches; residual findings F6-R1 resolved, F6-R2…F6-R6 retained in the
+  owner decision). The `07` §5.2 construction requirement is resolved as
+  reachability-conditional; no separate synthetic short-element test was
+  required.
+- **M3 completion is not declared.** The `FpeError` decision, R2.2 decision
+  safety, and the perceptual conditions remain as currently recorded; the
+  N-2 Linux leg remains an **M8 requirement** (not an M3 blocker) per the
+  [A-5/N-2 owner decision](a5-n2-owner-decision.md), which explicitly
+  establishes N-2 as an M8 requirement (reiterated in the FPE-3.2 owner
+  decision) — nothing in this change reclassifies it. M4 and
+  subsequent phases are not authorized; no phase is authorized by this
+  clarification.
+
+---
+
+## Dated clarification — M3 owner acceptance (28 November 2026)
+
+*Appended without rewriting §§1–4 or the M2-acceptance, A-5/N-2, A-4,
+FPE-3.2 and F-6 clarifications above (history preserved; this document is a
+21 November 2026 assessment proposal). Authority:
+[formal owner decision](M3-owner-acceptance.md) (28 November 2026). No
+production, test, evidence, schema, baseline-pin, envelope or tolerance
+change is made by this clarification; no unrelated finding is closed or
+reclassified.*
+
+- **FPE M3 is ACCEPTED / COMPLETE WITH DOCUMENTED LIMITATIONS.** Phase 2
+  (M3 completion) is recorded as owner-accepted for the M3 boundary on the
+  basis of [M3-exit-assessment.md](M3-exit-assessment.md) §3/§10 and the
+  component owner decisions. All authoritative M3 exit criteria are
+  satisfied; no technical M3 blocker remains.
+- **Prior “M3 completion is not declared” statements** in the A-4, FPE-3.2
+  and F-6 clarifications above are preserved as history and superseded
+  prospectively by the owner decision; their component acceptances and
+  limitations stand unchanged.
+- **Preserved:** the seven pins and 187 S4 flips without rebaseline; the 18
+  documented test exceptions (7 pins + 11 Tier-B/environmental); AC10-F1…F8;
+  the nine R2.1-B conditionals; deferred D-6/P-termination, OP-4, OD-3,
+  A-09, N-2 (M8), A-5 (M9), Tier-B (M8/Stage-1), A-13 (M4 entry), SG-2/E6;
+  clean-state packaging and formatting drift. None is resolved by M3
+  completion.
+- **M4 and subsequent phases remain unauthorized.** M4 requires a separate
+  authorisation and planning decision. No phase is authorized by this
+  clarification.
+
+---
+
+## Dated clarification — M4.0 owner decisions; Phase 3 entry (28 November 2026)
+
+*Appended without rewriting §§1–4 or any earlier dated clarification
+(history preserved; this document remains the 21 November 2026 assessment
+proposal). Authority: [M4.0 owner decision](M4.0-owner-decision.md)
+(28 November 2026).*
+
+- **Phase 3 (M4) entry decisions are issued.** The M4 blueprint
+  ([`../M4-architecture-and-implementation-plan.md`](../M4-architecture-and-implementation-plan.md))
+  is adopted as the execution basis of record for M4.0 planning.
+- **D1:** M4.0 and M4.1 are authorized with **staged authorization
+  thereafter** — each later stage (M4.2 seam mirror, M4.3 clip, M4.4/4.5
+  spreading, M4.6–M4.10) requires explicit owner authorization against the
+  completed predecessor evidence. The historical "M4 requires a separate
+  authorisation" statement above is satisfied **for M4.0 and M4.1 only**.
+- **D2:** the Phase 3 dependency "A-13 seam decision (Owner)" is satisfied:
+  **FPE-side composite mirror** (Q31 kernel extraction rejected;
+  `tns_encode_channel` delegated until the M7 review; `finish_channel`
+  shared; Q31 unchanged and reference/default).
+- **D3:** a reproducible baseline checkpoint of the accepted M3/R2.2 state
+  is required before M4.1 implementation; the checkpoint plan
+  ([`../M4-baseline-checkpoint-plan.md`](../M4-baseline-checkpoint-plan.md))
+  specifies the procedure, and its Git operations **await explicit owner
+  approval**. The baseline is not yet established.
+- **D4:** historical pins are immutable; successor baselines require
+  explicit owner approval; no silent rebaselining.
+- Phase 3 implementation work beyond M4.1 remains unauthorized, and Phases
+  4–9 are unchanged. No production, test, evidence, ADR or pin change is
+  made by this clarification.

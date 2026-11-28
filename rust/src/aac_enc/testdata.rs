@@ -226,6 +226,64 @@ pub(crate) fn fixture_sample_rate(name: &str) -> u32 {
     }
 }
 
+/// R2.2 Group B canonical WAV fixture identity (design §10.3, owner-approved).
+/// `short_label` is the prose label; `canonical_id` and `repo_path` are the
+/// binding identifiers for evidence rows and reports; `fixture_key` is the
+/// existing `fixture_samples` key (unchanged); `sha256` pins the committed
+/// file bytes (provenance: `testdata/m55-PROVENANCE.txt`,
+/// `testdata/m8-PROVENANCE.txt`). No audio is provisioned, copied, or
+/// modified here — this is name wiring plus hash pins only. A missing or
+/// mismatching fixture is `MaterialUnavailable`: callers must record the
+/// gap, never substitute synthetic material.
+pub(crate) struct R22WavFixture {
+    pub short_label: &'static str,
+    pub canonical_id: &'static str,
+    /// Repository-relative path (binding identifier per §10.3).
+    pub repo_path: &'static str,
+    /// Bare file name for [`testdata_path`].
+    pub file: &'static str,
+    pub fixture_key: &'static str,
+    pub sha256: &'static str,
+}
+
+/// The four committed 48 kHz stereo fixtures of the R2.2 decision corpus
+/// (each 480 000 samples/ch = 10.0 s = 471 AAC frames by the documented
+/// flush law `ceil((S + 1600) / 1024)`).
+pub(crate) const R22_WAV_FIXTURES: [R22WavFixture; 4] = [
+    R22WavFixture {
+        short_label: "music",
+        canonical_id: "m7-music-stereo-48k",
+        repo_path: "rust/src/aac_enc/testdata/m7-music-stereo-48k.wav",
+        file: "m7-music-stereo-48k.wav",
+        fixture_key: "music-stereo",
+        sha256: "b49e10a1d3f51b80db1d4d1a1179afa9963570528042395df20be8e2193f3086",
+    },
+    R22WavFixture {
+        short_label: "speech-pauses",
+        canonical_id: "m7-speech-pauses-stereo-48k",
+        repo_path: "rust/src/aac_enc/testdata/m7-speech-pauses-stereo-48k.wav",
+        file: "m7-speech-pauses-stereo-48k.wav",
+        fixture_key: "speech-pauses-stereo",
+        sha256: "67d69a64fed23fe16ab666a9e1f02262afa78934363c69999728cadd9ec1a4d3",
+    },
+    R22WavFixture {
+        short_label: "speech-clean",
+        canonical_id: "m7-speech-clean-stereo-48k",
+        repo_path: "rust/src/aac_enc/testdata/m7-speech-clean-stereo-48k.wav",
+        file: "m7-speech-clean-stereo-48k.wav",
+        fixture_key: "speech-clean-stereo",
+        sha256: "3dfb7dcb0cd9f600f9ae66eb791df6d7c740c833218df88f1de73f87353346ff",
+    },
+    R22WavFixture {
+        short_label: "music-eroica",
+        canonical_id: "m8-music-eroica-stereo-48k",
+        repo_path: "rust/src/aac_enc/testdata/m8-music-eroica-stereo-48k.wav",
+        file: "m8-music-eroica-stereo-48k.wav",
+        fixture_key: "music-eroica-stereo",
+        sha256: "4413c8a41fe148192081c504ecfb5d69b5c7c4fc158cefff8b0dfadf8923986b",
+    },
+];
+
 /// Parse an embedded 48 kHz stereo s16le WAV with a plain 44-byte header
 /// into per-channel i16 vectors. Used only by the M5.5 licensed fixtures
 /// below (real speech/music assets); ordinary tests never touch the
@@ -537,6 +595,34 @@ pub(crate) fn fixture_samples(name: &str) -> Vec<Vec<i16>> {
                         } else {
                             sine_at(t, 10_000.0)
                         }
+                    })
+                    .collect()
+            })
+            .collect(),
+        // A-17 short-window TNS-active resynthesis (narrow scope, additive).
+        // Formula is identical to
+        // `tools/enc-oracle/make_fpe_fixtures.py` (`fpe-tns-active-short`
+        // block): gated 8 kHz tonal bursts (0.1 s tone / 0.1 s silence, amp
+        // 15000) to force short windows at onsets while presenting
+        // predictable tonal content to TNS detect. Deterministic: fixed
+        // frequency/amplitude/gating, truncation toward zero via `as i16`
+        // (matches Python `int()` + clamp for in-range values), no
+        // randomness. Provenance: Python generator is the oracle-side
+        // definition; this arm is the in-binary resynthesis consumed by the
+        // Q31↔FPE harness (no WAV asset, no C artifact needed). The sibling
+        // R2.0 `fpe-short-burst-quiet` fixture remains Python-only by design;
+        // this task resynthesizes only the TNS-active short fixture.
+        "fpe-tns-active-short-stereo" => (0..2)
+            .map(|_| {
+                (0..48000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        let v = if (t % 9600) < 4800 {
+                            15000.0 * (2.0 * core::f64::consts::PI * 8000.0 * time).sin()
+                        } else {
+                            0.0
+                        };
+                        v as i16
                     })
                     .collect()
             })

@@ -78,6 +78,8 @@ use super::frame::{
 use super::intensity::intensity_stereo;
 #[cfg(test)]
 use super::pcm::PcmFeeder;
+#[cfg(test)]
+use super::pe::PeChannelData;
 use super::pe::{form_factor, pe_calculation, AtsElement, PeChannelInput};
 use super::psy::{
     process_pair_reuse, ChannelInput, ChannelOutput, GroupedOutput, MsOutput, PsyChannel,
@@ -85,6 +87,8 @@ use super::psy::{
 };
 use super::psy_config::load_cfg_for_profile;
 use super::q31::calc_ld_data;
+#[cfg(test)]
+use super::rate::QcFrameOutput;
 use super::rate::{
     adjust_bitrate, calc_bits_per_frame, derive_qc_init, distribute_state_init,
     init_bits2pe_factor, qc_main_frame, total_consumed_bits, BitResMode, DistributeState,
@@ -485,6 +489,247 @@ pub(crate) struct S2Cap {
     pub ms_mask: Vec<i32>,
 }
 
+// ---------------------------------------------------------------------------
+// R2.2 Group A: owned per-stage replay snapshots (test-only).
+//
+// Each struct below owns the complete operand set of one production decision
+// function plus that call's pre/post mutable state, cloned at the exact call
+// boundary in [`StreamEncoder::step_frame`]. Replaying the production
+// function on the owned clones must reproduce the recorded outputs and
+// post-call state bit-exactly (within-arm replay correctness, design §10.2).
+// Q31-vs-FPE comparison is intentionally NOT asserted here: differences are
+// preserved in the snapshots for later R2.2 classification (Group D), never
+// hidden and never blanket-asserted.
+//
+// Capture is `#[cfg(test)]`-only and per-encoder gated
+// (`StreamEncoder::r22_capture`): production builds contain none of this
+// code and emit identical bytes with the gate on or off (proven by the
+// `r22_capture` canary tests in `fpe/tests/r22_capture.rs`).
+// ---------------------------------------------------------------------------
+
+/// R2.2 Group A: one channel's owned S1 (`pe_calculation`) inputs.
+/// Mirrors [`PeChannelInput`] with owned vectors, including the IS
+/// book/scale vectors the pre-existing [`S1CapChannel`] omits.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22S1Channel {
+    pub energy_ld: Vec<i32>,
+    pub threshold_ld: Vec<i32>,
+    pub energy_lin: Vec<i32>,
+    pub ff: Vec<i32>,
+    pub offsets: Vec<i32>,
+    pub cnt: usize,
+    pub per: usize,
+    pub max: usize,
+    pub short: bool,
+    pub is_book: Vec<i32>,
+    pub is_scale: Vec<i32>,
+}
+
+/// R2.2 Group A: owned S1 snapshot: inputs, pre/post [`AtsElement`], and
+/// the production [`pe_calculation`] outputs.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct R22S1Cap {
+    pub ch: Vec<R22S1Channel>,
+    pub ms_mask: Vec<i32>,
+    pub ats_pre: AtsElement,
+    pub ats_post: AtsElement,
+    pub pe: i32,
+    pub const_part: i32,
+    pub nact: i32,
+    pub offset: i32,
+    /// Per-channel PE detail (`PeChannelData` is `Clone`).
+    pub pe_ch: Vec<PeChannelData>,
+    pub weighted: Vec<Vec<i32>>,
+    pub thresholds: Vec<Vec<i32>>,
+    pub enfac: Vec<Vec<i32>>,
+}
+
+/// R2.2 Group A: one channel's owned S2 (`adapt_thresholds_vbr`) inputs.
+/// Mirrors [`S2ChannelInput`] with owned vectors, including the post-S1
+/// weighted/threshold/form-factor/enfac vectors the pre-existing
+/// [`S2CapChannel`] omits.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22S2Channel {
+    pub energy_lin: Vec<i32>,
+    pub energy_ld: Vec<i32>,
+    pub weighted: Vec<i32>,
+    pub threshold: Vec<i32>,
+    pub ff: Vec<i32>,
+    pub enfac: Vec<i32>,
+    pub min_snr0: Vec<i32>,
+    pub spread0: Vec<i32>,
+    pub offsets: Vec<i32>,
+    pub group_len: Vec<i32>,
+    pub cnt: usize,
+    pub per: usize,
+    pub max: usize,
+    pub seq: u8,
+}
+
+/// R2.2 Group A: owned S2 snapshot: inputs, pre/post [`AtsElement`], and
+/// the production [`adapt_thresholds_vbr`] outputs.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct R22S2Cap {
+    pub ch: Vec<R22S2Channel>,
+    pub ms_mask: Option<Vec<i32>>,
+    pub ats_pre: AtsElement,
+    pub ats_post: AtsElement,
+    pub threshold_ld: Vec<Vec<i32>>,
+    pub threshold_pre_enfac: Vec<Vec<i32>>,
+    pub thr_exp: Vec<Vec<i32>>,
+    pub min_snr_ld: Vec<Vec<i32>>,
+    pub spread: Vec<Vec<i32>>,
+    pub ah_flag: Vec<Vec<u8>>,
+    pub red_val: Vec<i32>,
+    pub chaos_measure: i32,
+    pub peak_valley: Vec<super::threshold_vbr::ah_probe::PeakValleyRec>,
+    pub ms_tweaks: Vec<super::threshold_vbr::ah_probe::MsTweakRec>,
+}
+
+/// R2.2 Group A: one channel's owned S4
+/// (`estimate_scale_factors_channel_reuse`) inputs and outputs.
+/// `spectrum_pre` is the S3-contract spectrum clone (inactive bands zeroed
+/// per group stride) actually passed as `&mut`; the workspace is scratch
+/// (fully re-initialized per call), so the replay uses a fresh
+/// [`ScfWorkspace`] and equality proves the scratch-invariant.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22S4Channel {
+    pub spectrum_pre: Vec<i32>,
+    pub energy_ld: Vec<i32>,
+    pub threshold_ld: Vec<i32>,
+    pub ff: Vec<i32>,
+    pub offsets: Vec<i32>,
+    pub cnt: usize,
+    pub per: usize,
+    pub max: usize,
+    pub scf: Vec<i32>,
+    pub gain: i32,
+    pub quant_spec: Vec<i16>,
+    pub mutated: Vec<i32>,
+}
+
+/// R2.2 Group A: owned S4 snapshot (per-channel; one encoder-owned
+/// workspace serves all channels of a frame).
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22S4Cap {
+    pub ch: Vec<R22S4Channel>,
+}
+
+/// R2.2 Group A: one channel's owned S6 (`qc_main_frame`) inputs.
+/// Mirrors [`QcChannelInput`] with owned vectors.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22S6Channel {
+    pub spectrum: Vec<i32>,
+    pub scf: Vec<i32>,
+    pub gain: i32,
+    pub cnt: usize,
+    pub max: usize,
+    pub per: usize,
+    pub offsets: Vec<i32>,
+    pub block_type: i32,
+    pub is_book: Vec<i32>,
+    pub is_scale: Vec<i32>,
+    pub tns: TnsChannel,
+    pub seed_quant: Option<Vec<i16>>,
+}
+
+/// R2.2 Group A: owned S6 snapshot: per-channel inputs plus the element
+/// frame inputs, pre/post [`DistributeState`]/[`QcState`] reservoir state,
+/// and the cloned production [`QcFrameOutput`].
+///
+/// `bc_scratch` is intentionally NOT snapshotted: it is call scratch (the
+/// M5.22 invariant), so the replay runs with a fresh default scratch and
+/// equality proves prior-frame scratch cannot leak into the output.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct R22S6Cap {
+    pub ch: Vec<R22S6Channel>,
+    pub noise: Vec<i32>,
+    pub no_red_pe: i32,
+    pub static_bits: i32,
+    pub ms_digest: i32,
+    pub glob_hdr: i32,
+    pub max_bits_frame: i32,
+    pub max_bits_el: i32,
+    pub relative: i32,
+    pub max_bit_fac: i32,
+    pub bit_res_mode: BitResMode,
+    pub dist_pre: DistributeState,
+    pub qc_pre: i32,
+    pub qc_max: i32,
+    pub dist_post: DistributeState,
+    pub qc_post: i32,
+    pub output: QcFrameOutput,
+}
+
+/// R2.2 Group A: owned frame-accounting snapshot. All coded-bit fields
+/// mirror the [`FrameSnapshot`] values written by S6; `pad_pre`/`pad_post`
+/// bracket the content-independent `adjust_bitrate` evolution and
+/// `bit_res_tot`/`bit_res_max` pin the reservoir level for the frame.
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
+pub(crate) struct R22AcctCap {
+    pub side: i32,
+    pub huff: i32,
+    pub scf_bits: i32,
+    pub used_dyn: i32,
+    pub tot_fill: i32,
+    pub align: i32,
+    pub total: i32,
+    pub npass: usize,
+    pub crash: i32,
+    pub gains: Vec<i32>,
+    pub last_iterations: i32,
+    pub sum_bits: i32,
+    pub el_granted: i32,
+    pub max_dyn: i32,
+    pub total_avail: i32,
+    pub static_used: i32,
+    pub pad_pre: i32,
+    pub pad_post: i32,
+    pub bit_res_tot: i32,
+    pub bit_res_max: i32,
+}
+
+/// R2.2 Group A: frame-surviving state-carrier snapshot (design §1).
+/// `ats_pre` is the frame-start element state (before S1);
+/// `ats_post` is the post-S2 state (S1/S2 are the only ATS writers);
+/// `dist`/`qc` bracket the S6 mutation; `pad` brackets `adjust_bitrate`.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct R22FrameState {
+    pub ats_pre: AtsElement,
+    pub ats_post: AtsElement,
+    pub dist_pre: DistributeState,
+    pub dist_post: DistributeState,
+    pub qc_pre: i32,
+    pub qc_max: i32,
+    pub qc_post: i32,
+    pub pad_pre: i32,
+    pub pad_post: i32,
+}
+
+/// R2.2 Group A: complete owned per-frame replay snapshot. Every stage
+/// entry is `Some` on a cleanly emitted frame (`notes` empty); error/skip
+/// paths leave `r22_cap` as `None`.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct R22Capture {
+    pub s1: R22S1Cap,
+    pub s2: R22S2Cap,
+    pub s4: R22S4Cap,
+    pub s6: R22S6Cap,
+    pub acct: R22AcctCap,
+    pub state: R22FrameState,
+}
+
 /// Typed step failure for the production API mapping (M6.1).
 /// Carries the already-typed errors from QC/S8 writes; notes-only failures
 /// (frontend mismatch, low-overlap) carry `None` and map
@@ -531,6 +776,10 @@ pub(crate) struct FrameSnapshot {
     /// Test-only causality readout.
     #[cfg(test)]
     pub s2_cap: Option<S2Cap>,
+    /// R2.2 Group A owned replay snapshot (`None` when the frame never
+    /// completes S6, or when per-encoder capture is disabled). Test-only.
+    #[cfg(test)]
+    pub r22_cap: Option<R22Capture>,
     /// Earliest-stage diagnostic notes (empty when clean).
     pub notes: Vec<String>,
     /// Typed step failure for the production API mapping (`None` on success
@@ -669,6 +918,12 @@ pub(crate) struct StreamEncoder {
     dist: DistributeState,
     qc: QcState,
     s4_ws: ScfWorkspace,
+    /// R2.2 Group A per-encoder capture gate (test-only; production builds
+    /// have no such field). When false, `step_frame` skips the owned
+    /// replay-snapshot clones but is otherwise bit-identical (proven by the
+    /// enabled-vs-disabled canary in `fpe/tests/r22_capture.rs`).
+    #[cfg(test)]
+    r22_capture: bool,
     psy_ws: PsyScratch,
     /// FPE working buffers (encoder-owned, mirrors `psy_ws`; unused for
     /// Q31, default-empty so carries no allocation).
@@ -803,6 +1058,8 @@ impl StreamEncoder {
             padding_rest: sample_rate as i32,
             short_sp,
             long_ac,
+            #[cfg(test)]
+            r22_capture: true,
         }
     }
 
@@ -816,6 +1073,28 @@ impl StreamEncoder {
             self.b2e,
             self.dist.pe_min,
             self.dist.pe_max,
+        )
+    }
+
+    /// R2.2 Group A: enable or disable the owned replay-snapshot capture
+    /// for this encoder (test-only; default enabled). Disabling skips only
+    /// the snapshot clones: the production computation and emitted bytes
+    /// are unchanged (enabled-vs-disabled canary).
+    #[cfg(test)]
+    pub(crate) fn set_r22_capture(&mut self, on: bool) {
+        self.r22_capture = on;
+    }
+
+    /// R2.2 Group A: observable frame-surviving carrier state for the
+    /// replay side-effect canary (test-only pure reads).
+    #[cfg(test)]
+    pub(crate) fn r22_observable_state(&self) -> (AtsElement, DistributeState, i32, i32, i32) {
+        (
+            self.ats.clone(),
+            self.dist,
+            self.qc.bit_res_tot,
+            self.qc.bit_res_tot_max,
+            self.padding_rest,
         )
     }
 
@@ -1357,6 +1636,14 @@ impl StreamEncoder {
             self.ats.last_enfac_patch[0],
             self.ats.last_enfac_patch[1],
         ];
+        // R2.2 Group A: frame-start ATS snapshot (test-only). Cloned here
+        // so the within-arm S1 replay starts from the exact production state.
+        #[cfg(test)]
+        let r22_ats_frame_pre: Option<AtsElement> = if self.r22_capture {
+            Some(self.ats.clone())
+        } else {
+            None
+        };
         let pe = pe_calculation(&pe_inputs, &ms_mask, &mut self.ats);
         snap.pe = pe.data.pe;
         // Test-only causality capture: PE inputs (rerunning PE on these
@@ -1379,6 +1666,39 @@ impl StreamEncoder {
                 .collect(),
             ms_mask: ms_mask.clone(),
             ats_pre: s1_ats_pre,
+        });
+        // R2.2 Group A: owned S1 replay snapshot (test-only pure clones;
+        // the production `pe` above is untouched).
+        #[cfg(test)]
+        let r22_s1: Option<R22S1Cap> = r22_ats_frame_pre.clone().map(|ats_pre| R22S1Cap {
+            ch: live
+                .iter()
+                .enumerate()
+                .map(|(ch, c)| R22S1Channel {
+                    energy_ld: c.e_ld.clone(),
+                    threshold_ld: c.t_ld.clone(),
+                    energy_lin: c.e_stored.clone(),
+                    ff: c.ff.clone(),
+                    offsets: c.offsets.clone(),
+                    cnt: c.cnt,
+                    per: c.per,
+                    max: max_common,
+                    short: c.short,
+                    is_book: books[ch].clone(),
+                    is_scale: scales[ch].clone(),
+                })
+                .collect(),
+            ms_mask: ms_mask.clone(),
+            ats_post: self.ats.clone(),
+            pe: pe.data.pe,
+            const_part: pe.data.const_part,
+            nact: pe.data.n_active_lines,
+            offset: pe.data.offset,
+            pe_ch: pe.data.channels.clone(),
+            weighted: pe.weighted_energy_ld.clone(),
+            thresholds: pe.threshold_ld.clone(),
+            enfac: pe.enfac_ld.clone(),
+            ats_pre,
         });
         let s1static = if self.channels == 2 {
             let ms = MsDigest::from_i32(digest).expect("ms digest range");
@@ -1447,7 +1767,20 @@ impl StreamEncoder {
         } else {
             None
         };
+        // R2.2 Group A: post-S1 ATS snapshot (test-only): the exact S2
+        // replay start state (S1 is the only writer between frame start
+        // and this call).
+        #[cfg(test)]
+        let r22_ats_pre_s2: Option<AtsElement> = if self.r22_capture {
+            Some(self.ats.clone())
+        } else {
+            None
+        };
+        #[cfg(test)]
+        super::threshold_vbr::ah_probe::clear();
         let s2 = adapt_thresholds_vbr(&s2_inputs, ms_opt, &mut self.ats);
+        #[cfg(test)]
+        let (s2_peak_valley, s2_ms_tweaks) = super::threshold_vbr::ah_probe::take();
         #[cfg(test)]
         {
             snap.s2_cap = Some(S2Cap {
@@ -1472,6 +1805,43 @@ impl StreamEncoder {
                 ms_mask: ms_mask.clone(),
             });
         }
+        // R2.2 Group A: owned S2 replay snapshot (test-only pure clones).
+        #[cfg(test)]
+        let r22_s2: Option<R22S2Cap> = r22_ats_pre_s2.map(|ats_pre| R22S2Cap {
+            ch: live
+                .iter()
+                .enumerate()
+                .map(|(ch, c)| R22S2Channel {
+                    energy_lin: c.e_stored.clone(),
+                    energy_ld: c.e_ld.clone(),
+                    weighted: pe.weighted_energy_ld[ch].clone(),
+                    threshold: pe.threshold_ld[ch].clone(),
+                    ff: c.ff.clone(),
+                    enfac: pe.enfac_ld[ch].clone(),
+                    min_snr0: minsnrs[ch].clone(),
+                    spread0: c.spread.clone(),
+                    offsets: c.offsets.clone(),
+                    group_len: group_lens[ch].clone(),
+                    cnt: c.cnt,
+                    per: c.per,
+                    max: max_common,
+                    seq: seqs[ch] as u8,
+                })
+                .collect(),
+            ms_mask: ms_opt.map(|m| m.to_vec()),
+            ats_post: self.ats.clone(),
+            threshold_ld: s2.threshold_ld.clone(),
+            threshold_pre_enfac: s2.threshold_pre_enfac.clone(),
+            thr_exp: s2.thr_exp.clone(),
+            min_snr_ld: s2.min_snr_ld.clone(),
+            spread: s2.spread.clone(),
+            ah_flag: s2.ah_flag.clone(),
+            red_val: s2.reduce.red_val.clone(),
+            chaos_measure: s2.reduce.chaos_measure,
+            peak_valley: s2_peak_valley,
+            ms_tweaks: s2_ms_tweaks,
+            ats_pre,
+        });
 
         // --- S4: scalefactor estimation (inv=2) on the S3-contract spectrum ---
         struct S4Out {
@@ -1481,11 +1851,22 @@ impl StreamEncoder {
             mutated: Vec<i32>,
         }
         let mut s4outs: Vec<S4Out> = Vec::with_capacity(self.channels);
+        // R2.2 Group A: per-channel S4 snapshots staged here (test-only).
+        #[cfg(test)]
+        let mut r22_s4ch: Vec<R22S4Channel> = Vec::new();
         for (ch, c) in live.iter().enumerate() {
             let mut spec = c.spec_q31.clone();
             // Per-group-stride inactive-band zeroing (S3 contract); a flat
             // `max..cnt` range would erase later groups on short blocks.
             zero_inactive_bands(&mut spec, &c.offsets, c.cnt, c.per, max_common);
+            // R2.2 Group A: owned S4 input spectrum (test-only). Cloned
+            // after zeroing: this is the exact `&mut` operand below.
+            #[cfg(test)]
+            let r22_spec_pre: Option<Vec<i32>> = if self.r22_capture {
+                Some(spec.clone())
+            } else {
+                None
+            };
             let mut input = ScfChannelInput {
                 spectrum: &mut spec,
                 energy_ld: &c.e_ld,
@@ -1507,6 +1888,25 @@ impl StreamEncoder {
             // per-call scratch allocations; semantics are unchanged
             // (every field re-initialized per call, outputs still fresh).
             let o = estimate_scale_factors_channel_reuse(&mut input, &mut self.s4_ws);
+            // R2.2 Group A: owned S4 replay snapshot (test-only pure
+            // clones of the exact call operands and outputs).
+            #[cfg(test)]
+            if let Some(spectrum_pre) = r22_spec_pre {
+                r22_s4ch.push(R22S4Channel {
+                    spectrum_pre,
+                    energy_ld: c.e_ld.clone(),
+                    threshold_ld: s2.threshold_ld[ch].clone(),
+                    ff: c.ff.clone(),
+                    offsets: c.offsets.clone(),
+                    cnt: c.cnt,
+                    per: c.per,
+                    max: max_common,
+                    scf: o.scf.clone(),
+                    gain: o.global_gain,
+                    quant_spec: o.quant_spec.clone(),
+                    mutated: o.mutated_spectrum.clone(),
+                });
+            }
             s4outs.push(S4Out {
                 scf: o.scf,
                 gain: o.global_gain,
@@ -1514,6 +1914,13 @@ impl StreamEncoder {
                 mutated: o.mutated_spectrum,
             });
         }
+        // R2.2 Group A: assemble the owned S4 snapshot (test-only).
+        #[cfg(test)]
+        let r22_s4: Option<R22S4Cap> = if self.r22_capture {
+            Some(R22S4Cap { ch: r22_s4ch })
+        } else {
+            None
+        };
 
         // --- S5: QMAX + sectioning (R1a: dead stage removed) ---
         // The per-channel `calc_max_value_in_sfb` + `dyn_bit_count_reuse`
@@ -1566,6 +1973,27 @@ impl StreamEncoder {
             max_bit_fac: self.init.max_bit_fac,
             bit_res_mode: BitResMode::Full,
         };
+        // R2.2 Group A: pre-S6 carrier snapshots (test-only). `padding_rest`
+        // is read here because `adjust_bitrate` evolves it below; `dist`
+        // and the reservoir level are the exact `qc_main_frame` pre-state.
+        #[cfg(test)]
+        let r22_pad_pre: Option<i32> = if self.r22_capture {
+            Some(self.padding_rest)
+        } else {
+            None
+        };
+        #[cfg(test)]
+        let r22_dist_pre: Option<DistributeState> = if self.r22_capture {
+            Some(self.dist)
+        } else {
+            None
+        };
+        #[cfg(test)]
+        let r22_qc_pre: Option<(i32, i32)> = if self.r22_capture {
+            Some((self.qc.bit_res_tot, self.qc.bit_res_tot_max))
+        } else {
+            None
+        };
         let (_, rest) = adjust_bitrate(
             self.padding_rest,
             self.total_br as i32,
@@ -1615,6 +2043,100 @@ impl StreamEncoder {
         snap.max_dyn = qc_out.max_dyn_bits;
         snap.total_avail = qc_out.total_avail;
         snap.static_used = qc_out.static_bits_used;
+        // R2.2 Group A: owned S6 + accounting + frame-state snapshots
+        // (test-only pure clones of the exact call operands, outputs, and
+        // pre/post carrier state; the production `qc_out` above is only
+        // cloned, never consumed).
+        #[cfg(test)]
+        {
+            if self.r22_capture {
+                let dist_pre = r22_dist_pre.expect("r22 dist pre");
+                let (qc_pre, qc_max) = r22_qc_pre.expect("r22 qc pre");
+                let pad_pre = r22_pad_pre.expect("r22 pad pre");
+                let s1 = r22_s1.expect("r22 s1");
+                let s2 = r22_s2.expect("r22 s2");
+                let s4 = r22_s4.expect("r22 s4");
+                let ats_frame_pre = s1.ats_pre.clone();
+                let ats_frame_post = s2.ats_post.clone();
+                let s6 = R22S6Cap {
+                    ch: live
+                        .iter()
+                        .enumerate()
+                        .map(|(ch, c)| R22S6Channel {
+                            spectrum: s4outs[ch].mutated.clone(),
+                            scf: s4outs[ch].scf.clone(),
+                            gain: s4outs[ch].gain,
+                            cnt: c.cnt,
+                            max: max_common,
+                            per: c.per,
+                            offsets: c.offsets.clone(),
+                            block_type: seqs[ch] as i32,
+                            is_book: books[ch].clone(),
+                            is_scale: scales[ch].clone(),
+                            tns: c.tns.clone(),
+                            seed_quant: Some(s4outs[ch].quant_spec.clone()),
+                        })
+                        .collect(),
+                    noise: noise.clone(),
+                    no_red_pe: pe.data.pe,
+                    static_bits: s1static,
+                    ms_digest: digest,
+                    glob_hdr: ADTS_HEADER_BITS as i32,
+                    max_bits_frame: self.init.max_bits,
+                    max_bits_el: self.init.max_bits_el,
+                    relative: MAXVAL_DBL,
+                    max_bit_fac: self.init.max_bit_fac,
+                    bit_res_mode: BitResMode::Full,
+                    dist_pre,
+                    qc_pre,
+                    qc_max,
+                    dist_post: self.dist,
+                    qc_post: qc_out.bit_res_tot,
+                    output: qc_out.clone(),
+                };
+                let acct = R22AcctCap {
+                    side: snap.side_bits,
+                    huff: snap.huff_bits,
+                    scf_bits: snap.scf_bits,
+                    used_dyn: snap.used_dyn,
+                    tot_fill: snap.tot_fill,
+                    align: snap.align,
+                    total: snap.total,
+                    npass: snap.npass,
+                    crash: snap.crash,
+                    gains: snap.gains.clone(),
+                    last_iterations: snap.last_iterations,
+                    sum_bits: snap.sum_bits,
+                    el_granted: snap.el_granted,
+                    max_dyn: snap.max_dyn,
+                    total_avail: snap.total_avail,
+                    static_used: snap.static_used,
+                    pad_pre,
+                    pad_post: self.padding_rest,
+                    bit_res_tot: qc_out.bit_res_tot,
+                    bit_res_max: qc_max,
+                };
+                let state = R22FrameState {
+                    ats_pre: ats_frame_pre,
+                    ats_post: ats_frame_post,
+                    dist_pre,
+                    dist_post: self.dist,
+                    qc_pre,
+                    qc_max,
+                    qc_post: qc_out.bit_res_tot,
+                    pad_pre,
+                    pad_post: self.padding_rest,
+                };
+                snap.r22_cap = Some(R22Capture {
+                    s1,
+                    s2,
+                    s4,
+                    s6,
+                    acct,
+                    state,
+                });
+            }
+        }
         // Multi-pass outer gain loop: C's `do..while (!quantizationDone)`
         // (`qc_main.cpp:903-1112`) is a bit-budget retry, not an error. Pass 1
         // quantizes at the S4 gain; when the frame exceeds the budget the exit

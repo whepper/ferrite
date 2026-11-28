@@ -36,13 +36,21 @@
 //! disable/reset, stale-on-short MS-Ld) were actually exercised.
 
 mod audit;
+mod ac9;
+mod ac9_artifact;
 mod decision;
 mod differential;
 mod envelope;
+mod evidence;
 mod f6_tns;
 mod is_ms;
 mod m2_stages;
+mod precision;
 mod probe_envelope;
+mod r22_capture;
+mod s4_step3;
+mod trace;
+mod xarch_log2;
 
 use audit::{ChannelEnergyCtx, EnergyAudit};
 

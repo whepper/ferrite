@@ -235,3 +235,168 @@ changed. All gates above are recommendations for owner approval.*
   (G1/G5) remains blocked; the nine conditional R2.1-B acceptances remain
   conditional. No gate, envelope, tolerance or criterion is changed by
   this clarification.
+
+---
+
+## Dated clarification — A-5 / N-2 allocation (26 November 2026)
+
+*Appended without rewriting §§0–6 or the M2-acceptance clarification above
+(history preserved). Authority:
+[owner decision](a5-n2-owner-decision.md) (26 November 2026). No gate,
+envelope, tolerance, criterion, or unrelated finding is changed by this
+clarification.*
+
+- **N-2 is partially complete and remains open.** The retained macOS ARM64
+  versus macOS x86-64-under-Rosetta evidence (Layer A 352/352, Layer B
+  658/658, Layer C 49/49; max observed absolute Ld difference zero) is
+  accepted within its documented scope; the **Linux x86-64 CI measurement
+  remains open** pending execution, review, and retained evidence per the
+  owner-decision completion protocol (§5 of the decision). No native
+  x86-64, Linux/glibc, or universal cross-platform equivalence is claimed.
+- **N-2 is not an M3 completion blocker.** Read the §1.2 "Phase C" label and
+  the findings-register/implementation-roadmap lines placing A-5 on the M3
+  path as superseded on this point: M3 completion does not require the Linux
+  measurement.
+- **N-2 is an additional M8 cross-platform milestone requirement**,
+  established explicitly by the owner decision — not read back into the
+  original normative M8 roadmap as pre-existing. N-2 remains open until the
+  Linux x86-64 comparison is executed, reviewed, and retained.
+- **A-5 split:** the numerical `log2`/Ld comparison is covered by N-2 as
+  above; the original A-5 performance/denormal-behaviour investigation
+  **remains allocated to M9** (E-2 reports x86-64 separately, never pooled).
+
+---
+
+## Dated clarification — A-4 / FPE-3.3 owner acceptance (26 November 2026)
+
+*Appended without rewriting §§0–6 or the M2-acceptance and A-5/N-2
+clarifications above (history preserved). Authority:
+[owner decision](a4-owner-decision.md) (26 November 2026). No gate,
+envelope, tolerance, criterion, or unrelated finding is changed by this
+clarification.*
+
+- **N-1 (A-4 f32-vs-f64 energy-sum experiment, FPE-3.3) is recorded and
+  accepted with documented limitations.** The corrected corpus run is
+  accepted as the reproducible numerical precision experiment covering
+  FPE-3.1 rescale-energy and FPE-3.2 TNS-recompute accumulation (f64
+  retained as approved Stage-1; f32 diagnostic for Stage-2 only). N-1 is
+  no longer awaiting independent review (Mistral 4 re-review) or owner
+  acceptance.
+- **N-1 is a numerical leg only.** Read the §1.2 N-1 row ("M3 completion"
+  gate) as satisfied on its evidence/acceptance leg; M3 completion itself
+  is not declared (F-6, N-2 Linux leg, `FpeError`, R2.2, and perceptual
+  conditions unchanged). R2.2 decision safety (D-1…D-10) is separate and
+  remains as recorded — this acceptance establishes no downstream decision
+  outcome and no perceptual equivalence.
+
+---
+
+## Dated clarification — FPE-3.2 owner acceptance (27 November 2026)
+
+*Appended without rewriting §§0–6 or the M2-acceptance, A-5/N-2, and A-4
+clarifications above (history preserved). Authority:
+[owner decision](fpe-3.2-owner-decision.md) (27 November 2026). No gate,
+envelope, tolerance, criterion, or unrelated finding is changed by this
+clarification.*
+
+- **The FPE-3.2 implementation/acceptance leg is recorded as owner-accepted
+  with documented limitations (F1–F6, see the owner decision §4).**
+  The Mistral 4 independent review (26 November 2026) verdict was PASS
+  WITH FINDINGS with no correctness defect identified. The G2 energy
+  recompute within derived envelope / shifts-exact leg for the TNS
+  recompute is therefore no longer awaiting independent review or owner
+  acceptance; the F1–F6 limitations (corpus shiftBits coverage, A-5/N-2
+  Linux leg, `audit.rs` labels, unrebaselined pins under R2.2 disposition,
+  deferred `FpeError` taxonomy, outstanding clean-state packaging
+  verification) travel with the acceptance.
+- **M3 completion is not declared.** Read any §1.2 row gating on "M3
+  completion" as unchanged except for the FPE-3.2 evidence/acceptance leg
+  now satisfied: F-6 (N-3), the N-2 Linux leg, `FpeError`, R2.2 (D-1…D-10),
+  N-4 follow-on kernels, and the perceptual conditions remain as recorded.
+  R2.2 decision safety is separate — this acceptance establishes no
+  downstream decision outcome and no perceptual equivalence.
+
+---
+
+## Dated clarification — F-6 closure (27 November 2026)
+
+*Appended without rewriting §§0–6 or the M2-acceptance, A-5/N-2, A-4, and
+FPE-3.2 clarifications above (history preserved). Authority:
+[owner decision](f6-owner-decision.md) (27 November 2026). No gate,
+envelope, tolerance, criterion, or unrelated finding is changed by this
+clarification.*
+
+- **N-3 (F-6 structural-unreachability closure) is closed.** F-6 (A-14) is
+  closed by documented structural unreachability (short branch of
+  `tns_encode_channel` cannot write the element-global shift;
+  per-element-per-frame zero init; synchronized stereo sequences;
+  release-active D-022 enforcement) plus retained watches
+  (`audit.rs` unsupported-marking, T1 scan, corpus zero-asserts, all 0).
+  Mistral 4 independent adversarial review dated 27 November 2026: PASS WITH
+  FINDINGS (F6-R1 resolved, F6-R2…F6-R6 retained in the owner decision).
+- **The isolated synthetic test was optional and was not required for
+  closure.** Per N-3's own framing ("optional test-only synthetic") and
+  the owner's reachability-conditional resolution of the `07` §5.2
+  construction requirement, documented unreachability plus retained
+  watches satisfies the requirement's intent; no separate synthetic
+  short-element test was constructed or required. T2 remains on record as
+  supporting reconstruction-arithmetic evidence, not as occurrence
+  evidence.
+- **Scope:** current production mono/stereo architecture; future
+  multichannel orchestration must re-verify the invariant. Upstream C
+  `SyncBlockSwitching` parity remains unverified and is not a premise of
+  the closure.
+- **M3 completion is not declared** by this closure; remaining M3 items
+  stand as recorded.
+
+---
+
+## Dated clarification — M3 owner acceptance (28 November 2026)
+
+*Appended without rewriting §§0–6 or the M2-acceptance, A-5/N-2, A-4,
+FPE-3.2 and F-6 clarifications above (history preserved). Authority:
+[formal owner decision](M3-owner-acceptance.md) (28 November 2026). No gate,
+envelope, tolerance, criterion, or unrelated finding is changed by this
+clarification.*
+
+- **FPE M3 is ACCEPTED / COMPLETE WITH DOCUMENTED LIMITATIONS.** The M3
+  decision-safety gate in §5 (“R2 decision safety … necessary for FPE-3.1
+  acceptance”) is satisfied for the M3 boundary through Group C/D, AC-7,
+  AC-9/AC-10 and the F-20/F-22/F-26 numerical acceptance, as mapped in
+  [M3-exit-assessment.md](M3-exit-assessment.md) §3.
+- **Preserved:** the nine R2.1-B conditional acceptances remain conditional;
+  A-09 perceptual closure, D-6/P-termination, OP-4, OD-3 five-frame, D-10,
+  N-2 (M8), A-5 (M9), Tier-B (M8/Stage-1) and SG-2/E6 remain exactly as
+  recorded. AC10-F1…F8, the seven pins and 187 S4 flips are unchanged; no
+  rebaseline is authorised.
+- **M3 completion does not satisfy the later Stage-1 gates** (G1/G5 Tier-B,
+  G4 fuzz, G6 performance) or close the conditional acceptances. M4 is not
+  authorised; it requires a separate authorisation and planning decision.
+
+---
+
+## Dated clarification — M4.0 activation of the M4.1 validation requirements (28 November 2026)
+
+*Appended without rewriting any earlier section (history preserved).
+Authority: [M4.0 owner decision](M4.0-owner-decision.md) (28 November 2026).*
+
+- **D1 activates the M4.1 slice of the N-4/N-5/N-8 requirements:** the M4.1
+  threshold-init stage (blueprint §6, task FPE-4.1a) is validated with the
+  retained `q31_tol` working gate (`32 + |w|/500` on THR/NM1), the **N-5
+  propagated-bound audit** (`C_RATIO·tol_E + 1` through the init chain;
+  widenings counted and explicitly justified), and **N-8 unit coverage**
+  for the init kernel (hand-computed, zero, exact-LSB, boundary round-half
+  cases). The formal N-4 derived threshold/spread envelope remains a later
+  M4 stage (M4.7), owner-approved per the ADR-0004 amendment mechanism.
+- **D3 makes the baseline verification gates binding:** the checkpoint
+  criteria in [`../M4-baseline-checkpoint-plan.md`](../M4-baseline-checkpoint-plan.md)
+  (§2 validation results and §5 reproducibility gates) must pass and be
+  recorded before M4.1 implementation starts. The re-verified
+  current-tree state (production baseline 2/2; `fpe::` 289/7 documented
+  pins; full suite 671/18/2 documented set; evidence 36/36 + 5/5; licensing
+  OK; `git diff --check` clean) matches the accepted M3 state.
+- **D4:** pinned validation baselines are immutable; any successor baseline
+  (e.g. an M4 divergence-characterization pin set at stage M4.8) requires
+  explicit owner approval. No rebaseline is authorized or performed.
+- No gate, tolerance, envelope, or milestone requirement is changed by
+  this clarification. M4.2+ remains unauthorized.

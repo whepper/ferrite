@@ -995,6 +995,294 @@ pub fn calc_max_value_in_sfb(
     max_all
 }
 
+/// Test-only S6 gain-loop instrumentation (R2.2 Group D S6).
+///
+/// Records actual local values at their execution points in
+/// [`reduce_bit_consumption`], [`crash_recovery`] and [`qc_main_frame`];
+/// never feeds production or test encoder decisions, never reorders
+/// production statements, and introduces no second gain-loop
+/// implementation. All items are `#[cfg(test)]`; production builds contain
+/// no probe behaviour.
+///
+/// Layout mirrors `scf::step3_probe`: thread-local ordered records, an
+/// enabled gate (default on in tests), and `clear`/`take` helpers. Entry
+/// snapshots use wrapping arithmetic identical to production where
+/// applicable; nothing recorded is ever written back.
+#[cfg(test)]
+pub(crate) mod s6_probe {
+    use std::cell::{Cell, RefCell};
+
+    /// One `reduce_bit_consumption` invocation, recorded at its actual
+    /// branch outcome. `term_a`/`term_b` are the two `fix_max` arms when
+    /// computed (`None` on the gain-bump / error paths); `bits_to_save`
+    /// is `Some` only on the `CrashRequired` path.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct ReduceRec {
+        pub(crate) seq: usize,
+        pub(crate) pass_idx: usize,
+        pub(crate) iterations_before: i32,
+        pub(crate) iterations_after: i32,
+        pub(crate) max_iterations: i32,
+        pub(crate) gain_adjustment: i32,
+        pub(crate) ch_constraints: Vec<bool>,
+        pub(crate) gains_before: Vec<i32>,
+        pub(crate) gains_after: Vec<i32>,
+        pub(crate) recalc_before: Vec<bool>,
+        pub(crate) recalc_after: Vec<bool>,
+        pub(crate) el_dyn_bits_used: i32,
+        pub(crate) bit_res_level_el: i32,
+        pub(crate) el_granted: i32,
+        pub(crate) el_static: i32,
+        pub(crate) max_bits_el: i32,
+        pub(crate) term_a: Option<i32>,
+        pub(crate) term_b: Option<i32>,
+        pub(crate) bits_to_save: Option<i32>,
+        /// `gain_bumped` | `crash_required` | `err_empty` | `err_over`.
+        pub(crate) branch: &'static str,
+    }
+
+    /// One `(sfb, group, channel)` drop inside `crash_recovery`.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct CrashStepRec {
+        pub(crate) sfb: i32,
+        pub(crate) grp: usize,
+        pub(crate) ch: usize,
+        pub(crate) sect: usize,
+        pub(crate) reclaimed: i32,
+        pub(crate) side_reclaimed: i32,
+        pub(crate) sect_emptied: bool,
+        pub(crate) saved_before: i32,
+        pub(crate) saved_after: i32,
+    }
+
+    /// One `crash_recovery` invocation, with the actual loop decisions.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct CrashRec {
+        pub(crate) seq: usize,
+        pub(crate) bits_to_save_entry: i32,
+        pub(crate) steps: Vec<CrashStepRec>,
+        pub(crate) saved_final: i32,
+        /// Raw `sfb` at loop exit, before the `-1 -> 0` fixup.
+        pub(crate) sfb_exit_raw: i32,
+        /// Surviving `maxSfbPerGroup` (after fixup, shared across channels).
+        pub(crate) surv: usize,
+        /// `saved_met` (broke on `saved >= bits_to_save`) or `exhausted`.
+        pub(crate) stop: &'static str,
+        pub(crate) wipeout: bool,
+        pub(crate) stat_before: i32,
+        pub(crate) stat_new: i32,
+        pub(crate) stat_saved: i32,
+        pub(crate) stat_after: i32,
+        pub(crate) el_granted_before: i32,
+        pub(crate) el_granted_after: i32,
+        pub(crate) frame_granted_before: i32,
+        pub(crate) frame_granted_after: i32,
+        pub(crate) frame_max_dyn_before: i32,
+        pub(crate) frame_max_dyn_after: i32,
+    }
+
+    /// One `CrashRequired` handling inside `qc_main_frame`: the actual
+    /// `bits_to_save > 0` predicate outcome. `crash` runs `crash_recovery`;
+    /// `fallback` runs the all-`+1` gain bump.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct CrashDecisionRec {
+        pub(crate) seq: usize,
+        pub(crate) pass_idx: usize,
+        pub(crate) bits_to_save: i32,
+        /// `crash` | `fallback`.
+        pub(crate) decision: &'static str,
+    }
+
+    /// One `exit_matrix_step` call with actual inputs and outputs.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct ExitRec {
+        pub(crate) seq: usize,
+        pub(crate) sum_bits: i32,
+        pub(crate) sum_dyn: i32,
+        pub(crate) total_avail: i32,
+        pub(crate) avg_total_dyn: i32,
+        pub(crate) decrease_before: i32,
+        pub(crate) iterations: i32,
+        pub(crate) max_iterations: i32,
+        pub(crate) used_dyn: i32,
+        pub(crate) max_dyn: i32,
+        pub(crate) done: bool,
+        pub(crate) next_decrease: i32,
+        pub(crate) reset: bool,
+    }
+
+    /// One `MAX_QUANT` gate evaluation per recalculated channel.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct MaxQuantRec {
+        pub(crate) ch: usize,
+        pub(crate) max_all: u32,
+        pub(crate) limit: i32,
+        pub(crate) fail: bool,
+    }
+
+    /// One outer gain-loop pass: entry snapshot at the top of
+    /// `while !done`, exit accounting after the element-cap loop, and the
+    /// exit-matrix record for this pass.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct PassRec {
+        pub(crate) pass_idx: usize,
+        pub(crate) max_quant: Vec<MaxQuantRec>,
+        pub(crate) entry_iterations: i32,
+        pub(crate) entry_decrease: i32,
+        pub(crate) entry_constraints: bool,
+        pub(crate) entry_ch_ok: Vec<bool>,
+        pub(crate) entry_recalc: Vec<bool>,
+        pub(crate) entry_el_dyn: i32,
+        pub(crate) entry_el_static: i32,
+        pub(crate) entry_el_granted: i32,
+        pub(crate) entry_frame_granted: i32,
+        pub(crate) entry_frame_max_dyn: i32,
+        pub(crate) exit_sum_bits: i32,
+        pub(crate) exit_el_dyn: i32,
+        pub(crate) exit_el_static: i32,
+        pub(crate) exit_el_granted: i32,
+        pub(crate) exit_frame_granted: i32,
+        pub(crate) exit_frame_max_dyn: i32,
+        pub(crate) exit_crash_mark: i32,
+        pub(crate) exit: ExitRec,
+    }
+
+    /// One frame driver invocation: entry grants and exit accounting, all
+    /// cloned at their execution points.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct FrameRec {
+        pub(crate) seq: usize,
+        pub(crate) bit_res_level_el: i32,
+        pub(crate) bit_res_max_el: i32,
+        pub(crate) granted: i32,
+        pub(crate) max_dyn: i32,
+        pub(crate) el_granted_init: i32,
+        pub(crate) total_avail: i32,
+        pub(crate) static_used: i32,
+        pub(crate) used_dyn: i32,
+        pub(crate) tot_fill: i32,
+        pub(crate) align: i32,
+        pub(crate) total: i32,
+        pub(crate) bit_res_tot: i32,
+        pub(crate) final_max_sfb: Vec<usize>,
+        pub(crate) npass: usize,
+    }
+
+    thread_local! {
+        static ENABLED: Cell<bool> = const { Cell::new(true) };
+        static NEXT_SEQ: Cell<usize> = const { Cell::new(0) };
+        static CURRENT_PASS: Cell<usize> = const { Cell::new(0) };
+        static REDUCE: RefCell<Vec<ReduceRec>> = const { RefCell::new(Vec::new()) };
+        static CRASH: RefCell<Vec<CrashRec>> = const { RefCell::new(Vec::new()) };
+        static DECISION: RefCell<Vec<CrashDecisionRec>> = const { RefCell::new(Vec::new()) };
+        static EXIT: RefCell<Vec<ExitRec>> = const { RefCell::new(Vec::new()) };
+        static PASS: RefCell<Vec<PassRec>> = const { RefCell::new(Vec::new()) };
+        static FRAME: RefCell<Vec<FrameRec>> = const { RefCell::new(Vec::new()) };
+    }
+
+    pub(crate) fn set_enabled(on: bool) {
+        ENABLED.with(|e| e.set(on));
+    }
+
+    pub(crate) fn is_enabled() -> bool {
+        ENABLED.with(|e| e.get())
+    }
+
+    fn enabled() -> bool {
+        ENABLED.with(|e| e.get())
+    }
+
+    pub(crate) fn next_seq() -> usize {
+        NEXT_SEQ.with(|n| {
+            let s = n.get();
+            n.set(s + 1);
+            s
+        })
+    }
+
+    pub(crate) fn set_pass(pass_idx: usize) {
+        CURRENT_PASS.with(|p| p.set(pass_idx));
+    }
+
+    pub(crate) fn clear() {
+        REDUCE.with(|v| v.borrow_mut().clear());
+        CRASH.with(|v| v.borrow_mut().clear());
+        DECISION.with(|v| v.borrow_mut().clear());
+        EXIT.with(|v| v.borrow_mut().clear());
+        PASS.with(|v| v.borrow_mut().clear());
+        FRAME.with(|v| v.borrow_mut().clear());
+        NEXT_SEQ.with(|n| n.set(0));
+        CURRENT_PASS.with(|p| p.set(0));
+    }
+
+    pub(crate) fn record_reduce(mut r: ReduceRec) {
+        if !enabled() {
+            return;
+        }
+        r.pass_idx = CURRENT_PASS.with(|p| p.get());
+        REDUCE.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn record_crash(r: CrashRec) {
+        if !enabled() {
+            return;
+        }
+        CRASH.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn record_decision(r: CrashDecisionRec) {
+        if !enabled() {
+            return;
+        }
+        DECISION.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn record_exit(r: ExitRec) {
+        if !enabled() {
+            return;
+        }
+        EXIT.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn record_pass(r: PassRec) {
+        if !enabled() {
+            return;
+        }
+        PASS.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn record_frame(r: FrameRec) {
+        if !enabled() {
+            return;
+        }
+        FRAME.with(|v| v.borrow_mut().push(r));
+    }
+
+    pub(crate) fn take_reduce() -> Vec<ReduceRec> {
+        REDUCE.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_crash() -> Vec<CrashRec> {
+        CRASH.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_decision() -> Vec<CrashDecisionRec> {
+        DECISION.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_exit() -> Vec<ExitRec> {
+        EXIT.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_pass() -> Vec<PassRec> {
+        PASS.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn take_frame() -> Vec<FrameRec> {
+        FRAME.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+}
+
 /// Outcome of [`reduce_bit_consumption`] at `iterations == maxIterations`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReduceOutcome {
@@ -1020,6 +1308,13 @@ pub fn reduce_bit_consumption(
     el_static: i32,
     max_bits_el: i32,
 ) -> Result<ReduceOutcome, QcError> {
+    #[cfg(test)]
+    let rb_before = (
+        *iterations,
+        gains.to_vec(),
+        recalc.to_vec(),
+        ch_constraints.to_vec(),
+    );
     if *iterations < max_iterations {
         for (ch, failing) in ch_constraints.iter().enumerate() {
             if !failing {
@@ -1029,6 +1324,32 @@ pub fn reduce_bit_consumption(
         }
     } else if *iterations == max_iterations {
         if el_dyn_bits_used == 0 {
+            #[cfg(test)]
+            {
+                let (it_before, g_before, r_before, cc) = rb_before;
+                s6_probe::record_reduce(s6_probe::ReduceRec {
+                    seq: s6_probe::next_seq(),
+                    pass_idx: 0,
+                    iterations_before: it_before,
+                    iterations_after: it_before,
+                    max_iterations,
+                    gain_adjustment,
+                    ch_constraints: cc,
+                    gains_before: g_before,
+                    gains_after: gains.to_vec(),
+                    recalc_before: r_before,
+                    recalc_after: recalc.to_vec(),
+                    el_dyn_bits_used,
+                    bit_res_level_el,
+                    el_granted,
+                    el_static,
+                    max_bits_el,
+                    term_a: None,
+                    term_b: None,
+                    bits_to_save: None,
+                    branch: "err_empty",
+                });
+            }
             return Err(QcError::QuantError);
         }
         let bits_to_save = fix_max(
@@ -1041,11 +1362,94 @@ pub fn reduce_bit_consumption(
             *r = true;
         }
         *iterations += 1;
+        #[cfg(test)]
+        {
+            let (it_before, g_before, r_before, cc) = rb_before;
+            // Recompute the two `fix_max` arms from the cloned inputs with
+            // the exact production expressions (observational only; the
+            // production `bits_to_save` above is untouched).
+            let term_a = (el_dyn_bits_used + 8) - (bit_res_level_el + el_granted);
+            let term_b = (el_dyn_bits_used + el_static + 8) - max_bits_el;
+            s6_probe::record_reduce(s6_probe::ReduceRec {
+                seq: s6_probe::next_seq(),
+                pass_idx: 0,
+                iterations_before: it_before,
+                iterations_after: *iterations,
+                max_iterations,
+                gain_adjustment,
+                ch_constraints: cc,
+                gains_before: g_before,
+                gains_after: gains.to_vec(),
+                recalc_before: r_before,
+                recalc_after: recalc.to_vec(),
+                el_dyn_bits_used,
+                bit_res_level_el,
+                el_granted,
+                el_static,
+                max_bits_el,
+                term_a: Some(term_a),
+                term_b: Some(term_b),
+                bits_to_save: Some(bits_to_save),
+                branch: "crash_required",
+            });
+        }
         return Ok(ReduceOutcome::CrashRequired { bits_to_save });
     } else {
+        #[cfg(test)]
+        {
+            let (it_before, g_before, r_before, cc) = rb_before;
+            s6_probe::record_reduce(s6_probe::ReduceRec {
+                seq: s6_probe::next_seq(),
+                pass_idx: 0,
+                iterations_before: it_before,
+                iterations_after: it_before,
+                max_iterations,
+                gain_adjustment,
+                ch_constraints: cc,
+                gains_before: g_before,
+                gains_after: gains.to_vec(),
+                recalc_before: r_before,
+                recalc_after: recalc.to_vec(),
+                el_dyn_bits_used,
+                bit_res_level_el,
+                el_granted,
+                el_static,
+                max_bits_el,
+                term_a: None,
+                term_b: None,
+                bits_to_save: None,
+                branch: "err_over",
+            });
+        }
         return Err(QcError::QuantError);
     }
     *iterations += 1;
+    #[cfg(test)]
+    {
+        let (it_before, g_before, r_before, cc) = rb_before;
+        s6_probe::record_reduce(s6_probe::ReduceRec {
+            seq: s6_probe::next_seq(),
+            pass_idx: 0,
+            iterations_before: it_before,
+            iterations_after: *iterations,
+            max_iterations,
+            gain_adjustment,
+            ch_constraints: cc,
+            gains_before: g_before,
+            gains_after: gains.to_vec(),
+            recalc_before: r_before,
+            recalc_after: recalc.to_vec(),
+            el_dyn_bits_used,
+            bit_res_level_el,
+            el_granted,
+            el_static,
+            max_bits_el,
+            term_a: None,
+            term_b: None,
+            bits_to_save: None,
+            branch: "gain_bumped",
+        });
+    }
     Ok(ReduceOutcome::GainBumped)
 }
 
@@ -1096,6 +1500,15 @@ pub fn crash_recovery(
         bits_per_scf.push(bps);
         section_to_scf.push(s2s);
     }
+    #[cfg(test)]
+    let cr_entry = (
+        *static_bits_used,
+        *el_granted,
+        *frame_granted,
+        *frame_max_dyn,
+    );
+    #[cfg(test)]
+    let mut cr_steps: Vec<s6_probe::CrashStepRec> = Vec::new();
     let mut saved_bits = 0i32;
     let mut sfb = max_sfb[0] as i32 - 1;
     while sfb >= 0 {
@@ -1103,8 +1516,16 @@ pub fn crash_recovery(
         while grp < sfb_cnt {
             for ch in 0..n_channels {
                 let sect = section_to_scf[ch][grp + sfb as usize];
+                #[cfg(test)]
+                let saved_before = saved_bits;
+                #[cfg(test)]
+                let reclaimed = bits_per_scf[ch][grp + sfb as usize];
                 sections[ch].sections[sect].sfb_cnt -= 1;
                 saved_bits += bits_per_scf[ch][grp + sfb as usize];
+                #[cfg(test)]
+                let mut side_reclaimed = 0i32;
+                #[cfg(test)]
+                let mut emptied = false;
                 if sections[ch].sections[sect].sfb_cnt == 0 {
                     let tab = if short_window[ch] {
                         &SIDE_INFO_TAB_SHORT[..]
@@ -1112,6 +1533,25 @@ pub fn crash_recovery(
                         &SIDE_INFO_TAB_LONG[..]
                     };
                     saved_bits += tab[0] as i32;
+                    #[cfg(test)]
+                    {
+                        side_reclaimed = tab[0] as i32;
+                        emptied = true;
+                    }
+                }
+                #[cfg(test)]
+                {
+                    cr_steps.push(s6_probe::CrashStepRec {
+                        sfb,
+                        grp,
+                        ch,
+                        sect,
+                        reclaimed,
+                        side_reclaimed,
+                        sect_emptied: emptied,
+                        saved_before,
+                        saved_after: saved_bits,
+                    });
                 }
             }
             grp += sfb_per_group;
@@ -1121,6 +1561,14 @@ pub fn crash_recovery(
         }
         sfb -= 1;
     }
+    #[cfg(test)]
+    let sfb_exit_raw = sfb;
+    #[cfg(test)]
+    let stop: &'static str = if saved_bits >= bits_to_save {
+        "saved_met"
+    } else {
+        "exhausted"
+    };
     if sfb == -1 {
         sfb = 0;
     }
@@ -1133,6 +1581,30 @@ pub fn crash_recovery(
     *el_granted += saved;
     *frame_granted += saved;
     *frame_max_dyn += saved;
+    #[cfg(test)]
+    {
+        let (stat_before, el_before, fg_before, fmd_before) = cr_entry;
+        s6_probe::record_crash(s6_probe::CrashRec {
+            seq: s6_probe::next_seq(),
+            bits_to_save_entry: bits_to_save,
+            steps: cr_steps,
+            saved_final: saved_bits,
+            sfb_exit_raw,
+            surv: sfb as usize,
+            stop,
+            wipeout: sfb == 0,
+            stat_before,
+            stat_new,
+            stat_saved: saved,
+            stat_after: *static_bits_used,
+            el_granted_before: el_before,
+            el_granted_after: *el_granted,
+            frame_granted_before: fg_before,
+            frame_granted_after: *frame_granted,
+            frame_max_dyn_before: fmd_before,
+            frame_max_dyn_after: *frame_max_dyn,
+        });
+    }
     sfb as usize
 }
 
@@ -1555,6 +2027,15 @@ pub fn qc_main_frame(
     let mut el_static = input.static_bits;
     let mut frame_granted = granted;
     let mut frame_max_dyn = max_dyn;
+    #[cfg(test)]
+    let probe_frame_entry = (
+        bit_res_level_el,
+        bit_res_max_el,
+        granted,
+        max_dyn,
+        el_granted,
+        total_avail,
+    );
     let mut crash_mark = -1i32;
     let mut passes = Vec::new();
     let mut outer_guard = 0i32;
@@ -1607,6 +2088,26 @@ pub fn qc_main_frame(
             panic!("qc_main_frame: outer loop runaway (implementation bug)");
         }
         outer_guard += 1;
+        // S6 probe: per-outer-pass entry snapshot (actual local values,
+        // cloned; no feedback into decisions or control flow).
+        #[cfg(test)]
+        let probe_entry = (
+            passes.len(),
+            iterations,
+            decrease,
+            constraints,
+            ch_ok.clone(),
+            recalc.clone(),
+            el_dyn,
+            el_static,
+            el_granted,
+            frame_granted,
+            frame_max_dyn,
+        );
+        #[cfg(test)]
+        let mut maxq_gate_recs: Vec<s6_probe::MaxQuantRec> = Vec::new();
+        #[cfg(test)]
+        s6_probe::set_pass(passes.len());
         // NOTE: C resets `quantizationDone = 0` here (`:903`); the reset is
         // subsumed by the `exit_matrix_step` assignment below, which runs
         // unconditionally every pass.
@@ -1631,6 +2132,21 @@ pub fn qc_main_frame(
                     )? {
                         ReduceOutcome::GainBumped => {}
                         ReduceOutcome::CrashRequired { bits_to_save } => {
+                            #[cfg(test)]
+                            let probe_pass_idx = passes.len();
+                            #[cfg(test)]
+                            {
+                                s6_probe::record_decision(s6_probe::CrashDecisionRec {
+                                    seq: s6_probe::next_seq(),
+                                    pass_idx: probe_pass_idx,
+                                    bits_to_save,
+                                    decision: if bits_to_save > 0 {
+                                        "crash"
+                                    } else {
+                                        "fallback"
+                                    },
+                                });
+                            }
                             if bits_to_save > 0 {
                                 let short_win: Vec<bool> = input
                                     .channels
@@ -1703,6 +2219,13 @@ pub fn qc_main_frame(
                             &quants[ch],
                             &mut maxes[ch],
                         );
+                        #[cfg(test)]
+                        maxq_gate_recs.push(s6_probe::MaxQuantRec {
+                            ch,
+                            max_all,
+                            limit: MAX_QUANT,
+                            fail: max_all > MAX_QUANT as u32,
+                        });
                         if max_all > MAX_QUANT as u32 {
                             ch_ok[ch] = false;
                             constraints = false;
@@ -1777,6 +2300,17 @@ pub fn qc_main_frame(
             crash: crash_mark,
         });
         // Exit matrix (`:1040-1105`).
+        #[cfg(test)]
+        let probe_exit_inputs = (
+            sum_bits,
+            el_dyn,
+            total_avail,
+            0,
+            decrease,
+            iterations,
+            el_dyn,
+            frame_max_dyn,
+        );
         let (next_done, next_decrease, reset) = exit_matrix_step(
             sum_bits,
             el_dyn,
@@ -1788,6 +2322,60 @@ pub fn qc_main_frame(
             el_dyn,
             frame_max_dyn,
         );
+        #[cfg(test)]
+        {
+            let (
+                pass_idx,
+                e_iter,
+                e_dec,
+                e_con,
+                e_ch_ok,
+                e_recalc,
+                e_el_dyn,
+                e_el_static,
+                e_el_granted,
+                e_fg,
+                e_fmd,
+            ) = probe_entry;
+            let exit_rec = s6_probe::ExitRec {
+                seq: s6_probe::next_seq(),
+                sum_bits: probe_exit_inputs.0,
+                sum_dyn: probe_exit_inputs.1,
+                total_avail: probe_exit_inputs.2,
+                avg_total_dyn: probe_exit_inputs.3,
+                decrease_before: probe_exit_inputs.4,
+                iterations: probe_exit_inputs.5,
+                max_iterations,
+                used_dyn: probe_exit_inputs.6,
+                max_dyn: probe_exit_inputs.7,
+                done: next_done,
+                next_decrease,
+                reset,
+            };
+            s6_probe::record_exit(exit_rec.clone());
+            s6_probe::record_pass(s6_probe::PassRec {
+                pass_idx,
+                max_quant: maxq_gate_recs,
+                entry_iterations: e_iter,
+                entry_decrease: e_dec,
+                entry_constraints: e_con,
+                entry_ch_ok: e_ch_ok,
+                entry_recalc: e_recalc,
+                entry_el_dyn: e_el_dyn,
+                entry_el_static: e_el_static,
+                entry_el_granted: e_el_granted,
+                entry_frame_granted: e_fg,
+                entry_frame_max_dyn: e_fmd,
+                exit_sum_bits: sum_bits,
+                exit_el_dyn: el_dyn,
+                exit_el_static: el_static,
+                exit_el_granted: el_granted,
+                exit_frame_granted: frame_granted,
+                exit_frame_max_dyn: frame_max_dyn,
+                exit_crash_mark: crash_mark,
+                exit: exit_rec,
+            });
+        }
         done = next_done;
         decrease = next_decrease;
         if reset {
@@ -1810,6 +2398,27 @@ pub fn qc_main_frame(
         0,
     )?;
     qc.bit_res_tot = update_bitres_vbr(input.max_bits_per_frame, qc.bit_res_tot_max);
+    #[cfg(test)]
+    {
+        let (f_lvl, f_max, f_gr, f_md, f_el_init, f_av) = probe_frame_entry;
+        s6_probe::record_frame(s6_probe::FrameRec {
+            seq: s6_probe::next_seq(),
+            bit_res_level_el: f_lvl,
+            bit_res_max_el: f_max,
+            granted: f_gr,
+            max_dyn: f_md,
+            el_granted_init: f_el_init,
+            total_avail: f_av,
+            static_used: el_static,
+            used_dyn: el_dyn,
+            tot_fill: tot_fill_sized,
+            align: align_bits,
+            total: total_bits,
+            bit_res_tot: qc.bit_res_tot,
+            final_max_sfb: max_sfb.clone(),
+            npass: passes.len(),
+        });
+    }
     Ok(QcFrameOutput {
         granted_dyn_bits: granted,
         max_dyn_bits: max_dyn,
@@ -1839,7 +2448,7 @@ pub fn qc_main_frame(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::aac_enc::testdata;
 
@@ -3148,5 +3757,874 @@ mod tests {
             assert_eq!((gpe, gpecorr), alt, "{mode:?} ignores Full-only inputs");
             assert_eq!(st_alt.pe_correction_m, st.pe_correction_m);
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // R2.2 Group D S6 test-only instrumentation validation (S6).
+    //
+    // All probe records are actual local values cloned at their execution
+    // points; no probe result feeds decisions or control flow. Real-corpus
+    // evidence (`S6-PROBE-CORPUS`) is kept explicitly separate from synthetic
+    // evidence (`S6-PROBE-SYNTH`).
+    // -----------------------------------------------------------------------
+
+    fn s6_probe_run_frame(
+        name: &str,
+        f: u32,
+        max_bits_override: Option<(i32, i32, i32)>,
+    ) -> (
+        QcFrameOutput,
+        Vec<super::s6_probe::ReduceRec>,
+        Vec<super::s6_probe::CrashRec>,
+        Vec<super::s6_probe::CrashDecisionRec>,
+        Vec<super::s6_probe::ExitRec>,
+        Vec<super::s6_probe::PassRec>,
+        Vec<super::s6_probe::FrameRec>,
+    ) {
+        use super::s6_probe as probe;
+        let tns_defaults = [TnsChannel::default(), TnsChannel::default()];
+        let s1 = testdata::load_s1(name, f);
+        let s4 = testdata::load_s4(name, f);
+        let s5 = testdata::load_s5(name, f);
+        let s6 = testdata::load_s6(name, f);
+        let init = testdata::load_s6init(init_tag(name));
+        let (input, _) = build_frame_input(name, &s1, &s4, &s5, &init, &tns_defaults);
+        let mut input = input;
+        if let Some((max_frame, max_el, bit_res)) = max_bits_override {
+            input.max_bits_per_frame = max_frame;
+            input.max_bits_el = max_el;
+            let _ = bit_res;
+        }
+        let mut dist = forge_dist(&init, &s6.gstate);
+        let (bit_res, bit_res_max) = if let Some((_, _, br)) = max_bits_override {
+            (br, br)
+        } else {
+            (init.max, init.max)
+        };
+        let mut qc = QcState {
+            bit_res_tot: bit_res,
+            bit_res_tot_max: bit_res_max,
+            bc_scratch: Default::default(),
+        };
+        probe::set_enabled(true);
+        probe::clear();
+        let out = qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS)
+            .expect("s6 probe frame converges");
+        let reduces = probe::take_reduce();
+        let crashes = probe::take_crash();
+        let decisions = probe::take_decision();
+        let exits = probe::take_exit();
+        let passes = probe::take_pass();
+        let frames = probe::take_frame();
+        probe::set_enabled(true);
+        (out, reduces, crashes, decisions, exits, passes, frames)
+    }
+
+    /// AC-9 visibility-only wrapper around the existing reviewed synthetic
+    /// crash probe. No second S6 implementation or new capture.
+    pub(crate) fn s6_probe_run_frame_for_ac9(
+        name: &'static str,
+        f: u32,
+        max_bits_override: Option<(i32, i32, i32)>,
+    ) -> (
+        QcFrameOutput,
+        Vec<super::s6_probe::ReduceRec>,
+        Vec<super::s6_probe::CrashRec>,
+        Vec<super::s6_probe::CrashDecisionRec>,
+        Vec<super::s6_probe::ExitRec>,
+        Vec<super::s6_probe::PassRec>,
+        Vec<super::s6_probe::FrameRec>,
+    ) {
+        s6_probe_run_frame(name, f, max_bits_override)
+    }
+
+    /// AC-9 per-pass corpus sweep over the existing reviewed S6 probe. Every
+    /// returned value is an actual production pass/decision record; no new S6
+    /// implementation and no synthetic forcing is introduced.
+    pub(crate) struct S6Ac9PassFrame {
+        pub(crate) material: &'static str,
+        pub(crate) frame: u32,
+        pub(crate) n_channels: usize,
+        pub(crate) passes: Vec<super::s6_probe::PassRec>,
+        pub(crate) reduces: Vec<super::s6_probe::ReduceRec>,
+        pub(crate) decisions: Vec<super::s6_probe::CrashDecisionRec>,
+        pub(crate) crashes: Vec<super::s6_probe::CrashRec>,
+        pub(crate) frame_record: super::s6_probe::FrameRec,
+    }
+
+    pub(crate) fn s6_probe_corpus_for_ac9() -> Vec<S6Ac9PassFrame> {
+        let mut out = Vec::new();
+        for &(name, f) in S6_CASES.iter() {
+            let (out_frame, reduces, crashes, decisions, _exits, passes, frames) =
+                s6_probe_run_frame(name, f, None);
+            let frame_record = frames.into_iter().next().expect("one S6 frame record");
+            let n_channels = frame_record.final_max_sfb.len();
+            assert_eq!(passes.len(), out_frame.passes.len());
+            out.push(S6Ac9PassFrame {
+                material: name,
+                frame: f,
+                n_channels,
+                passes,
+                reduces,
+                decisions,
+                crashes,
+                frame_record,
+            });
+        }
+        out
+    }
+
+    #[test]
+    fn s6_probe_corpus_capture() {
+        // Required test 1 — corpus capture: run the existing OP (oracle S6)
+        // corpus and record actual pass-level behavior. All 20 frames are
+        // real-corpus evidence (`S6-PROBE-CORPUS`), never synthetic.
+        use super::s6_probe as probe;
+        probe::set_enabled(true);
+        let mut total_passes = 0usize;
+        let mut total_reduces = 0usize;
+        let mut total_crashes = 0usize;
+        let mut total_exits = 0usize;
+        for (name, f) in S6_CASES {
+            let (out, reduces, crashes, decisions, exits, passes, frames) =
+                s6_probe_run_frame(name, f, None);
+            // Probe pass count matches production PassTrace count; exit count
+            // matches passes (one exit-matrix call per outer pass).
+            assert_eq!(
+                passes.len(),
+                out.passes.len(),
+                "{name} f={f}: probe passes match production"
+            );
+            assert_eq!(
+                exits.len(),
+                out.passes.len(),
+                "{name} f={f}: one exit-matrix call per pass"
+            );
+            assert_eq!(frames.len(), 1, "{name} f={f}: one frame record");
+            let fr = &frames[0];
+            assert_eq!(fr.bit_res_level_el, out.bit_res_level_el);
+            assert_eq!(fr.bit_res_max_el, out.bit_res_max_el);
+            assert_eq!(fr.granted, out.granted_dyn_bits);
+            assert_eq!(fr.max_dyn, out.max_dyn_bits);
+            assert_eq!(fr.total_avail, out.total_avail);
+            assert_eq!(fr.static_used, out.static_bits_used);
+            assert_eq!(fr.used_dyn, out.used_dyn_bits);
+            assert_eq!(fr.total, out.total_bits);
+            assert_eq!(fr.npass, out.passes.len());
+            // Corpus never retries on the committed fixtures: no reduce /
+            // crash / decision records (proved, not assumed).
+            assert!(
+                reduces.is_empty(),
+                "{name} f={f}: corpus frame must not reduce, got {reduces:?}"
+            );
+            assert!(
+                crashes.is_empty(),
+                "{name} f={f}: corpus frame must not crash"
+            );
+            assert!(
+                decisions.is_empty(),
+                "{name} f={f}: corpus frame must not decide crash/fallback"
+            );
+            // Per-pass entry/exit vs production PassTrace.
+            for (i, (pp, pt)) in passes.iter().zip(out.passes.iter()).enumerate() {
+                assert_eq!(pp.pass_idx, i, "{name} f={f} pass {i}: idx");
+                assert_eq!(
+                    pp.entry_iterations, pt.iterations,
+                    "{name} f={f} pass {i}: iterations entry"
+                );
+                assert_eq!(
+                    pp.exit_sum_bits,
+                    total_consumed_bits(pp.exit_el_dyn, pp.exit_el_static, 0, GLOBAL_EXT_BITS, 56),
+                    "{name} f={f} pass {i}: sum_bits accounting"
+                );
+                assert_eq!(pp.exit_el_dyn, pt.el_dyn, "{name} f={f} pass {i}: el_dyn");
+                assert_eq!(
+                    pp.exit_el_static, pt.el_static,
+                    "{name} f={f} pass {i}: el_static"
+                );
+                assert_eq!(
+                    pp.exit_crash_mark, pt.crash,
+                    "{name} f={f} pass {i}: crash mark"
+                );
+                assert_eq!(pp.exit.iterations, pt.iterations);
+                assert_eq!(
+                    pp.exit.done,
+                    i + 1 == passes.len(),
+                    "{name} f={f} pass {i}: only last pass done"
+                );
+            }
+            // Exit-matrix actual inputs: sum_dyn is el_dyn, avg_total_dyn is
+            // the production constant 0, used_dyn is el_dyn, max_dyn is the
+            // frame max.
+            for e in &exits {
+                assert_eq!(e.avg_total_dyn, 0, "{name} f={f}: avg_total_dyn constant");
+                assert_eq!(e.sum_dyn, e.used_dyn, "{name} f={f}: sum_dyn == used_dyn");
+            }
+            total_passes += passes.len();
+            total_reduces += reduces.len();
+            total_crashes += crashes.len();
+            total_exits += exits.len();
+            println!(
+                "S6-PROBE-CORPUS {name} f={f} npass={} sum_bits={} el_dyn={} el_static={} el_granted={} frame_granted={} frame_max_dyn={}",
+                out.passes.len(),
+                passes.last().map(|p| p.exit_sum_bits).unwrap_or(-1),
+                out.used_dyn_bits,
+                out.static_bits_used,
+                out.el_granted,
+                passes.last().map(|p| p.exit_frame_granted).unwrap_or(-1),
+                passes.last().map(|p| p.exit_frame_max_dyn).unwrap_or(-1),
+            );
+        }
+        println!(
+            "S6-PROBE-CORPUS total frames=20 passes={total_passes} reduces={total_reduces} crashes={total_crashes} exits={total_exits}"
+        );
+        assert_eq!(total_passes, 20, "corpus is single-pass on every fixture");
+        assert_eq!(total_reduces, 0);
+        assert_eq!(total_crashes, 0);
+        assert_eq!(total_exits, 20);
+    }
+
+    #[test]
+    fn s6_probe_retry_path() {
+        // Required test 2 — synthetic retry: gain-bump/retry path
+        // (`S6-PROBE-SYNTH`, explicitly not corpus). Budget sweep showed:
+        // 2000/2500/1200 need a crash after 5 bumps; 3000 is the pure
+        // gain-bump retry (4 passes, 3 bumps, no crash); >=3500 is
+        // single-pass. The pure-retry 3000-bit budget is the required
+        // evidence; the 2000-bit crash prefix is covered by the crash test.
+        let (out, reduces, crashes, decisions, exits, passes, _) =
+            s6_probe_run_frame("noise-mono", 5, Some((3000, 3000, 3000)));
+        assert!(passes.len() > 1, "synthetic retry must take >1 pass");
+        assert!(!reduces.is_empty(), "retry must record reduce calls");
+        assert!(
+            crashes.is_empty(),
+            "pure-retry budget must not crash, got {crashes:?}"
+        );
+        assert!(
+            decisions.is_empty(),
+            "no crash/fallback decision on pure retry"
+        );
+        // Every reduce on this path is a gain bump with the exact comparison
+        // semantics (`iterations < max`).
+        for r in &reduces {
+            assert_eq!(r.branch, "gain_bumped");
+            assert!(r.iterations_before < r.max_iterations);
+            assert_eq!(r.iterations_after, r.iterations_before + 1);
+            assert!(r.bits_to_save.is_none());
+            // Gains only move up by the recorded adjustment on unconstrained
+            // channels; recalc flags follow.
+            for (ch, &failing) in r.ch_constraints.iter().enumerate() {
+                if !failing {
+                    assert_eq!(r.gains_after[ch], r.gains_before[ch] + r.gain_adjustment);
+                    assert!(r.recalc_after[ch]);
+                } else {
+                    assert_eq!(r.gains_after[ch], r.gains_before[ch]);
+                }
+            }
+        }
+        // Exit-matrix transitions: first pass retries (done=false,
+        // reset=true, direction up), last pass exits.
+        let first = &exits[0];
+        assert!(!first.done, "first pass must not be done");
+        assert!(first.reset, "first pass must reset constraints");
+        assert_eq!(first.next_decrease, 1);
+        let last = exits.last().unwrap();
+        assert!(last.done, "last pass must be done");
+        assert!(
+            out.total_bits <= 3000,
+            "converged frame fits the synthetic buffer"
+        );
+        println!(
+            "S6-PROBE-SYNTH retry passes={} reduces={} first_sum={} last_sum={} avail={} gains_first={:?} gains_last={:?}",
+            passes.len(),
+            reduces.len(),
+            first.sum_bits,
+            last.sum_bits,
+            last.total_avail,
+            passes.first().map(|p| p.entry_el_granted),
+            out.final_gains,
+        );
+    }
+
+    #[test]
+    fn s6_probe_crash_path() {
+        // Required test 3 — synthetic crash: `bits_to_save > 0` and the
+        // crash loop (`S6-PROBE-SYNTH`).
+        let (out, reduces, crashes, decisions, exits, passes, _) =
+            s6_probe_run_frame("noise-mono", 5, Some((1200, 1200, 1200)));
+        assert!(passes.len() > 1);
+        let crash_reqs: Vec<_> = reduces
+            .iter()
+            .filter(|r| r.branch == "crash_required")
+            .collect();
+        assert!(
+            !crash_reqs.is_empty(),
+            "crash path must record crash_required"
+        );
+        for r in &crash_reqs {
+            assert_eq!(r.iterations_before, r.max_iterations);
+            let bts = r.bits_to_save.expect("crash has bits_to_save");
+            assert!(bts > 0, "synthetic crash must save >0 bits, got {bts}");
+            // Exact source comparison semantics: max of the two arms.
+            let term_a = (r.el_dyn_bits_used + 8) - (r.bit_res_level_el + r.el_granted);
+            let term_b = (r.el_dyn_bits_used + r.el_static + 8) - r.max_bits_el;
+            assert_eq!(r.term_a, Some(term_a));
+            assert_eq!(r.term_b, Some(term_b));
+            assert_eq!(bts, term_a.max(term_b));
+        }
+        assert_eq!(
+            decisions.len(),
+            crash_reqs.len(),
+            "one decision per crash_required"
+        );
+        for d in &decisions {
+            assert_eq!(d.decision, "crash");
+            assert!(d.bits_to_save > 0);
+        }
+        assert!(!crashes.is_empty(), "crash_recovery must record");
+        for c in &crashes {
+            assert_eq!(c.bits_to_save_entry, decisions[0].bits_to_save);
+            assert!(!c.steps.is_empty(), "crash loop must drop at least one SFB");
+            assert!(
+                c.saved_final >= c.bits_to_save_entry,
+                "loop stops only when saved >= to_save or exhausted"
+            );
+            // Step chain: saved_before + reclaimed + side == saved_after.
+            for s in &c.steps {
+                assert_eq!(
+                    s.saved_after,
+                    s.saved_before + s.reclaimed + s.side_reclaimed
+                );
+                assert_eq!(s.sect_emptied, s.side_reclaimed != 0);
+            }
+            // Stop predicate outcome matches the recorded stop string.
+            if c.stop == "saved_met" {
+                assert!(c.saved_final >= c.bits_to_save_entry);
+            } else {
+                assert_eq!(c.stop, "exhausted");
+                assert_eq!(c.sfb_exit_raw, -1);
+            }
+            assert!(c.surv < 49, "maxSfb must drop on starvation input");
+        }
+        let last = passes.last().unwrap();
+        assert!(
+            last.exit_crash_mark >= 0,
+            "crash mark must survive to pass trace"
+        );
+        assert!(out.total_bits <= 1200);
+        println!(
+            "S6-PROBE-SYNTH crash passes={} reduces={} crashes={} bits_to_save={} saved_final={} surv={} steps={}",
+            passes.len(),
+            reduces.len(),
+            crashes.len(),
+            decisions.first().map(|d| d.bits_to_save).unwrap_or(-1),
+            crashes.first().map(|c| c.saved_final).unwrap_or(-1),
+            crashes.first().map(|c| c.surv).unwrap_or(usize::MAX),
+            crashes.first().map(|c| c.steps.len()).unwrap_or(0),
+        );
+        let _ = exits;
+    }
+
+    #[test]
+    fn s6_probe_fallback_branch() {
+        // Required test 4 — fallback: `bits_to_save <= 0` and the all-`+1`
+        // fallback. No valid frame-driver setup was found to reach it
+        // (documented below); the unit-level predicate and the production
+        // decision expression are exercised directly without weakening them.
+        use super::s6_probe as probe;
+        // Unit-level: small consumption against a large buffer yields
+        // `bits_to_save <= 0` with the exact source semantics.
+        probe::set_enabled(true);
+        probe::clear();
+        let mut it = MAX_ITERATIONS;
+        let mut gains = vec![10, 20];
+        let mut recalc = vec![false, false];
+        let res = reduce_bit_consumption(
+            &mut it,
+            MAX_ITERATIONS,
+            1,
+            &[true, true],
+            &mut gains,
+            &mut recalc,
+            100,
+            5000,
+            5000,
+            60,
+            6144,
+        )
+        .expect("small consumption still returns CrashRequired");
+        let bits_to_save = match res {
+            ReduceOutcome::CrashRequired { bits_to_save } => bits_to_save,
+            ReduceOutcome::GainBumped => panic!("expected crash_required"),
+        };
+        assert!(
+            bits_to_save <= 0,
+            "unit fallback setup must save <=0, got {bits_to_save}"
+        );
+        let reduces = probe::take_reduce();
+        assert_eq!(reduces.len(), 1);
+        assert_eq!(reduces[0].branch, "crash_required");
+        assert_eq!(reduces[0].bits_to_save, Some(bits_to_save));
+        // Production decision predicate (frame driver `:2084`): `> 0` runs
+        // crash, else the all-`+1` fallback. The recorded value takes the
+        // fallback arm.
+        assert!(!(bits_to_save > 0), "recorded value selects fallback");
+        // Frame-driver reachability search: corpus + synthetic retry/crash
+        // budgets never produce a fallback decision (all crash decisions are
+        // `> 0`; corpus has no decisions at all). The fallback arm is
+        // therefore unobserved via any valid `qc_main_frame` setup tried:
+        // element-cap failures imply `el_dyn + el_static > n*6144`, hence
+        // `term_b > 8 > 0`; MAX_QUANT-only failures converge via gain bumps
+        // before `iterations == max` on every fixture tried.
+        for (name, f) in S6_CASES {
+            let (_, _, _, decisions, _, _, _) = s6_probe_run_frame(name, f, None);
+            assert!(decisions.is_empty(), "{name} f={f}: no fallback on corpus");
+        }
+        for budget in [2000, 1200, 400] {
+            let (_, _, _, decisions, _, _, _) =
+                s6_probe_run_frame("noise-mono", 5, Some((budget, budget, budget)));
+            for d in &decisions {
+                assert_eq!(
+                    d.decision, "crash",
+                    "synthetic budget {budget} never falls back"
+                );
+            }
+        }
+        println!("S6-PROBE-SYNTH fallback unit bits_to_save={bits_to_save} (frame-driver fallback unobserved; see reason above)");
+        probe::take_crash();
+        probe::take_decision();
+        probe::take_exit();
+        probe::take_pass();
+        probe::take_frame();
+    }
+
+    #[test]
+    fn s6_probe_recount_rebalance() {
+        // Required test 5 — recount: crash recount and grant rebalance
+        // (`S6-PROBE-SYNTH` stereo MS_SOME starvation).
+        let (out, _, crashes, _, _, _, _) =
+            s6_probe_run_frame("multitone-stereo", 1, Some((400, 400, 400)));
+        assert!(!crashes.is_empty());
+        let c = &crashes[0];
+        // Recount inputs: wipeout iff survivor is 0; survivor is the post-
+        // fixup sfb.
+        assert_eq!(c.wipeout, c.surv == 0);
+        // Rebalance arithmetic from recorded operands only:
+        // `saved = stat_before - stat_new`, grants grow by exactly `saved`.
+        assert_eq!(c.stat_saved, c.stat_before - c.stat_new);
+        assert_eq!(c.stat_after, c.stat_new);
+        assert_eq!(c.el_granted_after, c.el_granted_before + c.stat_saved);
+        assert_eq!(c.frame_granted_after, c.frame_granted_before + c.stat_saved);
+        assert_eq!(c.frame_max_dyn_after, c.frame_max_dyn_before + c.stat_saved);
+        // Independent recount under the surviving band count (C NULL-recount
+        // mirror): blank TNS matches the test inputs; block-type and MS mask
+        // under `surv` use the actual input geometry (not an assumed LONG).
+        let tns_blank = TnsChannel::default();
+        let tns_defaults = [TnsChannel::default(), TnsChannel::default()];
+        let s1 = testdata::load_s1("multitone-stereo", 1);
+        let s4 = testdata::load_s4("multitone-stereo", 1);
+        let s5 = testdata::load_s5("multitone-stereo", 1);
+        let init = testdata::load_s6init(init_tag("multitone-stereo"));
+        let (input, _) = build_frame_input("multitone-stereo", &s1, &s4, &s5, &init, &tns_defaults);
+        let (digest, _) = s1.msd.clone().expect("MS_SOME fixture");
+        assert_eq!(digest, 1);
+        use crate::aac_enc::bitcount::BLOCK_SHORT;
+        let s0 = input.channels[0].block_type == BLOCK_SHORT;
+        let s1s = input.channels[1].block_type == BLOCK_SHORT;
+        let bands = ms_mask_bits(
+            input.channels[0].sfb_cnt,
+            input.channels[0].sfb_per_group,
+            c.surv,
+        );
+        let expected =
+            static_bits_cpe(true, s0, s1s, MsDigest::Some, bands, &tns_blank, &tns_blank);
+        assert_eq!(
+            c.stat_new, expected,
+            "probe recount matches independent recount"
+        );
+        assert_eq!(out.static_bits_used, expected);
+        println!(
+            "S6-PROBE-SYNTH recount surv={} wipeout={} stat_before={} stat_new={} saved={} el_granted={}->{} frame_granted={}->{} frame_max_dyn={}->{}",
+            c.surv,
+            c.wipeout,
+            c.stat_before,
+            c.stat_new,
+            c.stat_saved,
+            c.el_granted_before,
+            c.el_granted_after,
+            c.frame_granted_before,
+            c.frame_granted_after,
+            c.frame_max_dyn_before,
+            c.frame_max_dyn_after,
+        );
+    }
+
+    #[test]
+    fn s6_probe_exit_matrix_transitions() {
+        // Required test 6 — exit-matrix: actual pass-transition decisions.
+        // Covers the corpus single-pass exit plus the synthetic retry
+        // (retry then exit) and crash (retry/crash then exit) transitions.
+        // Budget sweep established: corpus single-pass exits `(done=true,
+        // reset=true)` (C still memclears inside the taken branch); pure
+        // retry (3000) is `(false,true)*` then `(true,false)`; crash (1200)
+        // ends `(true,false)` after the crash pass.
+        let (_, _, _, _, exits_corpus, passes_corpus, _) =
+            s6_probe_run_frame("sine-stereo", 5, None);
+        assert_eq!(exits_corpus.len(), 1);
+        assert!(exits_corpus[0].done);
+        assert!(
+            exits_corpus[0].reset,
+            "single-pass corpus still resets (C branch)"
+        );
+        let (_, _, _, _, exits_retry, _, _) =
+            s6_probe_run_frame("noise-mono", 5, Some((3000, 3000, 3000)));
+        assert!(exits_retry.len() > 1);
+        assert!(!exits_retry[0].done && exits_retry[0].reset);
+        assert!(exits_retry.last().unwrap().done);
+        assert!(
+            !exits_retry.last().unwrap().reset,
+            "final retry exit does not reset"
+        );
+        let (_, _, _, _, exits_crash, _, _) =
+            s6_probe_run_frame("noise-mono", 5, Some((1200, 1200, 1200)));
+        assert!(exits_crash.len() > 1);
+        assert!(exits_crash.last().unwrap().done);
+        // Every recorded exit reproduces via the production step function.
+        for e in exits_corpus
+            .iter()
+            .chain(exits_retry.iter())
+            .chain(exits_crash.iter())
+        {
+            let (done, next_decrease, reset) = exit_matrix_step(
+                e.sum_bits,
+                e.sum_dyn,
+                e.total_avail,
+                e.avg_total_dyn,
+                e.decrease_before,
+                e.iterations,
+                e.max_iterations,
+                e.used_dyn,
+                e.max_dyn,
+            );
+            assert_eq!(
+                (done, next_decrease, reset),
+                (e.done, e.next_decrease, e.reset)
+            );
+        }
+        // Margin attribution on recorded operands (observational only):
+        // headroom `total_avail - sum_bits` is >0 exactly when under budget.
+        for e in &exits_retry {
+            let headroom = e.total_avail as i64 - e.sum_bits as i64;
+            assert_eq!(headroom > 0, e.sum_bits < e.total_avail);
+        }
+        println!(
+            "S6-PROBE exit corpus_done={} retry_first_done={} retry_last_done={} crash_last_done={}",
+            exits_corpus[0].done,
+            exits_retry[0].done,
+            exits_retry.last().unwrap().done,
+            exits_crash.last().unwrap().done,
+        );
+        let _ = passes_corpus;
+    }
+
+    #[test]
+    fn s6_probe_determinism() {
+        // Required test 7 — determinism: identical inputs twice, complete
+        // ordered probe records compared.
+        let run_once = || s6_probe_run_frame("noise-mono", 5, Some((1200, 1200, 1200)));
+        let (o1, r1, c1, d1, e1, p1, f1) = run_once();
+        let (o2, r2, c2, d2, e2, p2, f2) = run_once();
+        assert_eq!(
+            format!("{o1:?}"),
+            format!("{o2:?}"),
+            "frame output deterministic"
+        );
+        assert_eq!(r1, r2, "reduce records deterministic and ordered");
+        assert_eq!(c1, c2, "crash records deterministic and ordered");
+        assert_eq!(d1, d2, "decision records deterministic and ordered");
+        assert_eq!(e1, e2, "exit records deterministic and ordered");
+        assert_eq!(p1, p2, "pass records deterministic and ordered");
+        assert_eq!(f1, f2, "frame records deterministic and ordered");
+        // Corpus determinism as well (single-pass path).
+        let (co1, cr1, cc1, cd1, ce1, cp1, cf1) = s6_probe_run_frame("sine-stereo", 5, None);
+        let (co2, cr2, cc2, cd2, ce2, cp2, cf2) = s6_probe_run_frame("sine-stereo", 5, None);
+        assert_eq!(format!("{co1:?}"), format!("{co2:?}"));
+        assert_eq!(cr1, cr2);
+        assert_eq!(cc1, cc2);
+        assert_eq!(cd1, cd2);
+        assert_eq!(ce1, ce2);
+        assert_eq!(cp1, cp2);
+        assert_eq!(cf1, cf2);
+        println!(
+            "S6-PROBE determinism synth reduces={} crashes={} passes={} corpus_passes={}",
+            r1.len(),
+            c1.len(),
+            p1.len(),
+            cp1.len(),
+        );
+    }
+
+    #[test]
+    fn s6_probe_replay_predicates() {
+        // Required test 8 — replay: independently verify recorded predicates
+        // and outcomes against captured operands (no second S6
+        // implementation; production primitives only).
+        // Corpus frame: no decisions, single exit that must replay.
+        let (_, reduces, crashes, decisions, exits, passes, _) =
+            s6_probe_run_frame("sine-stereo", 5, None);
+        assert!(reduces.is_empty() && crashes.is_empty() && decisions.is_empty());
+        for e in &exits {
+            let (done, next_decrease, reset) = exit_matrix_step(
+                e.sum_bits,
+                e.sum_dyn,
+                e.total_avail,
+                e.avg_total_dyn,
+                e.decrease_before,
+                e.iterations,
+                e.max_iterations,
+                e.used_dyn,
+                e.max_dyn,
+            );
+            assert_eq!(
+                (done, next_decrease, reset),
+                (e.done, e.next_decrease, e.reset)
+            );
+        }
+        // Synthetic crash frame: full predicate replay.
+        let (_, r2, c2, d2, e2, p2, _) =
+            s6_probe_run_frame("noise-mono", 5, Some((1200, 1200, 1200)));
+        for r in &r2 {
+            match r.branch {
+                "gain_bumped" => {
+                    assert!(r.iterations_before < r.max_iterations);
+                    assert_eq!(r.iterations_after, r.iterations_before + 1);
+                }
+                "crash_required" => {
+                    assert_eq!(r.iterations_before, r.max_iterations);
+                    assert_eq!(r.iterations_after, r.max_iterations + 1);
+                    let bts = r.bits_to_save.unwrap();
+                    assert_eq!(bts, r.term_a.unwrap().max(r.term_b.unwrap()));
+                    // All recalc flags set on the crash path (actual values).
+                    assert!(r.recalc_after.iter().all(|&x| x));
+                }
+                b => panic!("unexpected reduce branch {b}"),
+            }
+            // Gains/recalc threading: unconstrained channels bump, others hold.
+            for (ch, &failing) in r.ch_constraints.iter().enumerate() {
+                if r.branch == "gain_bumped" && !failing {
+                    assert_eq!(r.gains_after[ch], r.gains_before[ch] + r.gain_adjustment);
+                }
+            }
+        }
+        for (d, r) in d2
+            .iter()
+            .zip(r2.iter().filter(|x| x.branch == "crash_required"))
+        {
+            assert_eq!(d.bits_to_save, r.bits_to_save.unwrap());
+            assert_eq!(
+                d.decision,
+                if d.bits_to_save > 0 {
+                    "crash"
+                } else {
+                    "fallback"
+                }
+            );
+        }
+        for c in &c2 {
+            // Saved chain and stop predicate from recorded steps only.
+            let mut running = 0i32;
+            for s in &c.steps {
+                assert_eq!(s.saved_before, running);
+                running += s.reclaimed + s.side_reclaimed;
+                assert_eq!(s.saved_after, running);
+            }
+            assert_eq!(running, c.saved_final);
+            assert_eq!(c.saved_final >= c.bits_to_save_entry, c.stop == "saved_met");
+            assert_eq!(c.stat_saved, c.stat_before - c.stat_new);
+        }
+        for e in &e2 {
+            let (done, next_decrease, reset) = exit_matrix_step(
+                e.sum_bits,
+                e.sum_dyn,
+                e.total_avail,
+                e.avg_total_dyn,
+                e.decrease_before,
+                e.iterations,
+                e.max_iterations,
+                e.used_dyn,
+                e.max_dyn,
+            );
+            assert_eq!(
+                (done, next_decrease, reset),
+                (e.done, e.next_decrease, e.reset)
+            );
+        }
+        for p in &p2 {
+            assert_eq!(p.exit.sum_bits, p.exit_sum_bits);
+            assert_eq!(
+                p.exit.iterations,
+                p.entry_iterations
+                    .max(p.exit.iterations)
+                    .min(p.exit.iterations)
+            );
+        }
+        println!(
+            "S6-PROBE replay verified reduces={} crashes={} decisions={} exits={} passes={}",
+            r2.len(),
+            c2.len(),
+            d2.len(),
+            e2.len(),
+            p2.len(),
+        );
+        let _ = passes;
+    }
+
+    #[test]
+    fn s6_probe_canary_enabled_vs_disabled() {
+        // Probe-on/off equivalence at the `qc_main_frame` level: identical
+        // inputs with the probe enabled vs disabled produce identical frame
+        // outputs (bytes-equivalent accounting, gains, scalefactors via
+        // sections, quantized values, final state).
+        use super::s6_probe as probe;
+        let tns_defaults = [TnsChannel::default(), TnsChannel::default()];
+        for (name, f) in [("sine-stereo", 5u32), ("noise-mono", 5u32)] {
+            let s1 = testdata::load_s1(name, f);
+            let s4 = testdata::load_s4(name, f);
+            let s5 = testdata::load_s5(name, f);
+            let s6 = testdata::load_s6(name, f);
+            let init = testdata::load_s6init(init_tag(name));
+            let run = |enabled: bool| {
+                let (input, _) = build_frame_input(name, &s1, &s4, &s5, &init, &tns_defaults);
+                let mut dist = forge_dist(&init, &s6.gstate);
+                let mut qc = QcState {
+                    bit_res_tot: init.max,
+                    bit_res_tot_max: init.max,
+                    bc_scratch: Default::default(),
+                };
+                probe::set_enabled(enabled);
+                probe::clear();
+                let out =
+                    qc_main_frame(&mut qc, &mut dist, &input, MAX_ITERATIONS).expect("converges");
+                let _ = probe::take_reduce();
+                let _ = probe::take_crash();
+                let _ = probe::take_decision();
+                let _ = probe::take_exit();
+                let _ = probe::take_pass();
+                let _ = probe::take_frame();
+                probe::set_enabled(true);
+                (out, dist, qc.bit_res_tot)
+            };
+            let (on, dist_on, br_on) = run(true);
+            let (off, dist_off, br_off) = run(false);
+            assert_eq!(
+                format!("{on:?}"),
+                format!("{off:?}"),
+                "{name} f={f}: frame output identical"
+            );
+            assert_eq!(
+                on.final_quants, off.final_quants,
+                "{name} f={f}: quantized values"
+            );
+            assert_eq!(on.final_gains, off.final_gains, "{name} f={f}: gains");
+            assert_eq!(
+                on.final_sections, off.final_sections,
+                "{name} f={f}: sections/scalefactors"
+            );
+            assert_eq!(dist_on, dist_off, "{name} f={f}: grant state");
+            assert_eq!(br_on, br_off, "{name} f={f}: reservoir state");
+        }
+        println!("S6-PROBE canary qc_main_frame on/off identical");
+    }
+
+    #[test]
+    fn s6_probe_stream_canary_enabled_vs_disabled() {
+        // Stream-level canary: enabling the S6 probe must not alter encoded
+        // bytes, digests, gains, scalefactors, quantized values or final
+        // encoder state. Uses the production `StreamEncoder` path.
+        use super::super::stream_driver::StreamEncoder;
+        use super::s6_probe as probe;
+        use crate::aac_enc::testdata as td;
+        for mat in ["sine-stereo", "onset-stereo"] {
+            let pcm = td::fixture_samples(mat);
+            let sr = td::fixture_sample_rate(mat);
+            let run = |enabled: bool| {
+                probe::set_enabled(enabled);
+                probe::clear();
+                let mut enc =
+                    StreamEncoder::with_mode(sr, pcm.len(), crate::aac_enc::config::VbrMode::Vbr5);
+                let mut outs = Vec::new();
+                for frame in 0..6u32 {
+                    let mut fresh = vec![vec![0i16; 1024]; pcm.len()];
+                    for (ch, buf) in fresh.iter_mut().enumerate() {
+                        for (i, v) in buf.iter_mut().enumerate() {
+                            let t = frame as usize * 1024 + i;
+                            *v = if t < pcm[ch].len() { pcm[ch][t] } else { 0 };
+                        }
+                    }
+                    let (bytes, snap) = enc.step_frame(frame, &fresh);
+                    let _ = probe::take_reduce();
+                    let _ = probe::take_crash();
+                    let _ = probe::take_decision();
+                    let _ = probe::take_exit();
+                    let _ = probe::take_pass();
+                    let _ = probe::take_frame();
+                    outs.push((bytes, snap));
+                }
+                probe::set_enabled(true);
+                outs
+            };
+            let on = run(true);
+            let off = run(false);
+            assert_eq!(on.len(), off.len());
+            for (i, ((b_on, s_on), (b_off, s_off))) in
+                on.into_iter().zip(off.into_iter()).enumerate()
+            {
+                assert_eq!(b_on, b_off, "{mat} frame {i}: encoded bytes identical");
+                assert_eq!(s_on.digest, s_off.digest, "{mat} frame {i}: digest");
+                assert_eq!(s_on.gains, s_off.gains, "{mat} frame {i}: gains");
+                let q_on = s_on
+                    .r22_cap
+                    .as_ref()
+                    .expect("cap")
+                    .s6
+                    .output
+                    .final_quants
+                    .clone();
+                let q_off = s_off
+                    .r22_cap
+                    .as_ref()
+                    .expect("cap")
+                    .s6
+                    .output
+                    .final_quants
+                    .clone();
+                assert_eq!(q_on, q_off, "{mat} frame {i}: quantized values");
+                let scf_on: Vec<Vec<i32>> = s_on
+                    .r22_cap
+                    .as_ref()
+                    .expect("cap")
+                    .s4
+                    .ch
+                    .iter()
+                    .map(|c| c.scf.clone())
+                    .collect();
+                let scf_off: Vec<Vec<i32>> = s_off
+                    .r22_cap
+                    .as_ref()
+                    .expect("cap")
+                    .s4
+                    .ch
+                    .iter()
+                    .map(|c| c.scf.clone())
+                    .collect();
+                assert_eq!(scf_on, scf_off, "{mat} frame {i}: scalefactors");
+                assert_eq!(
+                    s_on.r22_cap.as_ref().expect("cap").s6.output.final_gains,
+                    s_off.r22_cap.as_ref().expect("cap").s6.output.final_gains,
+                    "{mat} frame {i}: final gains"
+                );
+            }
+        }
+        println!("S6-PROBE canary stream on/off identical (bytes/digest/gains/scf/quant/state)");
     }
 }
