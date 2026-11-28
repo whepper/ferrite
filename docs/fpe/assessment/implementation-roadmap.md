@@ -418,3 +418,35 @@ reclassified.*
 - **M4 and subsequent phases remain unauthorized.** M4 requires a separate
   authorisation and planning decision. No phase is authorized by this
   clarification.
+
+---
+
+## Dated clarification — M4.0 owner decisions; Phase 3 entry (28 November 2026)
+
+*Appended without rewriting §§1–4 or any earlier dated clarification
+(history preserved; this document remains the 21 November 2026 assessment
+proposal). Authority: [M4.0 owner decision](M4.0-owner-decision.md)
+(28 November 2026).*
+
+- **Phase 3 (M4) entry decisions are issued.** The M4 blueprint
+  ([`../M4-architecture-and-implementation-plan.md`](../M4-architecture-and-implementation-plan.md))
+  is adopted as the execution basis of record for M4.0 planning.
+- **D1:** M4.0 and M4.1 are authorized with **staged authorization
+  thereafter** — each later stage (M4.2 seam mirror, M4.3 clip, M4.4/4.5
+  spreading, M4.6–M4.10) requires explicit owner authorization against the
+  completed predecessor evidence. The historical "M4 requires a separate
+  authorisation" statement above is satisfied **for M4.0 and M4.1 only**.
+- **D2:** the Phase 3 dependency "A-13 seam decision (Owner)" is satisfied:
+  **FPE-side composite mirror** (Q31 kernel extraction rejected;
+  `tns_encode_channel` delegated until the M7 review; `finish_channel`
+  shared; Q31 unchanged and reference/default).
+- **D3:** a reproducible baseline checkpoint of the accepted M3/R2.2 state
+  is required before M4.1 implementation; the checkpoint plan
+  ([`../M4-baseline-checkpoint-plan.md`](../M4-baseline-checkpoint-plan.md))
+  specifies the procedure, and its Git operations **await explicit owner
+  approval**. The baseline is not yet established.
+- **D4:** historical pins are immutable; successor baselines require
+  explicit owner approval; no silent rebaselining.
+- Phase 3 implementation work beyond M4.1 remains unauthorized, and Phases
+  4–9 are unchanged. No production, test, evidence, ADR or pin change is
+  made by this clarification.

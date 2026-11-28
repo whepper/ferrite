@@ -316,10 +316,16 @@ resolution / blocks.
   thresholds/PCM/pre-echo requires FPE-side composite mirrors (Q31 refactor
   forbidden). ADR-0001's "slight duplication" understates the growing
   composite-stage duplication and drift risk (R-02).
-- **Status:** Open (architecture/planning). **Risk:** Medium — avoidable
-  migration complexity. **Resolution:** explicit owner decision at M4 entry:
-  FPE-side mirrors vs minimal additive baseline-gated Q31 kernel extraction.
-  **Blocks:** clean M4–M7 execution (decision needed, not a hard blocker).
+- **Status:** Decided 28 November 2026 — see
+  [M4.0 owner decision](M4.0-owner-decision.md) §2 (D2). Resolution:
+  **FPE-side composite advance-stage mirror** for the threshold-advance
+  family (M4–M7 window); `tns_encode_channel` remains delegated until the
+  M7 review; `finish_channel` remains shared; Q31 kernel
+  extraction/refactoring rejected. Historical status before the decision:
+  Open (architecture/planning). **Risk:** Medium — avoidable
+  migration complexity. **Resolution:** decided (above).  **Blocks:** none
+  (decision recorded; mirror implementation is staged M4.2, not yet
+  authorized).
 
 ### A-14 — F-6 short-TNS tnsSpecShift≠0 structurally unreachable
 - **Source:** this assessment; `07` §5.2; `psy.rs:1190-1213`; `f6_tns.rs`.
@@ -927,3 +933,34 @@ finding beyond the statuses already recorded, and does not authorise M4.*
 - **M4 is not authorised.** M4 requires a separate authorisation and planning
   decision. No production, test, evidence, schema or baseline-pin change is
   made by this update.
+
+## 23. Dated update — M4.0 owner decisions D1–D4 (28 November 2026)
+
+*Appended without rewriting any earlier section (history preserved).
+Authority: [M4.0 owner decision](M4.0-owner-decision.md) (28 November 2026).*
+
+- **D1:** M4.0 and M4.1 are authorized; M4.2 and later stages require
+  explicit staged authorization. M4.1 implementation is blocked until the
+  baseline checkpoint (D3) is established and verified.
+- **D2 / A-13:** decided — FPE-side composite advance-stage mirror;
+  `tns_encode_channel` delegated until M7; `finish_channel` shared; no Q31
+  kernel extraction/refactoring authorized. A-13's status line (§5 above)
+  is updated with a dated link; the historical text is preserved.
+- **D3:** a safe, reproducible baseline checkpoint of the accepted M3/R2.2
+  state is required before any M4 implementation. Investigation confirmed:
+  HEAD is `189e6a7` (the historical checkpoint); the entire accepted M3/R2.2
+  state is uncommitted working-tree content (19 modified + 31 untracked
+  entries) with **no commit and no off-machine copy** (`main` is ahead 1 of
+  `origin/main`); current-tree validation matches the accepted M3 state
+  exactly (production baseline 2/2; `fpe::` 289/7 documented pins; full
+  suite 671/18/2 documented set; evidence bundles 36/36 and 5/5 OK). The
+  checkpoint procedure ([`../M4-baseline-checkpoint-plan.md`](../M4-baseline-checkpoint-plan.md))
+  is specified and **awaits explicit owner approval of its Git operations**;
+  the baseline is not yet established.
+- **D4:** historical baseline pins are immutable; any successor baseline
+  requires explicit owner approval; no silent rebaselining. The seven
+  preserved pins, the 187 unjudged S4 flips, the frozen schema/MDEF and the
+  accepted evidence bundles are untouched.
+- No finding other than A-13 is resolved, closed, waived or reclassified by
+  this update. No production, test, evidence, schema, ADR or pin change
+  was made. M4.2+ remains unauthorized.

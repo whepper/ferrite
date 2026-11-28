@@ -372,3 +372,31 @@ clarification.*
 - **M3 completion does not satisfy the later Stage-1 gates** (G1/G5 Tier-B,
   G4 fuzz, G6 performance) or close the conditional acceptances. M4 is not
   authorised; it requires a separate authorisation and planning decision.
+
+---
+
+## Dated clarification — M4.0 activation of the M4.1 validation requirements (28 November 2026)
+
+*Appended without rewriting any earlier section (history preserved).
+Authority: [M4.0 owner decision](M4.0-owner-decision.md) (28 November 2026).*
+
+- **D1 activates the M4.1 slice of the N-4/N-5/N-8 requirements:** the M4.1
+  threshold-init stage (blueprint §6, task FPE-4.1a) is validated with the
+  retained `q31_tol` working gate (`32 + |w|/500` on THR/NM1), the **N-5
+  propagated-bound audit** (`C_RATIO·tol_E + 1` through the init chain;
+  widenings counted and explicitly justified), and **N-8 unit coverage**
+  for the init kernel (hand-computed, zero, exact-LSB, boundary round-half
+  cases). The formal N-4 derived threshold/spread envelope remains a later
+  M4 stage (M4.7), owner-approved per the ADR-0004 amendment mechanism.
+- **D3 makes the baseline verification gates binding:** the checkpoint
+  criteria in [`../M4-baseline-checkpoint-plan.md`](../M4-baseline-checkpoint-plan.md)
+  (§2 validation results and §5 reproducibility gates) must pass and be
+  recorded before M4.1 implementation starts. The re-verified
+  current-tree state (production baseline 2/2; `fpe::` 289/7 documented
+  pins; full suite 671/18/2 documented set; evidence 36/36 + 5/5; licensing
+  OK; `git diff --check` clean) matches the accepted M3 state.
+- **D4:** pinned validation baselines are immutable; any successor baseline
+  (e.g. an M4 divergence-characterization pin set at stage M4.8) requires
+  explicit owner approval. No rebaseline is authorized or performed.
+- No gate, tolerance, envelope, or milestone requirement is changed by
+  this clarification. M4.2+ remains unauthorized.
