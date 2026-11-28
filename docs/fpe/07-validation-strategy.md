@@ -223,6 +223,19 @@ remain outstanding and are implemented in **FPE-3.1R2**:
   helper and the short-TNS `ld_ref`/Ld gate). R1 marks this case unsupported
   if observed and does **not** claim it resolved; the current corpus does not
   exercise it.
+  - *Reachability-conditional interpretation (owner decision
+    `docs/fpe/assessment/f6-owner-decision.md`, 27 November 2026; F-6
+    closed):* the construction obligation above is discharged where
+    source-level structural proof establishes the condition cannot occur
+    within the supported production architecture — documented
+    unreachability plus retained watches satisfies this bullet's intent,
+    and no separate synthetic short-element test is required for closure.
+    The observation rule stands unchanged: if the condition is ever
+    observed it must be treated as unsupported/failed and investigated,
+    and the retained watches (`audit.rs` `short_tns_spec_shift_seen`, T1
+    scan, corpus zero-asserts) must continue to detect it. Scope: current
+    production mono/stereo architecture; future multichannel
+    orchestration must re-verify the invariant.
 
 FPE-3.1 is **not accepted** after R1 alone; the milestone remains blocked until
 R2 and independent review complete.

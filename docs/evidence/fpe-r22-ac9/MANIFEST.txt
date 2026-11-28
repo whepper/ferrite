@@ -1,0 +1,15 @@
+AC9MANIFEST	1
+schema: 1
+head: 189e6a79b78a84dcc5be88eaca5ffaba24097acc
+platform: macos-aarch64
+command: FPE_AC9_GENERATE=1 AC9_TEST_WRITE=1 cargo test -p ferrite-aac --lib ac9_supplement_generate_and_verify
+rows: 134617
+links: 1176
+group_e_tsv_sha: 19f46a4cf5fe16db91d4aac5306ec73918dd57ee0d4b4beb8fb2027df95f97b9
+group_e_json_sha: cb68d87a0dc27590b9ebf1cb6ed0f896d9adb007375788f76a3b030bb75cd6f9
+group_e_shas_sha: 8df2a54b649f673321d2d8a0031a19410373d45d1b3ff8b13d27d9e1c8bca01b
+files:
+b9aecb30b51f28b4ec1c594a2003692472177f70062dd5b6c64b04b21c289c4c  ac9-margins.tsv  50084252
+e6e3cd709dd00581f8e94256e1c0489c31e693a409e9d359d8da6e4fc4251116  ac9-margins.json  75443730
+0c51756bf316dbc2a48378078b362c978f19b2bcbf84953e55a9a2f888441244  group-e-links.tsv  326366
+df2385384e33e6aaead62fefd41af65b2e1ad359c746895a473629edd9582ca7  README.md  2799
