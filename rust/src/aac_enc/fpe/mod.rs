@@ -15,19 +15,22 @@
 //! `07`, roadmap `09`; ADR-0001/0002/0003/0004/0005).
 //!
 //! **M2 status (roadmap `09` M2, explicit orchestration mirror) and M3
-//! (FPE-3.1):** the FPE path runs its **own explicit per-pair processing
-//! sequence** ([`orchestrate`]) that mirrors the Q31 order stage-for-stage
-//! and operates on **FPE-owned state** ([`FpeChannel`]) and **FPE-owned
-//! scratch** ([`FpeScratch`]). **FPE-3.1** replaces the rescale-stage band
-//! energy value arithmetic with native f64 in the Q31-fraction domain
-//! (`energy.rs`, `05` §6.1) and activates the `05` §7 fraction-to-stored
-//! boundary for those energies; every other value calculation still calls
-//! the existing Q31 kernels, whose stored-int / f64-Ld results pass through
-//! **unchanged** (no fraction conversion, no rounding, no rescaling). The
-//! Q31 engine remains authoritative and the default; FPE is independently
-//! selectable via [`super::config::PsyEngineKind`] for the in-binary
-//! Q31↔FPE differential harness (`tests/`). Later float kernels arrive one
-//! group at a time in M3–M7, each gated by that harness.
+//! (FPE-3.1 + FPE-3.2):** the FPE path runs its **own explicit per-pair
+//! processing sequence** ([`orchestrate`]) that mirrors the Q31 order
+//! stage-for-stage and operates on **FPE-owned state** ([`FpeChannel`]) and
+//! **FPE-owned scratch** ([`FpeScratch`]). **FPE-3.1** replaces the
+//! rescale-stage band energy value arithmetic with native f64 in the
+//! Q31-fraction domain (`energy.rs`, `05` §6.1) and **FPE-3.2** replaces
+//! the TNS recompute energies (`energy.rs`, `05` §6.2, mirror-then-replace
+//! over the unchanged Q31 `tns_encode_channel`/`overflow_rescale`) and
+//! activates the `05` §7 fraction-to-stored boundary for those energies;
+//! every other value calculation still calls the existing Q31 kernels,
+//! whose stored-int / f64-Ld results pass through **unchanged** (no
+//! fraction conversion, no rounding, no rescaling). The Q31 engine remains
+//! authoritative and the default; FPE is independently selectable via
+//! [`super::config::PsyEngineKind`] for the in-binary Q31↔FPE differential
+//! harness (`tests/`). Later float kernels arrive one group at a time in
+//! M3–M7, each gated by that harness.
 //!
 //! Upstream counterpart: `FDKaacEnc_psyMain` (`psy_main.cpp:407-1298`,
 //! FDK-AAC 3.0.0), factored exactly as the Q31 engine factors it
@@ -189,12 +192,12 @@ pub(crate) struct FpeScratch {
 ///
 /// **M2/M3 explicit orchestration mirror:** runs the FPE-owned per-pair
 /// processing sequence ([`orchestrate::process_pair`]) over FPE-owned state
-/// and scratch. **FPE-3.1** replaces the rescale band-energy value
-/// arithmetic with f64 and activates the `docs/fpe/05` §7 boundary
-/// conversion for those energies; every other value calculation still
-/// calls the existing Q31 kernels, whose stored-int / f64-Ld results and
-/// the mutated f64 spectrum pass through unchanged. D-022 preconditions
-/// are asserted at entry, identically to the Q31 engine.
+/// and scratch. **FPE-3.1 + FPE-3.2** replace the rescale band-energy and the
+/// TNS recompute energy value arithmetic with f64 and activate the
+/// `docs/fpe/05` §7 boundary conversion for those energies; every other
+/// value calculation still calls the existing Q31 kernels, whose stored-int
+/// / f64-Ld results and the mutated f64 spectrum pass through unchanged.
+/// D-022 preconditions are asserted at entry, identically to the Q31 engine.
 pub(crate) fn process_pair_reuse(
     left: &mut FpeChannel,
     right: Option<&mut FpeChannel>,

@@ -12,15 +12,18 @@
 //! on FPE-owned state ([`super::FpeChannel`]) and scratch
 //! ([`super::FpeScratch`]).
 //!
-//! **M3 value-lane status (FPE-3.1):** the rescale-stage band energies and
-//! their Ld vector are native f64 ([`super::energy::rescale_band_energy_into`])
-//! in the Q31-fraction domain, converted to stored `i32` at the `05` §7
-//! boundary ([`super::output::fraction_to_stored`]). Every other value
-//! calculation still calls the existing Q31 kernels (TNS energy recompute,
-//! threshold init/clip/spreading/PCM floor, pre-echo, MS energies), whose
-//! stored-int / f64-Ld results pass through unchanged. The integer raw
-//! energy sums are still computed — they feed ONLY the maxNrg/finalShift
-//! representation decision (ADR-0005).
+//! **M3 value-lane status (FPE-3.1 + FPE-3.2):** the rescale-stage band
+//! energies and their Ld vector are native f64
+//! ([`super::energy::rescale_band_energy_into`]) in the Q31-fraction domain,
+//! converted to stored `i32` at the `05` §7 boundary
+//! ([`super::output::fraction_to_stored`]), and the TNS energy recompute is
+//! likewise floated ([`super::energy::tns_recompute_energy_into`], `05`
+//! §6.2) with the mirror-then-replace discipline below. Every other value
+//! calculation still calls the existing Q31 kernels (threshold
+//! init/clip/spreading/PCM floor, pre-echo, MS energies), whose stored-int /
+//! f64-Ld results pass through unchanged. The integer raw energy sums are
+//! still computed — they feed ONLY the maxNrg/finalShift representation
+//! decision (ADR-0005).
 //!
 //! **M2 pass-through semantics** (still authoritative for every kernel not
 //! yet floated): no fraction conversion, no rounding, no rescaling is
@@ -67,11 +70,13 @@ use crate::aac_enc::tns;
 /// Per-pair orchestration entry (called by [`super::process_pair_reuse`]).
 ///
 /// Explicit FPE processing sequence mirroring `psy::process_pair_reuse`
-/// stage-for-stage over FPE-owned state and scratch. From M3 (FPE-3.1) the
-/// rescale band energies and their Ld vector are float-derived; every other
-/// value kernel still delegates to Q31 and passes its results through
-/// unchanged, so representation fields and mutated spectra remain exact and
-/// the remaining value fields move only through the replaced energy values.
+/// stage-for-stage over FPE-owned state and scratch. From M3 (FPE-3.1 +
+/// FPE-3.2) the rescale band energies with their Ld vector and the TNS
+/// recomputed energies (long stored + Ld, short stored only) are
+/// float-derived; every other value kernel still delegates to Q31 and passes
+/// its results through unchanged, so representation fields and mutated
+/// spectra remain exact and the remaining value fields move only through
+/// the replaced energy values.
 pub(super) fn process_pair(
     left: &mut FpeChannel,
     right: Option<&mut FpeChannel>,
@@ -467,6 +472,15 @@ pub(super) fn process_pair(
         // (Two loops mirror C: encode/energy for all channels first so the
         // element-global tnsSpecShift is final before the overflow rescale.)
         // Left channel.
+        // FPE-3.2 mirror-then-replace: the Q31 call below is unchanged and
+        // preserves every representation and state effect (Q remap, maxScale
+        // recompute, TNS filtering of `spec_l`, pre-halving `m_l += 1`,
+        // threshold quartering, `nrgScaling`/global `tnsSpecShift`). Only
+        // the designated recomputed values are then replaced with the float
+        // results (long: stored energies + Ld; short: stored energies only,
+        // Ld stays at rescale values). `overflow_rescale` below stays
+        // unchanged and shifts the replaced stored ints by the exact
+        // integer power of two.
         psy::tns_encode_channel(
             &mut left.tns_state,
             &mut left.tns_info,
@@ -487,6 +501,21 @@ pub(super) fn process_pair(
             &mut ws.qwin,
             &mut ws.tns_pre,
         );
+        for w in 0..n_win_l {
+            if tns_active[w] {
+                fpe_energy::tns_recompute_energy_into(
+                    &spec_l[w * wlen_l..(w + 1) * wlen_l],
+                    conf_l.offsets(),
+                    active_l,
+                    m_l,
+                    &ws.maxsc_l[w],
+                    nrg_scaling[0],
+                    short_l,
+                    &mut ws.e_l[w],
+                    &mut ws.eld_l[w],
+                );
+            }
+        }
         // Right channel.
         if stereo {
             let (rstate, rinfo) = right
@@ -514,6 +543,22 @@ pub(super) fn process_pair(
                 &mut ws.qwin,
                 &mut ws.tns_pre,
             );
+            let spec_r = spec_r_opt.as_deref().expect("stereo spectrum");
+            for w in 0..n_win_r {
+                if tns_active[w] {
+                    fpe_energy::tns_recompute_energy_into(
+                        &spec_r[w * wlen_r..(w + 1) * wlen_r],
+                        conf_r.offsets(),
+                        active_r,
+                        m_r,
+                        &ws.maxsc_r[w],
+                        nrg_scaling[1],
+                        short_r,
+                        &mut ws.e_r[w],
+                        &mut ws.eld_r[w],
+                    );
+                }
+            }
         }
     } else {
         // TNS globally inactive: clear runtime decisions (psy_main:915-919).

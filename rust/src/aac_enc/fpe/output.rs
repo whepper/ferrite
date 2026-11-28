@@ -4,11 +4,12 @@
 //! Package: ferrite-aac (package license FDK-AAC); see rust/NOTICE for the full license text.
 //! FPE output boundary and shared-output assembly.
 //!
-//! **M3 (FPE-3.1):** the boundary quantization of `docs/fpe/05` §7 is now
-//! **active for the rescale band energies only** — [`fraction_to_stored`]
-//! converts the f64 fraction energy `E_f` to the stored `i32`
-//! `E_st = clamp(round(E_f·2^31))` at the orchestration boundary. All other
-//! value kernels (TNS recompute, thresholds, spreading, PCM floor,
+//! **M3 (FPE-3.1 + FPE-3.2):** the boundary quantization of `docs/fpe/05` §7
+//! is now **active for the rescale band energies and the TNS recompute
+//! energies** — [`fraction_to_stored`] converts the f64 fraction energy
+//! `E_f` to the stored `i32` `E_st = clamp(round(E_f·2^31))` at the
+//! orchestration boundary (rescale) and inside the TNS recompute kernel
+//! (which writes stored ints directly). All other value kernels (thresholds, spreading, PCM floor,
 //! pre-echo, MS) still delegate to Q31 and pass their results through
 //! unchanged. [`assemble_channel`] itself remains a pass-through of the
 //! stored ints / f64 Ld it is handed (the energies it receives are already
@@ -132,8 +133,10 @@ pub(super) fn assemble_channel(
 /// `MAXVAL_f` clamp and this stored-domain clamp produce the same stored
 /// value (`05` §1.4 keeps them separate).
 ///
-/// **M3 (FPE-3.1):** active for the rescale band energies only; every other
-/// value kernel still passes Q31 results through unchanged.
+/// **M3 (FPE-3.1 + FPE-3.2):** active for the rescale band energies (at the
+/// orchestration boundary) and the TNS recompute energies (inside the
+/// recompute kernel via the same §7 function); every other value kernel
+/// still passes Q31 results through unchanged.
 pub(super) fn fraction_to_stored(v_f: f64) -> i32 {
     // S-4 (FPE-3.1R1): this is deliberately an ordinary `assert!`, not a
     // `debug_assert!`. A non-finite fraction is unreachable for finite

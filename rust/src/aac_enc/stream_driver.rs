@@ -586,6 +586,8 @@ pub(crate) struct R22S2Cap {
     pub ah_flag: Vec<Vec<u8>>,
     pub red_val: Vec<i32>,
     pub chaos_measure: i32,
+    pub peak_valley: Vec<super::threshold_vbr::ah_probe::PeakValleyRec>,
+    pub ms_tweaks: Vec<super::threshold_vbr::ah_probe::MsTweakRec>,
 }
 
 /// R2.2 Group A: one channel's owned S4
@@ -1774,7 +1776,11 @@ impl StreamEncoder {
         } else {
             None
         };
+        #[cfg(test)]
+        super::threshold_vbr::ah_probe::clear();
         let s2 = adapt_thresholds_vbr(&s2_inputs, ms_opt, &mut self.ats);
+        #[cfg(test)]
+        let (s2_peak_valley, s2_ms_tweaks) = super::threshold_vbr::ah_probe::take();
         #[cfg(test)]
         {
             snap.s2_cap = Some(S2Cap {
@@ -1832,6 +1838,8 @@ impl StreamEncoder {
             ah_flag: s2.ah_flag.clone(),
             red_val: s2.reduce.red_val.clone(),
             chaos_measure: s2.reduce.chaos_measure,
+            peak_valley: s2_peak_valley,
+            ms_tweaks: s2_ms_tweaks,
             ats_pre,
         });
 

@@ -599,6 +599,34 @@ pub(crate) fn fixture_samples(name: &str) -> Vec<Vec<i16>> {
                     .collect()
             })
             .collect(),
+        // A-17 short-window TNS-active resynthesis (narrow scope, additive).
+        // Formula is identical to
+        // `tools/enc-oracle/make_fpe_fixtures.py` (`fpe-tns-active-short`
+        // block): gated 8 kHz tonal bursts (0.1 s tone / 0.1 s silence, amp
+        // 15000) to force short windows at onsets while presenting
+        // predictable tonal content to TNS detect. Deterministic: fixed
+        // frequency/amplitude/gating, truncation toward zero via `as i16`
+        // (matches Python `int()` + clamp for in-range values), no
+        // randomness. Provenance: Python generator is the oracle-side
+        // definition; this arm is the in-binary resynthesis consumed by the
+        // Q31↔FPE harness (no WAV asset, no C artifact needed). The sibling
+        // R2.0 `fpe-short-burst-quiet` fixture remains Python-only by design;
+        // this task resynthesizes only the TNS-active short fixture.
+        "fpe-tns-active-short-stereo" => (0..2)
+            .map(|_| {
+                (0..48000)
+                    .map(|t| {
+                        let time = t as f64 / 48000.0;
+                        let v = if (t % 9600) < 4800 {
+                            15000.0 * (2.0 * core::f64::consts::PI * 8000.0 * time).sin()
+                        } else {
+                            0.0
+                        };
+                        v as i16
+                    })
+                    .collect()
+            })
+            .collect(),
         _ => panic!("unknown fixture {name}"),
     }
 }

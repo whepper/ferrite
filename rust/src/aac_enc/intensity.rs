@@ -47,6 +47,70 @@ const REAL_SCALE_SF: i32 = 1;
 const MAX_SFB_PER_GROUP_SF: i32 = 6;
 const DFRACT_BITS: i32 = 32;
 
+/// Test-only observation of the I9 residual calculation
+/// (`intensity.rs:479-537`). The probe records the actual `lr` accumulator and
+/// the *selected* residual energy (`ed` for out-of-phase, `es` for in-phase)
+/// at the exact production decision point. Bands that never reach I9 are
+/// recorded with a skip reason and no residual value; nothing is fabricated.
+#[cfg(test)]
+pub(crate) mod is_probe {
+    use std::cell::RefCell;
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub(crate) struct ResidualRec {
+        pub(crate) band: usize,
+        pub(crate) start: usize,
+        pub(crate) end: usize,
+        pub(crate) s_l: i32,
+        pub(crate) s_r: i32,
+        pub(crate) inv_n: i32,
+        pub(crate) mdct_spec_sf: i32,
+        pub(crate) lr: Option<i32>,
+        pub(crate) ed: Option<i32>,
+        pub(crate) es: Option<i32>,
+        /// `out_of_phase` | `in_phase` | `not_reached`.
+        pub(crate) branch: &'static str,
+        pub(crate) selected: bool,
+        /// Empty when the selected residual was positive; otherwise
+        /// `ed_nonpositive`, `es_nonpositive` or a pre-I9 skip reason.
+        pub(crate) skip: &'static str,
+    }
+
+    thread_local! {
+        static RECS: RefCell<Vec<ResidualRec>> = const { RefCell::new(Vec::new()) };
+    }
+
+    pub(crate) fn clear() {
+        RECS.with(|v| v.borrow_mut().clear());
+    }
+
+    pub(crate) fn take() -> Vec<ResidualRec> {
+        RECS.with(|v| std::mem::take(&mut *v.borrow_mut()))
+    }
+
+    pub(crate) fn record(rec: ResidualRec) {
+        RECS.with(|v| v.borrow_mut().push(rec));
+    }
+
+    pub(crate) fn not_reached(band: usize, skip: &'static str) {
+        record(ResidualRec {
+            band,
+            start: 0,
+            end: 0,
+            s_l: 0,
+            s_r: 0,
+            inv_n: 0,
+            mdct_spec_sf: 0,
+            lr: None,
+            ed: None,
+            es: None,
+            branch: "not_reached",
+            selected: false,
+            skip,
+        });
+    }
+}
+
 /// Result of the stereo intensity decision. `is_book`/`is_scale` are the
 /// right-channel vectors; the left channel remains all-zero by C design.
 pub(crate) struct IntensityResult {
@@ -450,17 +514,23 @@ pub(crate) fn intensity_stereo(
             }
             ms_mask[b] = 0;
             if is_mask[b] == 0 {
+                #[cfg(test)]
+                is_probe::not_reached(b, "mask_zero");
                 continue;
             }
 
             // C threshold guard (`intensity.cpp:671-673`).
             if e_l[b] < threshold_l[b] && fmult(ONE_POINT_FIVE_RECIP, e_r[b]) > threshold_r[b] {
+                #[cfg(test)]
+                is_probe::not_reached(b, "i8_guard");
                 continue;
             }
 
             let start = offsets[b] as usize;
             let end = offsets[b + 1] as usize;
             if end <= start {
+                #[cfg(test)]
+                is_probe::not_reached(b, "geometry");
                 continue;
             }
 
@@ -470,6 +540,8 @@ pub(crate) fn intensity_stereo(
             }
             let inv_n = inv_int((end - start) >> 1);
             if inv_n <= 0 {
+                #[cfg(test)]
+                is_probe::not_reached(b, "inv_n");
                 continue;
             }
 
@@ -494,6 +566,22 @@ pub(crate) fn intensity_stereo(
                         (shift_int(spec_l[j], s0) >> 1).wrapping_sub(shift_int(spec_r[j], s0) >> 1);
                     ed = ed.wrapping_add(fmult_div2(d, d) >> (mdct_spec_sf - 1));
                 }
+                #[cfg(test)]
+                is_probe::record(is_probe::ResidualRec {
+                    band: b,
+                    start,
+                    end,
+                    s_l,
+                    s_r,
+                    inv_n,
+                    mdct_spec_sf,
+                    lr: Some(lr),
+                    ed: Some(ed),
+                    es: None,
+                    branch: "out_of_phase",
+                    selected: ed > 0,
+                    skip: if ed > 0 { "" } else { "ed_nonpositive" },
+                });
                 if ed <= 0 {
                     continue;
                 }
@@ -532,6 +620,22 @@ pub(crate) fn intensity_stereo(
                         (shift_int(spec_l[j], s0) >> 1).wrapping_add(shift_int(spec_r[j], s0) >> 1);
                     es = es.wrapping_add(fmult_div2(s, s) >> (mdct_spec_sf - 1));
                 }
+                #[cfg(test)]
+                is_probe::record(is_probe::ResidualRec {
+                    band: b,
+                    start,
+                    end,
+                    s_l,
+                    s_r,
+                    inv_n,
+                    mdct_spec_sf,
+                    lr: Some(lr),
+                    ed: None,
+                    es: Some(es),
+                    branch: "in_phase",
+                    selected: es > 0,
+                    skip: if es > 0 { "" } else { "es_nonpositive" },
+                });
                 if es <= 0 {
                     continue;
                 }

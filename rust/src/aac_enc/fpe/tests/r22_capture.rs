@@ -356,7 +356,9 @@ fn replay_s6(cap: &R22S6Cap, tag: &str) {
 }
 
 /// Replay every stage of one frame's capture (within-arm hard gate).
-fn replay_frame(cap: &R22Capture, tag: &str) {
+/// `pub(super)` for Group C reuse (`decision.rs` OP matrix): the same
+/// reviewed function, not a second replay implementation.
+pub(super) fn replay_frame(cap: &R22Capture, tag: &str) {
     replay_s1(&cap.s1, tag);
     replay_s2(&cap.s2, tag);
     replay_s4(&cap.s4, tag);
@@ -365,8 +367,9 @@ fn replay_frame(cap: &R22Capture, tag: &str) {
 
 /// Accounting/state internal consistency: the `R22AcctCap`/`R22FrameState`
 /// mirror the live `FrameSnapshot` and the stage snapshots (no second
-/// oracle; pure cross-reads of the same frame).
-fn check_acct_state(cap: &R22Capture, snap: &FrameSnapshot, tag: &str) {
+/// oracle; pure cross-reads of the same frame). `pub(super)` for Group C
+/// reuse (`decision.rs` OP matrix).
+pub(super) fn check_acct_state(cap: &R22Capture, snap: &FrameSnapshot, tag: &str) {
     let a = &cap.acct;
     assert_eq!(a.side, snap.side_bits, "{tag} acct side");
     assert_eq!(a.huff, snap.huff_bits, "{tag} acct huff");
@@ -434,14 +437,14 @@ fn check_acct_state(cap: &R22Capture, snap: &FrameSnapshot, tag: &str) {
 /// has no captured leaf to compare; the replay proves the invariant with a
 /// fresh scratch instead.
 #[derive(Debug, Default)]
-struct R22Diff {
-    s1_equal: bool,
-    s2_equal: bool,
-    s4_equal: bool,
-    s6_equal: bool,
-    state_equal: bool,
-    acct_equal: bool,
-    differing_fields: Vec<String>,
+pub(super) struct R22Diff {
+    pub(super) s1_equal: bool,
+    pub(super) s2_equal: bool,
+    pub(super) s4_equal: bool,
+    pub(super) s6_equal: bool,
+    pub(super) state_equal: bool,
+    pub(super) acct_equal: bool,
+    pub(super) differing_fields: Vec<String>,
 }
 
 /// Stage selector for [`push_diff`] (avoids double mutable borrows).
@@ -472,7 +475,9 @@ fn push_diff(d: &mut R22Diff, stage: DiffStage, path: &str, equal: bool) {
 /// Compare two captures leaf-by-leaf without asserting. Returns the
 /// difference record; callers must not treat a non-empty record as a
 /// failure (that decision belongs to Group D / owner disposition).
-fn diff_captures(q: &R22Capture, f: &R22Capture, prefix: &str) -> R22Diff {
+/// `pub(super)` for Group C reuse (`decision.rs` records the per-OP
+/// cross-arm differential; classification stays in Group D).
+pub(super) fn diff_captures(q: &R22Capture, f: &R22Capture, prefix: &str) -> R22Diff {
     let mut d = R22Diff {
         s1_equal: true,
         s2_equal: true,
@@ -1007,7 +1012,8 @@ const R22_COVERAGE_CASES: [(&str, u32, u32); 4] = [
 
 /// Snapshot completeness: every stage captured, every vector at geometry
 /// length, mask/flag presence per channel mode, no empty captures.
-fn check_snapshot_completeness(cap: &R22Capture, channels: usize, tag: &str) {
+/// `pub(super)` for Group C reuse (`decision.rs` OP matrix).
+pub(super) fn check_snapshot_completeness(cap: &R22Capture, channels: usize, tag: &str) {
     // S1.
     assert_eq!(cap.s1.ch.len(), channels, "{tag} s1 channels");
     for (i, c) in cap.s1.ch.iter().enumerate() {
@@ -1549,7 +1555,9 @@ fn r22_diff_detects_acct() {
 /// Minimal self-contained SHA-256 (test-only Group B identity anchor; no
 /// dependency or manifest change). Correctness is gated by
 /// `r22_sha256_selftest` (FIPS vectors) before any fixture digest is trusted.
-fn sha256_hex(data: &[u8]) -> String {
+/// E1-R0.3 OD-1: `pub(super)` export for test-only reuse (visibility-only;
+/// no production or Group D behaviour change).
+pub(super) fn sha256_hex(data: &[u8]) -> String {
     const K: [u32; 64] = [
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
         0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
@@ -1643,6 +1651,122 @@ fn r22_sha256_selftest() {
         sha256_hex(b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
     );
+}
+
+// ---------------------------------------------------------------------------
+// E1-R0.3 OD-1: narrowly scoped test-only F-20/F-22/F-26 replay capture
+// extension (synthetic only). No production encoder code or Group D decision
+// behaviour is altered: this captures only the recorded M3 mechanism values
+// (stored eR 0-vs-1, Ld MIN-vs-finite, real_scale MAX-clamp-vs-finite,
+// book 0-vs-15) on forged synthetic operands and digests them for pinning.
+// ---------------------------------------------------------------------------
+
+/// One finding's synthetic mechanism values (forged, not corpus).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct F20SyntheticCapture {
+    pub finding: &'static str,
+    pub band: usize,
+    pub stored_er_q: i32,
+    pub stored_er_f: i32,
+    pub ld_q_is_min: bool,
+    pub ld_f_is_min: bool,
+    pub real_q_is_max_clamp: bool,
+    pub real_f_is_max_clamp: bool,
+    pub book_q: i32,
+    pub book_f: i32,
+}
+
+/// Test-only synthetic capture of the F-20/F-22/F-26 M3 root. Uses only forged
+/// values matching the recorded mechanism (R2.1-B M3); runs no corpus, emits
+/// no bundle, touches no production path.
+pub(super) fn capture_f20_synthetic() -> Vec<F20SyntheticCapture> {
+    vec![
+        F20SyntheticCapture {
+            finding: "F-20",
+            band: 24,
+            stored_er_q: 0,
+            stored_er_f: 1,
+            ld_q_is_min: true,
+            ld_f_is_min: false,
+            real_q_is_max_clamp: true,
+            real_f_is_max_clamp: false,
+            book_q: 0,
+            book_f: 15,
+        },
+        F20SyntheticCapture {
+            finding: "F-22",
+            band: 38,
+            stored_er_q: 0,
+            stored_er_f: 1,
+            ld_q_is_min: true,
+            ld_f_is_min: false,
+            real_q_is_max_clamp: true,
+            real_f_is_max_clamp: false,
+            book_q: 0,
+            book_f: 15,
+        },
+        F20SyntheticCapture {
+            finding: "F-26",
+            band: 52,
+            stored_er_q: 0,
+            stored_er_f: 1,
+            ld_q_is_min: true,
+            ld_f_is_min: false,
+            real_q_is_max_clamp: true,
+            real_f_is_max_clamp: false,
+            book_q: 0,
+            book_f: 15,
+        },
+    ]
+}
+
+/// Digest of the synthetic F-20/F-22/F-26 capture (test-only pin, not a
+/// regression pin per D-R3; exact-value regression pinning stays deferred).
+pub(super) fn f20_synthetic_digest() -> String {
+    let caps = capture_f20_synthetic();
+    let mut s = String::new();
+    for c in &caps {
+        s.push_str(&format!(
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{};",
+            c.finding,
+            c.band,
+            c.stored_er_q,
+            c.stored_er_f,
+            c.ld_q_is_min,
+            c.ld_f_is_min,
+            c.real_q_is_max_clamp,
+            c.real_f_is_max_clamp,
+            c.book_q,
+            c.book_f
+        ));
+    }
+    sha256_hex(s.as_bytes())
+}
+
+#[test]
+fn r22_f20_synthetic_capture_extension() {
+    // Narrow scope: three findings, mechanism values only, synthetic.
+    let caps = capture_f20_synthetic();
+    assert_eq!(caps.len(), 3);
+    for c in &caps {
+        assert_eq!(c.stored_er_q, 0, "{} Q31 stored eR", c.finding);
+        assert_eq!(c.stored_er_f, 1, "{} FPE stored eR", c.finding);
+        assert!(c.ld_q_is_min, "{} Q31 Ld sentinel", c.finding);
+        assert!(!c.ld_f_is_min, "{} FPE Ld finite", c.finding);
+        assert!(c.real_q_is_max_clamp, "{} Q31 MAX-clamp", c.finding);
+        assert!(!c.real_f_is_max_clamp, "{} FPE finite", c.finding);
+        assert_eq!(c.book_q, 0, "{} Q31 drop", c.finding);
+        assert_eq!(c.book_f, 15, "{} FPE retain", c.finding);
+    }
+    // Digest is deterministic and well-formed (64-char lowercase hex).
+    let d1 = f20_synthetic_digest();
+    let d2 = f20_synthetic_digest();
+    assert_eq!(d1, d2, "digest deterministic");
+    assert_eq!(d1.len(), 64);
+    assert!(d1
+        .bytes()
+        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
+    // Production behaviour untouched: this extension runs no encoder.
 }
 
 #[test]
